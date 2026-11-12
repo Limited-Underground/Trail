@@ -2,7 +2,8 @@
 
 Status: design proposal, revision 2, 2026-11-12. The owner chose the direction
 (workspace decisions D-057, D-058) and the answers to the independent security
-review (D-059). This revision adds the ten changes that review required (see
+review (D-059, D-060). This revision adds the ten changes that review required
+and the fixes from its re-review (see
 [Review record](#review-record)). It is not implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
 current Heltec V4 radio, not a frozen wire format.
@@ -35,6 +36,8 @@ Owner choices this design follows:
    them (D-059).
 8. A board holds at most 4 groups and 8 outside-group conversations (D-059).
 9. Group texts are at most 80 bytes, in one radio frame (D-059).
+10. Rosters are the only group data that may be split across radio frames
+    (D-060).
 
 ## What stays the same
 
@@ -318,7 +321,11 @@ treats it as a conflict and shows it.
 
 **Acknowledgements** on group pairs carry the receiver's roster version and
 digest prefix, so a sender learns of a newer roster the first time any
-up-to-date member acknowledges anything.
+up-to-date member acknowledges anything. Today the Packet-v1 profile fixes an
+acknowledgement at exactly 8 plaintext bytes (the acknowledged counter), so
+this is a proposed profile change: group-pair acknowledgements are 16 bytes
+(counter 8, roster version 4, digest prefix 4), still unfragmented.
+Outside-group acknowledgements stay 8 bytes.
 
 Receivers:
 
@@ -331,13 +338,18 @@ relaying.
 
 ## Roster delivery
 
-**Size.** A 6-member roster is about 390 bytes without the per-member
-fingerprints (recomputed on receipt), so it does not fit in one 94-byte frame.
-How it travels is an open owner decision (re-review finding N1): the
-recommended option is to allow fragmentation for roster transfer only, using
-the bounded reassembler the Packet-v1 profile describes (one roster in flight
-per direction, timeout, consistent counts), while texts stay one frame.
-Joining cannot work until this is settled.
+**Fragmented transfer (D-060).** A 6-member roster is about 390 bytes without
+the per-member fingerprints (recomputed on receipt), so it does not fit in one
+94-byte frame. Roster transfer (type 6) is the only group frame that may be
+split: it uses the Packet-v1 fragment fields (index and count, authenticated,
+at most 16 fragments, every non-final fragment full), so a 6-member roster is
+5 fragments at the 154-byte MTU. Each fragment uses a fresh durable counter, as
+the profile requires. The receiver reassembles with the bounded
+[protected reassembler](../protocol/PROTECTED_REASSEMBLY_V0.md): one roster in
+flight per direction per peer, a timeout that discards incomplete state, and
+rejection of inconsistent counts, indices or message metadata. The roster is
+checked (signature, chain, limits) only after it is complete; a partial roster
+is never used. Group texts, statuses and positions stay one frame.
 
 The admin board sends each new roster over every remaining pair and retries
 until each member acknowledges it. The admin's app shows progress, for example
@@ -471,9 +483,13 @@ listed changes; 7 of the 10 met, 3 partly met. This revision adds its fixes:
 roster across a gap (N4), replay protection for rekey starts (N2), naming of
 outside-group conversations (N5), the "end conversation" note (N6), the digest
 prefix as early warning only (N7), up to 28 rekeys after a reboot (N9) and
-triggers limited to boot and recovery (N10). Open: roster transfer size (N1,
-owner decision). The reviewer stated that once N1 to N4 are written in, no
-further security re-review is needed before host implementation.
+triggers limited to boot and recovery (N10). Roster transfer size (N1) is
+settled by owner decision D-060: rosters only are fragmented (see
+[Roster delivery](#roster-delivery)). Also noted while writing that fix:
+group-pair acknowledgements need 16 bytes instead of the profile's fixed 8
+(see [Group messages](#group-messages)). The reviewer stated that once N1 to
+N4 are written in, no further security re-review is needed before host
+implementation; host implementation and its tests still need review.
 
 Still open, for implementation: the handshake suite, key derivation and
 fingerprint encoding (not selected); the production storage layout; handshake

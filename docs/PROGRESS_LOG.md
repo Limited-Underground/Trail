@@ -8,7 +8,7 @@ An independent, read-only security review of [GROUP_PAIRWISE_V1.md](security/GRO
 
 The enrollment design's top note now lists its three V1 amendments explicitly, and group lifecycle v0 is marked superseded for V1 groups apart from the rules the new design keeps. Documentation only: no code, build, device or crypto selection.
 
-The same reviewer re-checked revision 2: still acceptable with listed changes, 7 of 10 met. This commit adds its follow-up fixes: an "added in" roster version and a rekey start rule for every pair, acceptance of a signed roster across a version gap, replay protection so an old rekey start cannot freeze a working pair, naming of outside-group conversations, the digest prefix as an early warning only, and rekey triggers limited to boot and recovery. Still open: how a roster (about 390 bytes) travels, since it does not fit one 94-byte frame (owner decision).
+The same reviewer re-checked revision 2: still acceptable with listed changes, 7 of 10 met. This commit adds its follow-up fixes: an "added in" roster version and a rekey start rule for every pair, acceptance of a signed roster across a version gap, replay protection so an old rekey start cannot freeze a working pair, naming of outside-group conversations, the digest prefix as an early warning only, and rekey triggers limited to boot and recovery. A roster (about 390 bytes) does not fit one 94-byte frame; owner decision D-060 allows splitting roster transfer only (5 fragments, reassembled with the bounded protected reassembler), while texts stay one frame. Group-pair acknowledgements are proposed at 16 bytes instead of the profile's fixed 8, to carry the roster version and digest prefix.
 
 ### OT-0306 Propose the pairwise group design
 
