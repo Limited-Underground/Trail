@@ -100,8 +100,9 @@ Contents:
   roster);
 - digest of the previous roster (all zero for version 1), so rosters form a
   chain;
-- each member's full identity fingerprint, identity public key, alias and
-  role;
+- each member's identity public key, alias, role and the roster version in
+  which the member was added (the fingerprint is recomputed from the key, not
+  carried);
 - the location rule (off / preferred / required, requirement 6);
 - signature by the admin's identity signing key.
 
@@ -126,12 +127,13 @@ A board accepts a roster only if all of these hold:
 
 - signed by the admin identity this board verified in person when it joined;
 - same group name;
-- version higher than the newest accepted, and its previous-roster digest
-  continues the chain from the roster this board holds (when the board holds
-  version N and receives N+1). A board that missed versions fetches the
-  missing ones in order;
-- every listed fingerprint matches the fingerprint recomputed from the listed
-  public key;
+- version higher than the newest accepted. When it is exactly one higher, its
+  previous-roster digest must continue the chain from the roster this board
+  holds. A board that missed versions accepts a higher, admin-signed roster
+  across the gap (no old rosters are stored or fetched); the admin signature is
+  the authority, and forks are caught by the full-digest comparisons below;
+- fingerprints are recomputed from the listed public keys, and each member's
+  "added in" version is not higher than the roster's own version;
 - at most 6 members, no duplicate identities or aliases;
 - the board's own identity is listed, unless the roster removes it (then the
   board leaves the group).
@@ -142,7 +144,10 @@ or a roster that does not continue its chain, it shows "roster conflict" (or
 for that group until its user acts (keep current, or leave the group). This
 detects an admin board that signed two rosters or was restored from an old
 image. Preventing such a restore is outside V1 (OTSL0 makes no rollback-proof
-claim); detecting it is required.
+claim); detecting it is required. The full roster digest is compared in every
+introduced-pair handshake, rekey and roster transfer; the 4-byte digest prefix
+in group frames and acknowledgements is only an early warning, since a holder
+of the admin key could make two rosters with the same prefix.
 
 Every roster change is shown on every member board as an event. A known
 person's key changing is shown as "removed, and a different device added",
@@ -203,11 +208,13 @@ roster digest and both identities, and that stands in for the fingerprint
 review and local confirmation of the first pairing. It is a separate path, not
 a "skip confirmation" option on the first-pairing path.
 
-**Who starts.** The member added in the later roster version starts; if both
-were added in the same version (not possible in V1, where each roster adds at
-most one member), the lower fingerprint starts. A responder answers only an
-initiator listed in its own newest roster; if the initiator's roster is newer,
-the responder fetches it first.
+**Who starts.** For the first introduced handshake, the more recently added
+member (by its "added in" roster version) starts; each roster adds at most one
+member, so there is never a tie. For rekeys and recovery, on every pair
+including outside-group pairs, either side may start; if both start at once,
+the attempt started by the lower fingerprint continues and the other is
+dropped. A responder answers only an initiator listed in its own newest
+roster; if the initiator's roster is newer, the responder fetches it first.
 
 Activation uses the accepted durable steps (pending record, read back,
 activation intent, peer activation). Handshake answers are rate-limited per
@@ -224,16 +231,38 @@ admin, and outside-group conversation pairs) the rekey is **automatic**:
 
 - same two identities (and, for group pairs, both still on the current roster);
 - exactly epoch+1; zero, skips and wrap are refused;
-- fresh possession proof and the binding above (with the current roster
-  digest for group pairs; outside-group pairs bind their own conversation);
+- fresh possession proof and the binding above. It replaces the invitation the
+  accepted rekey used and gives the same freshness: fresh session keys, fresh
+  challenges from both sides, boot tokens and a deadline. Group pairs bind the
+  group name and current roster digest; outside-group pairs bind their
+  conversation name (below);
 - the accepted durable states PREPARED, ACTIVATION_POSSIBLE and
-  ACTIVE_COMMITTED;
-- no traffic on that pair until the rekey completes.
+  ACTIVE_COMMITTED.
 
-Triggers: boot, recovery, a counter domain nearing its limit, and roster
-changes that affect the pair. Both boards must be in radio range at the same
-time. The app shows each pair as "reconnecting" until it is ready; messages to
-that member wait or report undelivered.
+**Replay protection.** A rekey start alone changes nothing. The board that did
+not restart keeps its working pair until the new handshake has proved fresh
+values from both sides (its own fresh challenge signed back by the peer); only
+then does it retire the old keys. Rekey starts are rate-limited per peer. A
+replayed old start therefore cannot freeze a working pair. The board that
+restarted has no keys and sends nothing on that pair until the rekey
+completes.
+
+**Outside-group conversations** are named by both full fingerprints and a
+conversation ID fixed at their in-person first pairing. That name is bound
+into every rekey and into the pair's Packet-v1 context, so an outside-group
+pair and a group pair between the same two people are never confused.
+
+Triggers: boot and recovery (D-059). Any other trigger, such as a counter
+domain running out, is a separate decision. Both boards must be in radio range
+at the same time. After a reboot a board may need up to 28 rekeys (4 groups
+and 8 conversations); they are staggered and rate-limited. The app shows each
+pair as "reconnecting" until it is ready; messages to that member wait or
+report undelivered.
+
+For the outside-group conversation design (OT-0309 to OT-0311): add a local
+"end conversation" that deletes the pair and refuses that identity's later
+rekeys, and show "reconnected with X" after each automatic rekey, so a
+conversation with a stolen board can be ended.
 
 ## Recovery of interrupted pairs
 
@@ -301,6 +330,14 @@ Senders keep delivery state per member ("delivered to 4 of 5"). There is no
 relaying.
 
 ## Roster delivery
+
+**Size.** A 6-member roster is about 390 bytes without the per-member
+fingerprints (recomputed on receipt), so it does not fit in one 94-byte frame.
+How it travels is an open owner decision (re-review finding N1): the
+recommended option is to allow fragmentation for roster transfer only, using
+the bounded reassembler the Packet-v1 profile describes (one roster in flight
+per direction, timeout, consistent counts), while texts stay one frame.
+Joining cannot work until this is settled.
 
 The admin board sends each new roster over every remaining pair and retries
 until each member acknowledges it. The admin's app shows progress, for example
@@ -376,8 +413,8 @@ without acknowledgements or retries:
 | 6 members | SF9, 125 kHz | about 23% busy | about 64% busy |
 
 So groups that share location need the faster settings and a position
-interval of at least 60 seconds. Rekeys after a reboot add up to 5 handshakes
-per board. The final radio settings, handshake and acknowledgement airtime,
+interval of at least 60 seconds. Rekeys after a reboot add up to 28 handshakes
+per board (staggered). The final radio settings, handshake and acknowledgement airtime,
 and the US915 regulatory check remain open and belong to radio selection.
 
 ## What a misbehaving admin or member can do
@@ -427,6 +464,16 @@ revision addresses them:
 Its lower-rated findings are also covered: the location rule in the join
 transcript, rate limits on fetches and handshakes, "left (not yet confirmed)",
 and name reuse across groups.
+
+Re-review of revision 2, same reviewer, 2026-11-12: still acceptable with
+listed changes; 7 of the 10 met, 3 partly met. This revision adds its fixes:
+"added in" roster version and the rekey start rule (N3), accepting a signed
+roster across a gap (N4), replay protection for rekey starts (N2), naming of
+outside-group conversations (N5), the "end conversation" note (N6), the digest
+prefix as early warning only (N7), up to 28 rekeys after a reboot (N9) and
+triggers limited to boot and recovery (N10). Open: roster transfer size (N1,
+owner decision). The reviewer stated that once N1 to N4 are written in, no
+further security re-review is needed before host implementation.
 
 Still open, for implementation: the handshake suite, key derivation and
 fingerprint encoding (not selected); the production storage layout; handshake

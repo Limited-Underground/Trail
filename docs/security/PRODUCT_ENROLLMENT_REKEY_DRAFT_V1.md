@@ -13,7 +13,10 @@ records; details in the reviewed [pairwise group design](GROUP_PAIRWISE_V1.md)):
   accepts the new member.
 - Routine rekey: for every V1 pair (group pairs and outside-group conversation
   pairs) the new invitation and local transcript confirmation are no longer
-  required. Every other rekey rule below still applies.
+  required. The invitation is replaced by a binding both identities sign over
+  fresh session keys, fresh challenges, boot tokens and a deadline (see the
+  group design, "Restart and rekey"); that binding is required. Every other
+  rekey rule below still applies.
 
 Everything else in this document is unchanged.
 
