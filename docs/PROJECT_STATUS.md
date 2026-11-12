@@ -34,8 +34,10 @@ Groups use pairwise delivery: each group message is sent once to each other
 member over that pair's own protected link, with at most 6 members and no
 group key. A new member pairs in person with the group admin only; the
 admin-signed roster lets the other pairs set themselves up. The
-[pairwise group design](security/GROUP_PAIRWISE_V1.md) is a proposal awaiting
-independent security review; nothing is implemented.
+[pairwise group design](security/GROUP_PAIRWISE_V1.md) passed an independent
+security review with required changes, which revision 2 adds (automatic
+rekey after reboot, tamper-evident rosters, member acceptance, stolen-admin
+protection, storage limits, 80-byte group texts); nothing is implemented.
 
 ## Target qualification applicability
 

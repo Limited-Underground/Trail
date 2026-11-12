@@ -1,10 +1,11 @@
 # Trail V1 group design: pairwise delivery
 
-Status: design proposal, 2026-11-12. The owner chose the direction (workspace
-decisions D-057 and D-058); this document turns it into a design. It is not
-reviewed and not implemented. It needs an independent security review before
-any group code is built (see [Review questions](#review-questions)). No
-algorithm, library, wire byte layout or radio setting is selected here.
+Status: design proposal, revision 2, 2026-11-12. The owner chose the direction
+(workspace decisions D-057, D-058) and the answers to the independent security
+review (D-059). This revision adds the ten changes that review required (see
+[Review record](#review-record)). It is not implemented. No algorithm, library
+or radio setting is selected here; the byte sizes given are budgets for the
+current Heltec V4 radio, not a frozen wire format.
 
 ## Purpose
 
@@ -21,12 +22,19 @@ Owner choices this design follows:
 1. A group message is sent once to each other member over that pair's own
    protected link. There is no group key in V1. Groups have at most 6 members.
 2. A new member pairs in person with the group admin only. The admin's board
-   then vouches for member identities, and every other pair sets up its own
-   keys without a human step. Only the two boards of a pair hold its keys.
-3. Removing or losing a member deletes only that member's pairs. The other
-   pairs keep their keys.
+   then vouches for member identities, and the other pairs set up their own
+   keys without a confirmation step. Only the two boards of a pair hold its keys.
+3. Removing or losing a member deletes only that member's pairs.
 4. Groups that share location use fast radio settings (around SF7 at 125 kHz)
    and send a position no more often than every 60 seconds.
+5. Group pairs and outside-group conversation pairs rekey automatically after
+   a reboot or recovery, with no confirmation step (D-059).
+6. A board stops sending positions to a member it has not heard from with the
+   current roster for 10 minutes (D-059).
+7. Each member taps once to accept a new member before its board pairs with
+   them (D-059).
+8. A board holds at most 4 groups and 8 outside-group conversations (D-059).
+9. Group texts are at most 80 bytes, in one radio frame (D-059).
 
 ## What stays the same
 
@@ -35,154 +43,327 @@ Owner choices this design follows:
   pairwise unicast, no relay, no server.
 - Packet-v1 authenticated data already binds sender, recipient, group,
   epoch, direction and purpose ([host profile](PACKET-V1-HOST-PROFILE.md)).
-  Group messages use it unchanged with new purpose values.
+  Group frames use it with new type values (see [Group messages](#group-messages)).
 - The first pairing between two people (in person, full fingerprints, matching
   transcript code, local confirmation on both boards) is unchanged. In a group
   it is used once, between the admin and each new member.
+- Traffic keys are never kept across a restart (enrollment design, "Rekey,
+  restart and reconciliation"). This design does not change that; it adds an
+  automatic way to get new keys (see [Restart and rekey](#restart-and-rekey)).
 - Phones never hold LoRa keys and cannot vouch for anyone.
-- Factory reset erases all group and pair records as it does today.
+- Factory reset erases all group, roster and pair records.
 
-## What changes
+## What changes in the accepted documents
 
-| Accepted rule | Change in this design |
+| Accepted rule | Change |
 |---|---|
-| Enrollment: verification "is scoped to one pair and attempt, not a general certificate authority". | The group admin's board can vouch for member identities inside one group. Trust in a vouched identity is limited to that group's roster and to pairs inside that group. |
-| Enrollment: every first pairing needs an in-person fingerprint check and local confirmation on both boards. | Pairs between two non-admin members of a group (introduced pairs) are set up from admin-vouched identities with no human step. |
-| [Group lifecycle v0](GROUP_LIFECYCLE_V0.md): after joining, the new member receives "current group material". | There is no group key. The new member receives the signed roster and then sets up pairs. |
-| Group lifecycle v0: revoking a member advances the whole group epoch and every member must rekey. | Removing a member publishes a new roster version; members delete their pairs with the removed member. Other pairs keep their keys and epochs. |
+| Enrollment: verification "is scoped to one pair and attempt, not a general certificate authority". | A group admin's roster can vouch for identities inside that group only. That trust is used only for pairs inside the same group; it never shortens or replaces the in-person check for an outside-group conversation, and never carries to another group, even if the same key is in both rosters. |
+| Enrollment: "Remote unattended first enrollment is excluded." | Introduced pairs (two non-admin members of one group) are set up remotely from the roster, after each member's own tap to accept (see [Joining](#joining)). This is the only exception. |
+| Enrollment: a routine rekey needs a new invitation and a local transcript confirmation. | For every V1 pair (group pairs and outside-group conversation pairs) a rekey is automatic: no invitation, no confirmation. All other rekey rules stay. |
+| [Group lifecycle v0](GROUP_LIFECYCLE_V0.md): shared "current group material", 16-member rosters, repeater role, administrator promotion, whole-group epoch advance on revocation. | Superseded for V1 groups, except the rules listed in [What remains from group lifecycle v0](#what-remains-from-group-lifecycle-v0). |
+
+## Naming a group
+
+A group is named everywhere (records, roster, key derivation, the app) by the
+pair **(admin full fingerprint, group ID)**. The group ID is 64 random bits
+chosen by the admin's board. Two admins choosing the same ID, by chance or on
+purpose, still give two different groups, and one can never overwrite or match
+the other's records or pairs. Where Packet-v1 carries only the 64-bit group
+ID, the pair session is bound to the full group name by its handshake (see
+[Introduced pairs](#introduced-pairs)).
 
 ## Roles and limits
 
-- **Admin**: the group's creator (V1 requirement 6). The admin invites and
+- **Admin**: the group's creator (V1 requirement 6). The admin adds and
   removes members, sets the location rule, and signs the roster. V1 has one
-  admin per group; promotion of further admins from group lifecycle v0 is not
-  part of V1.
+  admin per group. The app labels every group **single-admin risk** and says
+  what happens if the admin's board is lost (see
+  [Lost, stolen or reset boards](#lost-stolen-or-reset-boards)).
 - **Member**: sends and receives group messages.
 - At most **6** current members including the admin, so at most 15 pairs per
-  group. A seventh join is refused (matches OT-0306 acceptance).
-- A member's pairs belong to one group. The same two people in two groups, or
-  in a group and an outside-group conversation (requirement 5), hold separate
-  pairs: keys are bound to the group ID.
+  group. A seventh join is refused.
+- Per board: at most **4 groups** and **8 outside-group conversations**, so at
+  most 28 pairs. A new group or conversation at the limit is refused with an
+  explanation.
 
 ## The roster
 
 The roster is the admin board's signed list of who is in the group. Every
-member keeps the newest roster it has accepted.
+member keeps the newest roster it has accepted, stored durably.
 
 Contents:
 
-- version label and purpose (domain separation from every other signature);
-- group ID (64-bit, nonzero);
-- roster version (32-bit, starts at 1, each new roster is exactly one higher
-  than the admin's previous one);
-- admin's full identity fingerprint;
+- version label and signature purpose (domain separation from every other
+  signature);
+- group name: admin full fingerprint and group ID;
+- roster version (32-bit, starts at 1, exactly one higher than the previous
+  roster);
+- digest of the previous roster (all zero for version 1), so rosters form a
+  chain;
 - each member's full identity fingerprint, identity public key, alias and
   role;
-- the group's location rule (off / preferred / required, requirement 6);
+- the location rule (off / preferred / required, requirement 6);
 - signature by the admin's identity signing key.
 
-Acceptance rules on a member board:
+The **roster digest** is a hash over the complete signed roster. It, not the
+version number alone, identifies a roster.
 
-- the signer must be the admin identity this board verified in person when it
-  joined (stored with its group record); any other signer is refused;
-- the group ID must match;
-- the version must be higher than the newest accepted version. Because each
-  roster is complete, a board that missed versions can accept a later one
-  directly. Equal or lower versions are ignored;
-- the board's own identity must be listed, unless the roster removes it (then
-  the board leaves the group, see [Leaving and removal](#leaving-and-removal));
-- at most 6 members, no duplicate identities or aliases.
+### Admin rules
 
-Because rosters are signed, any member may pass on the newest roster; it does
-not have to come from the admin directly. Each group message carries the
-sender's roster version, so a board that sees a higher version asks the sender
-for that roster.
+- A member can be **added** only from a completed in-person enrollment on the
+  admin board itself: a typed local receipt from the accepted first-pairing
+  flow for this group. A phone request or a radio message can never add an
+  identity. Each new roster adds at most one member.
+- A member can be removed on the admin's request from the phone, confirmed on
+  the admin board.
+- Before signing or sending a new roster, the admin board stores its version
+  and digest durably and reads them back. After a power cut it resends that
+  stored roster; it never signs a different roster with the same version.
+
+### Member acceptance rules
+
+A board accepts a roster only if all of these hold:
+
+- signed by the admin identity this board verified in person when it joined;
+- same group name;
+- version higher than the newest accepted, and its previous-roster digest
+  continues the chain from the roster this board holds (when the board holds
+  version N and receives N+1). A board that missed versions fetches the
+  missing ones in order;
+- every listed fingerprint matches the fingerprint recomputed from the listed
+  public key;
+- at most 6 members, no duplicate identities or aliases;
+- the board's own identity is listed, unless the roster removes it (then the
+  board leaves the group).
+
+**Roster conflict.** If a board sees the same version with a different digest,
+or a roster that does not continue its chain, it shows "roster conflict" (or
+"admin out of step"), keeps its current roster, and accepts no roster changes
+for that group until its user acts (keep current, or leave the group). This
+detects an admin board that signed two rosters or was restored from an old
+image. Preventing such a restore is outside V1 (OTSL0 makes no rollback-proof
+claim); detecting it is required.
+
+Every roster change is shown on every member board as an event. A known
+person's key changing is shown as "removed, and a different device added",
+never as the same person. Names and aliases stay presentation only; the app
+shows each member's fingerprint, and flags when a name matches a different
+device in another group.
+
+Because rosters are signed, any member may pass one on. Fetch requests are
+limited to once per version per peer, and only roster members get an answer.
 
 ## Creating a group
 
-The creator's board makes a group record: new random group ID, roster version
-1 listing only the creator as admin, and the chosen location rule. Nothing is
-sent over the radio.
+The creator's board makes a group record: a new random group ID, roster
+version 1 listing only the creator as admin, and the chosen location rule.
+Nothing is sent over the radio.
 
 ## Joining
 
 1. **In person with the admin.** The admin creates an invitation for this
-   group, and the admin's board and the joiner's board run the accepted first
-   pairing (fingerprints, possession proofs, invitation, transcript code, local
-   confirmation on both boards). The invitation names the group and the
-   joining role, so the transcript both people confirm shows which group they
-   are joining. This is the only human step.
-2. **New roster.** The admin's board publishes roster version N+1 with the
-   joiner added and sends it over its pair to every member, including the
-   joiner.
-3. **Introduced pairs.** The joiner's board starts a pairwise handshake with
-   each existing member listed in the roster. Each side authenticates the
-   other with the identity key in the newest accepted roster and contributes
-   fresh ephemeral material. The transcript binds the group ID, the roster
-   version that introduced the pair, both full fingerprints, the ordered roles
-   (initiator, responder) and the purpose "introduced pair". A responder only
-   answers an initiator listed in its own newest roster; if the initiator's
-   roster is newer, it fetches it first.
-4. **Activation.** Each new pair is stored and activated with the accepted
-   durable steps (pending record, read back, activation intent, peer
-   activation). A pair that fails or times out is retried later while both
-   members are still on the roster; a failed attempt never activates a pair.
+   group, and the two boards run the accepted first pairing (fingerprints,
+   possession proofs, invitation, transcript code, local confirmation on both
+   boards). The invitation and the transcript summary both people confirm show
+   the group name, the joining role and the group's location rule.
+2. **New roster.** The admin board publishes roster N+1 with the joiner added
+   (using the receipt from step 1) and sends it to every member, including the
+   joiner, as described in [Roster delivery](#roster-delivery).
+3. **Each member accepts.** Each existing member's board shows the new member
+   (alias and fingerprint) and asks its user to accept, one tap. Until the
+   user accepts, that board does not pair with the new member and the app
+   shows "waiting for your OK". Declining is shown to the admin.
+4. **Introduced pairs.** Each pair of the new member and an accepting member
+   runs the introduced-pair handshake below.
 5. **Fully joined.** The joiner is fully joined when it has an active pair
    with every other member. Until then the app shows, per member, whether the
-   pair is ready, and messages reach only members with an active pair.
+   pair is ready, waiting for acceptance or failed, and messages reach only
+   members with an active pair.
 
-When a 6th member joins, step 3 runs 5 handshakes. Their radio time must be
-measured once message sizes are fixed.
+### Introduced pairs
+
+An introduced pair is set up by a pairwise handshake that both long-term
+identities sign, under its own signature domain ("introduced pair"). The
+signed binding covers:
+
+- the group name (admin fingerprint and group ID);
+- the digest of the roster each side used (both must be the same roster);
+- both full identity fingerprints and their ordered roles;
+- both fresh session (ephemeral) public keys;
+- fresh challenges from both sides and both boards' boot tokens;
+- a deadline, checked with the same clock rules as invitations.
+
+This follows the accepted first pairing, where both identities sign an
+invitation that pins both fresh session keys. Signatures over fresh values are
+the possession proof; an old handshake cannot be replayed into a new one.
+
+Only the roster verifier can produce the **typed introduced-pair authority**
+that lets this handshake activate a pair: an object that names the exact
+roster digest and both identities, and that stands in for the fingerprint
+review and local confirmation of the first pairing. It is a separate path, not
+a "skip confirmation" option on the first-pairing path.
+
+**Who starts.** The member added in the later roster version starts; if both
+were added in the same version (not possible in V1, where each roster adds at
+most one member), the lower fingerprint starts. A responder answers only an
+initiator listed in its own newest roster; if the initiator's roster is newer,
+the responder fetches it first.
+
+Activation uses the accepted durable steps (pending record, read back,
+activation intent, peer activation). Handshake answers are rate-limited per
+peer.
+
+## Restart and rekey
+
+Traffic keys exist only in memory and are never restored after a restart. After
+every reboot, battery swap or recovery, each of the board's pairs needs a new
+key before it can carry traffic.
+
+For every V1 pair (introduced pairs, each member's in-person pair with the
+admin, and outside-group conversation pairs) the rekey is **automatic**:
+
+- same two identities (and, for group pairs, both still on the current roster);
+- exactly epoch+1; zero, skips and wrap are refused;
+- fresh possession proof and the binding above (with the current roster
+  digest for group pairs; outside-group pairs bind their own conversation);
+- the accepted durable states PREPARED, ACTIVATION_POSSIBLE and
+  ACTIVE_COMMITTED;
+- no traffic on that pair until the rekey completes.
+
+Triggers: boot, recovery, a counter domain nearing its limit, and roster
+changes that affect the pair. Both boards must be in radio range at the same
+time. The app shows each pair as "reconnecting" until it is ready; messages to
+that member wait or report undelivered.
+
+## Recovery of interrupted pairs
+
+A pair whose setup or rekey was interrupted (left in PREPARED,
+ACTIVATION_POSSIBLE or an uncertain state) is **never resumed**. On the next
+contact, both boards retire that attempt and run a fresh handshake at the next
+epoch. This is the comparison step from the
+[recovery design](ENROLLMENT_CANDIDATE_RECOVERY_V1.md), started automatically
+instead of by a local request on both boards. Old traffic keys are never
+reused, and a pair is never assumed active because one side was.
 
 ## Group messages
 
 Each group message is sent as one Packet-v1 frame per other member, over that
-member's pair, with a group purpose (group text, group quick status, group
-position). The protected payload starts with a small group header:
+member's pair.
 
-- roster version the sender used;
-- sender's group message number (counts up per sender per group; with the
-  sender identity it names the message);
-- message type and the message body (for text, an OTXT v1 message).
+**Packet-v1 type values for groups** (proposed; added to the Packet-v1 profile
+when implemented):
+
+| Type | Purpose |
+|---|---|
+| 1 | data (existing, outside-group conversations) |
+| 2 | acknowledgement (existing) |
+| 3 | group text |
+| 4 | group quick status |
+| 5 | group position |
+| 6 | roster transfer |
+| 7 | roster fetch |
+| 8 | leave |
+| 9 | group closed |
+
+**Group frame header** (14 bytes, replaces the 8-byte OTXT envelope for group
+text):
+
+| Bytes | Field |
+|---|---|
+| 1 | format version |
+| 1 | body length |
+| 4 | roster version the sender used |
+| 4 | first 4 bytes of that roster's digest (detects disagreement; not used for authentication) |
+| 4 | sender's group message number |
+
+**Size.** The Heltec V4 radio driver reports a 154-byte MTU; Packet-v1 uses 60
+bytes, leaving 94 plaintext bytes. The group header takes 14, leaving **80
+bytes** for a group text (UTF-8, same text rules as OTXT v1). Group texts are
+limited to 80 bytes and are never split across frames. If the radio settings
+change the MTU, this limit must be recomputed.
+
+**Message numbers.** A sender's group message numbers never repeat, including
+after a reboot: they are reserved durably in batches, like the outbound counter
+leases. A receiver that sees the same sender and number with different content
+treats it as a conflict and shows it.
+
+**Acknowledgements** on group pairs carry the receiver's roster version and
+digest prefix, so a sender learns of a newer roster the first time any
+up-to-date member acknowledges anything.
 
 Receivers:
 
 - accept only from members on their newest roster with an active pair;
-- show each message once (by sender and group message number), with gaps
-  visible;
-- refuse group positions when the roster's location rule is off.
+- show each message once (by sender and message number), with gaps visible;
+- refuse group positions when the location rule is off.
 
 Senders keep delivery state per member ("delivered to 4 of 5"). There is no
-relaying: a member whose pair is not ready does not get the message through
-another member.
+relaying.
+
+## Roster delivery
+
+The admin board sends each new roster over every remaining pair and retries
+until each member acknowledges it. The admin's app shows progress, for example
+"removal reached 3 of 4". Members also receive rosters from each other (see
+[The roster](#the-roster)).
 
 ## Leaving and removal
 
-- **Removal.** The admin's board publishes a roster without the member.
-  Every remaining member that accepts it deletes its pair with the removed
-  member (stop traffic, retire keys as OTSL0 requires) and refuses later
-  traffic from it. The admin also tells the removed member over their pair,
-  then deletes that pair.
-- **Leaving.** The member's board sends a leave request to the admin over
-  their pair and deletes all its pairs in that group. The admin publishes a
+- **Removal.** The admin board publishes a roster without the member and
+  delivers it as above. Every member that accepts it first stores the roster,
+  then deletes its pair with the removed member and refuses later traffic from
+  it. On boot, any pair whose peer is not on the stored roster is treated as
+  retired. The admin also tells the removed member, then deletes that pair.
+- **Leaving.** The member's board sends a leave request (type 8) to the admin
+  and to the members it can reach, and deletes all its pairs in that group.
+  Others show "left (not yet confirmed by admin)" until the admin publishes a
   roster without it.
-- **Admin leaving** deletes the group, following the confirmed-delete rule in
-  OT-0307.
+- **Stop trusting the group.** Any member can do this locally at any time: its
+  board deletes all its pairs in that group and refuses all later rosters from
+  that admin.
+- **Admin leaving or deleting the group** sends a signed "group closed"
+  statement (type 9) to every member; members delete the group on receiving it.
+- **Silent members.** A board stops sending positions to a member it has not
+  heard from with the current roster for **10 minutes**, and resumes when it
+  hears from that member with the current roster.
 - Other pairs are not touched: the removed member never held their keys.
 
-A removed member's old pairs stay usable on any board that has not yet seen
-the new roster. Rosters spread with ordinary group traffic, so the gap closes
-when the board next hears from the admin or any up-to-date member. The app
-shows when the roster was last updated.
+The app says plainly that a removed board can keep receiving from boards that
+have not yet updated, and that nothing already received can be taken back.
 
-## Lost or reset boards
+## Lost, stolen or reset boards
 
 - A member's board that is factory reset has a new identity. To rejoin it
-  pairs in person with the admin again as a new member; the admin removes the
-  old identity.
+  pairs in person with the admin again; the admin removes the old identity.
 - If the admin's board is lost or reset, nobody can change the roster. Members
-  can keep messaging with the current roster but cannot add or remove anyone.
-  V1 recovery is to create a new group. (See review question 6.)
+  can keep messaging with the current roster. V1 recovery is to create a new
+  group; there is no second admin.
+- If the admin's board is **stolen**, whoever holds it holds the admin signing
+  key. Protections: additions need the admin board's own in-person enrollment
+  receipt (a thief must enroll a device in person on the stolen board); every
+  member must tap to accept each new member; every roster change is shown on
+  every board; and any member can stop trusting the group. Members should do
+  that as soon as they learn the admin board is lost.
+
+## Storage
+
+Estimated per pair, in the current two-slot stores: identity binding and
+evidence about 380 bytes, membership 128, four counter and replay stores 128
+each, plus activation and session generation: about 1.5 KB. At 28 pairs that is
+about 40-45 KB, plus about 0.6 KB per group roster in two slots. This fits the
+1 MB `ot_state` partition of the evaluation layout, not the 12 KB ordinary NVS.
+
+Required before OT-0305:
+
+- an indexed per-pair layout keyed by (group name, peer) in `ot_state`, keeping
+  each store's write and read-back order (today each store holds one pair);
+- roster first, then pair changes, so an interrupted removal is safe;
+- durable group message number reservations;
+- a flash-wear check: one group message uses 5 counter reservations, at one
+  position per minute;
+- factory reset covering every new namespace.
+
+These figures are estimates from the evaluation stores, not measurements.
 
 ## Radio budget
 
@@ -195,53 +376,73 @@ without acknowledgements or retries:
 | 6 members | SF9, 125 kHz | about 23% busy | about 64% busy |
 
 So groups that share location need the faster settings and a position
-interval of at least 60 seconds. The final radio settings, acknowledgement
-cost and the US915 regulatory check (time on air per transmission) remain open
-and belong to radio selection, not this design.
+interval of at least 60 seconds. Rekeys after a reboot add up to 5 handshakes
+per board. The final radio settings, handshake and acknowledgement airtime,
+and the US915 regulatory check remain open and belong to radio selection.
 
 ## What a misbehaving admin or member can do
 
-- The admin can add any identity to the roster. That is no more than the
-  admin can already do by inviting someone, and all members see the roster.
-- The admin cannot read messages between two other members: it never holds
-  their pair keys.
-- A member can read only messages sent to it.
-- A non-admin cannot change the roster: other boards refuse rosters not
-  signed by the admin identity they verified in person.
-- Replaying an old roster does nothing: lower versions are ignored.
+- The admin can add an identity it enrolled in person on its own board, and
+  members must accept it. Substituting a different key under a known name is
+  shown as a removal plus a new device.
+- The admin cannot read messages between two other members.
+- A stolen admin board is covered in
+  [Lost, stolen or reset boards](#lost-stolen-or-reset-boards).
+- An admin board that signs two rosters with one version, or is restored from
+  an old image, is detected as a roster conflict.
+- An admin can sign version 2^32-1 and freeze the group; it could delete the
+  group anyway.
+- A member can read only messages sent to it, cannot change the roster, and
+  can be removed.
+- Replaying an old roster or an old handshake does nothing.
 
-Members who want to can still compare fingerprints in person with any other
-member; the app shows each member's fingerprint. This is optional and does not
-change the pair.
+## What remains from group lifecycle v0
 
-## Review questions
+Still applies to V1 groups: the single-admin risk label; the list of visible
+states (adapted: not a member, invitation states, join pending, waiting for
+acceptance, active, reconnecting, roster conflict, left, removed); and the
+reset wording (each destructive confirmation says what is erased). Everything
+else in group lifecycle v0 is superseded for V1 groups.
 
-The independent review should answer at least these before implementation:
+## Review record
 
-1. Is trusting admin-signed identities, scoped to one group, an acceptable
-   change to the "not a general certificate authority" rule?
-2. Introduced pairs have no human step. Is the transcript binding (group,
-   roster version, both identities, roles, purpose) enough to stop a
-   substituted identity or a pair being reused across groups?
-3. Is "accept any higher complete roster" safe against rollback and against a
-   lost admin board signing an old version again after a restore?
-4. Is it acceptable that a removed member can still reach boards that have not
-   yet seen the new roster, until they do?
-5. Routine rekey: the accepted design requires a local transcript
-   confirmation on every rekey. Should introduced pairs, which never had a
-   human step, rekey without one, and should in-person pairs do the same?
-6. Admin loss: is "create a new group" acceptable for V1, or is a second
-   admin needed?
-7. Storage: how many groups and pairs must one board hold, and how does that
-   fit the protected storage design?
+Independent security review, 2026-11-12 (read-only, by a reviewer who did not
+write the design; workspace file `I-005-group-design-security-review.md`):
+acceptable with listed changes. Its ten required changes and where this
+revision addresses them:
 
-## Implementation order once reviewed
+| # | Required change | Section |
+|---|---|---|
+| 1 | Restart and automatic rekey | [Restart and rekey](#restart-and-rekey) |
+| 2 | Recovery of interrupted group pairs | [Recovery of interrupted pairs](#recovery-of-interrupted-pairs) |
+| 3 | Full introduced-pair binding, typed authority, who starts | [Introduced pairs](#introduced-pairs) |
+| 4 | Tamper-evident rosters | [The roster](#the-roster), [Group messages](#group-messages) |
+| 5 | Additions only from the admin board's in-person receipt; changes shown to all | [Admin rules](#admin-rules), [The roster](#the-roster) |
+| 6 | Stolen-admin protection | [Leaving and removal](#leaving-and-removal), [Lost, stolen or reset boards](#lost-stolen-or-reset-boards) |
+| 7 | Bounded removal spread | [Roster delivery](#roster-delivery), [Leaving and removal](#leaving-and-removal) |
+| 8 | Storage limits and layout | [Roles and limits](#roles-and-limits), [Storage](#storage) |
+| 9 | Explicit amendments to the accepted documents | [What changes in the accepted documents](#what-changes-in-the-accepted-documents) and the notes in those documents |
+| 10 | Group text size and Packet-v1 type values | [Group messages](#group-messages) |
 
-1. Roster record, signature domain and acceptance rules (host tests).
-2. Introduced-pair handshake on top of the selected pairwise handshake
-   (host tests, including substituted identity, wrong group, old roster).
-3. Group header, per-member delivery state and duplicate suppression.
+Its lower-rated findings are also covered: the location rule in the join
+transcript, rate limits on fetches and handshakes, "left (not yet confirmed)",
+and name reuse across groups.
+
+Still open, for implementation: the handshake suite, key derivation and
+fingerprint encoding (not selected); the production storage layout; handshake
+and acknowledgement airtime; physical reboot and range behaviour.
+
+## Implementation order
+
+1. Roster record, digest chain, signature domain and acceptance rules,
+   including roster conflict (host tests).
+2. Introduced-pair handshake and typed authority on top of the selected
+   pairwise handshake; automatic rekey and recovery (host tests: substituted
+   identity, look-alike group ID, same version with a different roster,
+   replayed handshake, interrupted activation).
+3. Indexed per-pair storage, durable message numbers, group header, delivery
+   state and duplicate suppression.
 4. Android group screens bound to the board's roster (OT-0305, OT-0306,
-   OT-0307).
+   OT-0307), including member acceptance and stop trusting.
 5. Persistence and interruption tests (OT-0308), then a three-board bench
    test.

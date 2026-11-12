@@ -2,10 +2,12 @@
 
 Status: host-tested OT-013 policy foundation, 2026-08-08
 
-V1 groups (2026-11-12): the proposed [pairwise group design](GROUP_PAIRWISE_V1.md)
-replaces the parts of this document that release shared group material to a
-new member and advance the whole group epoch on revocation. V1 groups have no
-group key; removal deletes only the removed member's pairs.
+V1 groups (2026-11-12): superseded for V1 groups by the reviewed
+[pairwise group design](GROUP_PAIRWISE_V1.md), which has no group key, no
+repeater role, no administrator promotion and at most 6 members, and where
+removal deletes only the removed member's pairs. Still applies to V1 groups:
+the single-admin risk label, the visible states list (as adapted there) and the
+reset wording.
 
 This document specifies operator-visible provisioning, joining, revocation, and
 recovery behavior. The C++ controller proves state and authorization gates; it

@@ -2,6 +2,12 @@
 
 ## 2026-11-12
 
+### OT-0306 Revise the pairwise group design after security review
+
+An independent, read-only security review of [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) found the design acceptable with ten required changes. The largest: traffic keys are never kept across a restart (accepted enrollment rule; keys live only in memory), so every reboot needs a rekey, which the first version did not handle. Following owner decision D-059 (workspace records), revision 2 adds automatic rekey for all V1 pairs after a reboot or recovery, retire-and-redo recovery of interrupted pairs, a fully specified introduced-pair binding with a typed authority, rosters identified by digest and chained to the previous roster with a visible roster-conflict state, additions only from the admin board's own in-person enrollment receipt, a one-tap acceptance of each new member by every member, local "stop trusting the group", a signed group-closed statement, roster delivery with progress, a 10-minute stop on positions to silent members, per-board limits of 4 groups and 8 conversations, a storage plan, proposed Packet-v1 type values and a 14-byte group header that leaves 80 bytes for a group text at the 154-byte Heltec MTU.
+
+The enrollment design's top note now lists its three V1 amendments explicitly, and group lifecycle v0 is marked superseded for V1 groups apart from the rules the new design keeps. Documentation only: no code, build, device or crypto selection.
+
 ### OT-0306 Propose the pairwise group design
 
 The accepted security designs cover two boards only: OTSL0 allows exactly two members with pairwise unicast, and the accepted enrollment design requires an in-person fingerprint check for every pair. Following owner decisions D-057 and D-058 (workspace records), [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) proposes V1 groups of up to 6 members built from pairs: a group message is sent once to each other member over that pair's link, with no group key. A new member pairs in person with the group admin only; the admin's board signs a complete, versioned roster, and the other pairs are set up from the identities in it without a human step. Removal publishes a new roster and deletes only the removed member's pairs. Groups that share location need fast radio settings and a position interval of at least 60 seconds (estimated channel use for 6 members at SF7/125 kHz about 20% with busy text, about 64% at SF9).
