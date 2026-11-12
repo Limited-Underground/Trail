@@ -3034,7 +3034,8 @@ def test_factory_reset_surfaces() -> None:
             "contained runtime recovery must remain reset-only and use the physical-recovery executor entry")
 
     runtime_failure = app_main[
-        app_main.index("[[noreturn]] void contain_runtime_failure()"):
+        app_main.index(
+            "[[noreturn]] void contain_runtime_failure(const char* site, unsigned code)"):
         app_main.index("}  // namespace")
     ]
     require("fault_companion_pairing_window()" in runtime_failure and

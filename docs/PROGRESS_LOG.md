@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-11-11
+
+### OT-0168c Fix Heltec V4 reset refusal and pairing clock rollback
+
+Bench sessions on board A (Heltec V4, app-only image over `main` 5758ee0) found two defects in the button factory reset. First, a reset right after pairing in the same power-on was refused: the reset executor kept the "unowned" view it read at boot. `DeviceFactoryResetExecutor::refresh_idle_ownership()` now re-reads the marker and the user and bond domains before a reset is prepared, from both the button path and the app reset authority. It is read-only, only valid in the idle phases, and leaves the phase unchanged on any read failure, a present marker or a mixed state. Second, the failure screen after some resets was `clock_rollback` in the pairing window: timestamps were taken outside the pairing lock on the main loop and NimBLE tasks, so an older one could arrive after a newer one. The runtime now passes every pairing-window time through one monotonic view under the lock. Failure stops now log their site and error code, and the bench target logs the reset commit result; the NimBLE runtime stays log-free.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2). Host: reset executor 21/21 with two new tests, app reset authority 7/7, reset gesture 10/10, reset storage, bench target source checks 19/19, reset composition 27/27. The full local host matrix passed except `enrollment_candidate_capture_runner_tests`, which exceeded its 300 s limit under load and passes alone. Bench: four button resets with the fix (three right after pairing), all clean into a fresh PIN. `DEVICE_FACTORY_RESET_V1.md` now states that the control is ignored while the pairing PIN is shown. Phone reconnect after a board restart and the app-initiated reset retest remain open.
+
 ## 2026-11-10
 
 ### OT-0312 Integrate the accepted typed-text carrier on the host

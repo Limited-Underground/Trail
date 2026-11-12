@@ -7,6 +7,16 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Heltec V4 factory reset fixes
+
+On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
+and bench-verified on one board: a reset right after pairing is no longer
+refused, and the pairing window can no longer fail with `clock_rollback` after
+a reset. Details and test results are in the
+[progress log](PROGRESS_LOG.md). Still open: the phone cannot reconnect to its
+owned board after the board restarts, and the app-initiated reset needs a
+device retest. No release, signing or production acceptance is added.
+
 ## Target qualification applicability
 
 The owner-approved D1 metadata correction records `HTIT-WB32LAF V4.2`, bounded

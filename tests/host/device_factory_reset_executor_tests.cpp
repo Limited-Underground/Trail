@@ -242,6 +242,86 @@ void test_restore_distinguishes_old_unowned_and_incoherent_state() {
            DeviceFactoryResetPhase::reconciliation_required);
 }
 
+void test_refresh_tracks_ownership_established_after_boot() {
+    // Boot unowned, then a phone pairs without a restart.
+    Marker marker{};
+    UserDomain user{};
+    user.absent = true;
+    BondDomain bonds{};
+    bonds.empty = true;
+    DeviceFactoryResetExecutor executor{marker, user, bonds};
+    EXPECT(executor.restore().accepted());
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+    EXPECT(executor.begin().error == DeviceFactoryResetError::invalid_state);
+
+    // Still unowned: refresh changes nothing.
+    EXPECT(executor.refresh_idle_ownership().accepted());
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+
+    // Mid-pairing (only one domain written): fail closed, no change.
+    user.absent = false;
+    EXPECT(executor.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::initial_state_incoherent);
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+
+    // Pairing complete: now owned, and reset can begin.
+    bonds.empty = false;
+    const auto refreshed = executor.refresh_idle_ownership();
+    EXPECT(refreshed.accepted());
+    EXPECT(refreshed.phase == DeviceFactoryResetPhase::idle_old_state);
+    EXPECT(executor.status().old_state_preserved);
+    EXPECT(user.erases == 0);
+    EXPECT(bonds.erases == 0);
+    EXPECT(marker.commits == 0);
+    const auto begun = executor.begin();
+    EXPECT(begun.accepted());
+    EXPECT(begun.phase == DeviceFactoryResetPhase::cleanup_required);
+
+    // Not idle any more: refresh is refused and changes nothing.
+    EXPECT(executor.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::invalid_state);
+    EXPECT(executor.status().phase ==
+           DeviceFactoryResetPhase::cleanup_required);
+}
+
+void test_refresh_fails_closed_on_unreadable_or_marked_state() {
+    Marker marker{};
+    UserDomain user{};
+    user.absent = true;
+    BondDomain bonds{};
+    bonds.empty = true;
+    DeviceFactoryResetExecutor executor{marker, user, bonds};
+    EXPECT(executor.restore().accepted());
+    user.absent = false;
+    bonds.empty = false;
+
+    user.inspect_error = DeviceFactoryResetPortError::not_ready;
+    EXPECT(executor.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::initial_state_unavailable);
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+    user.inspect_error = DeviceFactoryResetPortError::none;
+
+    marker.load_error = DeviceFactoryResetPortError::failed;
+    EXPECT(executor.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::marker_load_failed);
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+    marker.load_error = DeviceFactoryResetPortError::none;
+
+    marker.state = DeviceFactoryResetMarkerState::intent_committed;
+    EXPECT(executor.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::marker_load_failed);
+    EXPECT(executor.status().phase == DeviceFactoryResetPhase::idle_unowned);
+
+    Marker unrestored_marker{};
+    UserDomain unrestored_user{};
+    BondDomain unrestored_bonds{};
+    DeviceFactoryResetExecutor unrestored{
+        unrestored_marker, unrestored_user, unrestored_bonds};
+    EXPECT(unrestored.refresh_idle_ownership().error ==
+           DeviceFactoryResetError::invalid_state);
+    EXPECT(unrestored.status().phase == DeviceFactoryResetPhase::not_restored);
+}
+
 void test_known_no_change_commit_preserves_old_state() {
     Marker marker{};
     marker.commit_error = DeviceFactoryResetPortError::known_no_change;
@@ -908,6 +988,8 @@ static_assert(std::is_trivially_copyable_v<DeviceFactoryResetResult>);
 
 int main() {
     test_restore_distinguishes_old_unowned_and_incoherent_state();
+    test_refresh_tracks_ownership_established_after_boot();
+    test_refresh_fails_closed_on_unreadable_or_marked_state();
     test_known_no_change_commit_preserves_old_state();
     test_confirmed_recovery_is_containment_only_and_marker_gated();
     test_confirmed_recovery_known_no_change_stays_contained();
@@ -931,6 +1013,6 @@ int main() {
                   << " device factory-reset executor assertion(s) failed\n";
         return 1;
     }
-    std::cout << "PASS: 19 device factory-reset executor scenario groups\n";
+    std::cout << "PASS: 21 device factory-reset executor scenario groups\n";
     return 0;
 }

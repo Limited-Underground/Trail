@@ -145,6 +145,9 @@ designated Heltec user control:
 6. After verified reset completion, the device restarts unowned and enters the
    fresh 60-second PIN and advertising window described above.
 
+While the pairing PIN is on screen the device is unowned and holds no user
+data to erase, so the control is ignored and the erase prompt is not shown.
+
 Releasing before the initial 10-second threshold never starts reset. Failing to
 confirm before the second 10-second deadline cancels the request. An additional
 hold, repeated press, button bounce, stale event, clock failure, or event from a
