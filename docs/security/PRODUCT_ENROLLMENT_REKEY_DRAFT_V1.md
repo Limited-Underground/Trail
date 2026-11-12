@@ -2,11 +2,24 @@
 
 Owner accepted design, 2026-09-23. OT-0238b implementation remains in progress.
 
-Groups (2026-11-12): the proposed [pairwise group design](GROUP_PAIRWISE_V1.md)
-amends the per-pair rule below for pairs inside one group: after a member
-pairs in person with the group admin, pairs with the other members are set up
-from admin-signed identities without a human step. That amendment needs an
-independent security review; until then this document is unchanged.
+Amendments for V1 (2026-11-12, owner decisions D-058 and D-059 in workspace
+records; details in the reviewed [pairwise group design](GROUP_PAIRWISE_V1.md)):
+
+- "Verification is scoped to one pair and attempt, not a general certificate
+  authority" has one exception: a group admin's signed roster vouches for
+  identities inside that group, for pairs inside that group only.
+- "Remote unattended first enrollment is excluded" does not apply to
+  introduced group pairs, which are set up from the roster after each member
+  accepts the new member.
+- Routine rekey: for every V1 pair (group pairs and outside-group conversation
+  pairs) the new invitation and local transcript confirmation are no longer
+  required. The invitation is replaced by a binding both identities sign over
+  fresh session keys, fresh challenges, boot tokens and a deadline (see the
+  group design, "Restart and rekey"); that binding is required. Every other
+  rekey rule below still applies.
+
+Everything else in this document is unchanged.
+
 No algorithm, library, wire format, hardware execution or production readiness is selected here.
 This proposal preserves [OTSL0/v0](SECURE_LORA_KEY_TRANSPORT_V0.md),
 [Decision0035](../decisions/0035-host-tested-secure-lora-key-transport-contract.md)
