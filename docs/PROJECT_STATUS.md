@@ -13,9 +13,14 @@ On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
 and bench-verified on one board: a reset right after pairing is no longer
 refused, and the pairing window can no longer fail with `clock_rollback` after
 a reset. Details and test results are in the
-[progress log](PROGRESS_LOG.md). Still open: the phone cannot reconnect to its
-owned board after the board restarts, and the app-initiated reset needs a
+[progress log](PROGRESS_LOG.md). Still open: the app-initiated reset needs a
 device retest. No release, signing or production acceptance is added.
+
+On 2026-11-12 the bonded phone's reconnect after a board restart was fixed on
+the same bench target: the board now confirms Android's Service Changed
+indication instead of answering with an error that emptied the phone's service
+discovery. Verified once on board A with one phone; details are in the
+[progress log](PROGRESS_LOG.md).
 
 ## Target qualification applicability
 
