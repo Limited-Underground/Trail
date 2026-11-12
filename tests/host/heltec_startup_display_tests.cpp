@@ -104,6 +104,27 @@ void test_setup_label_generation_advertising_and_actual_owner() {
     require(owner.set_setup_code(code),"same alias retained after window");
 }
 
+void test_bluetooth_device_name_follows_saved_name_then_boot_label() {
+    namespace ui=opentrail::ui;
+    const ui::SetupCode code{'U','V','W','X','Y','Z'};
+    const auto named=ui::bluetooth_device_name("Truck one",9,code);
+    require(std::string(named.bytes.data(),named.size)=="Truck one","saved app name wins over setup label");
+    const auto labelled=ui::bluetooth_device_name(nullptr,0,code);
+    require(std::string(labelled.bytes.data(),labelled.size)=="Trail-UVWXYZ","no saved name uses this boot's label");
+    const auto plain=ui::bluetooth_device_name(nullptr,0,ui::SetupCode{});
+    require(std::string(plain.bytes.data(),plain.size)=="Trail","owned boot without saved name is Trail");
+    const std::string longest(ui::kBluetoothDeviceNameMaxBytes,'a');
+    const auto full=ui::bluetooth_device_name(longest.data(),longest.size(),code);
+    require(full.size==ui::kBluetoothDeviceNameMaxBytes,"96-byte saved name kept whole");
+    const std::string too_long(ui::kBluetoothDeviceNameMaxBytes+1,'a');
+    const auto over=ui::bluetooth_device_name(too_long.data(),too_long.size(),code);
+    require(std::string(over.bytes.data(),over.size)=="Trail-UVWXYZ","oversize saved name falls back");
+    const char embedded[]={'a','\0','b'};
+    const auto nul=ui::bluetooth_device_name(embedded,3,code);
+    require(std::string(nul.bytes.data(),nul.size)=="Trail-UVWXYZ","embedded NUL falls back");
+    require(ui::setup_advertising_name(code,false).size==0,"owned advertising still carries no name");
+}
+
 void test_setup_fallback_requires_current_unowned_authority() {
     using opentrail::companion::CompanionV1BondOwnerStatus;
     using opentrail::companion::CompanionV1BondOwnerPhase;
@@ -840,6 +861,7 @@ int main() {
     test_review_failure_concealment();
     test_setup_fallback_requires_current_unowned_authority();
     test_setup_label_generation_advertising_and_actual_owner();
+    test_bluetooth_device_name_follows_saved_name_then_boot_label();
     test_runtime_phone_authority_fences();
     test_phone_authority_redraw_and_overlay();
     test_success_and_duplicate_suppression();
@@ -853,6 +875,6 @@ int main() {
     test_pairing_pin_is_transient_and_clear_restores_latest_footer();
     test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view();
     test_factory_reset_render_and_restore_failures_conceal();
-    std::cout << "18 Heltec startup display groups passed.\n";
+    std::cout << "19 Heltec startup display groups passed.\n";
     return 0;
 }

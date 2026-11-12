@@ -22,6 +22,10 @@ indication instead of answering with an error that emptied the phone's service
 discovery. Verified once on board A with one phone; details are in the
 [progress log](PROGRESS_LOG.md).
 
+Boards now give Android a recognizable Bluetooth name (the saved device name,
+else `Trail-XXXXXX`) instead of "nimble"; built and host-tested, not yet
+checked on a board.
+
 ## Target qualification applicability
 
 The owner-approved D1 metadata correction records `HTIT-WB32LAF V4.2`, bounded

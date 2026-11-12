@@ -65,6 +65,10 @@ companion_nimble_runtime_status();
 
 // App-owner display fallback only: empty unless current ownership is coherently unowned.
 [[nodiscard]] ui::SetupCode companion_nimble_unowned_setup_code();
+// This boot's setup label (all zero if this boot did not open a pairing window).
+[[nodiscard]] ui::SetupCode companion_nimble_boot_setup_code();
+// Main-loop call; the host task applies a changed name (D-056).
+void companion_nimble_request_bluetooth_name(const ui::BluetoothDeviceName& name);
 
 // Privacy-safe startup diagnostic. Zero means that secure configuration has
 // not failed; nonzero values identify only a bounded configuration stage.

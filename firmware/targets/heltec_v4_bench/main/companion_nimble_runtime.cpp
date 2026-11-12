@@ -173,6 +173,24 @@ security::SecureRandomSource* g_setup_random{nullptr};
 std::atomic<std::uint64_t> g_boot_reset_receipt{0};
 std::atomic<bool> g_suppress_next_adv_complete{false};
 
+// Bluetooth (GAP) device name, D-056. The main loop requests a name; the host
+// task applies it, so the Device Name characteristic never changes under a read.
+static_assert(ui::kBluetoothDeviceNameMaxBytes == CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN);
+static_assert(ui::kBluetoothDeviceNameMaxBytes == companion::kDeviceNameMaxUtf8Bytes);
+portMUX_TYPE g_bluetooth_name_mux = portMUX_INITIALIZER_UNLOCKED;
+std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> g_bluetooth_name_pending{};
+std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> g_bluetooth_name_requested{};
+ble_npl_event g_bluetooth_name_event{};
+std::atomic<bool> g_bluetooth_name_host_ready{false};
+
+void apply_bluetooth_name(ble_npl_event*) {
+    std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> name{};
+    taskENTER_CRITICAL(&g_bluetooth_name_mux);
+    name = g_bluetooth_name_pending;
+    taskEXIT_CRITICAL(&g_bluetooth_name_mux);
+    if (name[0] != '\0') (void)ble_svc_gap_device_name_set(name.data());
+}
+
 std::uint64_t current_ms();
 class ConfigurationBaseAuthority final : public ConfigurationBaseHandler {
 public:
@@ -560,6 +578,9 @@ public:
         if (!stack_initialized_ || host_started_) return false;
         ble_svc_gap_init();
         ble_svc_gatt_init();
+        // Host task not running yet: safe to set the starting name directly.
+        (void)ble_svc_gap_device_name_set("Trail");
+        ble_npl_event_init(&g_bluetooth_name_event, apply_bluetooth_name, nullptr);
         return g_callback_adapter != nullptr &&
                register_companion_nimble_gatt_service(g_callback_adapter) == 0;
     }
@@ -571,6 +592,7 @@ public:
             configMAX_PRIORITIES - 4, &host_task_, NIMBLE_CORE);
         if (result != pdPASS) return false;
         host_started_ = true;
+        g_bluetooth_name_host_ready.store(true, std::memory_order_release);
 #if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.record_created(host_task_);
 #endif
@@ -643,6 +665,7 @@ public:
         if (!close_companion_confirmation()) return false;
 #endif
         contained_ = true;
+        g_bluetooth_name_host_ready.store(false, std::memory_order_release);
         bool stop_ok = true;
         if (host_started_ && !host_run_exited_) {
             stop_ok = nimble_port_stop() == 0;
@@ -1603,6 +1626,27 @@ bool companion_nimble_phone_ready() {
     const auto status = g_runtime_owner.status();
     return startup_display_phone_ready(status, g_owner_connection_handle,
         companion_nimble_gatt_phone_ready(g_owner_gatt_transport_generation));
+}
+
+ui::SetupCode companion_nimble_boot_setup_code() {
+    PairingLock lock{pdMS_TO_TICKS(50)};
+    if (!lock.locked()) return {};
+    return g_setup_label.code();
+}
+
+void companion_nimble_request_bluetooth_name(const ui::BluetoothDeviceName& name) {
+    if (name.size == 0 || name.size > ui::kBluetoothDeviceNameMaxBytes ||
+        !g_bluetooth_name_host_ready.load(std::memory_order_acquire)) {
+        return;
+    }
+    std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> wanted{};
+    for (std::size_t i = 0; i < name.size; ++i) wanted[i] = name.bytes[i];
+    if (wanted == g_bluetooth_name_requested) return;
+    g_bluetooth_name_requested = wanted;
+    taskENTER_CRITICAL(&g_bluetooth_name_mux);
+    g_bluetooth_name_pending = wanted;
+    taskEXIT_CRITICAL(&g_bluetooth_name_mux);
+    ble_npl_eventq_put(nimble_port_get_dflt_eventq(), &g_bluetooth_name_event);
 }
 
 ui::SetupCode companion_nimble_unowned_setup_code() {
