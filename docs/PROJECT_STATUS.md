@@ -13,8 +13,9 @@ On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
 and bench-verified on one board: a reset right after pairing is no longer
 refused, and the pairing window can no longer fail with `clock_rollback` after
 a reset. Details and test results are in the
-[progress log](PROGRESS_LOG.md). Still open: the app-initiated reset needs a
-device retest. No release, signing or production acceptance is added.
+[progress log](PROGRESS_LOG.md). On 2026-11-12 the app-initiated reset and
+the refusal of the old phone after a reset also passed on board A. No release,
+signing or production acceptance is added.
 
 On 2026-11-12 the bonded phone's reconnect after a board restart was fixed on
 the same bench target: the board now confirms Android's Service Changed
@@ -23,8 +24,18 @@ discovery. Verified once on board A with one phone; details are in the
 [progress log](PROGRESS_LOG.md).
 
 Boards now give Android a recognizable Bluetooth name (the saved device name,
-else `Trail-XXXXXX`) instead of "nimble"; built and host-tested, not yet
-checked on a board.
+else `Trail-XXXXXX`) instead of "nimble". Checked on board A on 2026-11-12:
+Android shows `Trail-XXXXXX` after pairing; a later rename in the app is not
+picked up by Android until the board is paired again.
+
+## Group design
+
+Groups use pairwise delivery: each group message is sent once to each other
+member over that pair's own protected link, with at most 6 members and no
+group key. A new member pairs in person with the group admin only; the
+admin-signed roster lets the other pairs set themselves up. The
+[pairwise group design](security/GROUP_PAIRWISE_V1.md) is a proposal awaiting
+independent security review; nothing is implemented.
 
 ## Target qualification applicability
 

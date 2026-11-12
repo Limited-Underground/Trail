@@ -2,6 +2,12 @@
 
 ## 2026-11-12
 
+### OT-0306 Propose the pairwise group design
+
+The accepted security designs cover two boards only: OTSL0 allows exactly two members with pairwise unicast, and the accepted enrollment design requires an in-person fingerprint check for every pair. Following owner decisions D-057 and D-058 (workspace records), [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) proposes V1 groups of up to 6 members built from pairs: a group message is sent once to each other member over that pair's link, with no group key. A new member pairs in person with the group admin only; the admin's board signs a complete, versioned roster, and the other pairs are set up from the identities in it without a human step. Removal publishes a new roster and deletes only the removed member's pairs. Groups that share location need fast radio settings and a position interval of at least 60 seconds (estimated channel use for 6 members at SF7/125 kHz about 20% with busy text, about 64% at SF9).
+
+The proposal amends two accepted rules (per-pair in-person verification; whole-group epoch advance on revocation), so the group lifecycle and enrollment documents now point to it. It lists seven review questions and needs an independent security review before implementation. Documentation only: no code, build, device or crypto selection.
+
 ### OT-171 Name the Heltec V4 in Android's Bluetooth list
 
 Android listed every Trail board as "nimble": the firmware started the NimBLE GAP service but never set a device name, so the stack default was used, and testers could not tell which pairing to forget after a reset. Following owner decision D-056 (workspace records), the Bluetooth device name is now the device name saved from the app; until one is saved it is `Trail-XXXXXX`, the label this boot already shows during setup; an owned boot without a saved name uses `Trail`. Owned advertising is unchanged and still carries no name; only a connected client can read the Device Name characteristic. The main loop requests the name and the NimBLE host task applies it, so the characteristic is never changed under a read. `CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN` is raised to 96 to match the saved-name limit, and the default name is `Trail` instead of `nimble`. A factory reset already erases the saved name, so a reset board is named by its new setup label.
