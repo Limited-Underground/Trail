@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-12
+
+### OT-0170a Confirm phone indications so a restarted Heltec V4 reconnects
+
+After a Heltec V4 board restart, the bonded Android phone reconnected about one second later and then dropped the link with `BLE-GATT-PLATFORM-FAILURE`. Phone and board logs captured together on board A (Samsung Note20) show the cause. On a bonded reconnect Android sends the board a Service Changed indication (ATT 0x1D). The bench target was built without the NimBLE GATT client, so NimBLE had no handler for it and answered with an ATT Error Response. Android matched that error to its own pending service discovery request, ended discovery with an empty database, and the app's profile check failed. The same happens after any disconnect while the phone's own GATT database has changed, not only after a restart.
+
+The fix enables `CONFIG_BT_NIMBLE_GATT_CLIENT` so NimBLE confirms the indication. ESP-IDF 6.0.2 only offers the client with `CONFIG_BT_NIMBLE_ROLE_CENTRAL`, so that is enabled too. Target sources still never scan, connect out or start a client procedure, which the existing source check enforces; the received value is ignored. The build script and target checks now require both selections, and the raw-byte register is updated for the two changed files.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2, 604,128-byte app, about 12 KB larger). Bench target checks 19/19, reset composition 27/27, raw-byte checkout 291/291, BLE stack configuration, radio diagnostic and dependency boundary checks pass. On board A with the fix: pair, then RST; the phone reconnected four seconds after boot, the session was authorized and the link stayed up. The lowest free main-task stack seen fell from 4,544 to 3,280 bytes and should be watched. A separate test build of the app failed right after pairing by reading the service list before Android's post-bonding discovery finished; that is an app issue and is not changed here.
+
 ## 2026-11-11
 
 ### OT-0168c Fix Heltec V4 reset refusal and pairing clock rollback
