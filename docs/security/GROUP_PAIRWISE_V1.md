@@ -7,6 +7,10 @@ and the fixes from its re-review (see
 [Review record](#review-record)). Implementation order step 1 (the roster) is
 implemented on the host; see
 [`group_roster.hpp`](../../firmware/components/identity/include/opentrail/group_roster.hpp).
+Step 2 (the group state as single authority, the signed binding, epochs and
+interruption rules) is implemented on the host, without the handshake suite or
+key derivation; see
+[`group_pair.hpp`](../../firmware/components/identity/include/opentrail/group_pair.hpp).
 Nothing else is implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
 current Heltec V4 radio, not a frozen wire format.
@@ -216,7 +220,8 @@ signed binding covers:
 - both full identity fingerprints and their ordered roles;
 - both fresh session (ephemeral) public keys;
 - fresh challenges from both sides and both boards' boot tokens;
-- a deadline, checked with the same clock rules as invitations.
+- a lifetime of at most 60 seconds, enforced by each board on its own clock
+  (D-073; see [Restart and rekey](#restart-and-rekey)).
 
 This follows the accepted first pairing, where both identities sign an
 invitation that pins both fresh session keys. Signatures over fresh values are
@@ -232,8 +237,9 @@ a "skip confirmation" option on the first-pairing path.
 member (by its "added in" roster version) starts; each roster adds at most one
 member, so there is never a tie. For rekeys and recovery, on every pair
 including outside-group pairs, either side may start; if both start at once,
-the attempt started by the lower fingerprint continues and the other is
-dropped. A responder answers only an initiator listed in its own newest
+the order in [Restart and rekey](#restart-and-rekey) decides which attempt
+continues (an expired start does not count, an introduced pair start beats a
+rekey, then the higher epoch, then the lower fingerprint). A responder answers only an initiator listed in its own newest
 roster; if the initiator's roster is newer, the responder fetches it first.
 
 Activation uses the accepted durable steps (pending record, read back,
@@ -250,7 +256,8 @@ For every V1 pair (introduced pairs, each member's in-person pair with the
 admin, and outside-group conversation pairs) the rekey is **automatic**:
 
 - same two identities (and, for group pairs, both still on the current roster);
-- exactly epoch+1; zero, skips and wrap are refused;
+- exactly epoch+1, as made precise below (D-072); zero, larger skips and wrap
+  are refused;
 - fresh possession proof and the binding above. It replaces the invitation the
   accepted rekey used and gives the same freshness: fresh session keys, fresh
   challenges from both sides, boot tokens and a deadline. Group pairs bind the
@@ -271,6 +278,75 @@ completes.
 conversation ID fixed at their in-person first pairing. That name is bound
 into every rekey and into the pair's Packet-v1 context, so an outside-group
 pair and a group pair between the same two people are never confused.
+
+**One group state per group.** On each board a single group state holds the
+roster and the record of every introduced pair together; it cannot be copied
+or moved, and every setup, rekey, activation and commit goes through it. It
+alone can issue a verified binding. Each pair record is bound to the group name, both
+identities and both members' "added in" versions: applying a roster that removes
+or re-adds a member ends that record, so a re-added member needs a new first
+pairing and a new acceptance tap. Applying any new roster drops attempts made
+under the old one; a binding in ACTIVATION_POSSIBLE cannot commit under a
+changed roster. The group state signs only with this board's own identity, takes
+challenges only from the board's random source, answers only starts whose
+signature it has verified (roster version hints included), keeps up to three
+pending answers, budgets new answers and repeated replies, and activates and
+commits only the exact binding it verified. A binding is named by an id that is
+unique across every group on the board until it restarts, so a call kept from
+an earlier membership or another group cannot select a different binding.
+
+Pending answers: a start for the same epoch never displaces an answer that is
+still within its time limit (all slots full means "try again later"). Accepting
+a start for a higher epoch drops the answers for lower epochs, which can no
+longer finish; with a D-074 catch-up this includes an answer whose confirm was
+delayed, and that confirm then fails.
+
+A pair step cannot be interrupted by its own callbacks: it refuses roster
+changes and nested pair steps while it runs, the group state cannot be moved
+away under it, and it copies the incoming message first, so a callback that
+changes the caller's copy changes nothing that is verified, signed or issued.
+
+Cancel retires the own start and the pending answers. A roster conflict drops
+the own start, the pending answers and a binding not yet in
+ACTIVATION_POSSIBLE; none of these resume after "keep current". A binding in
+ACTIVATION_POSSIBLE is held through the conflict: it cannot commit while the
+conflict lasts, and may commit once the board keeps the same roster it names.
+Stopping trust ends every pair record.
+
+**Activation intent.** ACTIVATION_POSSIBLE is never retired by a start alone,
+however authentic: it stays until a new binding for the pair verifies, or until
+restart, where it is retired and never resumed. A board holding it may start a
+rekey itself, so two uncertain boards always reach a fresh epoch. Once a
+D-074 catch-up shows that the peer used a later epoch, the older binding can
+no longer commit; the intent stays only so the board knows to recover.
+
+**Epoch numbers (owner decision D-072).** An epoch counts as used only when a
+board has verified the complete binding signed by both boards. A start that is
+lost uses up nothing; the retry reuses the number with fresh values. A board
+proposes one above its highest used epoch and accepts that number, or one past it
+to catch up with a peer that used one this board missed (the peer verified the
+binding, this board never saw the confirm). A start signed by the peer at one
+past the next number counts as proof that the peer used the number between
+(owner decision D-074), so the answering board records that number as used at
+once; the gap therefore never grows beyond one, however many confirms are lost.
+Only that peer can make such a claim, so a dishonest member can only burn
+numbers on its own pair with this board. At the last epoch the pair is exhausted and
+must be set up again from a new roster entry. When two starts cross, an expired
+own start does not count, an introduced pair start beats a rekey (its sender has
+no history and would refuse the rekey), and otherwise the higher epoch wins, then
+the lower fingerprint; the loser drops its own unanswered start, which used
+nothing, and answers.
+
+**Time limit (owner decision D-073).** Clocks of two boards are never compared.
+The starting board allows 60 seconds from sending its start; the answering board
+allows 60 seconds from receiving it. The worst-case total is 120 seconds.
+
+**First pairing or rekey after an interruption.** A board starts an introduced
+pair until it has history for this membership (it signed a binding over the
+peer's verified part), then rekeys. A responder answers an introduced pair start
+whenever the acceptance and role order hold, and a rekey only with that history.
+Two boards left in different states by an interruption therefore always reach a
+fresh epoch.
 
 Triggers: boot and recovery (D-059). Any other trigger, such as a counter
 domain running out, is a separate decision. Both boards must be in radio range

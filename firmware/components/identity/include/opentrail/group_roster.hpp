@@ -36,11 +36,15 @@
 // handshakes, rekeys and roster transfers).
 
 #include <array>
+#include <optional>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
 
 namespace opentrail::identity::roster {
+
+class PairRecord;  // group_pair.hpp
+class GroupState;  // group_pair.hpp
 
 inline constexpr std::size_t kMaximumMembers = 6;
 inline constexpr std::size_t kPublicKeyBytes = 32;
@@ -186,6 +190,7 @@ enum class Outcome : std::uint8_t {
     blocked_by_conflict,    // unresolved conflict: no roster changes accepted
     not_member,             // left, removed or stopped trusting this group
     not_initialized,
+    busy,                   // refused while a pair step is running (GroupState)
     crypto_failure,         // a primitive failed; nothing changed
 };
 
@@ -217,6 +222,15 @@ public:
     // from this admin are refused.
     void stop_trusting();
 
+    // The local user's one tap accepting a newer member (design "Joining", step 3). Only
+    // for a member listed in the held roster who was added after this board; kept while
+    // that member stays listed. Binding it to a trusted local input receipt is later work.
+    bool accept_member(const PublicKey& key);
+    [[nodiscard]] bool accepted(const PublicKey& key) const;
+    // Maps a fingerprint to a member of the held roster. Lookup only: it confers no authority
+    // and also answers while the roster is not active (conflict, left).
+    bool key_for(const Fingerprint& fingerprint, PublicKey& out) const;
+
     [[nodiscard]] State state() const { return state_; }
     [[nodiscard]] ConflictKind conflict_kind() const { return conflict_; }
     [[nodiscard]] bool has_roster() const { return has_roster_; }
@@ -228,6 +242,8 @@ public:
     }
 
 private:
+    friend class PairRecord;  // reads the live roster at every pair step
+    friend class GroupState;
     struct Known {
         std::uint32_t version{0};
         Digest digest{};
@@ -252,6 +268,12 @@ private:
     Digest conflict_digest_{};
     std::array<Digest, kResolvedConflicts> resolved_{};
     std::size_t resolved_next_{0};
+    struct Accepted {
+        PublicKey key{};
+        std::uint32_t added_in{0};  // a removed and re-added member must be accepted again
+    };
+    std::array<Accepted, kMaximumMembers> accepted_{};
+    std::size_t accepted_count_{0};
 };
 
 }  // namespace opentrail::identity::roster

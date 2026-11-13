@@ -845,6 +845,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'group pair authority, binding and epochs (V1 pairwise groups, step 2)'
+        Output = Join-Path $buildDirectory 'group_pair_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_pair_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(
