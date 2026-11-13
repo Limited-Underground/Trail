@@ -88,7 +88,6 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/include"
         "${OPENTRAIL_COMPONENT_ROOT}/radio/include"
     REQUIRES
-        app_update
         bt
         bootloader_support
         efuse
@@ -104,6 +103,7 @@ idf_component_register(
         esp_lcd
         mbedtls
         nvs_flash
+        spi_flash
     PRIV_REQUIRES espressif__libsodium ${OPENTRAIL_CONFIRMATION_REQUIRES}
 )
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
