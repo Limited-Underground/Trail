@@ -28,6 +28,10 @@ else `Trail-XXXXXX`) instead of "nimble". Checked on board A on 2026-11-12:
 Android shows `Trail-XXXXXX` after pairing; a later rename in the app is not
 picked up by Android until the board is paired again.
 
+## Group messaging (V1)
+
+Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. It uses no selected signature algorithm yet and is not wired to storage, radio or the app. Next: the introduced-pair handshake (step 2).
+
 ## Development rules
 
 On 2026-11-11 the owner ended the November 2 product freeze and its November 3
