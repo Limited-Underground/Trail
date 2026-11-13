@@ -7,8 +7,8 @@ and the fixes from its re-review (see
 [Review record](#review-record)). Implementation order step 1 (the roster) is
 implemented on the host; see
 [`group_roster.hpp`](../../firmware/components/identity/include/opentrail/group_roster.hpp).
-Step 2 (pair authority, signed binding, epochs and interruption rules) is
-implemented on the host, without the handshake suite or key derivation; see
+Step 2 (one owner per pair, the signed binding, epochs and interruption rules)
+is implemented on the host, without the handshake suite or key derivation; see
 [`group_pair.hpp`](../../firmware/components/identity/include/opentrail/group_pair.hpp).
 Nothing else is implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
@@ -219,7 +219,8 @@ signed binding covers:
 - both full identity fingerprints and their ordered roles;
 - both fresh session (ephemeral) public keys;
 - fresh challenges from both sides and both boards' boot tokens;
-- a deadline, checked with the same clock rules as invitations.
+- a lifetime of at most 60 seconds, enforced by each board on its own clock
+  (D-073; see [Restart and rekey](#restart-and-rekey)).
 
 This follows the accepted first pairing, where both identities sign an
 invitation that pins both fresh session keys. Signatures over fresh values are
@@ -253,7 +254,8 @@ For every V1 pair (introduced pairs, each member's in-person pair with the
 admin, and outside-group conversation pairs) the rekey is **automatic**:
 
 - same two identities (and, for group pairs, both still on the current roster);
-- exactly epoch+1; zero, skips and wrap are refused;
+- exactly epoch+1, as made precise below (D-072); zero, larger skips and wrap
+  are refused;
 - fresh possession proof and the binding above. It replaces the invitation the
   accepted rekey used and gives the same freshness: fresh session keys, fresh
   challenges from both sides, boot tokens and a deadline. Group pairs bind the
@@ -275,22 +277,37 @@ conversation ID fixed at their in-person first pairing. That name is bound
 into every rekey and into the pair's Packet-v1 context, so an outside-group
 pair and a group pair between the same two people are never confused.
 
-**Epoch numbers in practice** (refined while implementing step 2, for review).
-Each board reserves an epoch durably before it sends anything for an attempt, so
-a start lost on the radio uses up an epoch on the initiator only. "Exactly
-epoch+1" is therefore applied as: a board proposes one above the highest epoch
-it has ever reserved for that pair, and accepts any proposal above its own
-highest, but only from a start signed by the peer's identity. Zero, equal, older
-and wrapped epochs are refused, and a replayed start cannot go above an epoch the
-peer itself reserved. When two rekey starts cross, the board whose start loses
-gives back its own unanswered reservation and answers the winning start.
+**One owner per pair.** On each board a single pair owner starts, answers and
+finishes every setup and rekey for one pair, and alone can issue a verified
+binding. It is bound to the group name, both identities and both members'
+"added in" versions, so a removed or re-added member (a new membership) needs a
+new owner, a new first pairing and a new acceptance tap. It rechecks the live
+roster at every step and drops an attempt when the roster changes. It signs only
+with this board's own identity, answers only starts whose signature it has
+verified (roster version hints included), and moves the durable steps only for
+the binding it verified.
+
+**Epoch numbers (owner decision D-072).** An epoch counts as used only when a
+board has verified the complete binding signed by both boards. A start that is
+lost uses up nothing; the retry reuses the number with fresh values. A board
+proposes one above its highest used epoch and accepts that number, or one past it
+to catch up with a peer that used one this board missed (the peer verified the
+binding, this board never saw the confirm). The gap can never grow beyond one.
+At the last epoch the pair is exhausted and must be set up again from a new
+roster entry. When two starts cross, the higher epoch wins, then the lower
+fingerprint; the loser drops its own unanswered start, which used nothing, and
+answers.
+
+**Time limit (owner decision D-073).** Clocks of two boards are never compared.
+The starting board allows 60 seconds from sending its start; the answering board
+allows 60 seconds from receiving it. The worst-case total is 120 seconds.
 
 **First pairing or rekey after an interruption.** A board starts an introduced
-pair until it has committed one, then rekeys. A responder answers an introduced
-pair start at any time (its authority still requires the member acceptance and
-the role order) and a rekey only after an earlier attempt with that peer
-(committed or interrupted). Two boards left in different states by an
-interruption therefore always reach a fresh epoch.
+pair until it has history for this membership (it signed a binding over the
+peer's verified part), then rekeys. A responder answers an introduced pair start
+whenever the acceptance and role order hold, and a rekey only with that history.
+Two boards left in different states by an interruption therefore always reach a
+fresh epoch.
 
 Triggers: boot and recovery (D-059). Any other trigger, such as a counter
 domain running out, is a separate decision. Both boards must be in radio range

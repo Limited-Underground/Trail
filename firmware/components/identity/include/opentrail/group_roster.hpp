@@ -43,8 +43,7 @@
 
 namespace opentrail::identity::roster {
 
-class PairAuthority;  // group_pair.hpp
-enum class PairPurpose : std::uint8_t;
+class PairOwner;  // group_pair.hpp
 
 inline constexpr std::size_t kMaximumMembers = 6;
 inline constexpr std::size_t kPublicKeyBytes = 32;
@@ -226,12 +225,8 @@ public:
     // that member stays listed. Binding it to a trusted local input receipt is later work.
     bool accept_member(const PublicKey& key);
     [[nodiscard]] bool accepted(const PublicKey& key) const;
-    // The typed authority for a pair with a listed peer (group_pair.hpp). Requires an
-    // active roster (no conflict). Introduce: both boards are non-admin members, and this
-    // board has accepted the peer if the peer is newer. Rekey: any listed peer.
-    bool pair_authority(const PublicKey& peer, PairPurpose purpose,
-                        std::optional<PairAuthority>& out) const;
-    // Maps a fingerprint from a received message to the listed member's key.
+    // Maps a fingerprint to a member of the held roster. Lookup only: it confers no authority
+    // and also answers while the roster is not active (conflict, left).
     bool key_for(const Fingerprint& fingerprint, PublicKey& out) const;
 
     [[nodiscard]] State state() const { return state_; }
@@ -245,6 +240,7 @@ public:
     }
 
 private:
+    friend class PairOwner;  // reads the live roster at every pair step
     struct Known {
         std::uint32_t version{0};
         Digest digest{};
