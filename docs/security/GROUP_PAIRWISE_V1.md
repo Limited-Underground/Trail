@@ -423,11 +423,24 @@ Outside-group acknowledgements stay 8 bytes.
 Receivers:
 
 - accept only from members on their newest roster with an active pair;
-- show each message once (by sender and message number), with gaps visible;
+- hold back a frame that names a newer roster (fetch it first), and treat the
+  same roster version with a different digest prefix as a disagreement (fetch
+  and offer it); a frame naming an older roster is accepted and the sender is
+  offered the newer one;
+- show each message once (by sender and message number), with gaps visible: a
+  late arrival fills its gap. Each sender's last 32 numbers are remembered;
+  anything older is not shown;
+- show the same sender and number with different content as a conflict (the
+  comparison uses a non-cryptographic checksum; Packet-v1 already
+  authenticates the frame);
 - refuse group positions when the location rule is off.
 
-Senders keep delivery state per member ("delivered to 4 of 5"). There is no
-relaying.
+Integers in the group header are big-endian. Group text bodies are strict
+UTF-8, 1 to 80 bytes.
+
+Senders keep delivery state per member ("delivered to 4 of 5") for their 16
+most recent messages; a member removed from the roster stops counting. There is
+no relaying.
 
 ## Roster delivery
 
