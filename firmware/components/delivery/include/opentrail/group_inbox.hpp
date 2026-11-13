@@ -109,8 +109,10 @@ struct GroupDeliveryStatus {
 
 class GroupOutbox {
 public:
-    // Starts tracking a sent message. When full, the oldest fully delivered message is
-    // dropped first, otherwise the oldest; its number is returned in `evicted`.
+    // Starts tracking a sent message (up to kGroupOutboxMessages at once). When full, the
+    // lowest-numbered complete message is dropped first (delivered to every remaining
+    // recipient, or with none left), otherwise the lowest-numbered one; its number is
+    // returned in `evicted`. This keeps pending messages longer than the 16 newest.
     [[nodiscard]] GroupOutboxError track(std::uint32_t number, const GroupMemberId* recipients, std::size_t count,
                                          std::optional<std::uint32_t>& evicted);
     // An acknowledgement from `member` for `number` (repeats are harmless).

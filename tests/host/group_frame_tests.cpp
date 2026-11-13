@@ -42,19 +42,22 @@ GroupMemberId member(std::uint8_t tag) {
 }
 
 // Encodes and decodes a frame (frames in the tests always go through the real codec).
+// `decoded.body` points into `wire`, so a Frame is built in place and never copied or
+// moved (C++17 guarantees the prvalue returned by frame() is not copied).
 struct Frame {
     std::array<std::uint8_t, kGroupPlaintextBytes> wire{};
     DecodedGroupFrame decoded{};
+    Frame(GroupContent c, const GroupFrameHeader& h, const std::string& body) {
+        const auto b = bytes(body);
+        GroupFrameError e{};
+        const std::size_t n = encode_group_frame(c, h, b.data(), b.size(), wire.data(), wire.size(), e);
+        EXPECT(n == kGroupFrameHeaderBytes + b.size() && e == GroupFrameError::none);
+        EXPECT(decode_group_frame(c, wire.data(), n, decoded) == GroupFrameError::none);
+    }
+    Frame(const Frame&) = delete;
+    Frame& operator=(const Frame&) = delete;
 };
-Frame frame(GroupContent c, const GroupFrameHeader& h, const std::string& body) {
-    Frame f;
-    const auto b = bytes(body);
-    GroupFrameError e{};
-    const std::size_t n = encode_group_frame(c, h, b.data(), b.size(), f.wire.data(), f.wire.size(), e);
-    EXPECT(n == kGroupFrameHeaderBytes + b.size() && e == GroupFrameError::none);
-    EXPECT(decode_group_frame(c, f.wire.data(), n, f.decoded) == GroupFrameError::none);
-    return f;
-}
+Frame frame(GroupContent c, const GroupFrameHeader& h, const std::string& body) { return Frame(c, h, body); }
 
 const GroupView kView{3, {0xA1, 0xB2, 0xC3, 0xD4}, true};
 const SenderStanding kOk{true, true};
@@ -258,6 +261,56 @@ void test_capacity_forget_and_clear() {
     EXPECT(in.missing(member(4)) == 0);
 }
 
+// Window boundaries and number limits (review of step 3a).
+void test_window_boundaries() {
+    for (const std::uint32_t distance : {31U, 32U, 33U}) {
+        GroupInbox in;
+        const GroupMemberId bob = member(2);
+        EXPECT(text_in(in, bob, 100, "first").outcome == GroupReceive::shown);
+        const auto r = text_in(in, bob, 100 + distance, "last");
+        EXPECT(r.outcome == GroupReceive::shown && r.missing_before == distance - 1);
+        EXPECT(in.missing(bob) == (distance == 31 ? 30U : 31U));
+        const GroupReceive kept = distance == 31 ? GroupReceive::duplicate : GroupReceive::too_old;
+        EXPECT(text_in(in, bob, 100, "first").outcome == kept);
+        EXPECT(text_in(in, bob, 100, "changed").outcome ==
+               (distance == 31 ? GroupReceive::conflict : GroupReceive::too_old));
+    }
+    // Highest possible number, reached by a jump from 1.
+    const std::uint32_t top = UINT32_MAX;
+    GroupInbox in;
+    const GroupMemberId bob = member(2);
+    EXPECT(text_in(in, bob, 1, "one").outcome == GroupReceive::shown);
+    const auto r = text_in(in, bob, top, "top");
+    EXPECT(r.outcome == GroupReceive::shown && r.missing_before == top - 2 && in.missing(bob) == 31);
+    EXPECT(text_in(in, bob, top - 31, "edge").outcome == GroupReceive::shown && in.missing(bob) == 30);
+    EXPECT(text_in(in, bob, top - 32, "outside").outcome == GroupReceive::too_old);
+    EXPECT(text_in(in, bob, top, "top").outcome == GroupReceive::duplicate);
+    EXPECT(text_in(in, bob, top, "other").outcome == GroupReceive::conflict);
+    // Repeating the same alternative body reports a conflict each time (the first body
+    // stays the reference); the caller decides how often to tell the user.
+    EXPECT(text_in(in, bob, top, "other").outcome == GroupReceive::conflict);
+    // A refused frame carrying the highest number changes nothing.
+    GroupInbox fresh;
+    EXPECT(text_in(fresh, bob, 10, "ten").outcome == GroupReceive::shown);
+    const Frame high = frame(GroupContent::text, header(top), "refused");
+    EXPECT(fresh.receive(bob, SenderStanding{false, true}, kView, GroupContent::text, high.decoded).outcome ==
+           GroupReceive::not_member);
+    EXPECT(fresh.receive(bob, SenderStanding{true, false}, kView, GroupContent::text, high.decoded).outcome ==
+           GroupReceive::no_pair);
+    const Frame newer = frame(GroupContent::text, header(top, 4), "refused");
+    EXPECT(fresh.receive(bob, kOk, kView, GroupContent::text, newer.decoded).outcome == GroupReceive::roster_newer);
+    const Frame differs = frame(GroupContent::text, header(top, 3, 0x99), "refused");
+    EXPECT(fresh.receive(bob, kOk, kView, GroupContent::text, differs.decoded).outcome ==
+           GroupReceive::roster_differs);
+    const Frame pos = frame(GroupContent::position, header(top), "p");
+    const GroupView no_location{3, kView.digest_prefix, false};
+    EXPECT(fresh.receive(bob, kOk, no_location, GroupContent::position, pos.decoded).outcome ==
+           GroupReceive::position_refused);
+    const auto next = text_in(fresh, bob, 11, "eleven");
+    EXPECT(next.outcome == GroupReceive::shown && next.missing_before == 0 && fresh.missing(bob) == 0);
+    EXPECT(text_in(fresh, bob, 10, "ten").outcome == GroupReceive::duplicate);
+}
+
 // ---------------------------------------------------------------- delivery state
 
 void test_delivery_counts() {
@@ -324,12 +377,13 @@ int main() {
     test_once_gaps_and_late_arrivals();
     test_conflict_and_window();
     test_capacity_forget_and_clear();
+    test_window_boundaries();
     test_delivery_counts();
     test_delivery_eviction();
     if (failures != 0) {
         std::cerr << failures << " group frame assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 9 group frame, receive and delivery scenario groups\n";
+    std::cout << "PASS: 10 group frame, receive and delivery scenario groups\n";
     return EXIT_SUCCESS;
 }

@@ -438,8 +438,10 @@ Receivers:
 Integers in the group header are big-endian. Group text bodies are strict
 UTF-8, 1 to 80 bytes.
 
-Senders keep delivery state per member ("delivered to 4 of 5") for their 16
-most recent messages; a member removed from the roster stops counting. There is
+Senders keep delivery state per member ("delivered to 4 of 5") for up to 16
+sent messages. When a new message needs room, the oldest complete message
+(delivered to every remaining member, or with no members left) is dropped first,
+otherwise the oldest. A member removed from the roster stops counting. There is
 no relaying.
 
 ## Roster delivery
