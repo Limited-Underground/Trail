@@ -4,16 +4,16 @@
 // "Introduced pairs", "Restart and rekey", "Recovery of interrupted pairs";
 // implementation order step 2). Host-only logic.
 //
-// One PairOwner per pair on each board. It is the only thing that can start, answer or
-// finish a pair setup, and the only thing that issues a VerifiedPairBinding. It binds the
-// group name, both identities and both members' added-in versions (the membership
-// incarnation), keeps the pair record private, and rechecks the live roster at every step:
-// a removed peer, a re-added peer (new incarnation) or a roster conflict stops it.
+// GroupState is the single authority for one group on one board: it holds the roster and the
+// pair records of every introduced pair together. It cannot be copied, and a moved-from
+// GroupState is empty. Every pair step goes through it and is checked against its own live
+// roster; applying a new roster removes the records of removed or re-added members and drops
+// attempts the change affects. Only GroupState issues a VerifiedPairBinding.
 //
 // Not provided here: the handshake suite and key derivation (not selected; the binding pins
-// both fresh session public keys for it), durable storage of the record (step 3), the
-// authenticated peer activation message (step 3), radio encoding of the three messages, and
-// pairs with the admin (their history comes from the in-person first pairing, bound later).
+// both fresh session public keys for it), durable storage (step 3 keeps exactly one
+// GroupState per group), the authenticated peer activation message (step 3), radio encoding
+// of the three messages, and pairs with the admin (bound later to the in-person pairing).
 //
 // Signed bytes (big-endian integers), domain-separated from each other and the roster:
 //   start   = kStartDomain   | common | initiator ephemeral | initiator challenge |
@@ -26,20 +26,23 @@
 //             responder fingerprint (32) | lifetime ms (4)
 // The initiator signs start and binding; the responder signs binding.
 //
-// Epochs (D-072): an epoch is used only when this board has verified the complete binding
-// signed by both boards. A board proposes one above its highest used epoch; a lost start uses
-// nothing, so the retry reuses the number with fresh values. A board accepts its next number,
-// or one past it to catch up with a peer that used one this board missed (the peer verified
-// the binding, this board did not see the confirm); the gap cannot grow beyond one. At the
-// last epoch the pair is exhausted and must be set up again from a new roster entry.
+// Epochs (D-072): an epoch is used when this board verifies the complete binding signed by
+// both boards. A board proposes one above its highest used epoch; a lost start uses nothing,
+// so the retry reuses the number with fresh values. A board accepts its next number, or one
+// past it: a start signed by the peer at used + 2 proves the peer used the number between, so
+// this board records that number as used at once. The gap therefore stays at most one under
+// any number of lost messages. At the last epoch the pair is exhausted and must be set up
+// again from a new roster entry.
 //
 // Time limit (D-073): the initiator allows the signed lifetime (60 s) from sending its start,
 // the responder from receiving it; clocks are never compared. Worst-case total is 120 s.
 //
 // Purpose: an introduce needs the older member's acceptance and is started by the newer
-// member; a rekey needs history for this incarnation (this board signed a binding after
-// verifying the peer's part). Crossing starts: the higher epoch wins, then the lower
-// fingerprint; the loser drops its unanswered start (nothing was used) and answers.
+// member; a rekey needs history for this membership (this board signed a binding after
+// verifying the peer's part). Crossing starts: an expired own start does not count; an
+// introduce beats a rekey (its sender has no history and would refuse the rekey); otherwise
+// the higher epoch wins, then the lower fingerprint. The loser drops its unanswered start
+// (nothing was used) and answers.
 
 #include <array>
 #include <cstddef>
@@ -56,9 +59,11 @@ inline constexpr std::size_t kChallengeBytes = 32;
 inline constexpr std::size_t kBootTokenBytes = 16;
 inline constexpr std::uint32_t kPairLifetimeMs = 60000;       // D-073, per side
 inline constexpr std::uint32_t kAnswerWindowMs = 5000;        // responder budget window
-inline constexpr std::size_t kAnswersPerWindow = 3;           // distinct starts answered per window
-inline constexpr std::size_t kRememberedStarts = 4;           // answered starts kept to drop repeats
-inline constexpr std::size_t kRememberedLocalValues = 4;      // own challenges / ephemerals not reused
+inline constexpr std::size_t kAnswersPerWindow = 3;           // new answers per window (also pending slots)
+inline constexpr std::size_t kResendsPerWindow = 3;           // repeated replies per window
+inline constexpr std::size_t kRememberedStarts = 8;           // answered starts kept to drop repeats
+inline constexpr std::size_t kRememberedChallenges = 8;       // own challenges checked for repeats
+inline constexpr std::size_t kMaximumPeers = kMaximumMembers - 2;  // introduced peers per board
 
 inline constexpr std::string_view kStartDomain{"OpenTrail group pair start v1"};
 inline constexpr std::string_view kBindingDomain{"OpenTrail group pair binding v1"};
@@ -69,6 +74,13 @@ using BootToken = std::array<std::uint8_t, kBootTokenBytes>;
 
 enum class PairPurpose : std::uint8_t { introduce = 1, rekey = 2 };
 enum class PairRole : std::uint8_t { initiator = 1, responder = 2 };
+
+// The board's random source for challenges (one trusted component; never caller values).
+class RandomSource {
+public:
+    virtual ~RandomSource() = default;
+    virtual bool fill(std::uint8_t* out, std::size_t size) = 0;
+};
 
 struct PairStart {
     PairPurpose purpose{PairPurpose::introduce};
@@ -96,8 +108,7 @@ struct PairConfirm {
 };
 
 // Proof that both identities signed the complete binding with this board's own fresh
-// challenge in it, for the pair and roster the owner checked at that moment. Issued only by
-// PairOwner. Activation of its keys still goes through the owner's durable steps.
+// challenge in it, for the pair and roster GroupState checked at that moment.
 class VerifiedPairBinding {
 public:
     [[nodiscard]] PairPurpose purpose() const { return start_.purpose; }
@@ -108,7 +119,7 @@ public:
     [[nodiscard]] const Signature& initiator_binding_signature() const { return confirm_.signature; }
 
 private:
-    friend class PairOwner;
+    friend class PairRecord;
     VerifiedPairBinding(PairRole role, const PairStart& s, const PairReply& r, const PairConfirm& c)
         : role_(role), start_(s), reply_(r), confirm_(c) {}
     PairRole role_;
@@ -119,22 +130,22 @@ private:
 
 enum class PairOutcome : std::uint8_t {
     ok = 0,
-    resent_reply,         // identical start of the current attempt: the same reply again
-    duplicate_start,      // a start this board already answered; ignored
+    resent_reply,         // identical start of a pending answer: the same reply again
+    duplicate_start,      // a start this board already answered and no longer holds
     local_attempt_wins,   // crossing starts: this board's own start continues
-    stale_owner,          // peer removed or re-added (new incarnation): make a new owner
+    no_pair,              // peer not an introduced member of the active roster
     roster_not_active,    // no active roster (conflict, left, not a member)
-    roster_changed,       // the roster changed during the attempt; attempt dropped
+    roster_changed,       // the roster changed since the attempt or binding
     no_consent,           // older member has not accepted the newer one
     wrong_role,           // introduce must be started by the more recently added member
-    wrong_purpose,        // rekey without history for this incarnation
-    not_for_this_pair,    // group, identities or roles do not match this owner
+    wrong_purpose,        // rekey without history for this membership
+    not_for_this_pair,    // group, identities or purpose do not match
     wrong_signer,         // signer is not this board's identity
     peer_roster_newer,    // (verified start) fetch the peer's roster, then retry
     peer_roster_older,    // (verified start) the peer should fetch this board's roster
     peer_roster_differs,  // (verified start) same version, other digest: fetch and offer it
     bad_lifetime,
-    bad_fresh_values,     // zero, reflected or reused fresh values
+    bad_fresh_values,     // zero, reflected or repeated fresh values
     bad_epoch,
     epoch_exhausted,
     bad_signature,
@@ -144,63 +155,60 @@ enum class PairOutcome : std::uint8_t {
     crypto_failure,
 };
 
-// Durable steps of the current attempt (step 3 stores them).
 enum class PairStep : std::uint8_t { none = 0, awaiting_reply, awaiting_confirm, bound, activation_possible, committed };
 
-class PairOwner {
-public:
-    // The owner for this board's pair with `peer` in the roster's group. Only pairs of two
-    // non-admin members (introduced pairs); both must be listed in an active roster.
-    static std::optional<PairOwner> create(const RosterState& roster, const PublicKey& peer);
+struct PairStatus {
+    PairStep step{PairStep::none};
+    std::uint32_t used_epoch{0};
+    std::uint32_t committed_epoch{0};
+    std::uint32_t next_epoch{0};  // 0 when exhausted
+    bool history{false};
+    PairPurpose next_purpose{PairPurpose::introduce};
+};
 
-    PairOwner(PairOwner&&) = default;
-    PairOwner& operator=(PairOwner&&) = default;
-    PairOwner(const PairOwner&) = delete;
-    PairOwner& operator=(const PairOwner&) = delete;
-
-    PairOutcome start(const RosterState& roster, const Ephemeral& eph, const Challenge& challenge,
-                      const BootToken& boot, std::uint64_t now_ms, const RosterSigner& signer, PairStart& out);
-    PairOutcome on_start(const RosterState& roster, const PairStart& start, const Ephemeral& eph,
-                         const Challenge& challenge, const BootToken& boot, std::uint64_t now_ms,
-                         const RosterCrypto& crypto, const RosterSigner& signer, PairReply& out);
-    PairOutcome on_reply(const RosterState& roster, const PairReply& reply, std::uint64_t now_ms,
-                         const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
-                         std::optional<VerifiedPairBinding>& verified);
-    PairOutcome on_confirm(const RosterState& roster, const PairConfirm& confirm, std::uint64_t now_ms,
-                           const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
-
-    // Durable steps, only for the attempt this owner verified: ACTIVATION_POSSIBLE before the
-    // first activation message, then commit (authenticated peer activation: step 3).
-    bool activation_possible();
-    bool commit();
-    // Power loss or recovery: the volatile attempt is gone; an unfinished attempt is retired,
-    // never resumed. Used epochs stay used.
-    void restart();
-    void cancel();
-
-    [[nodiscard]] PairStep step() const { return step_; }
-    [[nodiscard]] std::uint32_t used_epoch() const { return used_; }
-    [[nodiscard]] std::uint32_t committed_epoch() const { return committed_; }
-    [[nodiscard]] std::uint32_t next_epoch() const;  // 0 when exhausted
-    [[nodiscard]] bool has_history() const { return history_; }
-    [[nodiscard]] bool stale() const { return stale_; }
-    [[nodiscard]] PairPurpose next_purpose() const {
-        return history_ ? PairPurpose::rekey : PairPurpose::introduce;
-    }
-
+// Per-pair record and current attempt. Internal to GroupState.
+class PairRecord {
 private:
-    PairOwner() = default;
+    friend class GroupState;
     struct Live {
         const Member* self{nullptr};
         const Member* peer{nullptr};
         Fingerprint self_fp{}, peer_fp{};
     };
-    PairOutcome live(const RosterState& roster, Live& out);
+    struct Pending {
+        bool live{false};
+        PairStart start{};
+        PairReply reply{};
+        std::uint64_t time{0}, deadline{0};
+    };
+    PairRecord() = default;
+
+    PairOutcome live(const RosterState& roster, Live& out) const;
     bool acceptable(std::uint32_t epoch) const;
-    bool fresh_local(const Ephemeral& eph, const Challenge& challenge) const;
-    void remember_local(const Ephemeral& eph, const Challenge& challenge);
-    bool attempt_expired(std::uint64_t now_ms);
+    std::uint32_t next_epoch() const;
+    bool new_challenge(RandomSource& rng, Challenge& out);
     void drop_attempt();
+    void expire(std::uint64_t now_ms);
+    static bool within_budget(const std::array<std::uint64_t, kAnswersPerWindow>& times, std::size_t count,
+                              std::uint64_t now_ms);
+    static void spend(std::array<std::uint64_t, kAnswersPerWindow>& times, std::size_t& next, std::size_t& count,
+                      std::uint64_t now_ms);
+
+    PairOutcome start(const RosterState& roster, const Ephemeral& eph, const BootToken& boot, std::uint64_t now_ms,
+                      const RosterSigner& signer, RandomSource& rng, PairStart& out);
+    PairOutcome on_start(const RosterState& roster, const PairStart& start, const Ephemeral& eph, const BootToken& boot,
+                         std::uint64_t now_ms, const RosterCrypto& crypto, const RosterSigner& signer, RandomSource& rng,
+                         PairReply& out);
+    PairOutcome on_reply(const RosterState& roster, const PairReply& reply, std::uint64_t now_ms,
+                         const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
+                         std::optional<VerifiedPairBinding>& verified);
+    PairOutcome on_confirm(const RosterState& roster, const PairConfirm& confirm, std::uint64_t now_ms,
+                           const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
+    PairOutcome activation_possible(const RosterState& roster, std::uint32_t epoch);
+    PairOutcome commit(const RosterState& roster, std::uint32_t epoch);
+    void roster_applied(const RosterState& roster);
+    void restart();
+    PairStatus status() const;
 
     // Pair record (durable in step 3).
     GroupName group_{};
@@ -209,30 +217,76 @@ private:
     std::uint32_t used_{0};
     std::uint32_t committed_{0};
     bool history_{false};
-    bool stale_{false};
 
     // Current attempt (volatile).
     PairStep step_{PairStep::none};
     PairRole role_{PairRole::initiator};
-    PairStart start_{};
+    PairStart start_{};           // own start (initiator) or the bound start
     PairReply reply_{};
     PairConfirm confirm_{};
-    std::uint64_t attempt_time_{0}, deadline_{0};
-    std::uint32_t attempt_roster_version_{0};
-    Digest attempt_roster_digest_{};
+    std::uint64_t time_{0}, deadline_{0};
+    std::array<Pending, kAnswersPerWindow> pending_{};  // responder answers awaiting a confirm
 
     // Replay and budget memory (volatile).
     std::array<Signature, kRememberedStarts> answered_{};
     std::size_t answered_next_{0};
     std::array<std::uint64_t, kAnswersPerWindow> answer_times_{};
-    std::size_t answer_count_{0};
-    std::size_t answer_next_{0};
-    std::array<Challenge, kRememberedLocalValues> own_challenges_{};
-    std::array<Ephemeral, kRememberedLocalValues> own_ephemerals_{};
+    std::size_t answer_next_{0}, answer_count_{0};
+    std::array<std::uint64_t, kAnswersPerWindow> resend_times_{};
+    std::size_t resend_next_{0}, resend_count_{0};
+    std::array<Challenge, kRememberedChallenges> own_challenges_{};
     std::size_t own_next_{0};
 };
 
-// Which of two crossing starts continues: the higher epoch, then the lower fingerprint.
+// The single authority for one group on this board.
+class GroupState {
+public:
+    GroupState() = default;
+    GroupState(const GroupState&) = delete;
+    GroupState& operator=(const GroupState&) = delete;
+    GroupState(GroupState&& other) noexcept;
+    GroupState& operator=(GroupState&& other) noexcept;
+
+    // Roster (see RosterState). Every accepted roster is applied to the pair records.
+    bool initialize(const PublicKey& admin, std::uint64_t group_id, const PublicKey& own,
+                    std::uint32_t minimum_version = 1);
+    Outcome offer(const std::uint8_t* bytes, std::size_t size, const RosterCrypto& crypto);
+    bool keep_current() { return roster_.keep_current(); }
+    void stop_trusting() { roster_.stop_trusting(); }
+    bool accept_member(const PublicKey& key) { return roster_.accept_member(key); }
+    [[nodiscard]] const RosterState& roster() const { return roster_; }
+
+    // Pair steps. `peer` is the other member's identity key (key_for maps a fingerprint).
+    PairOutcome pair_start(const PublicKey& peer, const Ephemeral& eph, const BootToken& boot, std::uint64_t now_ms,
+                           const RosterSigner& signer, RandomSource& rng, PairStart& out);
+    PairOutcome pair_on_start(const PairStart& start, const Ephemeral& eph, const BootToken& boot, std::uint64_t now_ms,
+                              const RosterCrypto& crypto, const RosterSigner& signer, RandomSource& rng, PairReply& out);
+    PairOutcome pair_on_reply(const PublicKey& peer, const PairReply& reply, std::uint64_t now_ms,
+                              const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
+                              std::optional<VerifiedPairBinding>& verified);
+    PairOutcome pair_on_confirm(const PublicKey& peer, const PairConfirm& confirm, std::uint64_t now_ms,
+                                const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
+    // Durable steps for the exact epoch this board verified: ACTIVATION_POSSIBLE before the
+    // first activation message, then commit (authenticated peer activation: step 3). Both
+    // recheck that the roster is the one the binding names.
+    PairOutcome pair_activation_possible(const PublicKey& peer, std::uint32_t epoch);
+    PairOutcome pair_commit(const PublicKey& peer, std::uint32_t epoch);
+    void pair_cancel(const PublicKey& peer);
+    // Power loss or recovery: every unfinished attempt is retired, never resumed.
+    void restart();
+    [[nodiscard]] std::optional<PairStatus> pair_status(const PublicKey& peer) const;
+
+private:
+    PairRecord* record(const PublicKey& peer, bool create);
+    const PairRecord* find(const PublicKey& peer) const;
+    void apply_roster();
+
+    RosterState roster_{};
+    std::array<std::optional<PairRecord>, kMaximumPeers> pairs_{};
+};
+
+// Which of two crossing starts continues (after expiry and purpose checks): the higher epoch,
+// then the lower fingerprint.
 [[nodiscard]] bool start_wins(const PairStart& mine, const PairStart& theirs);
 
 // Signing inputs, exposed for tests and the future wire encoder.

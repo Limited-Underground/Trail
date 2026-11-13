@@ -30,7 +30,7 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
-Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; its first version was rejected in independent review and redesigned (owner decisions D-072, D-073). Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: review of step 2, then indexed per-pair storage, message numbers and the group header (step 3).
+Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; two versions were rejected in independent review and it was redesigned around a single group state (owner decisions D-072, D-073). Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: review of step 2, then indexed per-pair storage, message numbers and the group header (step 3).
 
 ## Development rules
 

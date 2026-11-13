@@ -7,8 +7,9 @@ and the fixes from its re-review (see
 [Review record](#review-record)). Implementation order step 1 (the roster) is
 implemented on the host; see
 [`group_roster.hpp`](../../firmware/components/identity/include/opentrail/group_roster.hpp).
-Step 2 (one owner per pair, the signed binding, epochs and interruption rules)
-is implemented on the host, without the handshake suite or key derivation; see
+Step 2 (the group state as single authority, the signed binding, epochs and
+interruption rules) is implemented on the host, without the handshake suite or
+key derivation; see
 [`group_pair.hpp`](../../firmware/components/identity/include/opentrail/group_pair.hpp).
 Nothing else is implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
@@ -277,26 +278,36 @@ conversation ID fixed at their in-person first pairing. That name is bound
 into every rekey and into the pair's Packet-v1 context, so an outside-group
 pair and a group pair between the same two people are never confused.
 
-**One owner per pair.** On each board a single pair owner starts, answers and
-finishes every setup and rekey for one pair, and alone can issue a verified
-binding. It is bound to the group name, both identities and both members'
-"added in" versions, so a removed or re-added member (a new membership) needs a
-new owner, a new first pairing and a new acceptance tap. It rechecks the live
-roster at every step and drops an attempt when the roster changes. It signs only
-with this board's own identity, answers only starts whose signature it has
-verified (roster version hints included), and moves the durable steps only for
-the binding it verified.
+**One group state per group.** On each board a single group state holds the
+roster and the record of every introduced pair together; it cannot be copied,
+and every setup, rekey, activation and commit goes through it. It alone can
+issue a verified binding. Each pair record is bound to the group name, both
+identities and both members' "added in" versions: applying a roster that removes
+or re-adds a member ends that record, so a re-added member needs a new first
+pairing and a new acceptance tap. Applying any new roster drops attempts made
+under the old one; a binding in ACTIVATION_POSSIBLE cannot commit under a
+changed roster. The group state signs only with this board's own identity, takes
+challenges only from the board's random source, answers only starts whose
+signature it has verified (roster version hints included), keeps up to three
+pending answers so a replayed start cannot displace the live one, budgets new
+answers and repeated replies, and activates and commits only the exact epoch it
+verified. A valid start from the peer retires an uncertain ACTIVATION_POSSIBLE
+attempt, which is never resumed.
 
 **Epoch numbers (owner decision D-072).** An epoch counts as used only when a
 board has verified the complete binding signed by both boards. A start that is
 lost uses up nothing; the retry reuses the number with fresh values. A board
 proposes one above its highest used epoch and accepts that number, or one past it
 to catch up with a peer that used one this board missed (the peer verified the
-binding, this board never saw the confirm). The gap can never grow beyond one.
-At the last epoch the pair is exhausted and must be set up again from a new
-roster entry. When two starts cross, the higher epoch wins, then the lower
-fingerprint; the loser drops its own unanswered start, which used nothing, and
-answers.
+binding, this board never saw the confirm). A start signed by the peer at one
+past the next number proves the peer used the number between, so the answering
+board records that number as used at once; the gap therefore never grows beyond
+one, however many confirms are lost. At the last epoch the pair is exhausted and
+must be set up again from a new roster entry. When two starts cross, an expired
+own start does not count, an introduced pair start beats a rekey (its sender has
+no history and would refuse the rekey), and otherwise the higher epoch wins, then
+the lower fingerprint; the loser drops its own unanswered start, which used
+nothing, and answers.
 
 **Time limit (owner decision D-073).** Clocks of two boards are never compared.
 The starting board allows 60 seconds from sending its start; the answering board

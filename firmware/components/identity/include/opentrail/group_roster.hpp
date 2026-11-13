@@ -43,7 +43,8 @@
 
 namespace opentrail::identity::roster {
 
-class PairOwner;  // group_pair.hpp
+class PairRecord;  // group_pair.hpp
+class GroupState;  // group_pair.hpp
 
 inline constexpr std::size_t kMaximumMembers = 6;
 inline constexpr std::size_t kPublicKeyBytes = 32;
@@ -240,7 +241,8 @@ public:
     }
 
 private:
-    friend class PairOwner;  // reads the live roster at every pair step
+    friend class PairRecord;  // reads the live roster at every pair step
+    friend class GroupState;
     struct Known {
         std::uint32_t version{0};
         Digest digest{};
