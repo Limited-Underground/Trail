@@ -3,9 +3,9 @@
 Use this index to find design contracts, accepted evidence, and contribution
 guidance. The [project README](../README.md) is the product overview.
 
-The indefinite product freeze retains its narrow November 3 host exception.
-The [working contract](../CONTRIBUTING.md#working-contract) defines the exact
-tasks, permitted host work and unchanged physical/publication restrictions.
+Development is active. The [working contract](../CONTRIBUTING.md#working-contract)
+defines what needs the owner's approval first (device sessions, pushing,
+merging, signing and releases).
 
 ## Start here
 

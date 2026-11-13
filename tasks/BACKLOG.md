@@ -15,8 +15,8 @@ or [Android App Project](https://github.com/orgs/Limited-Underground/projects/8)
 the [working contract](../CONTRIBUTING.md#working-contract), and the
 [current handoff](../docs/PROJECT_STATUS.md#current-recovery-handoff).
 Bind the selected task to its actual source, applicable owner authority,
-dependencies and acceptance evidence. The product freeze and its bounded
-exceptions remain governed by those records; a task row, historical next step
+dependencies and acceptance evidence. The current development rules are in the
+[working contract](../CONTRIBUTING.md#working-contract); a task row, historical next step
 or successful host check does not expand execution authority.
 
 When a task's next gate is unresolved, record the exact blocker and continue

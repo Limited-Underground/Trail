@@ -4,7 +4,7 @@ This preserves the earlier Android README and its dated source/evidence links.
 Its “current,” task-status, scope and command statements are historical and
 superseded for pickup by [the current Android reading path](../README.md), the
 [working contract](../../CONTRIBUTING.md#working-contract), later accepted
-decisions and the current product freeze. It is not an execution procedure or
+decisions and the current rules. It is not an execution procedure or
 fresh readiness result. Technical/historical names and evidence are preserved;
 relative link destinations were rebased for this archive location.
 

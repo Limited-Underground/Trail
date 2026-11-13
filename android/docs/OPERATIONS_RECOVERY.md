@@ -2,8 +2,8 @@
 
 [Android reading path](../README.md) · [Source/build](SOURCE_BUILD.md)
 
-This is a reading procedure, not permission to operate a phone or board. Current
-device work is frozen; only the [named host exception](../../CONTRIBUTING.md#working-contract) permits bounded implementation. Do not reinstall, refresh a cache, clear data or
+This is a reading procedure, not permission to operate a phone or board. Each
+device session needs the owner's approval first under the [working contract](../../CONTRIBUTING.md#working-contract). Do not reinstall, refresh a cache, clear data or
 bonds, reenroll, reset or flash to follow this page.
 
 ## Existing normal lifecycle

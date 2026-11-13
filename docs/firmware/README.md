@@ -1,6 +1,6 @@
 # Limited Underground Trail Firmware V1
 
-Start here for the firmware's current scope, implementation, evidence and remaining V1 criteria. The November 2 indefinite freeze has a [narrow November 3 host exception](../../CONTRIBUTING.md#working-contract) for OT-0237e; OT-0005i waits for accepted security admission and exact production-source selection. Those production prerequisites remain unmet. No device operation or release is authorized. [Current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies the documentation task, artifact identities and evidence-access limits.
+Start here for the firmware's current scope, implementation, evidence and remaining V1 criteria. Development is active under the [working contract](../../CONTRIBUTING.md#working-contract); device sessions and releases each need the owner's approval first. OT-0005i still waits for accepted security admission and exact production-source selection; those production prerequisites remain unmet. [Current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies the documentation task, artifact identities and evidence-access limits.
 
 ## Purpose and present result
 

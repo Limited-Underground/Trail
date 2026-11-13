@@ -244,7 +244,7 @@ def check_current_v1(root: Path) -> list[str]:
             if re.search(r"\bno (?:secure-lora implementation or )?(?:physical|bidirectional|phone-to-phone) (?:evidence|exchange|success|acceptance) exists\b", phrase):
                 problems.append(f"{relative}: blanket absence contradicts the recorded bounded diagnostic milestone")
             if re.search(r"\b(?:ordinary )?host-only development (?:is authorized|may resume)\b", phrase):
-                problems.append(f"{relative}: stale development permission contradicts the current owner freeze")
+                problems.append(f"{relative}: stale development permission contradicts the current working contract")
             if re.search(r"\bdiagnostic (?:run|exchange|rf) (?:proves|accepts|completes) (?:authenticated|protected|production)\b", phrase):
                 problems.append(f"{relative}: diagnostic success cannot accept protected production delivery")
     status = texts.get("docs/PROJECT_STATUS.md", "")
@@ -270,10 +270,6 @@ def check_current_v1(root: Path) -> list[str]:
     access = fields.get("Evidence access", "")
     if not primary or primary[0].rsplit("/", 1)[0] not in access or len(re.findall(r"Recovery-Records/[^\s|]+", access)) != 1:
         problems.append("docs/PROJECT_STATUS.md: select one primary diagnostic-success root; keep earlier routes in history")
-    if "frozen" in fields.get("Scope", "").lower():
-        for relative in ("README.md", "CONTRIBUTING.md", "AGENTS.md", "android/README.md"):
-            if "frozen" not in texts.get(relative, "").lower():
-                problems.append(f"{relative}: current owner freeze is missing")
     for relative in ("README.md", "docs/firmware/README.md", "android/README.md"):
         summary = texts.get(relative, "")
         if relative == "android/README.md":

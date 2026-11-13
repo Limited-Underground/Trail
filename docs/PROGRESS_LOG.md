@@ -2,6 +2,10 @@
 
 ## 2026-11-13
 
+### OT-0251 Replace the November 2 freeze wording with the current development rules
+
+The owner ended the November 2 product freeze and its November 3 and November 4 exceptions on 2026-11-11 and approved this documentation update on 2026-11-13. The [working contract](../CONTRIBUTING.md#working-contract), `AGENTS.md`, the README files and the current reading guides now state the current rules: development is active; priority is Trail Firmware, then Firmware Loader, then Trail Android; device sessions, pushing, merging, signing keys or credentials, and releases each need the owner's approval first; Wio Tracker work may start under the device playbook. `tools/check_repository_docs.py` no longer requires the word "frozen" in the entry documents. Dated history keeps its original wording. No device was touched.
+
 ### OT-0251 Make the bench build independent of the checkout folder
 
 A clean checkout reproduces the bench configuration: `idf.py set-target esp32s3` generates an `sdkconfig` identical (apart from comments) to the ignored local one. The same commit (`8f3c18a`, generation 2) built from two folders gave images that differed only in the recorded ELF SHA-256 and the image checksum, because debug information held the checkout path for the shared components outside the project folder. The bench target now maps the Trail root to `/opentrail` (`-ffile-prefix-map`); the [target README](../firmware/targets/heltec_v4_bench/README.md#building-from-a-clean-checkout) describes the clean build. No device was touched.
