@@ -837,6 +837,14 @@ $builds = @(
         )
     },
     @{
+        Name = 'group roster record and acceptance (V1 pairwise groups, step 1)'
+        Output = Join-Path $buildDirectory 'group_roster_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_roster_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(

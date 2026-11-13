@@ -4,7 +4,10 @@ Status: design proposal, revision 2, 2026-11-12. The owner chose the direction
 (workspace decisions D-057, D-058) and the answers to the independent security
 review (D-059, D-060). This revision adds the ten changes that review required
 and the fixes from its re-review (see
-[Review record](#review-record)). It is not implemented. No algorithm, library
+[Review record](#review-record)). Implementation order step 1 (the roster) is
+implemented on the host; see
+[`group_roster.hpp`](../../firmware/components/identity/include/opentrail/group_roster.hpp).
+Nothing else is implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
 current Heltec V4 radio, not a frozen wire format.
 
