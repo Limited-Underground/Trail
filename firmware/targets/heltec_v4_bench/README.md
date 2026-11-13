@@ -372,6 +372,21 @@ identifier, key or user data. It reports the build's own generation and the
 offset the bootloader ran it from; it does not prove the image is authentic,
 which the Loader checks from the signature before writing.
 
+## Building from a clean checkout
+
+The target's `sdkconfig` is not in Git. In a clean checkout, run
+`idf.py set-target esp32s3` first: it generates `sdkconfig` from the committed
+`sdkconfig.defaults`, and on 2026-11-13 the result was identical, apart from
+comments, to the bench `sdkconfig` used for the Loader releases. The libsodium
+dependency under `tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components`
+is also not in Git; the ESP-IDF component manager fetches it, or it is copied
+from an existing checkout.
+
+Compiler output maps the Trail checkout folder to `/opentrail`
+(`-ffile-prefix-map`), so the same commit builds to the same image from any
+folder. Without it, the image differed in its recorded ELF SHA-256 (and the
+image checksum) because debug information held the checkout path.
+
 ## Build gate
 
 Use `tools/Build-HeltecV4BenchTarget.ps1` from an already installed and exported

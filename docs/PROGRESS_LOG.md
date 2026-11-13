@@ -1,5 +1,11 @@
 # OpenTrail Progress Log
 
+## 2026-11-13
+
+### I-034 Make the bench build independent of the checkout folder
+
+A clean checkout reproduces the bench configuration: `idf.py set-target esp32s3` generates an `sdkconfig` identical (apart from comments) to the ignored local one. The same commit (`8f3c18a`, generation 2) built from two folders gave images that differed only in the recorded ELF SHA-256 and the image checksum, because debug information held the checkout path for the shared components outside the project folder. The bench target now maps the Trail root to `/opentrail` (`-ffile-prefix-map`); the [target README](../firmware/targets/heltec_v4_bench/README.md#building-from-a-clean-checkout) describes the clean build. No device was touched.
+
 ## 2026-11-12
 
 ### OT-0251 Add a release generation and boot identity line for the Firmware Loader
