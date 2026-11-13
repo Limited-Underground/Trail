@@ -208,9 +208,9 @@ bool complete(const Run& r) {
            r.confirmed == PairOutcome::ok && r.init_verified && r.resp_verified;
 }
 void activate(Side& s) {
-    const std::uint32_t e = st(s).used_epoch;
-    EXPECT(s.g.pair_activation_possible(s.peer, e) == PairOutcome::ok);
-    EXPECT(s.g.pair_commit(s.peer, e) == PairOutcome::ok);
+    const std::uint64_t id = st(s).binding_id;
+    EXPECT(s.g.pair_activation_possible(s.peer, id) == PairOutcome::ok);
+    EXPECT(s.g.pair_commit(s.peer, id) == PairOutcome::ok);
 }
 PairStart signed_start(PairStart s, const PublicKey& signer) {
     std::array<std::uint8_t, kStartBytes> b{};
@@ -250,8 +250,10 @@ void test_introduce_succeeds_and_binds_everything() {
     EXPECT(run.s.initiator == c.g.roster().fingerprints()[2] && run.s.responder == b.g.roster().fingerprints()[1]);
     EXPECT(run.init_verified->initiator_binding_signature() == run.resp_verified->initiator_binding_signature());
     EXPECT(st(c).step == PairStep::bound && st(b).step == PairStep::bound);
-    EXPECT(c.g.pair_commit(kB, 1) == PairOutcome::wrong_state);              // never before ACTIVATION_POSSIBLE
-    EXPECT(c.g.pair_activation_possible(kB, 2) == PairOutcome::wrong_state); // exact epoch only
+    const std::uint64_t cid = run.init_verified->id();
+    EXPECT(cid != 0 && st(c).binding_id == cid);
+    EXPECT(c.g.pair_commit(kB, cid) == PairOutcome::wrong_state);              // never before ACTIVATION_POSSIBLE
+    EXPECT(c.g.pair_activation_possible(kB, cid + 100) == PairOutcome::wrong_state); // exact binding only
     activate(c);
     activate(b);
     EXPECT(st(c).committed_epoch == 1 && st(b).committed_epoch == 1);
@@ -295,9 +297,10 @@ void test_removal_and_readd_end_the_pair() {
     // A bound pair cannot activate or commit after the peer is removed.
     Side c2 = side(kC, kB), b2 = side(kB, kC);
     EXPECT(complete(exchange(c2, b2)));
+    const std::uint64_t id2 = st(b2).binding_id;
     EXPECT(offer(b2, v4) == Outcome::accepted);
-    EXPECT(b2.g.pair_activation_possible(kC, 1) == PairOutcome::no_pair);
-    EXPECT(b2.g.pair_commit(kC, 1) == PairOutcome::no_pair);
+    EXPECT(b2.g.pair_activation_possible(kC, id2) == PairOutcome::no_pair);
+    EXPECT(b2.g.pair_commit(kC, id2) == PairOutcome::no_pair);
     // Re-added: a new membership, a new record, a new tap (review 1 probe D).
     Side c3 = side(kC, kB), b3 = side(kB, kC);
     EXPECT(complete(exchange(c3, b3)));
@@ -312,6 +315,20 @@ void test_removal_and_readd_end_the_pair() {
     EXPECT(b3.g.accept_member(kC));
     Run again = exchange(c5, b3, 200000);
     EXPECT(complete(again) && again.s.epoch == 1 && again.s.purpose == PairPurpose::introduce);
+    // Review 3 probe D: the old membership's binding id cannot select the new binding.
+    Side c6 = side(kC, kB), b6 = side(kB, kC);
+    Run old_run = exchange(c6, b6);
+    EXPECT(complete(old_run));
+    const std::uint64_t old_id = old_run.resp_verified->id();
+    EXPECT(offer(b6, v4) == Outcome::accepted);
+    EXPECT(offer(b6, v5) == Outcome::accepted);
+    EXPECT(b6.g.accept_member(kC));
+    Side c7 = side(kC, kB, v5);
+    Run new_run = exchange(c7, b6, 300000);
+    EXPECT(complete(new_run) && new_run.s.epoch == old_run.s.epoch);
+    EXPECT(new_run.resp_verified->id() != old_id);
+    EXPECT(b6.g.pair_activation_possible(kC, old_id) == PairOutcome::wrong_state);
+    EXPECT(b6.g.pair_activation_possible(kC, new_run.resp_verified->id()) == PairOutcome::ok);
 }
 
 void test_roster_change_drops_attempts_and_blocks_activation() {
@@ -319,15 +336,17 @@ void test_roster_change_drops_attempts_and_blocks_activation() {
     Run run = exchange(c, b);
     EXPECT(complete(run));
     const Signed v4 = rule(v3, LocationRule::preferred);
+    const std::uint64_t id = st(b).binding_id;
     EXPECT(offer(b, v4) == Outcome::accepted);
     EXPECT(st(b).step == PairStep::none);                                    // bound attempt dropped
-    EXPECT(b.g.pair_activation_possible(kC, 1) == PairOutcome::wrong_state);
+    EXPECT(b.g.pair_activation_possible(kC, id) == PairOutcome::wrong_state);
     // ACTIVATION_POSSIBLE survives a roster change but cannot commit.
     Side c2 = side(kC, kB), b2 = side(kB, kC);
     EXPECT(complete(exchange(c2, b2)));
-    EXPECT(b2.g.pair_activation_possible(kC, 1) == PairOutcome::ok);
+    const std::uint64_t id2 = st(b2).binding_id;
+    EXPECT(b2.g.pair_activation_possible(kC, id2) == PairOutcome::ok);
     EXPECT(offer(b2, v4) == Outcome::accepted);
-    EXPECT(b2.g.pair_commit(kC, 1) == PairOutcome::roster_changed);
+    EXPECT(b2.g.pair_commit(kC, id2) == PairOutcome::roster_changed);
     // A reply under the old roster is refused.
     Side c3 = side(kC, kB), b3 = side(kB, kC);
     PairStart s{};
@@ -555,23 +574,38 @@ void test_introduce_beats_rekey_when_history_differs() {
     EXPECT(confirm_in(older, conf, 70030, v) == PairOutcome::ok && v);
 }
 
-void test_activation_possible_recovers_on_peer_start() {
-    // Review 2 suspected risk: a valid peer start retires an uncertain activation.
+void test_activation_intent_and_recovery() {
+    // Review 3: a start alone never retires activation intent; a new verified binding does.
     Side c = side(kC, kB), b = side(kB, kC);
     EXPECT(complete(exchange(c, b, 0)));
     activate(c);
-    EXPECT(b.g.pair_activation_possible(kC, 1) == PairOutcome::ok);
-    PairStart s{}, s2{};
-    PairReply r2{};
-    EXPECT(start(b, 10, s) == PairOutcome::wrong_state);   // own start waits for recovery
-    EXPECT(start(c, 70000, s2) == PairOutcome::ok);
-    EXPECT(answer(b, s2, 70010, r2) == PairOutcome::ok);
-    EXPECT(st(b).step == PairStep::awaiting_confirm);       // the uncertain activation is retired
-    Run two = exchange(c, b, 140000);
-    EXPECT(complete(two) && two.s.epoch == 2 && st(b).used_epoch == 2);
-    activate(c);
-    activate(b);
-    EXPECT(st(b).committed_epoch == 2);
+    const std::uint64_t id1 = st(b).binding_id;
+    EXPECT(b.g.pair_activation_possible(kC, id1) == PairOutcome::ok);
+    PairStart archived{};
+    EXPECT(start(c, 100, archived) == PairOutcome::ok && archived.epoch == 2);
+    c.g.pair_cancel(kB);
+    PairReply r{};
+    EXPECT(answer(b, archived, 100 + kPairLifetimeMs + 1, r) == PairOutcome::ok);
+    EXPECT(st(b).step == PairStep::awaiting_confirm && st(b).binding == PairStep::activation_possible);
+    EXPECT(b.g.pair_commit(kC, id1) == PairOutcome::ok);   // the intent survived the delayed start
+    EXPECT(st(b).committed_epoch == 1);
+    // A newly verified binding replaces the intent.
+    Side c2 = side(kC, kB), b2 = side(kB, kC);
+    EXPECT(complete(exchange(c2, b2, 0)));
+    activate(c2);
+    EXPECT(b2.g.pair_activation_possible(kC, st(b2).binding_id) == PairOutcome::ok);
+    Run two = exchange(c2, b2, 70000);
+    EXPECT(complete(two) && two.s.epoch == 2 && st(b2).used_epoch == 2 && st(b2).binding == PairStep::bound);
+    activate(c2);
+    activate(b2);
+    EXPECT(st(b2).committed_epoch == 2);
+    // Both boards uncertain: either may start the recovery rekey (review 3 suspected risk).
+    Side c3 = side(kC, kB), b3 = side(kB, kC);
+    EXPECT(complete(exchange(c3, b3, 0)));
+    EXPECT(c3.g.pair_activation_possible(kB, st(c3).binding_id) == PairOutcome::ok);
+    EXPECT(b3.g.pair_activation_possible(kC, st(b3).binding_id) == PairOutcome::ok);
+    Run three = exchange(b3, c3, 100000);
+    EXPECT(complete(three) && three.s.epoch == 2 && three.s.purpose == PairPurpose::rekey);
 }
 
 void test_hints_after_signature_and_pair_naming() {
@@ -750,7 +784,145 @@ void test_forged_confirm_and_initiator_restart() {
     EXPECT(bound.confirm == PairOutcome::ok && st(c3).step == PairStep::bound);
     c3.g.restart();
     EXPECT(st(c3).step == PairStep::none && st(c3).used_epoch == 1);
-    EXPECT(c3.g.pair_activation_possible(kB, 1) == PairOutcome::wrong_state);
+    EXPECT(c3.g.pair_activation_possible(kB, bound.init_verified->id()) == PairOutcome::wrong_state);
+}
+
+class RosterChangingSigner final : public RosterSigner {
+public:
+    RosterChangingSigner(Side& side, const Signed& next) : side_(side), next_(next) {}
+    const PublicKey& public_key() const override { return side_.me; }
+    bool sign(const std::uint8_t* m, std::size_t n, Signature& s) const override {
+        result = offer(side_, next_);
+        return TestSigner(side_.me).sign(m, n, s);
+    }
+    mutable Outcome result{Outcome::accepted};
+private:
+    Side& side_;
+    const Signed& next_;
+};
+
+void test_review3_fixes() {
+    // Old starts cannot evict a live answer, in either window (probe A).
+    for (bool live_first : {true, false}) {
+        Side c = side(kC, kB), b = side(kB, kC);
+        std::array<PairStart, 3> archived{};
+        for (std::size_t i = 0; i < archived.size(); ++i) EXPECT(start(c, i, archived[i]) == PairOutcome::ok);
+        PairStart live{};
+        PairReply reply{}, old_reply{};
+        PairConfirm confirm{};
+        std::optional<VerifiedPairBinding> v;
+        EXPECT(start(c, 100000, live) == PairOutcome::ok);
+        if (live_first) {
+            EXPECT(answer(b, live, 100010, reply) == PairOutcome::ok);
+            EXPECT(reply_in(c, reply, 100020, confirm, v) == PairOutcome::ok && v);
+        }
+        std::size_t answered = 0;
+        for (std::size_t i = 0; i < archived.size(); ++i) {
+            if (answer(b, archived[i], 105010 + i, old_reply) == PairOutcome::ok) ++answered;
+        }
+        if (live_first) {
+            EXPECT(answered == kAnswersPerWindow - 1);   // two free slots; the live answer keeps its own
+            EXPECT(confirm_in(b, confirm, 105020, v) == PairOutcome::ok && v);
+        } else {
+            EXPECT(answered == kAnswersPerWindow);
+            EXPECT(answer(b, live, 105020, reply) == PairOutcome::rate_limited);  // full: wait for a slot to expire
+            EXPECT(answer(b, live, 105010 + kPairLifetimeMs + 1, reply) == PairOutcome::ok);
+        }
+    }
+    // Cancel on the responder retires its pending answers (probe A).
+    Side c = side(kC, kB), b = side(kB, kC);
+    Run run = exchange(c, b, 0, false);
+    EXPECT(run.confirm == PairOutcome::ok && st(b).step == PairStep::awaiting_confirm);
+    b.g.pair_cancel(kC);
+    std::optional<VerifiedPairBinding> v;
+    EXPECT(st(b).step == PairStep::none);
+    EXPECT(confirm_in(b, run.c, 30, v) == PairOutcome::wrong_state && !v);
+    EXPECT(st(b).used_epoch == 0);
+    // A provider cannot change the roster while a pair step runs (probe B).
+    Side c2 = side(kC, kB), b2 = side(kB, kC);
+    const Signed v4 = rule(v3, LocationRule::preferred);
+    PairStart s{};
+    PairReply r{};
+    PairConfirm f{};
+    EXPECT(start(c2, 0, s) == PairOutcome::ok);
+    EXPECT(answer(b2, s, 10, r) == PairOutcome::ok);
+    RosterChangingSigner nested(c2, v4);
+    EXPECT(c2.g.pair_on_reply(kB, r, 20, crypto, nested, f, v) == PairOutcome::ok && v);
+    EXPECT(nested.result == Outcome::busy && c2.g.roster().roster().version == 3);
+    EXPECT(v->epoch() == 1 && v->start().roster_version == 3);
+    EXPECT(c2.g.pair_activation_possible(kB, v->id()) == PairOutcome::ok);
+    // Stop trusting ends every pair record (probe B).
+    Side c3 = side(kC, kB), b3 = side(kB, kC);
+    EXPECT(complete(exchange(c3, b3)));
+    activate(b3);
+    b3.g.stop_trusting();
+    EXPECT(!b3.g.pair_status(kC).has_value());
+    EXPECT(b3.g.pair_commit(kC, 1) == PairOutcome::no_pair);
+    // A conflict drops unfinished work; keeping the roster does not resume it (probe B).
+    const Signed held = rule(v3, LocationRule::preferred);
+    const Signed fork = rule(v3, LocationRule::required);
+    Side c4 = side(kC, kB, held), b4 = side(kB, kC, held);
+    Run pending = exchange(c4, b4, 0, false);
+    EXPECT(pending.confirm == PairOutcome::ok);
+    EXPECT(offer(b4, fork) == Outcome::conflict);
+    EXPECT(b4.g.keep_current());
+    EXPECT(confirm_in(b4, pending.c, 40, v) == PairOutcome::wrong_state && !v);
+    // An ACTIVATION_POSSIBLE binding is kept through a conflict and may commit after keep_current.
+    Side c5 = side(kC, kB, held), b5 = side(kB, kC, held);
+    EXPECT(complete(exchange(c5, b5)));
+    const std::uint64_t id5 = st(b5).binding_id;
+    EXPECT(b5.g.pair_activation_possible(kC, id5) == PairOutcome::ok);
+    EXPECT(offer(b5, fork) == Outcome::conflict);
+    EXPECT(b5.g.pair_commit(kC, id5) == PairOutcome::roster_not_active);
+    EXPECT(b5.g.keep_current());
+    EXPECT(b5.g.pair_commit(kC, id5) == PairOutcome::ok);
+    // Binding ids: commit needs the exact id; each binding gets its own id on both sides;
+    // restart retires activation intent.
+    Side c7 = side(kC, kB), b7 = side(kB, kC);
+    Run first7 = exchange(c7, b7, 0);
+    EXPECT(complete(first7));
+    const std::uint64_t i1 = first7.init_verified->id();
+    EXPECT(c7.g.pair_activation_possible(kB, i1) == PairOutcome::ok);
+    EXPECT(c7.g.pair_commit(kB, i1 + 1) == PairOutcome::wrong_state);
+    EXPECT(c7.g.pair_commit(kB, i1) == PairOutcome::ok);
+    activate(b7);
+    Run second7 = exchange(c7, b7, 100000);
+    EXPECT(complete(second7) && second7.init_verified->id() != i1);
+    EXPECT(c7.g.pair_activation_possible(kB, second7.init_verified->id()) == PairOutcome::ok);
+    c7.g.restart();
+    EXPECT(st(c7).binding == PairStep::none);
+    EXPECT(c7.g.pair_commit(kB, second7.init_verified->id()) == PairOutcome::wrong_state);
+    // The answer budget holds when a higher epoch frees the slots inside one window.
+    Side c8 = side(kC, kB), b8 = side(kB, kC);
+    PairStart base8{};
+    EXPECT(start(c8, 0, base8) == PairOutcome::ok);
+    for (int i = 0; i < 3; ++i) {
+        PairStart x{};
+        EXPECT(start(c8, 1 + i, x) == PairOutcome::ok);
+        EXPECT(answer(b8, x, 10 + i, r) == PairOutcome::ok);
+    }
+    PairStart higher = base8;
+    higher.epoch = 2;
+    EXPECT(answer(b8, signed_start(higher, kC), 20, r) == PairOutcome::rate_limited);
+    // A binding overtaken by a catch-up cannot be activated.
+    Side c9 = side(kC, kB), b9 = side(kB, kC);
+    Run r9 = exchange(c9, b9, 0);
+    EXPECT(complete(r9));
+    PairStart jump = r9.s;
+    jump.purpose = PairPurpose::rekey;
+    jump.epoch = 3;
+    EXPECT(answer(b9, signed_start(jump, kC), 100000, r) == PairOutcome::ok && st(b9).used_epoch == 2);
+    EXPECT(b9.g.pair_activation_possible(kC, r9.resp_verified->id()) == PairOutcome::wrong_state);
+    // D-074: a dishonest peer's signed claims move only its own pair's numbers.
+    Side c6 = side(kC, kB), b6 = side(kB, kC);
+    PairStart one{};
+    EXPECT(start(c6, 0, one) == PairOutcome::ok);
+    PairStart claim = one;
+    claim.epoch = 2;
+    EXPECT(answer(b6, signed_start(claim, kC), 10, r) == PairOutcome::ok && st(b6).used_epoch == 1);
+    // The lying board's own next start (epoch 1) no longer fits: only its own pair is stuck.
+    Run after = exchange(c6, b6, 100000);
+    EXPECT(after.reply == PairOutcome::bad_epoch && st(b6).used_epoch == 1);
 }
 }  // namespace
 
@@ -769,16 +941,17 @@ int main() {
     test_epochs_converge_under_repeated_loss();
     test_crossing_starts();
     test_introduce_beats_rekey_when_history_differs();
-    test_activation_possible_recovers_on_peer_start();
+    test_activation_intent_and_recovery();
     test_hints_after_signature_and_pair_naming();
     test_challenges_come_from_the_random_source();
     test_outputs_never_stale();
     test_signed_bytes_layout();
     test_forged_confirm_and_initiator_restart();
+    test_review3_fixes();
     if (failures != 0) {
         std::cerr << failures << " group pair assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 20 group pair scenario groups\n";
+    std::cout << "PASS: 21 group pair scenario groups\n";
     return EXIT_SUCCESS;
 }

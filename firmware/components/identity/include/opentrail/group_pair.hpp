@@ -26,13 +26,19 @@
 //             responder fingerprint (32) | lifetime ms (4)
 // The initiator signs start and binding; the responder signs binding.
 //
-// Epochs (D-072): an epoch is used when this board verifies the complete binding signed by
-// both boards. A board proposes one above its highest used epoch; a lost start uses nothing,
-// so the retry reuses the number with fresh values. A board accepts its next number, or one
-// past it: a start signed by the peer at used + 2 proves the peer used the number between, so
-// this board records that number as used at once. The gap therefore stays at most one under
-// any number of lost messages. At the last epoch the pair is exhausted and must be set up
-// again from a new roster entry.
+// Epochs (D-072, D-074): an epoch is used when this board verifies the complete binding
+// signed by both boards. A board proposes one above its highest used epoch; a lost start uses
+// nothing, so the retry reuses the number with fresh values. A board accepts its next number,
+// or one past it: a start signed by the peer at used + 2 counts as proof that the peer used the
+// number between (D-074), so this board records that number as used at once. Only that peer
+// can make the claim, so a dishonest member can only burn numbers on its own pair. The gap
+// stays at most one under any number of lost messages. At the last epoch the pair is exhausted
+// and must be set up again from a new roster entry.
+//
+// Activation intent (ACTIVATION_POSSIBLE) is never retired by a start alone: it stays until a
+// new binding for this pair verifies, or until restart. A board holding it may start a rekey
+// itself, so two uncertain boards always reach a fresh epoch. Activation and commit name the
+// exact binding by its id.
 //
 // Time limit (D-073): the initiator allows the signed lifetime (60 s) from sending its start,
 // the responder from receiving it; clocks are never compared. Worst-case total is 120 s.
@@ -117,11 +123,14 @@ public:
     [[nodiscard]] const PairStart& start() const { return start_; }
     [[nodiscard]] const PairReply& reply() const { return reply_; }
     [[nodiscard]] const Signature& initiator_binding_signature() const { return confirm_.signature; }
+    // Names this exact binding (unique within the GroupState) for activation and commit.
+    [[nodiscard]] std::uint64_t id() const { return id_; }
 
 private:
     friend class PairRecord;
-    VerifiedPairBinding(PairRole role, const PairStart& s, const PairReply& r, const PairConfirm& c)
-        : role_(role), start_(s), reply_(r), confirm_(c) {}
+    VerifiedPairBinding(std::uint64_t id, PairRole role, const PairStart& s, const PairReply& r, const PairConfirm& c)
+        : id_(id), role_(role), start_(s), reply_(r), confirm_(c) {}
+    std::uint64_t id_;
     PairRole role_;
     PairStart start_;
     PairReply reply_;
@@ -149,16 +158,19 @@ enum class PairOutcome : std::uint8_t {
     bad_epoch,
     epoch_exhausted,
     bad_signature,
-    rate_limited,
+    rate_limited,         // answer budget used, or every pending slot holds a live answer
     expired,
     wrong_state,
+    busy,                 // a pair step is already running (no nested calls from providers)
     crypto_failure,
 };
 
 enum class PairStep : std::uint8_t { none = 0, awaiting_reply, awaiting_confirm, bound, activation_possible, committed };
 
 struct PairStatus {
-    PairStep step{PairStep::none};
+    PairStep step{PairStep::none};  // own start first, then pending answers, then the binding stage
+    PairStep binding{PairStep::none};  // none, bound, activation_possible or committed
+    std::uint64_t binding_id{0};
     std::uint32_t used_epoch{0};
     std::uint32_t committed_epoch{0};
     std::uint32_t next_epoch{0};  // 0 when exhausted
@@ -166,7 +178,7 @@ struct PairStatus {
     PairPurpose next_purpose{PairPurpose::introduce};
 };
 
-// Per-pair record and current attempt. Internal to GroupState.
+// Per-pair record, own start, pending answers and binding stage. Internal to GroupState.
 class PairRecord {
 private:
     friend class GroupState;
@@ -187,12 +199,14 @@ private:
     bool acceptable(std::uint32_t epoch) const;
     std::uint32_t next_epoch() const;
     bool new_challenge(RandomSource& rng, Challenge& out);
-    void drop_attempt();
     void expire(std::uint64_t now_ms);
+    void drop_unfinished();  // own start, pending answers, and a binding not yet ACTIVATION_POSSIBLE
     static bool within_budget(const std::array<std::uint64_t, kAnswersPerWindow>& times, std::size_t count,
                               std::uint64_t now_ms);
     static void spend(std::array<std::uint64_t, kAnswersPerWindow>& times, std::size_t& next, std::size_t& count,
                       std::uint64_t now_ms);
+    void bind(std::uint64_t id, PairRole role, const PairStart& s, const PairReply& r, const PairConfirm& c,
+              std::optional<VerifiedPairBinding>& verified);
 
     PairOutcome start(const RosterState& roster, const Ephemeral& eph, const BootToken& boot, std::uint64_t now_ms,
                       const RosterSigner& signer, RandomSource& rng, PairStart& out);
@@ -200,12 +214,12 @@ private:
                          std::uint64_t now_ms, const RosterCrypto& crypto, const RosterSigner& signer, RandomSource& rng,
                          PairReply& out);
     PairOutcome on_reply(const RosterState& roster, const PairReply& reply, std::uint64_t now_ms,
-                         const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
+                         const RosterCrypto& crypto, const RosterSigner& signer, std::uint64_t id, PairConfirm& out,
                          std::optional<VerifiedPairBinding>& verified);
     PairOutcome on_confirm(const RosterState& roster, const PairConfirm& confirm, std::uint64_t now_ms,
-                           const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
-    PairOutcome activation_possible(const RosterState& roster, std::uint32_t epoch);
-    PairOutcome commit(const RosterState& roster, std::uint32_t epoch);
+                           const RosterCrypto& crypto, std::uint64_t id, std::optional<VerifiedPairBinding>& verified);
+    PairOutcome activation_possible(const RosterState& roster, std::uint64_t id);
+    PairOutcome commit(const RosterState& roster, std::uint64_t id);
     void roster_applied(const RosterState& roster);
     void restart();
     PairStatus status() const;
@@ -218,14 +232,18 @@ private:
     std::uint32_t committed_{0};
     bool history_{false};
 
-    // Current attempt (volatile).
-    PairStep step_{PairStep::none};
-    PairRole role_{PairRole::initiator};
-    PairStart start_{};           // own start (initiator) or the bound start
-    PairReply reply_{};
-    PairConfirm confirm_{};
-    std::uint64_t time_{0}, deadline_{0};
-    std::array<Pending, kAnswersPerWindow> pending_{};  // responder answers awaiting a confirm
+    // Binding stage: none, bound, activation_possible, committed (activation intent durable in step 3).
+    PairStep stage_{PairStep::none};
+    std::uint64_t bound_id_{0};
+    PairStart bound_start_{};
+
+    // Own start (volatile).
+    bool own_live_{false};
+    PairStart own_start_{};
+    std::uint64_t own_time_{0}, own_deadline_{0};
+
+    // Answers awaiting a confirm (volatile).
+    std::array<Pending, kAnswersPerWindow> pending_{};
 
     // Replay and budget memory (volatile).
     std::array<Signature, kRememberedStarts> answered_{};
@@ -238,7 +256,8 @@ private:
     std::size_t own_next_{0};
 };
 
-// The single authority for one group on this board.
+// The single authority for one group on this board. Not reentrant: while a pair step runs,
+// providers (signer, crypto, random source) may not change the roster or start another step.
 class GroupState {
 public:
     GroupState() = default;
@@ -247,13 +266,14 @@ public:
     GroupState(GroupState&& other) noexcept;
     GroupState& operator=(GroupState&& other) noexcept;
 
-    // Roster (see RosterState). Every accepted roster is applied to the pair records.
+    // Roster (see RosterState). Every accepted roster is applied to the pair records; a
+    // conflict drops unfinished work; stopping trust ends every pair record.
     bool initialize(const PublicKey& admin, std::uint64_t group_id, const PublicKey& own,
                     std::uint32_t minimum_version = 1);
     Outcome offer(const std::uint8_t* bytes, std::size_t size, const RosterCrypto& crypto);
-    bool keep_current() { return roster_.keep_current(); }
-    void stop_trusting() { roster_.stop_trusting(); }
-    bool accept_member(const PublicKey& key) { return roster_.accept_member(key); }
+    bool keep_current();
+    void stop_trusting();
+    bool accept_member(const PublicKey& key);
     [[nodiscard]] const RosterState& roster() const { return roster_; }
 
     // Pair steps. `peer` is the other member's identity key (key_for maps a fingerprint).
@@ -266,13 +286,15 @@ public:
                               std::optional<VerifiedPairBinding>& verified);
     PairOutcome pair_on_confirm(const PublicKey& peer, const PairConfirm& confirm, std::uint64_t now_ms,
                                 const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
-    // Durable steps for the exact epoch this board verified: ACTIVATION_POSSIBLE before the
-    // first activation message, then commit (authenticated peer activation: step 3). Both
+    // Durable steps for the exact binding (VerifiedPairBinding::id): ACTIVATION_POSSIBLE before
+    // the first activation message, then commit (authenticated peer activation: step 3). Both
     // recheck that the roster is the one the binding names.
-    PairOutcome pair_activation_possible(const PublicKey& peer, std::uint32_t epoch);
-    PairOutcome pair_commit(const PublicKey& peer, std::uint32_t epoch);
+    PairOutcome pair_activation_possible(const PublicKey& peer, std::uint64_t binding_id);
+    PairOutcome pair_commit(const PublicKey& peer, std::uint64_t binding_id);
+    // Drops the own start, pending answers and a binding not yet ACTIVATION_POSSIBLE.
     void pair_cancel(const PublicKey& peer);
-    // Power loss or recovery: every unfinished attempt is retired, never resumed.
+    // Power loss or recovery: every unfinished attempt and activation intent is retired, never
+    // resumed.
     void restart();
     [[nodiscard]] std::optional<PairStatus> pair_status(const PublicKey& peer) const;
 
@@ -283,6 +305,8 @@ private:
 
     RosterState roster_{};
     std::array<std::optional<PairRecord>, kMaximumPeers> pairs_{};
+    std::uint64_t next_binding_id_{1};
+    bool busy_{false};
 };
 
 // Which of two crossing starts continues (after expiry and purpose checks): the higher epoch,

@@ -64,6 +64,17 @@ bool on_roster(const RosterState& roster, std::uint32_t version, const Digest& d
     return roster.roster().version == version && roster.digest() == digest;
 }
 
+// Marks a GroupState busy for the length of a pair step (no reentrant provider calls).
+class Busy {
+public:
+    explicit Busy(bool& flag) : flag_(flag) { flag_ = true; }
+    ~Busy() { flag_ = false; }
+    Busy(const Busy&) = delete;
+    Busy& operator=(const Busy&) = delete;
+private:
+    bool& flag_;
+};
+
 }  // namespace
 
 // ------------------------------------------------------------------ helpers
@@ -108,7 +119,7 @@ std::uint32_t PairRecord::next_epoch() const {
 
 bool PairRecord::acceptable(std::uint32_t epoch) const {
     const std::uint64_t e = epoch, u = used_;
-    return e == u + 1 || e == u + 2;  // D-072: the next number, or one past it (catch-up)
+    return e == u + 1 || e == u + 2;  // D-072/D-074: the next number, or one past it (catch-up)
 }
 
 bool PairRecord::new_challenge(RandomSource& rng, Challenge& out) {
@@ -123,21 +134,18 @@ bool PairRecord::new_challenge(RandomSource& rng, Challenge& out) {
     return true;
 }
 
-void PairRecord::drop_attempt() {
-    step_ = PairStep::none;
-    start_ = PairStart{};
-    reply_ = PairReply{};
-    confirm_ = PairConfirm{};
-    time_ = deadline_ = 0;
-}
-
-// Expired attempts never take part in anything (own start, pending answers). Clock regression
-// fails closed.
+// Expired work never takes part in anything. Clock regression fails closed.
 void PairRecord::expire(std::uint64_t now_ms) {
-    if (step_ == PairStep::awaiting_reply && (now_ms < time_ || now_ms > deadline_)) drop_attempt();
+    if (own_live_ && (now_ms < own_time_ || now_ms > own_deadline_)) own_live_ = false;
     for (Pending& p : pending_) {
         if (p.live && (now_ms < p.time || now_ms > p.deadline)) p = Pending{};
     }
+}
+
+void PairRecord::drop_unfinished() {
+    own_live_ = false;
+    pending_ = {};
+    if (stage_ == PairStep::bound) stage_ = PairStep::none;
 }
 
 bool PairRecord::within_budget(const std::array<std::uint64_t, kAnswersPerWindow>& times, std::size_t count,
@@ -154,6 +162,19 @@ void PairRecord::spend(std::array<std::uint64_t, kAnswersPerWindow>& times, std:
     times[next] = now_ms;
     next = (next + 1) % times.size();
     count = std::min(count + 1, times.size());
+}
+
+// A new verified binding replaces any earlier binding stage, own start and pending answers.
+void PairRecord::bind(std::uint64_t id, PairRole role, const PairStart& s, const PairReply& r, const PairConfirm& c,
+                      std::optional<VerifiedPairBinding>& verified) {
+    stage_ = PairStep::bound;
+    bound_id_ = id;
+    bound_start_ = s;
+    used_ = s.epoch;
+    history_ = true;
+    own_live_ = false;
+    pending_ = {};
+    verified.emplace(VerifiedPairBinding(id, role, s, r, c));
 }
 
 // Rechecks the live roster: active, both members still listed with the same added-in
@@ -184,7 +205,6 @@ PairOutcome PairRecord::start(const RosterState& roster, const Ephemeral& eph, c
     if (const PairOutcome o = live(roster, l); o != PairOutcome::ok) return o;
     if (signer.public_key() != self_key_) return PairOutcome::wrong_signer;
     expire(now_ms);
-    if (step_ == PairStep::activation_possible) return PairOutcome::wrong_state;
     const PairPurpose purpose = history_ ? PairPurpose::rekey : PairPurpose::introduce;
     if (purpose == PairPurpose::introduce && l.self->added_in < l.peer->added_in) return PairOutcome::wrong_role;
     const std::uint32_t epoch = next_epoch();
@@ -205,52 +225,46 @@ PairOutcome PairRecord::start(const RosterState& roster, const Ephemeral& eph, c
     std::array<std::uint8_t, kStartBytes> bytes{};
     const std::size_t n = start_bytes(s, bytes.data(), bytes.size());
     if (n == 0 || !signer.sign(bytes.data(), n, s.signature)) return PairOutcome::crypto_failure;
-    // A new own start replaces an unfinished own attempt; nothing was used by it.
-    if (step_ == PairStep::awaiting_reply || step_ == PairStep::bound) drop_attempt();
-    role_ = PairRole::initiator;
-    start_ = s;
-    step_ = PairStep::awaiting_reply;
-    time_ = now_ms;
-    deadline_ = deadline_from(now_ms, kPairLifetimeMs);
+    // A new own start replaces an unfinished own start (nothing used). A binding stage, including
+    // activation intent, stays until a new binding verifies.
+    own_live_ = true;
+    own_start_ = s;
+    own_time_ = now_ms;
+    own_deadline_ = deadline_from(now_ms, kPairLifetimeMs);
     out = s;
     return PairOutcome::ok;
 }
 
 PairOutcome PairRecord::on_reply(const RosterState& roster, const PairReply& reply, std::uint64_t now_ms,
-                                 const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
-                                 std::optional<VerifiedPairBinding>& verified) {
+                                 const RosterCrypto& crypto, const RosterSigner& signer, std::uint64_t id,
+                                 PairConfirm& out, std::optional<VerifiedPairBinding>& verified) {
     verified.reset();
     Live l;
     if (const PairOutcome o = live(roster, l); o != PairOutcome::ok) return o;
-    if (step_ != PairStep::awaiting_reply) return PairOutcome::wrong_state;
-    if (!on_roster(roster, start_.roster_version, start_.roster_digest)) {
-        drop_attempt();
+    if (!own_live_) return PairOutcome::wrong_state;
+    if (!on_roster(roster, own_start_.roster_version, own_start_.roster_digest)) {
+        own_live_ = false;
         return PairOutcome::roster_changed;
     }
-    if (now_ms < time_ || now_ms > deadline_) {
-        drop_attempt();
+    if (now_ms < own_time_ || now_ms > own_deadline_) {
+        own_live_ = false;
         return PairOutcome::expired;
     }
     if (signer.public_key() != self_key_) return PairOutcome::wrong_signer;
     if (all_zero(reply.responder_ephemeral) || all_zero(reply.responder_challenge) ||
-        all_zero(reply.responder_boot) || reply.responder_challenge == start_.initiator_challenge ||
-        reply.responder_ephemeral == start_.initiator_ephemeral) {
+        all_zero(reply.responder_boot) || reply.responder_challenge == own_start_.initiator_challenge ||
+        reply.responder_ephemeral == own_start_.initiator_ephemeral) {
         return PairOutcome::bad_fresh_values;
     }
     std::array<std::uint8_t, kBindingBytes> bytes{};
-    const std::size_t n = binding_bytes(start_, reply, bytes.data(), bytes.size());
+    const std::size_t n = binding_bytes(own_start_, reply, bytes.data(), bytes.size());
     if (n == 0) return PairOutcome::crypto_failure;
     // A forged or replayed reply does not end the attempt; the deadline does.
     if (!crypto.verify(reply.signature, bytes.data(), n, peer_key_)) return PairOutcome::bad_signature;
     PairConfirm confirm{};
     if (!signer.sign(bytes.data(), n, confirm.signature)) return PairOutcome::crypto_failure;
-    reply_ = reply;
-    confirm_ = confirm;
-    step_ = PairStep::bound;
-    used_ = start_.epoch;
-    history_ = true;
-    pending_ = {};
-    verified.emplace(VerifiedPairBinding(PairRole::initiator, start_, reply_, confirm_));
+    const PairStart s = own_start_;
+    bind(id, PairRole::initiator, s, reply, confirm, verified);
     out = confirm;
     return PairOutcome::ok;
 }
@@ -302,16 +316,22 @@ PairOutcome PairRecord::on_start(const RosterState& roster, const PairStart& sta
         all_zero(eph) || all_zero(boot) || eph == start.initiator_ephemeral) {
         return PairOutcome::bad_fresh_values;
     }
-    // Crossing starts, decided on the verified peer start (own expired start already dropped).
-    if (step_ == PairStep::awaiting_reply) {
+    // Crossing starts, decided on the verified peer start (an expired own start already dropped).
+    if (own_live_) {
         const bool peer_introduces_against_rekey =
-            start.purpose == PairPurpose::introduce && start_.purpose == PairPurpose::rekey;
+            start.purpose == PairPurpose::introduce && own_start_.purpose == PairPurpose::rekey;
         const bool own_introduces_against_rekey =
-            start_.purpose == PairPurpose::introduce && start.purpose == PairPurpose::rekey;
-        if (!peer_introduces_against_rekey && (own_introduces_against_rekey || start_wins(start_, start))) {
+            own_start_.purpose == PairPurpose::introduce && start.purpose == PairPurpose::rekey;
+        if (!peer_introduces_against_rekey && (own_introduces_against_rekey || start_wins(own_start_, start))) {
             return PairOutcome::local_attempt_wins;
         }
     }
+    // A slot: free, or holding an answer for an older epoch. A live answer is never displaced.
+    std::size_t slot = pending_.size();
+    for (std::size_t i = 0; i < pending_.size(); ++i) {
+        if (!pending_[i].live || pending_[i].start.epoch < start.epoch) { slot = i; break; }
+    }
+    if (slot == pending_.size()) return PairOutcome::rate_limited;
     if (!within_budget(answer_times_, answer_count_, now_ms)) return PairOutcome::rate_limited;
     PairReply reply{};
     reply.responder_ephemeral = eph;
@@ -322,25 +342,16 @@ PairOutcome PairRecord::on_start(const RosterState& roster, const PairStart& sta
     std::array<std::uint8_t, kBindingBytes> bytes{};
     const std::size_t n = binding_bytes(start, reply, bytes.data(), bytes.size());
     if (n == 0 || !signer.sign(bytes.data(), n, reply.signature)) return PairOutcome::crypto_failure;
-    // Only now does anything change. An own unanswered start loses; a bound or
-    // activation-possible attempt that is not committed is retired (the peer has moved on).
-    if (step_ == PairStep::awaiting_reply || step_ == PairStep::bound || step_ == PairStep::activation_possible) {
-        drop_attempt();
-    }
-    // D-072 catch-up: a start at used + 2 proves the peer used the number between.
+    // Only now does anything change. An own unanswered start loses. The binding stage, including
+    // activation intent, stays until the new binding verifies.
+    own_live_ = false;
+    // D-074 catch-up: a start signed by the peer at used + 2 counts as proof that the peer used
+    // the number between.
     if (static_cast<std::uint64_t>(start.epoch) == static_cast<std::uint64_t>(used_) + 2) used_ = start.epoch - 1;
     history_ = true;  // this board signed a binding over the peer's verified start
     spend(answer_times_, answer_next_, answer_count_, now_ms);
-    // Keep earlier pending answers for the same epoch (a live answer is never displaced by a
-    // replayed one while the budget lasts); drop answers for older epochs.
     for (Pending& p : pending_) {
         if (p.live && p.start.epoch < start.epoch) p = Pending{};
-    }
-    std::size_t slot = 0;
-    std::uint64_t oldest = std::numeric_limits<std::uint64_t>::max();
-    for (std::size_t i = 0; i < pending_.size(); ++i) {
-        if (!pending_[i].live) { slot = i; break; }
-        if (pending_[i].time < oldest) { oldest = pending_[i].time; slot = i; }
     }
     Pending& p = pending_[slot];
     p.live = true;
@@ -355,7 +366,8 @@ PairOutcome PairRecord::on_start(const RosterState& roster, const PairStart& sta
 }
 
 PairOutcome PairRecord::on_confirm(const RosterState& roster, const PairConfirm& confirm, std::uint64_t now_ms,
-                                   const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified) {
+                                   const RosterCrypto& crypto, std::uint64_t id,
+                                   std::optional<VerifiedPairBinding>& verified) {
     verified.reset();
     Live l;
     if (const PairOutcome o = live(roster, l); o != PairOutcome::ok) return o;
@@ -372,15 +384,9 @@ PairOutcome PairRecord::on_confirm(const RosterState& roster, const PairConfirm&
         std::array<std::uint8_t, kBindingBytes> bytes{};
         const std::size_t n = binding_bytes(p.start, p.reply, bytes.data(), bytes.size());
         if (n == 0 || !crypto.verify(confirm.signature, bytes.data(), n, peer_key_)) continue;
-        if (step_ == PairStep::awaiting_reply || step_ == PairStep::bound) drop_attempt();
-        role_ = PairRole::responder;
-        start_ = p.start;
-        reply_ = p.reply;
-        confirm_ = confirm;
-        step_ = PairStep::bound;
-        used_ = start_.epoch;
-        pending_ = {};
-        verified.emplace(VerifiedPairBinding(PairRole::responder, start_, reply_, confirm_));
+        const PairStart s = p.start;
+        const PairReply r = p.reply;
+        bind(id, PairRole::responder, s, r, confirm, verified);
         return PairOutcome::ok;
     }
     return any ? PairOutcome::bad_signature : PairOutcome::wrong_state;
@@ -388,31 +394,31 @@ PairOutcome PairRecord::on_confirm(const RosterState& roster, const PairConfirm&
 
 // ------------------------------------------------------------------ durable steps
 
-PairOutcome PairRecord::activation_possible(const RosterState& roster, std::uint32_t epoch) {
+PairOutcome PairRecord::activation_possible(const RosterState& roster, std::uint64_t id) {
     Live l;
     if (const PairOutcome o = live(roster, l); o != PairOutcome::ok) return o;
-    if (step_ != PairStep::bound || start_.epoch != epoch || epoch != used_) return PairOutcome::wrong_state;
-    if (!on_roster(roster, start_.roster_version, start_.roster_digest)) return PairOutcome::roster_changed;
-    step_ = PairStep::activation_possible;
+    if (stage_ != PairStep::bound || bound_id_ != id || bound_start_.epoch != used_) return PairOutcome::wrong_state;
+    if (!on_roster(roster, bound_start_.roster_version, bound_start_.roster_digest)) return PairOutcome::roster_changed;
+    stage_ = PairStep::activation_possible;
     return PairOutcome::ok;
 }
 
-PairOutcome PairRecord::commit(const RosterState& roster, std::uint32_t epoch) {
+PairOutcome PairRecord::commit(const RosterState& roster, std::uint64_t id) {
     Live l;
     if (const PairOutcome o = live(roster, l); o != PairOutcome::ok) return o;
-    if (step_ != PairStep::activation_possible || start_.epoch != epoch) return PairOutcome::wrong_state;
-    if (!on_roster(roster, start_.roster_version, start_.roster_digest)) return PairOutcome::roster_changed;
-    committed_ = epoch;
-    step_ = PairStep::committed;
+    if (stage_ != PairStep::activation_possible || bound_id_ != id) return PairOutcome::wrong_state;
+    if (!on_roster(roster, bound_start_.roster_version, bound_start_.roster_digest)) return PairOutcome::roster_changed;
+    committed_ = bound_start_.epoch;
+    stage_ = PairStep::committed;
     return PairOutcome::ok;
 }
 
-// A new roster was accepted and this pair is still the same membership: attempts made under
-// the old roster cannot finish. ACTIVATION_POSSIBLE stays until recovery (it cannot commit).
+// A new roster was accepted and this pair is still the same membership: work made under the
+// old roster cannot finish. ACTIVATION_POSSIBLE stays until recovery (it cannot commit).
 void PairRecord::roster_applied(const RosterState& roster) {
-    if ((step_ == PairStep::awaiting_reply || step_ == PairStep::bound) &&
-        !on_roster(roster, start_.roster_version, start_.roster_digest)) {
-        drop_attempt();
+    if (own_live_ && !on_roster(roster, own_start_.roster_version, own_start_.roster_digest)) own_live_ = false;
+    if (stage_ == PairStep::bound && !on_roster(roster, bound_start_.roster_version, bound_start_.roster_digest)) {
+        stage_ = PairStep::none;
     }
     for (Pending& p : pending_) {
         if (p.live && !on_roster(roster, p.start.roster_version, p.start.roster_digest)) p = Pending{};
@@ -420,8 +426,9 @@ void PairRecord::roster_applied(const RosterState& roster) {
 }
 
 void PairRecord::restart() {
-    if (step_ != PairStep::committed) drop_attempt();  // retired, never resumed
+    own_live_ = false;
     pending_ = {};
+    if (stage_ == PairStep::bound || stage_ == PairStep::activation_possible) stage_ = PairStep::none;  // never resumed
     answered_ = {};
     answered_next_ = 0;
     answer_times_ = {};
@@ -432,12 +439,13 @@ void PairRecord::restart() {
 
 PairStatus PairRecord::status() const {
     PairStatus s;
-    s.step = step_;
-    if (s.step == PairStep::none) {
-        for (const Pending& p : pending_) {
-            if (p.live) s.step = PairStep::awaiting_confirm;
-        }
+    s.binding = stage_;
+    s.binding_id = stage_ == PairStep::none ? 0 : bound_id_;
+    s.step = stage_;
+    for (const Pending& p : pending_) {
+        if (p.live) s.step = PairStep::awaiting_confirm;
     }
+    if (own_live_) s.step = PairStep::awaiting_reply;
     s.used_epoch = used_;
     s.committed_epoch = committed_;
     s.next_epoch = next_epoch();
@@ -448,7 +456,8 @@ PairStatus PairRecord::status() const {
 
 // ------------------------------------------------------------------ GroupState
 
-GroupState::GroupState(GroupState&& other) noexcept : roster_(other.roster_), pairs_(std::move(other.pairs_)) {
+GroupState::GroupState(GroupState&& other) noexcept
+    : roster_(other.roster_), pairs_(std::move(other.pairs_)), next_binding_id_(other.next_binding_id_) {
     other.roster_ = RosterState{};
     other.pairs_ = {};
 }
@@ -457,6 +466,7 @@ GroupState& GroupState::operator=(GroupState&& other) noexcept {
     if (this != &other) {
         roster_ = other.roster_;
         pairs_ = std::move(other.pairs_);
+        next_binding_id_ = std::max(next_binding_id_, other.next_binding_id_);
         other.roster_ = RosterState{};
         other.pairs_ = {};
     }
@@ -465,13 +475,37 @@ GroupState& GroupState::operator=(GroupState&& other) noexcept {
 
 bool GroupState::initialize(const PublicKey& admin, std::uint64_t group_id, const PublicKey& own,
                             std::uint32_t minimum_version) {
+    if (busy_) return false;
     return roster_.initialize(admin, group_id, own, minimum_version);
 }
 
 Outcome GroupState::offer(const std::uint8_t* bytes, std::size_t size, const RosterCrypto& crypto) {
+    if (busy_) return Outcome::busy;
+    Busy guard(busy_);
     const Outcome o = roster_.offer(bytes, size, crypto);
     if (o == Outcome::accepted || o == Outcome::accepted_removed_self) apply_roster();
+    if (o == Outcome::conflict) {
+        for (std::optional<PairRecord>& r : pairs_) {
+            if (r) r->drop_unfinished();  // work interrupted by a conflict is not resumed
+        }
+    }
     return o;
+}
+
+bool GroupState::keep_current() {
+    if (busy_) return false;
+    return roster_.keep_current();
+}
+
+void GroupState::stop_trusting() {
+    if (busy_) return;
+    roster_.stop_trusting();
+    pairs_ = {};  // the design deletes all pairs in the group
+}
+
+bool GroupState::accept_member(const PublicKey& key) {
+    if (busy_) return false;
+    return roster_.accept_member(key);
 }
 
 void GroupState::apply_roster() {
@@ -520,6 +554,8 @@ PairRecord* GroupState::record(const PublicKey& peer, bool create) {
 
 PairOutcome GroupState::pair_start(const PublicKey& peer, const Ephemeral& eph, const BootToken& boot,
                                    std::uint64_t now_ms, const RosterSigner& signer, RandomSource& rng, PairStart& out) {
+    if (busy_) return PairOutcome::busy;
+    Busy guard(busy_);
     if (roster_.state() != State::active) return PairOutcome::roster_not_active;
     PairRecord* r = record(peer, true);
     return r == nullptr ? PairOutcome::no_pair : r->start(roster_, eph, boot, now_ms, signer, rng, out);
@@ -528,6 +564,8 @@ PairOutcome GroupState::pair_start(const PublicKey& peer, const Ephemeral& eph, 
 PairOutcome GroupState::pair_on_start(const PairStart& start, const Ephemeral& eph, const BootToken& boot,
                                       std::uint64_t now_ms, const RosterCrypto& crypto, const RosterSigner& signer,
                                       RandomSource& rng, PairReply& out) {
+    if (busy_) return PairOutcome::busy;
+    Busy guard(busy_);
     if (roster_.state() != State::active) return PairOutcome::roster_not_active;
     PublicKey peer{};
     if (!roster_.key_for(start.initiator, peer)) return PairOutcome::no_pair;
@@ -539,33 +577,47 @@ PairOutcome GroupState::pair_on_reply(const PublicKey& peer, const PairReply& re
                                       const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
                                       std::optional<VerifiedPairBinding>& verified) {
     verified.reset();
+    if (busy_) return PairOutcome::busy;
+    Busy guard(busy_);
     PairRecord* r = record(peer, false);
-    return r == nullptr ? PairOutcome::no_pair : r->on_reply(roster_, reply, now_ms, crypto, signer, out, verified);
+    if (r == nullptr) return PairOutcome::no_pair;
+    const PairOutcome o = r->on_reply(roster_, reply, now_ms, crypto, signer, next_binding_id_, out, verified);
+    if (o == PairOutcome::ok) ++next_binding_id_;
+    return o;
 }
 
 PairOutcome GroupState::pair_on_confirm(const PublicKey& peer, const PairConfirm& confirm, std::uint64_t now_ms,
                                         const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified) {
     verified.reset();
+    if (busy_) return PairOutcome::busy;
+    Busy guard(busy_);
     PairRecord* r = record(peer, false);
-    return r == nullptr ? PairOutcome::no_pair : r->on_confirm(roster_, confirm, now_ms, crypto, verified);
+    if (r == nullptr) return PairOutcome::no_pair;
+    const PairOutcome o = r->on_confirm(roster_, confirm, now_ms, crypto, next_binding_id_, verified);
+    if (o == PairOutcome::ok) ++next_binding_id_;
+    return o;
 }
 
-PairOutcome GroupState::pair_activation_possible(const PublicKey& peer, std::uint32_t epoch) {
+PairOutcome GroupState::pair_activation_possible(const PublicKey& peer, std::uint64_t binding_id) {
+    if (busy_) return PairOutcome::busy;
     PairRecord* r = record(peer, false);
-    return r == nullptr ? PairOutcome::no_pair : r->activation_possible(roster_, epoch);
+    return r == nullptr ? PairOutcome::no_pair : r->activation_possible(roster_, binding_id);
 }
 
-PairOutcome GroupState::pair_commit(const PublicKey& peer, std::uint32_t epoch) {
+PairOutcome GroupState::pair_commit(const PublicKey& peer, std::uint64_t binding_id) {
+    if (busy_) return PairOutcome::busy;
     PairRecord* r = record(peer, false);
-    return r == nullptr ? PairOutcome::no_pair : r->commit(roster_, epoch);
+    return r == nullptr ? PairOutcome::no_pair : r->commit(roster_, binding_id);
 }
 
 void GroupState::pair_cancel(const PublicKey& peer) {
+    if (busy_) return;
     PairRecord* r = record(peer, false);
-    if (r != nullptr && (r->step_ == PairStep::awaiting_reply || r->step_ == PairStep::bound)) r->drop_attempt();
+    if (r != nullptr) r->drop_unfinished();
 }
 
 void GroupState::restart() {
+    if (busy_) return;
     for (std::optional<PairRecord>& r : pairs_) {
         if (r) r->restart();
     }

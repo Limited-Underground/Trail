@@ -237,8 +237,9 @@ a "skip confirmation" option on the first-pairing path.
 member (by its "added in" roster version) starts; each roster adds at most one
 member, so there is never a tie. For rekeys and recovery, on every pair
 including outside-group pairs, either side may start; if both start at once,
-the attempt started by the lower fingerprint continues and the other is
-dropped. A responder answers only an initiator listed in its own newest
+the order in [Restart and rekey](#restart-and-rekey) decides which attempt
+continues (an expired start does not count, an introduced pair start beats a
+rekey, then the higher epoch, then the lower fingerprint). A responder answers only an initiator listed in its own newest
 roster; if the initiator's roster is newer, the responder fetches it first.
 
 Activation uses the accepted durable steps (pending record, read back,
@@ -289,10 +290,18 @@ under the old one; a binding in ACTIVATION_POSSIBLE cannot commit under a
 changed roster. The group state signs only with this board's own identity, takes
 challenges only from the board's random source, answers only starts whose
 signature it has verified (roster version hints included), keeps up to three
-pending answers so a replayed start cannot displace the live one, budgets new
-answers and repeated replies, and activates and commits only the exact epoch it
-verified. A valid start from the peer retires an uncertain ACTIVATION_POSSIBLE
-attempt, which is never resumed.
+pending answers and never displaces one that is still within its time limit,
+budgets new answers and repeated replies, and activates and commits only the
+exact binding it verified (named by an id, so a call kept from an earlier
+membership cannot select a later binding). A pair step cannot be interrupted by
+a roster change from one of its own callbacks. Cancel retires the own start and
+the pending answers; a roster conflict drops unfinished work, which is not
+resumed after "keep current"; stopping trust ends every pair record.
+
+**Activation intent.** ACTIVATION_POSSIBLE is never retired by a start alone,
+however authentic: it stays until a new binding for the pair verifies, or until
+restart, where it is retired and never resumed. A board holding it may start a
+rekey itself, so two uncertain boards always reach a fresh epoch.
 
 **Epoch numbers (owner decision D-072).** An epoch counts as used only when a
 board has verified the complete binding signed by both boards. A start that is
@@ -300,9 +309,11 @@ lost uses up nothing; the retry reuses the number with fresh values. A board
 proposes one above its highest used epoch and accepts that number, or one past it
 to catch up with a peer that used one this board missed (the peer verified the
 binding, this board never saw the confirm). A start signed by the peer at one
-past the next number proves the peer used the number between, so the answering
-board records that number as used at once; the gap therefore never grows beyond
-one, however many confirms are lost. At the last epoch the pair is exhausted and
+past the next number counts as proof that the peer used the number between
+(owner decision D-074), so the answering board records that number as used at
+once; the gap therefore never grows beyond one, however many confirms are lost.
+Only that peer can make such a claim, so a dishonest member can only burn
+numbers on its own pair with this board. At the last epoch the pair is exhausted and
 must be set up again from a new roster entry. When two starts cross, an expired
 own start does not count, an introduced pair start beats a rekey (its sender has
 no history and would refuse the rekey), and otherwise the higher epoch wins, then

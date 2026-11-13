@@ -190,6 +190,7 @@ enum class Outcome : std::uint8_t {
     blocked_by_conflict,    // unresolved conflict: no roster changes accepted
     not_member,             // left, removed or stopped trusting this group
     not_initialized,
+    busy,                   // refused while a pair step is running (GroupState)
     crypto_failure,         // a primitive failed; nothing changed
 };
 
