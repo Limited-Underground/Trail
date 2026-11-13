@@ -280,9 +280,9 @@ into every rekey and into the pair's Packet-v1 context, so an outside-group
 pair and a group pair between the same two people are never confused.
 
 **One group state per group.** On each board a single group state holds the
-roster and the record of every introduced pair together; it cannot be copied,
-and every setup, rekey, activation and commit goes through it. It alone can
-issue a verified binding. Each pair record is bound to the group name, both
+roster and the record of every introduced pair together; it cannot be copied
+or moved, and every setup, rekey, activation and commit goes through it. It
+alone can issue a verified binding. Each pair record is bound to the group name, both
 identities and both members' "added in" versions: applying a roster that removes
 or re-adds a member ends that record, so a re-added member needs a new first
 pairing and a new acceptance tap. Applying any new roster drops attempts made
@@ -290,18 +290,35 @@ under the old one; a binding in ACTIVATION_POSSIBLE cannot commit under a
 changed roster. The group state signs only with this board's own identity, takes
 challenges only from the board's random source, answers only starts whose
 signature it has verified (roster version hints included), keeps up to three
-pending answers and never displaces one that is still within its time limit,
-budgets new answers and repeated replies, and activates and commits only the
-exact binding it verified (named by an id, so a call kept from an earlier
-membership cannot select a later binding). A pair step cannot be interrupted by
-a roster change from one of its own callbacks. Cancel retires the own start and
-the pending answers; a roster conflict drops unfinished work, which is not
-resumed after "keep current"; stopping trust ends every pair record.
+pending answers, budgets new answers and repeated replies, and activates and
+commits only the exact binding it verified. A binding is named by an id that is
+unique across every group on the board until it restarts, so a call kept from
+an earlier membership or another group cannot select a different binding.
+
+Pending answers: a start for the same epoch never displaces an answer that is
+still within its time limit (all slots full means "try again later"). Accepting
+a start for a higher epoch drops the answers for lower epochs, which can no
+longer finish; with a D-074 catch-up this includes an answer whose confirm was
+delayed, and that confirm then fails.
+
+A pair step cannot be interrupted by its own callbacks: it refuses roster
+changes and nested pair steps while it runs, the group state cannot be moved
+away under it, and it copies the incoming message first, so a callback that
+changes the caller's copy changes nothing that is verified, signed or issued.
+
+Cancel retires the own start and the pending answers. A roster conflict drops
+the own start, the pending answers and a binding not yet in
+ACTIVATION_POSSIBLE; none of these resume after "keep current". A binding in
+ACTIVATION_POSSIBLE is held through the conflict: it cannot commit while the
+conflict lasts, and may commit once the board keeps the same roster it names.
+Stopping trust ends every pair record.
 
 **Activation intent.** ACTIVATION_POSSIBLE is never retired by a start alone,
 however authentic: it stays until a new binding for the pair verifies, or until
 restart, where it is retired and never resumed. A board holding it may start a
-rekey itself, so two uncertain boards always reach a fresh epoch.
+rekey itself, so two uncertain boards always reach a fresh epoch. Once a
+D-074 catch-up shows that the peer used a later epoch, the older binding can
+no longer commit; the intent stays only so the board knows to recover.
 
 **Epoch numbers (owner decision D-072).** An epoch counts as used only when a
 board has verified the complete binding signed by both boards. A start that is

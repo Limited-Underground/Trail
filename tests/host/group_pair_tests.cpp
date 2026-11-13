@@ -8,7 +8,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <optional>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -155,14 +157,18 @@ Signed rule(const Signed& cur, LocationRule lr) {
 // A, B (added 2), C (added 3, newer than B).
 const Signed v3 = added(added(first(), kB, "bob"), kC, "carol");
 
+// GroupState cannot move, so a Side owns it on the heap and refers to it.
 struct Side {
-    GroupState g;
+    std::unique_ptr<GroupState> owner;
+    GroupState& g;
     PublicKey me;
     PublicKey peer;
 };
 Outcome offer(Side& s, const Signed& r) { return s.g.offer(r.bytes.data(), r.bytes.size(), crypto); }
 Side side(const PublicKey& me, const PublicKey& peer, const Signed& r = v3, bool tap = true) {
-    Side s{GroupState{}, me, peer};
+    auto owner = std::make_unique<GroupState>();
+    GroupState& g = *owner;
+    Side s{std::move(owner), g, me, peer};
     EXPECT(s.g.initialize(kA, kGroup, me));
     EXPECT(offer(s, r) == Outcome::accepted);
     if (tap && me == kB && peer == kC) EXPECT(s.g.accept_member(kC));
@@ -359,21 +365,63 @@ void test_roster_change_drops_attempts_and_blocks_activation() {
     EXPECT(reply_in(c3, r, 20, conf, v) == PairOutcome::wrong_state && !v);  // attempt dropped on apply
 }
 
-void test_moved_group_state_is_empty() {
-    // Review 2 probe D: no second live owner from a move.
-    Side c = side(kC, kB), b = side(kB, kC);
+// Review 2 probe D and review 4: a GroupState never moves (no second owner, no swap from a
+// callback), and a binding id names one binding in the whole program.
+static_assert(!std::is_copy_constructible_v<GroupState> && !std::is_copy_assignable_v<GroupState>);
+static_assert(!std::is_move_constructible_v<GroupState> && !std::is_move_assignable_v<GroupState>);
+
+Side other_group_side(const PublicKey& me, const PublicKey& peer) {
+    Roster other{};
+    EXPECT(create_first(kGroup + 1, kA, "admin", LocationRule::off, other));
+    const Signed other_v3 = added(added(seal(other, kA), kB, "bob"), kC, "carol");
+    auto owner = std::make_unique<GroupState>();
+    GroupState& g = *owner;
+    Side s{std::move(owner), g, me, peer};
+    EXPECT(s.g.initialize(kA, kGroup + 1, me));
+    EXPECT(offer(s, other_v3) == Outcome::accepted);
+    if (me == kB) EXPECT(s.g.accept_member(kC));
+    return s;
+}
+
+void test_group_state_stays_in_place_and_ids_are_unique() {
+    // Two groups with the same peer: their first bindings get different ids, and neither id
+    // works in the other group (review 4 probe D).
+    Side xc = side(kC, kB), xb = side(kB, kC);
+    Side yc = other_group_side(kC, kB), yb = other_group_side(kB, kC);
+    const Run x = exchange(xc, xb, 0);
+    const Run y = exchange(yc, yb, 100);
+    EXPECT(complete(x) && complete(y));
+    const std::uint64_t xid = x.resp_verified->id(), yid = y.resp_verified->id();
+    EXPECT(xid != yid && x.init_verified->id() != y.init_verified->id());
+    EXPECT(yb.g.pair_activation_possible(kC, xid) == PairOutcome::wrong_state);
+    EXPECT(yb.g.pair_activation_possible(kC, yid) == PairOutcome::ok);
+    // A group state created later in the same place does not accept an id from before.
+    std::optional<GroupState> slot;
+    slot.emplace();
+    EXPECT(slot->initialize(kA, kGroup, kB));
+    EXPECT(slot->offer(v3.bytes.data(), v3.bytes.size(), crypto) == Outcome::accepted);
+    EXPECT(slot->accept_member(kC));
+    Side c = side(kC, kB);
     PairStart s{};
-    EXPECT(start(c, 100, s) == PairOutcome::ok);
-    GroupState moved = std::move(c.g);
-    PairStart s2{};
-    EXPECT(c.g.pair_start(kB, fresh<32>(), fresh<16>(), 101, TestSigner(kC), rng, s2) == PairOutcome::roster_not_active);
-    EXPECT(c.g.roster().state() == State::uninitialized && !c.g.pair_status(kB).has_value());
     PairReply r{};
-    EXPECT(answer(b, s, 110, r) == PairOutcome::ok);
-    PairConfirm conf{};
+    PairConfirm f{};
     std::optional<VerifiedPairBinding> v;
-    EXPECT(c.g.pair_on_reply(kB, r, 120, crypto, TestSigner(kC), conf, v) == PairOutcome::no_pair && !v);
-    EXPECT(moved.pair_on_reply(kB, r, 120, crypto, TestSigner(kC), conf, v) == PairOutcome::ok && v);
+    EXPECT(start(c, 0, s) == PairOutcome::ok);
+    EXPECT(slot->pair_on_start(s, fresh<32>(), fresh<16>(), 10, crypto, TestSigner(kB), rng, r) == PairOutcome::ok);
+    EXPECT(reply_in(c, r, 20, f, v) == PairOutcome::ok && v);
+    EXPECT(slot->pair_on_confirm(kC, f, 30, crypto, v) == PairOutcome::ok && v);
+    const std::uint64_t old_id = v->id();
+    slot.reset();
+    slot.emplace();
+    EXPECT(slot->initialize(kA, kGroup, kB));
+    EXPECT(slot->offer(v3.bytes.data(), v3.bytes.size(), crypto) == Outcome::accepted);
+    EXPECT(slot->accept_member(kC));
+    Side c2 = side(kC, kB);  // a new first pairing with the new group state
+    EXPECT(start(c2, 1000, s) == PairOutcome::ok);
+    EXPECT(slot->pair_on_start(s, fresh<32>(), fresh<16>(), 1010, crypto, TestSigner(kB), rng, r) == PairOutcome::ok);
+    EXPECT(reply_in(c2, r, 1020, f, v) == PairOutcome::ok && v);
+    EXPECT(slot->pair_on_confirm(kC, f, 1030, crypto, v) == PairOutcome::ok && v && v->id() != old_id);
+    EXPECT(slot->pair_activation_possible(kC, old_id) == PairOutcome::wrong_state);
 }
 
 void test_retired_attempt_and_signer_failure() {
@@ -924,6 +972,117 @@ void test_review3_fixes() {
     Run after = exchange(c6, b6, 100000);
     EXPECT(after.reply == PairOutcome::bad_epoch && st(b6).used_epoch == 1);
 }
+
+// Both signatures of an issued binding check out over its own contents.
+bool matches_signatures(const VerifiedPairBinding& binding) {
+    std::array<std::uint8_t, kBindingBytes> bytes{};
+    const auto n = binding_bytes(binding.start(), binding.reply(), bytes.data(), bytes.size());
+    Fingerprint ifp{};
+    PublicKey ik{}, rk{};
+    for (const PublicKey* k : {&kB, &kC, &kD}) {
+        if (crypto.fingerprint(*k, ifp) && ifp == binding.start().initiator) ik = *k;
+        if (crypto.fingerprint(*k, ifp) && ifp == binding.start().responder) rk = *k;
+    }
+    return n != 0 && crypto.verify(binding.reply().signature, bytes.data(), n, rk) &&
+           crypto.verify(binding.initiator_binding_signature(), bytes.data(), n, ik);
+}
+
+// A provider changes the caller's own message object while the step runs.
+class ReplyChangingSigner final : public RosterSigner {
+public:
+    explicit ReplyChangingSigner(PairReply& input) : input_(input) {}
+    const PublicKey& public_key() const override { return kC; }
+    bool sign(const std::uint8_t* m, std::size_t n, Signature& s) const override {
+        input_.responder_challenge[0] ^= 1;
+        return TestSigner(kC).sign(m, n, s);
+    }
+private:
+    PairReply& input_;
+};
+class StartChangingSigner final : public RosterSigner {
+public:
+    explicit StartChangingSigner(PairStart& input) : input_(input) {}
+    const PublicKey& public_key() const override { return kB; }
+    bool sign(const std::uint8_t* m, std::size_t n, Signature& s) const override {
+        input_.initiator_challenge[0] ^= 1;
+        return TestSigner(kB).sign(m, n, s);
+    }
+private:
+    PairStart& input_;
+};
+
+void test_review4_fixes() {
+    // A callback changing the caller's reply cannot change what is issued (probe B).
+    {
+        Side c = side(kC, kB), b = side(kB, kC);
+        PairStart s{};
+        PairReply r{};
+        PairConfirm f{};
+        std::optional<VerifiedPairBinding> v, w;
+        EXPECT(start(c, 0, s) == PairOutcome::ok);
+        EXPECT(answer(b, s, 10, r) == PairOutcome::ok);
+        EXPECT(c.g.pair_on_reply(kB, r, 20, crypto, ReplyChangingSigner(r), f, v) == PairOutcome::ok && v);
+        EXPECT(v && matches_signatures(*v));
+        EXPECT(confirm_in(b, f, 30, w) == PairOutcome::ok && w && matches_signatures(*w));
+        EXPECT(v && w && v->reply().responder_challenge == w->reply().responder_challenge);
+    }
+    // A callback changing the caller's start on the responder cannot change what is kept.
+    {
+        Side c = side(kC, kB), b = side(kB, kC);
+        PairStart s{}, held{};
+        PairReply r{};
+        PairConfirm f{};
+        std::optional<VerifiedPairBinding> v, w;
+        EXPECT(start(c, 0, s) == PairOutcome::ok);
+        held = s;
+        EXPECT(b.g.pair_on_start(held, fresh<32>(), fresh<16>(), 10, crypto, StartChangingSigner(held), rng, r) ==
+               PairOutcome::ok);
+        EXPECT(held.initiator_challenge != s.initiator_challenge);
+        EXPECT(reply_in(c, r, 20, f, v) == PairOutcome::ok && v);
+        EXPECT(confirm_in(b, f, 30, w) == PairOutcome::ok && w && matches_signatures(*w));
+        EXPECT(w && w->start().initiator_challenge == s.initiator_challenge);
+    }
+    // An honest catch-up past an activation intent: the intent stays, its commit is refused,
+    // and the later epoch completes (probe C).
+    {
+        Side c = side(kC, kB), b = side(kB, kC);
+        const Run first = exchange(c, b, 0);
+        EXPECT(complete(first));
+        activate(c);
+        const std::uint64_t old_id = first.resp_verified->id();
+        EXPECT(b.g.pair_activation_possible(kC, old_id) == PairOutcome::ok);
+        const Run second = exchange(c, b, 100, false);
+        EXPECT(second.confirm == PairOutcome::ok && second.s.epoch == 2);
+        PairStart third{};
+        PairReply r{};
+        EXPECT(start(c, 200, third) == PairOutcome::ok && third.epoch == 3);
+        EXPECT(answer(b, third, 210, r) == PairOutcome::ok && st(b).used_epoch == 2);
+        EXPECT(st(b).binding == PairStep::activation_possible && st(b).binding_id == old_id);
+        EXPECT(b.g.pair_commit(kC, old_id) == PairOutcome::wrong_state);
+        EXPECT(st(b).committed_epoch == 0);
+        PairConfirm cfm{};
+        std::optional<VerifiedPairBinding> v;
+        EXPECT(reply_in(c, r, 230, cfm, v) == PairOutcome::ok && v);
+        EXPECT(confirm_in(b, cfm, 240, v) == PairOutcome::ok && v && v->id() != old_id);
+        activate(c);
+        activate(b);
+        EXPECT(st(b).committed_epoch == 3 && st(c).committed_epoch == 3);
+    }
+    // Without a catch-up the intent still commits after a delayed ordinary start (review 3).
+    {
+        Side c = side(kC, kB), b = side(kB, kC);
+        const Run first = exchange(c, b, 0);
+        EXPECT(complete(first));
+        activate(c);
+        const std::uint64_t old_id = first.resp_verified->id();
+        EXPECT(b.g.pair_activation_possible(kC, old_id) == PairOutcome::ok);
+        PairStart next{};
+        PairReply r{};
+        EXPECT(start(c, 100, next) == PairOutcome::ok && next.epoch == 2);
+        EXPECT(answer(b, next, 110, r) == PairOutcome::ok && st(b).used_epoch == 1);
+        EXPECT(b.g.pair_commit(kC, old_id) == PairOutcome::ok && st(b).committed_epoch == 1);
+    }
+}
 }  // namespace
 
 int main() {
@@ -932,7 +1091,7 @@ int main() {
     test_consent_role_and_history();
     test_removal_and_readd_end_the_pair();
     test_roster_change_drops_attempts_and_blocks_activation();
-    test_moved_group_state_is_empty();
+    test_group_state_stays_in_place_and_ids_are_unique();
     test_retired_attempt_and_signer_failure();
     test_signer_is_pinned();
     test_replayed_starts_cannot_displace_the_live_answer();
@@ -947,11 +1106,12 @@ int main() {
     test_outputs_never_stale();
     test_signed_bytes_layout();
     test_forged_confirm_and_initiator_restart();
+    test_review4_fixes();
     test_review3_fixes();
     if (failures != 0) {
         std::cerr << failures << " group pair assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 21 group pair scenario groups\n";
+    std::cout << "PASS: 22 group pair scenario groups\n";
     return EXIT_SUCCESS;
 }

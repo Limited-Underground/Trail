@@ -5,8 +5,8 @@
 // implementation order step 2). Host-only logic.
 //
 // GroupState is the single authority for one group on one board: it holds the roster and the
-// pair records of every introduced pair together. It cannot be copied, and a moved-from
-// GroupState is empty. Every pair step goes through it and is checked against its own live
+// pair records of every introduced pair together. It cannot be copied or moved: it stays where
+// it was created, so no callback can swap it out from under a running step. Every pair step goes through it and is checked against its own live
 // roster; applying a new roster removes the records of removed or re-added members and drops
 // attempts the change affects. Only GroupState issues a VerifiedPairBinding.
 //
@@ -38,7 +38,8 @@
 // Activation intent (ACTIVATION_POSSIBLE) is never retired by a start alone: it stays until a
 // new binding for this pair verifies, or until restart. A board holding it may start a rekey
 // itself, so two uncertain boards always reach a fresh epoch. Activation and commit name the
-// exact binding by its id.
+// exact binding by its id, and only while no later epoch is known to be used (a D-074
+// catch-up past an intent keeps the intent for recovery but refuses its commit).
 //
 // Time limit (D-073): the initiator allows the signed lifetime (60 s) from sending its start,
 // the responder from receiving it; clocks are never compared. Worst-case total is 120 s.
@@ -123,7 +124,9 @@ public:
     [[nodiscard]] const PairStart& start() const { return start_; }
     [[nodiscard]] const PairReply& reply() const { return reply_; }
     [[nodiscard]] const Signature& initiator_binding_signature() const { return confirm_.signature; }
-    // Names this exact binding (unique within the GroupState) for activation and commit.
+    // Names this exact binding for activation and commit: unique among every binding this
+    // program issues, across all groups, until the board restarts (step 3 keeps it unique
+    // across restarts for anything it stores).
     [[nodiscard]] std::uint64_t id() const { return id_; }
 
 private:
@@ -258,13 +261,15 @@ private:
 
 // The single authority for one group on this board. Not reentrant: while a pair step runs,
 // providers (signer, crypto, random source) may not change the roster or start another step.
+// Each pair step copies its message inputs first, so a provider changing the caller's objects
+// has no effect on what is verified, signed or issued.
 class GroupState {
 public:
     GroupState() = default;
     GroupState(const GroupState&) = delete;
     GroupState& operator=(const GroupState&) = delete;
-    GroupState(GroupState&& other) noexcept;
-    GroupState& operator=(GroupState&& other) noexcept;
+    GroupState(GroupState&&) = delete;
+    GroupState& operator=(GroupState&&) = delete;
 
     // Roster (see RosterState). Every accepted roster is applied to the pair records; a
     // conflict drops unfinished work; stopping trust ends every pair record.
@@ -288,7 +293,7 @@ public:
                                 const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified);
     // Durable steps for the exact binding (VerifiedPairBinding::id): ACTIVATION_POSSIBLE before
     // the first activation message, then commit (authenticated peer activation: step 3). Both
-    // recheck that the roster is the one the binding names.
+    // recheck that the roster is the one the binding names and that no later epoch is used.
     PairOutcome pair_activation_possible(const PublicKey& peer, std::uint64_t binding_id);
     PairOutcome pair_commit(const PublicKey& peer, std::uint64_t binding_id);
     // Drops the own start, pending answers and a binding not yet ACTIVATION_POSSIBLE.
@@ -305,7 +310,6 @@ private:
 
     RosterState roster_{};
     std::array<std::optional<PairRecord>, kMaximumPeers> pairs_{};
-    std::uint64_t next_binding_id_{1};
     bool busy_{false};
 };
 
