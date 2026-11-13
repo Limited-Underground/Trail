@@ -24,6 +24,10 @@ endif()
 get_filename_component(OPENTRAIL_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND EXTRA_COMPONENT_DIRS "${OPENTRAIL_ROOT}/tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+# I-034: map the Trail checkout path to a fixed name in compiler output, so the same commit
+# builds to the same image from any folder. ESP-IDF's reproducible-build mapping covers
+# only the IDF and project folders; the shared components sit outside the project folder.
+idf_build_set_property(COMPILE_OPTIONS "-ffile-prefix-map=${OPENTRAIL_ROOT}=/opentrail" APPEND)
     idf_build_get_property(OPENTRAIL_PYTHON PYTHON)
     execute_process(COMMAND "${OPENTRAIL_PYTHON}" "${OPENTRAIL_ROOT}/tools/security_evaluation_inputs.py" RESULT_VARIABLE OPENTRAIL_INPUTS)
     if(NOT OPENTRAIL_INPUTS EQUAL 0)
