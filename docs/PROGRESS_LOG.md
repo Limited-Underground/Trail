@@ -2,6 +2,10 @@
 
 ## 2026-11-12
 
+### OT-0251 Add a release generation and boot identity line for the Firmware Loader
+
+The Firmware Loader's first signed release (workspace decision D-063) needs the board to say which release it runs and that it started correctly. The bench target now has a build option `OPENTRAIL_RELEASE_GENERATION`, which defaults to 0, meaning a development build. After the boot self-check passes, it prints `lu_ident generation=<n> version=<app version> partition=0x<offset> self_check=PASS` and repeats it with every heartbeat, because the USB port reconnects after a reset and the Loader may reopen it late. Described in the [target README](../firmware/targets/heltec_v4_bench/README.md#release-generation-and-boot-identity-line). The bench target built with ESP-IDF v6.0.2 with no warnings. Its bootloader and partition table are byte-identical to the `ce6048c` build now on board A, and the app grew by 304 bytes. No device was touched.
+
 ### OT-0306 Revise the pairwise group design after security review
 
 An independent, read-only security review of [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) found the design acceptable with ten required changes. The largest: traffic keys are never kept across a restart (accepted enrollment rule; keys live only in memory), so every reboot needs a rekey, which the first version did not handle. Following owner decision D-059 (workspace records), revision 2 adds automatic rekey for all V1 pairs after a reboot or recovery, retire-and-redo recovery of interrupted pairs, a fully specified introduced-pair binding with a typed authority, rosters identified by digest and chained to the previous roster with a visible roster-conflict state, additions only from the admin board's own in-person enrollment receipt, a one-tap acceptance of each new member by every member, local "stop trusting the group", a signed group-closed statement, roster delivery with progress, a 10-minute stop on positions to silent members, per-board limits of 4 groups and 8 conversations, a storage plan, proposed Packet-v1 type values and a 14-byte group header that leaves 80 bytes for a group text at the 154-byte Heltec MTU.

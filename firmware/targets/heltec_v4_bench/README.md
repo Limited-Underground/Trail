@@ -352,6 +352,26 @@ layout, and the reservation cannot satisfy the denied OT-054 security preflight.
 The machine-readable [target contract](target-contract.json) is enforced by a
 host admission test. The build helper contains compile commands only.
 
+## Release generation and boot identity line
+
+The Firmware Loader installs only signed releases. Each release names a release
+generation, and the next release must have a higher one (workspace decision
+D-063, Loader checklist L7). The build option `OPENTRAIL_RELEASE_GENERATION`
+sets this generation. It defaults to `0`, which marks a development build and
+never a release. A release build passes `-DOPENTRAIL_RELEASE_GENERATION=<n>`,
+with `n` from 1 to 999,999,999; any other value stops the configure step.
+
+After the boot self-check passes, the application prints one identity line, and
+prints it again with every five-second heartbeat:
+
+`lu_ident generation=<n> version=<app version> partition=0x<running app offset> self_check=PASS`
+
+The repeat is deliberate. The board's USB port disappears and returns after a
+reset, so a host that reopens it late can still see the line. The line holds no
+identifier, key or user data. It reports the build's own generation and the
+offset the bootloader ran it from; it does not prove the image is authentic,
+which the Loader checks from the signature before writing.
+
 ## Build gate
 
 Use `tools/Build-HeltecV4BenchTarget.ps1` from an already installed and exported

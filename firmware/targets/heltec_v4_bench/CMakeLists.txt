@@ -15,6 +15,12 @@ if(OPENTRAIL_CONFIRMATION_EVALUATION)
     endif()
     list(APPEND SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.confirmation-eval.defaults")
 endif()
+# L7 step 4: the Firmware Loader's release generation. 0 marks a development build, never a
+# release; a release build passes -DOPENTRAIL_RELEASE_GENERATION=<n> (n >= 1, strictly increasing).
+set(OPENTRAIL_RELEASE_GENERATION "0" CACHE STRING "Firmware Loader release generation (0 = development build)")
+if(NOT OPENTRAIL_RELEASE_GENERATION MATCHES "^(0|[1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)$")
+    message(FATAL_ERROR "OPENTRAIL_RELEASE_GENERATION must be 0 or a positive integer below 1000000000")
+endif()
 get_filename_component(OPENTRAIL_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 list(APPEND EXTRA_COMPONENT_DIRS "${OPENTRAIL_ROOT}/tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

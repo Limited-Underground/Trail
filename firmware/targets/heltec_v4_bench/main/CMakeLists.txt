@@ -92,6 +92,7 @@ idf_component_register(
         bootloader_support
         efuse
         esp_adc
+        esp_app_format
         esp_partition
         esp_security
         esp_system
@@ -102,12 +103,14 @@ idf_component_register(
         esp_lcd
         mbedtls
         nvs_flash
+        spi_flash
     PRIV_REQUIRES espressif__libsodium ${OPENTRAIL_CONFIRMATION_REQUIRES}
 )
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>
     OPENTRAIL_CONNECTION_DIAGNOSTICS=$<BOOL:${OPENTRAIL_CONNECTION_DIAGNOSTICS}>
-    OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=$<BOOL:${OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY}>)
+    OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=$<BOOL:${OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY}>
+    OPENTRAIL_RELEASE_GENERATION=${OPENTRAIL_RELEASE_GENERATION}UL)
 if(OPENTRAIL_CONNECTION_DIAGNOSTICS)
     if(OPENTRAIL_CONFIRMATION_EVALUATION)
         message(FATAL_ERROR "Connection comparison uses the ordinary 4096-byte BLE profile")

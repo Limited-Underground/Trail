@@ -1,7 +1,11 @@
 #include <array>
 #include <cstdint>
+#include <cstdio>
 
+#include "esp_app_desc.h"
 #include "esp_log.h"
+#include "esp_partition.h"
+#include "spi_flash_mmap.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -36,6 +40,40 @@ using opentrail::target::heltec_v4_bench::HeltecEnrollmentInputArbiter;
 using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
 
 constexpr char kLogTag[] = "ot_bench";
+
+#ifndef OPENTRAIL_RELEASE_GENERATION
+#error "OPENTRAIL_RELEASE_GENERATION must be set by the build"
+#endif
+// L7 step 4: one release and health line for the Firmware Loader's boot check. It is printed
+// only after the boot self-check passed, then again with every heartbeat, so a host that
+// reopens the USB port after a reset still sees it. Built once; logging it formats one string.
+char g_release_line[112] = "generation=unknown";
+
+// Offset of the app partition this code executes from: the physical flash address of this
+// function, matched against the app partitions. 0 if it cannot be determined.
+unsigned long running_app_offset() {
+    const std::size_t here = spi_flash_cache2phys(reinterpret_cast<const void*>(&running_app_offset));
+    unsigned long offset = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr) {
+        const esp_partition_t* partition = esp_partition_get(it);
+        if (here != SPI_FLASH_CACHE2PHYS_FAIL && partition != nullptr && here >= partition->address &&
+            here - partition->address < partition->size) {
+            offset = partition->address;
+        }
+        it = esp_partition_next(it);
+    }
+    return offset;
+}
+
+void prepare_release_line() {
+    const esp_app_desc_t* description = esp_app_get_description();
+    std::snprintf(g_release_line, sizeof(g_release_line),
+                  "generation=%lu version=%.32s partition=0x%lx",
+                  static_cast<unsigned long>(OPENTRAIL_RELEASE_GENERATION),
+                  description != nullptr ? description->version : "unknown",
+                  running_app_offset());
+}
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
 constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
 constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
@@ -300,6 +338,8 @@ extern "C" void app_main() {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
+    prepare_release_line();
+    ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
     ESP_LOGI(kLogTag, "boot reset_reason=%u",
              static_cast<unsigned>(esp_reset_reason()));
     const auto started_at_ms =
@@ -495,6 +535,7 @@ extern "C" void app_main() {
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
                      static_cast<unsigned long long>(elapsed_ms));
+            ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
             // Pinned ESP-IDF task.h defines this result in bytes, not words.
             ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
