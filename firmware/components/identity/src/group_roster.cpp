@@ -418,6 +418,15 @@ Outcome RosterState::offer(const std::uint8_t* bytes, std::size_t size, const Ro
     held_ = next;
     held_digest_ = digest;
     held_fingerprints_ = fingerprints;
+    {  // keep acceptances only for members still listed with the same added-in version
+        std::size_t kept = 0;
+        for (std::size_t i = 0; i < accepted_count_; ++i) {
+            const Member* m = find(held_, accepted_[i].key);
+            if (m != nullptr && m->added_in == accepted_[i].added_in) accepted_[kept++] = accepted_[i];
+        }
+        for (std::size_t i = kept; i < accepted_.size(); ++i) accepted_[i] = Accepted{};
+        accepted_count_ = kept;
+    }
     has_roster_ = true;
     remember(next.version, digest);
     if (next.version > 1) remember(next.version - 1, next.previous);
@@ -437,6 +446,37 @@ bool RosterState::keep_current() {
     conflict_digest_ = Digest{};
     state_ = State::active;
     return true;
+}
+
+bool RosterState::accept_member(const PublicKey& key) {
+    if (state_ != State::active || key == own_) return false;
+    const Member* peer = find(held_, key);
+    const Member* self = find(held_, own_);
+    if (peer == nullptr || self == nullptr || peer->added_in <= self->added_in) return false;
+    if (accepted(key)) return true;
+    if (accepted_count_ >= accepted_.size()) return false;
+    accepted_[accepted_count_++] = Accepted{key, peer->added_in};
+    return true;
+}
+
+bool RosterState::accepted(const PublicKey& key) const {
+    const Member* peer = find(held_, key);
+    if (peer == nullptr) return false;
+    for (std::size_t i = 0; i < accepted_count_; ++i) {
+        if (accepted_[i].key == key && accepted_[i].added_in == peer->added_in) return true;
+    }
+    return false;
+}
+
+bool RosterState::key_for(const Fingerprint& fingerprint, PublicKey& out) const {
+    if (!has_roster_) return false;
+    for (std::size_t i = 0; i < held_.member_count; ++i) {
+        if (held_fingerprints_[i] == fingerprint) {
+            out = held_.members[i].key;
+            return true;
+        }
+    }
+    return false;
 }
 
 void RosterState::stop_trusting() {

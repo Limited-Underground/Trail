@@ -7,6 +7,9 @@ and the fixes from its re-review (see
 [Review record](#review-record)). Implementation order step 1 (the roster) is
 implemented on the host; see
 [`group_roster.hpp`](../../firmware/components/identity/include/opentrail/group_roster.hpp).
+Step 2 (pair authority, signed binding, epochs and interruption rules) is
+implemented on the host, without the handshake suite or key derivation; see
+[`group_pair.hpp`](../../firmware/components/identity/include/opentrail/group_pair.hpp).
 Nothing else is implemented. No algorithm, library
 or radio setting is selected here; the byte sizes given are budgets for the
 current Heltec V4 radio, not a frozen wire format.
@@ -271,6 +274,23 @@ completes.
 conversation ID fixed at their in-person first pairing. That name is bound
 into every rekey and into the pair's Packet-v1 context, so an outside-group
 pair and a group pair between the same two people are never confused.
+
+**Epoch numbers in practice** (refined while implementing step 2, for review).
+Each board reserves an epoch durably before it sends anything for an attempt, so
+a start lost on the radio uses up an epoch on the initiator only. "Exactly
+epoch+1" is therefore applied as: a board proposes one above the highest epoch
+it has ever reserved for that pair, and accepts any proposal above its own
+highest, but only from a start signed by the peer's identity. Zero, equal, older
+and wrapped epochs are refused, and a replayed start cannot go above an epoch the
+peer itself reserved. When two rekey starts cross, the board whose start loses
+gives back its own unanswered reservation and answers the winning start.
+
+**First pairing or rekey after an interruption.** A board starts an introduced
+pair until it has committed one, then rekeys. A responder answers an introduced
+pair start at any time (its authority still requires the member acceptance and
+the role order) and a rekey only after an earlier attempt with that peer
+(committed or interrupted). Two boards left in different states by an
+interruption therefore always reach a fresh epoch.
 
 Triggers: boot and recovery (D-059). Any other trigger, such as a counter
 domain running out, is a separate decision. Both boards must be in radio range

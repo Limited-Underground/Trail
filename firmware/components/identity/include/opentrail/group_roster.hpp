@@ -36,11 +36,15 @@
 // handshakes, rekeys and roster transfers).
 
 #include <array>
+#include <optional>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
 
 namespace opentrail::identity::roster {
+
+class PairAuthority;  // group_pair.hpp
+enum class PairPurpose : std::uint8_t;
 
 inline constexpr std::size_t kMaximumMembers = 6;
 inline constexpr std::size_t kPublicKeyBytes = 32;
@@ -217,6 +221,19 @@ public:
     // from this admin are refused.
     void stop_trusting();
 
+    // The local user's one tap accepting a newer member (design "Joining", step 3). Only
+    // for a member listed in the held roster who was added after this board; kept while
+    // that member stays listed. Binding it to a trusted local input receipt is later work.
+    bool accept_member(const PublicKey& key);
+    [[nodiscard]] bool accepted(const PublicKey& key) const;
+    // The typed authority for a pair with a listed peer (group_pair.hpp). Requires an
+    // active roster (no conflict). Introduce: both boards are non-admin members, and this
+    // board has accepted the peer if the peer is newer. Rekey: any listed peer.
+    bool pair_authority(const PublicKey& peer, PairPurpose purpose,
+                        std::optional<PairAuthority>& out) const;
+    // Maps a fingerprint from a received message to the listed member's key.
+    bool key_for(const Fingerprint& fingerprint, PublicKey& out) const;
+
     [[nodiscard]] State state() const { return state_; }
     [[nodiscard]] ConflictKind conflict_kind() const { return conflict_; }
     [[nodiscard]] bool has_roster() const { return has_roster_; }
@@ -252,6 +269,12 @@ private:
     Digest conflict_digest_{};
     std::array<Digest, kResolvedConflicts> resolved_{};
     std::size_t resolved_next_{0};
+    struct Accepted {
+        PublicKey key{};
+        std::uint32_t added_in{0};  // a removed and re-added member must be accepted again
+    };
+    std::array<Accepted, kMaximumMembers> accepted_{};
+    std::size_t accepted_count_{0};
 };
 
 }  // namespace opentrail::identity::roster
