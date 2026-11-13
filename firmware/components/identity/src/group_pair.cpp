@@ -69,6 +69,7 @@ bool on_roster(const RosterState& roster, std::uint32_t version, const Digest& d
 // can never name a binding of another group (or of a group created later in the same place).
 std::atomic<std::uint64_t> next_binding_id{1};
 
+// 64 bits: even one id per microsecond lasts over 500,000 years, so wrap is not handled.
 std::uint64_t issue_binding_id() { return next_binding_id.fetch_add(1, std::memory_order_relaxed); }
 
 // Marks a GroupState busy for the length of a pair step (no reentrant provider calls).
@@ -577,11 +578,12 @@ PairOutcome GroupState::pair_on_start(const PairStart& start_in, const Ephemeral
 PairOutcome GroupState::pair_on_reply(const PublicKey& peer_in, const PairReply& reply_in, std::uint64_t now_ms,
                                       const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& out,
                                       std::optional<VerifiedPairBinding>& verified) {
+    // Inputs are copied before the output is cleared: an input may live inside `verified`.
+    const PublicKey peer = peer_in;
+    const PairReply reply = reply_in;
     verified.reset();
     if (busy_) return PairOutcome::busy;
     Busy guard(busy_);
-    const PublicKey peer = peer_in;
-    const PairReply reply = reply_in;
     PairRecord* r = record(peer, false);
     if (r == nullptr) return PairOutcome::no_pair;
     return r->on_reply(roster_, reply, now_ms, crypto, signer, issue_binding_id(), out, verified);
@@ -589,11 +591,11 @@ PairOutcome GroupState::pair_on_reply(const PublicKey& peer_in, const PairReply&
 
 PairOutcome GroupState::pair_on_confirm(const PublicKey& peer_in, const PairConfirm& confirm_in, std::uint64_t now_ms,
                                         const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& verified) {
+    const PublicKey peer = peer_in;
+    const PairConfirm confirm = confirm_in;
     verified.reset();
     if (busy_) return PairOutcome::busy;
     Busy guard(busy_);
-    const PublicKey peer = peer_in;
-    const PairConfirm confirm = confirm_in;
     PairRecord* r = record(peer, false);
     if (r == nullptr) return PairOutcome::no_pair;
     return r->on_confirm(roster_, confirm, now_ms, crypto, issue_binding_id(), verified);

@@ -1025,6 +1025,10 @@ void test_review4_fixes() {
         EXPECT(v && matches_signatures(*v));
         EXPECT(confirm_in(b, f, 30, w) == PairOutcome::ok && w && matches_signatures(*w));
         EXPECT(v && w && v->reply().responder_challenge == w->reply().responder_challenge);
+        // An input that lives inside the output is copied before the output is cleared (review 5).
+        EXPECT(c.g.pair_on_reply(kB, v->reply(), 40, crypto, TestSigner(kC), f, v) == PairOutcome::wrong_state && !v);
+        PairConfirm again{w->initiator_binding_signature()};
+        EXPECT(confirm_in(b, again, 50, w) == PairOutcome::wrong_state && !w);
     }
     // A callback changing the caller's start on the responder cannot change what is kept.
     {
