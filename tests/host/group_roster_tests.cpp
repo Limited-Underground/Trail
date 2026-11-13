@@ -1,10 +1,13 @@
 // Host tests for the signed group roster (GROUP_PAIRWISE_V1 implementation order step 1).
 // The crypto below is a deterministic TEST-ONLY stand-in: anyone can forge its
 // "signatures". It exercises the roster rules, not any algorithm, which is not selected.
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 #include "opentrail/group_roster.hpp"
@@ -114,12 +117,12 @@ Signed first(LocationRule rule = LocationRule::off) {
 }
 Signed added(const Signed& cur, const PublicKey& k, const char* alias) {
     Roster r{};
-    EXPECT(add_member(cur.roster, cur.digest, k, alias, r));
+    EXPECT(add_member(cur.roster, crypto, k, alias, r));
     return seal(r);
 }
 Signed removed(const Signed& cur, const PublicKey& k) {
     Roster r{};
-    EXPECT(remove_member(cur.roster, cur.digest, k, r));
+    EXPECT(remove_member(cur.roster, crypto, k, r));
     return seal(r);
 }
 
@@ -147,7 +150,7 @@ void test_round_trip_and_size_budget() {
     EXPECT(again == v.bytes);
     // Seventh member refused.
     Roster seventh{};
-    EXPECT(!add_member(v.roster, v.digest, kG, "gina", seventh));
+    EXPECT(!add_member(v.roster, crypto, kG, "gina", seventh));
     // Six members with maximum aliases: the design's 5-fragment budget at a 94-byte frame.
     EXPECT(kMaximumRosterBytes == 439);
     EXPECT(kMaximumRosterBytes <= 5 * 94);
@@ -250,7 +253,7 @@ void test_group_name_binding() {
     EXPECT(create_first(kGroup, kOtherAdmin, "admin", LocationRule::off, other_admin));
     Signed oa = seal(other_admin, kOtherAdmin);
     Roster oa2{};
-    EXPECT(add_member(oa.roster, oa.digest, kB, "bob", oa2));
+    EXPECT(add_member(oa.roster, crypto, kB, "bob", oa2));
     EXPECT(offer(s, seal(oa2, kOtherAdmin)) == Outcome::rejected_signature);
     // Group name is the admin fingerprint plus group ID.
     GroupName a{}, b{};
@@ -371,14 +374,14 @@ void test_gap_with_forked_history_is_conflict() {
     RosterState c = member_state(kB);
     EXPECT(offer(c, v3) == Outcome::accepted);
     Roster r{};
-    EXPECT(add_member(v3.roster, v3.digest, kE, "erin", r));
+    EXPECT(add_member(v3.roster, crypto, kE, "erin", r));
     r.members[2].alias[0] = 'K';  // alias change alone is presentation: still consistent
     Signed ok = seal(r);
     EXPECT(offer(c, ok) == Outcome::accepted);
     RosterState d = member_state(kB);
     EXPECT(offer(d, v3) == Outcome::accepted);
     Roster swapped{};
-    EXPECT(add_member(v3.roster, v3.digest, kE, "erin", swapped));
+    EXPECT(add_member(v3.roster, crypto, kE, "erin", swapped));
     swapped.members[2].key = kG;  // C replaced by another identity under the same added-in version
     EXPECT(offer(d, seal(swapped)) == Outcome::conflict);
     EXPECT(d.conflict_kind() == ConflictKind::history_mismatch);
@@ -395,8 +398,8 @@ void test_removal_of_self_and_leaving() {
     EXPECT(offer(c, added(v4, kD, "dave")) == Outcome::not_member);
     // The admin can never be removed.
     Roster r{};
-    EXPECT(!remove_member(v3.roster, v3.digest, kAdmin, r));
-    EXPECT(!remove_member(v3.roster, v3.digest, kG, r));
+    EXPECT(!remove_member(v3.roster, crypto, kAdmin, r));
+    EXPECT(!remove_member(v3.roster, crypto, kG, r));
 }
 
 void test_location_rule_and_version_limit() {
@@ -404,14 +407,17 @@ void test_location_rule_and_version_limit() {
     RosterState b = member_state(kB);
     EXPECT(offer(b, v2) == Outcome::accepted);
     Roster r{};
-    EXPECT(change_location_rule(v2.roster, v2.digest, LocationRule::required, r));
+    EXPECT(change_location_rule(v2.roster, crypto, LocationRule::required, r));
     EXPECT(offer(b, seal(r)) == Outcome::accepted);
     EXPECT(b.roster().location_rule == LocationRule::required);
     Roster max = v2.roster;
     max.version = 0xFFFFFFFFU;
-    EXPECT(!add_member(max, v2.digest, kC, "carol", r));
-    Digest zero{};
-    EXPECT(!add_member(v2.roster, zero, kC, "carol", r));
+    const Signed max_signed = seal(max);
+    EXPECT(!add_member(max_signed.roster, crypto, kC, "carol", r));
+    // A successor is only built from a genuinely signed current roster.
+    Roster unsigned_current = v2.roster;
+    unsigned_current.signature[0] ^= 1;
+    EXPECT(!add_member(unsigned_current, crypto, kC, "carol", r));
 }
 
 void test_digest_covers_whole_roster_and_crypto_failure() {
@@ -434,6 +440,233 @@ void test_digest_covers_whole_roster_and_crypto_failure() {
     EXPECT(!b.initialize(kAdmin, kGroup, kB));
 }
 
+
+// ---- added after the independent review of PR #248 ----
+
+Signed rule(const Signed& cur, LocationRule r) {
+    Roster next{};
+    EXPECT(change_location_rule(cur.roster, crypto, r, next));
+    return seal(next);
+}
+
+void test_fork_evidence_after_gap_is_remembered() {
+    const Signed v2 = added(first(), kB, "bob");
+    const Signed good3 = rule(v2, LocationRule::preferred);
+    const Signed fork3 = rule(v2, LocationRule::required);
+    const Signed fork4 = rule(fork3, LocationRule::off);
+    const Signed fork5 = rule(fork4, LocationRule::required);
+    // The fork's branch point (version 3) is not visible from fork 5 alone: accepted.
+    RosterState b = member_state(kB);
+    EXPECT(offer(b, good3) == Outcome::accepted);
+    EXPECT(offer(b, fork5) == Outcome::accepted);
+    // The delayed roster from the other branch contradicts the version 3 this board held.
+    EXPECT(offer(b, fork3) == Outcome::conflict);
+    EXPECT(b.conflict_kind() == ConflictKind::known_version_mismatch);
+    // An addition fork whose added member is removed again before the offered roster.
+    const Signed add3 = added(v2, kC, "carol");
+    const Signed alt3 = added(v2, kD, "dave");
+    const Signed alt4 = removed(alt3, kD);
+    RosterState c = member_state(kB);
+    EXPECT(offer(c, add3) == Outcome::accepted);
+    EXPECT(offer(c, alt4) == Outcome::conflict);  // exactly one higher, wrong previous digest
+    EXPECT(c.conflict_kind() == ConflictKind::chain_break);
+    // Across a gap the same fork looks like a legitimate removal of C (the documented
+    // limit), but the other branch's version 3 is caught as soon as it is seen.
+    const Signed alt5 = rule(alt4, LocationRule::required);
+    RosterState c2 = member_state(kB);
+    EXPECT(offer(c2, add3) == Outcome::accepted);
+    EXPECT(offer(c2, alt5) == Outcome::accepted);
+    EXPECT(offer(c2, alt3) == Outcome::conflict);
+    EXPECT(c2.conflict_kind() == ConflictKind::known_version_mismatch);
+    // (A member whose added-in version contradicts the held roster: see
+    // test_gap_with_forked_history_is_conflict.)
+    // A stale roster that contradicts a version this board has seen is also a conflict.
+    RosterState d = member_state(kB);
+    const Signed v4 = rule(good3, LocationRule::off);
+    const Signed v5 = rule(v4, LocationRule::preferred);
+    EXPECT(offer(d, good3) == Outcome::accepted);
+    EXPECT(offer(d, v4) == Outcome::accepted);
+    EXPECT(offer(d, v5) == Outcome::accepted);
+    EXPECT(offer(d, fork4) == Outcome::conflict);  // older; version 4 known with another digest
+    EXPECT(d.conflict_kind() == ConflictKind::known_version_mismatch);
+    // An older roster whose own version is unknown here, but whose previous link
+    // contradicts a version this board held, is a conflict.
+    RosterState g = member_state(kB);
+    const Signed v6 = rule(v5, LocationRule::required);
+    EXPECT(offer(g, good3) == Outcome::accepted);
+    EXPECT(offer(g, v6) == Outcome::accepted);  // knows versions 2, 3, 5 and 6
+    EXPECT(offer(g, fork4) == Outcome::conflict);
+    EXPECT(g.conflict_kind() == ConflictKind::known_version_mismatch);
+    // Control: the legitimate history is still stale, not a conflict.
+    RosterState e = member_state(kB);
+    EXPECT(offer(e, good3) == Outcome::accepted);
+    EXPECT(offer(e, v4) == Outcome::accepted);
+    EXPECT(offer(e, good3) == Outcome::stale);
+    EXPECT(offer(e, v2) == Outcome::stale);
+    EXPECT(e.state() == State::active);
+}
+
+void test_dismissed_conflict_replay_is_ignored() {
+    const Signed v2 = added(first(), kB, "bob");
+    const Signed good3 = rule(v2, LocationRule::preferred);
+    const Signed fork3 = rule(v2, LocationRule::required);
+    const Signed other3 = rule(v2, LocationRule::off);
+    RosterState b = member_state(kB);
+    EXPECT(offer(b, good3) == Outcome::accepted);
+    EXPECT(offer(b, fork3) == Outcome::conflict);
+    EXPECT(b.keep_current());
+    EXPECT(offer(b, fork3) == Outcome::resolved_replay);
+    EXPECT(b.state() == State::active);
+    EXPECT(offer(b, rule(good3, LocationRule::off)) == Outcome::accepted);
+    // A distinct conflicting roster is still shown.
+    RosterState c = member_state(kB);
+    EXPECT(offer(c, good3) == Outcome::accepted);
+    EXPECT(offer(c, fork3) == Outcome::conflict);
+    EXPECT(c.keep_current());
+    EXPECT(offer(c, other3) == Outcome::conflict);
+    EXPECT(c.state() == State::conflict);
+}
+
+class FingerprintCrypto final : public RosterCrypto {
+public:
+    bool fail_for_c{false};
+    bool c_like_b{false};
+    bool verify(const Signature& s, const std::uint8_t* m, std::size_t n, const PublicKey& k) const override {
+        return crypto.verify(s, m, n, k);
+    }
+    bool digest(const std::uint8_t* m, std::size_t n, Digest& out) const override { return crypto.digest(m, n, out); }
+    bool fingerprint(const PublicKey& k, Fingerprint& out) const override {
+        if (fail_for_c && k == kC) return false;
+        return crypto.fingerprint(c_like_b && k == kC ? kB : k, out);
+    }
+};
+
+void test_member_fingerprints_are_recomputed() {
+    const Signed v3 = added(added(first(), kB, "bob"), kC, "carol");
+    FingerprintCrypto failing;
+    failing.fail_for_c = true;
+    RosterState b = member_state(kB);
+    EXPECT(b.offer(v3.bytes.data(), v3.bytes.size(), failing) == Outcome::crypto_failure);
+    EXPECT(!b.has_roster() && b.state() == State::awaiting_roster);
+    FingerprintCrypto same;
+    same.c_like_b = true;
+    EXPECT(b.offer(v3.bytes.data(), v3.bytes.size(), same) == Outcome::rejected_identity);
+    EXPECT(!b.has_roster());
+    EXPECT(offer(b, v3) == Outcome::accepted);
+    Fingerprint fc{};
+    EXPECT(crypto.fingerprint(kC, fc) && b.fingerprints()[2] == fc);
+}
+
+void test_group_id_zero_is_reserved() {
+    Roster r{};
+    EXPECT(!create_first(0, kAdmin, "admin", LocationRule::off, r));
+    RosterState s;
+    EXPECT(!s.initialize(kAdmin, 0, kAdmin));
+    EXPECT(!s.initialize(kAdmin, kGroup, kAdmin, 0));
+    Signed v = first();
+    Roster z = v.roster;
+    z.group_id = 0;
+    EXPECT(validate(z) == FormatError::group_id);
+    std::vector<std::uint8_t> b = v.bytes;
+    for (std::size_t i = 5; i < 13; ++i) b[i] = 0;
+    Roster out{};
+    EXPECT(decode(b.data(), b.size(), out) == FormatError::group_id);
+}
+
+void test_alias_code_points() {
+    Roster r{};
+    EXPECT(!create_first(kGroup, kAdmin, "A\xC2\x85", LocationRule::off, r));        // C1 NEL
+    EXPECT(!create_first(kGroup, kAdmin, "A\xC2\x80", LocationRule::off, r));        // first C1
+    EXPECT(!create_first(kGroup, kAdmin, "A\xC2\x9F", LocationRule::off, r));        // last C1
+    EXPECT(!create_first(kGroup, kAdmin, "A\x7F", LocationRule::off, r));            // DEL
+    EXPECT(create_first(kGroup, kAdmin, "A\xC2\xA0", LocationRule::off, r));         // U+00A0
+    EXPECT(create_first(kGroup, kAdmin, "\xF4\x8F\xBF\xBF", LocationRule::off, r));  // U+10FFFF
+    EXPECT(!create_first(kGroup, kAdmin, "\xF4\x90\x80\x80", LocationRule::off, r)); // above U+10FFFF
+    EXPECT(!create_first(kGroup, kAdmin, "\xE2\x28\xA1", LocationRule::off, r));     // bad continuation
+    EXPECT(!create_first(kGroup, kAdmin, "\xF8\x88\x80\x80\x80", LocationRule::off, r));  // 5-byte form
+    EXPECT(!create_first(kGroup, kAdmin, "\xE0\x80\xAF", LocationRule::off, r));     // overlong
+    EXPECT(!create_first(kGroup, kAdmin, "\xE0\x83\xA9", LocationRule::off, r));     // overlong U+00E9
+    EXPECT(!create_first(kGroup, kAdmin, "\xF0\x80\x83\xA9", LocationRule::off, r)); // overlong U+00E9
+    EXPECT(create_first(kGroup, kAdmin, "\xC3\xA9", LocationRule::off, r));          // U+00E9
+}
+
+void test_encode_writes_nothing_unless_it_fits() {
+    const Signed v2 = added(first(), kB, "bob");
+    const std::size_t total = v2.bytes.size();
+    std::vector<std::uint8_t> out(total + 4, 0xEE);
+    EXPECT(encode(v2.roster, out.data(), total - kSignatureBytes) == 0);
+    EXPECT(encode(v2.roster, out.data(), total - 1) == 0);
+    EXPECT(std::all_of(out.begin(), out.end(), [](std::uint8_t b) { return b == 0xEE; }));
+    EXPECT(encode(v2.roster, out.data(), total) == total);
+    EXPECT(std::equal(v2.bytes.begin(), v2.bytes.end(), out.begin()));
+    EXPECT(out[total] == 0xEE);
+}
+
+void test_join_minimum_version_refuses_old_roster() {
+    const Signed v2 = added(first(), kB, "bob");
+    const Signed v3 = removed(v2, kB);
+    const Signed v4 = added(v3, kB, "bob");  // B joins again after its removal
+    RosterState b;
+    EXPECT(b.initialize(kAdmin, kGroup, kB, 4));
+    EXPECT(offer(b, v2) == Outcome::stale);  // authentic and lists B, but older than the join
+    EXPECT(!b.has_roster());
+    EXPECT(offer(b, v4) == Outcome::accepted);
+}
+
+void test_literal_encoding_and_full_size() {
+    const Signed v = first();
+    const std::vector<std::uint8_t>& b = v.bytes;
+    EXPECT(b.size() == kHeaderBytes + kMemberFixedBytes + 5 + kSignatureBytes);
+    const std::uint8_t head[] = {'O', 'T', 'G', 'R', 1, 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0, 0, 0, 1};
+    EXPECT(std::memcmp(b.data(), head, sizeof(head)) == 0);
+    EXPECT(std::all_of(b.begin() + 17, b.begin() + 49, [](std::uint8_t x) { return x == 0; }));
+    EXPECT(b[49] == 0 && b[50] == 1);                // location rule off, one member
+    const std::uint8_t member[] = {1, 0, 0, 0, 1};   // admin, added in version 1
+    EXPECT(std::memcmp(b.data() + 51, member, sizeof(member)) == 0);
+    EXPECT(std::equal(kAdmin.begin(), kAdmin.end(), b.begin() + 56));
+    EXPECT(b[88] == 5 && std::memcmp(b.data() + 89, "admin", 5) == 0);
+    EXPECT(std::equal(v.roster.signature.begin(), v.roster.signature.end(), b.begin() + 94));
+    // Six members, each with a 16-byte alias, on the wire; every shorter prefix refused.
+    Roster big{};
+    EXPECT(create_first(kGroup, kAdmin, "aaaaaaaaaaaaaaaa", LocationRule::off, big));
+    Signed cur = seal(big);
+    const char* names[] = {"bbbbbbbbbbbbbbbb", "cccccccccccccccc", "dddddddddddddddd",
+                           "eeeeeeeeeeeeeeee", "ffffffffffffffff"};
+    const PublicKey keys[] = {kB, kC, kD, kE, kF};
+    for (std::size_t i = 0; i < 5; ++i) cur = added(cur, keys[i], names[i]);
+    EXPECT(cur.bytes.size() == kMaximumRosterBytes);
+    Roster back{};
+    EXPECT(decode(cur.bytes.data(), cur.bytes.size(), back) == FormatError::none);
+    bool all_refused = true;
+    for (std::size_t n = 0; n < cur.bytes.size(); ++n) {
+        if (decode(cur.bytes.data(), n, back) == FormatError::none) all_refused = false;
+    }
+    EXPECT(all_refused);
+    // A signature made for another purpose (an existing domain prefix) does not verify.
+    Roster other = v.roster;
+    const std::string_view possession{"OT-POSSESSION"};
+    std::vector<std::uint8_t> in(possession.begin(), possession.end());
+    in.resize(possession.size() + kMaximumBodyBytes);
+    const std::size_t body = encode_body(other, in.data() + possession.size(), kMaximumBodyBytes);
+    in.resize(possession.size() + body);
+    TestSigner(kAdmin).sign(in.data(), in.size(), other.signature);
+    EXPECT(!verify_signature(other, kAdmin, crypto));
+}
+
+void test_terminal_states_refuse_newer_rosters() {
+    const Signed v2 = added(first(), kB, "bob");
+    const Signed v3 = added(v2, kC, "carol");
+    RosterState b = member_state(kB);
+    EXPECT(offer(b, v2) == Outcome::accepted);
+    b.stop_trusting();
+    EXPECT(offer(b, v3) == Outcome::not_member);
+    RosterState c = member_state(kB);
+    EXPECT(offer(c, v2) == Outcome::accepted);
+    EXPECT(offer(c, rule(v2, LocationRule::required)) == Outcome::accepted);
+    EXPECT(offer(c, rule(v2, LocationRule::preferred)) == Outcome::conflict);
+    EXPECT(offer(c, v3) == Outcome::blocked_by_conflict);
+}
+
 }  // namespace
 
 int main() {
@@ -451,10 +684,19 @@ int main() {
     test_removal_of_self_and_leaving();
     test_location_rule_and_version_limit();
     test_digest_covers_whole_roster_and_crypto_failure();
+    test_fork_evidence_after_gap_is_remembered();
+    test_dismissed_conflict_replay_is_ignored();
+    test_member_fingerprints_are_recomputed();
+    test_group_id_zero_is_reserved();
+    test_alias_code_points();
+    test_encode_writes_nothing_unless_it_fits();
+    test_join_minimum_version_refuses_old_roster();
+    test_literal_encoding_and_full_size();
+    test_terminal_states_refuse_newer_rosters();
     if (failures != 0) {
         std::cerr << failures << " group roster assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 14 group roster scenario groups\n";
+    std::cout << "PASS: 23 group roster scenario groups\n";
     return EXIT_SUCCESS;
 }

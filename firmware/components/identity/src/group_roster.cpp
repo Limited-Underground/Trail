@@ -14,7 +14,7 @@ bool all_zero(const Digest& digest) {
 }
 
 // UTF-8 per RFC 3629: no overlong forms, no surrogates, at most U+10FFFF.
-// C0 controls and DEL are refused (aliases are display text).
+// C0 controls, DEL and C1 controls (U+0080..U+009F) are refused (aliases are display text).
 bool valid_alias(const std::uint8_t* bytes, std::size_t size) {
     if (size == 0 || size > kMaximumAliasBytes) return false;
     std::size_t i = 0;
@@ -36,6 +36,7 @@ bool valid_alias(const std::uint8_t* bytes, std::size_t size) {
             code = (code << 6) | (c & 0x3FU);
         }
         if (code < minimum || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) return false;
+        if (code <= 0x9F) return false;  // C1 controls
         i += extra + 1;
     }
     return true;
@@ -84,10 +85,14 @@ bool set_alias(Member& member, std::string_view alias) {
     return valid_alias(member.alias.data(), member.alias_bytes);
 }
 
-// Common start of every successor: version + 1, chained to the current digest.
-bool successor(const Roster& current, const Digest& current_digest, Roster& out) {
-    if (validate(current) != FormatError::none || all_zero(current_digest) ||
-        current.version == std::numeric_limits<std::uint32_t>::max()) {
+// Common start of every successor: version + 1, chained to the digest of the supplied
+// signed roster (its own admin's signature is checked, so it is a real signed record).
+bool successor(const Roster& current, const RosterCrypto& crypto, Roster& out) {
+    Digest current_digest{};
+    if (validate(current) != FormatError::none ||
+        current.version == std::numeric_limits<std::uint32_t>::max() ||
+        !verify_signature(current, current.members[0].key, crypto) ||
+        !roster_digest(current, crypto, current_digest)) {
         return false;
     }
     out = current;
@@ -100,6 +105,7 @@ bool successor(const Roster& current, const Digest& current_digest, Roster& out)
 }  // namespace
 
 FormatError validate(const Roster& roster) {
+    if (roster.group_id == 0) return FormatError::group_id;
     if (roster.version == 0) return FormatError::version;
     if ((roster.version == 1) != all_zero(roster.previous)) return FormatError::previous_digest;
     if (roster.location_rule != LocationRule::off && roster.location_rule != LocationRule::preferred &&
@@ -152,8 +158,9 @@ std::size_t encode_body(const Roster& roster, std::uint8_t* out, std::size_t cap
 }
 
 std::size_t encode(const Roster& roster, std::uint8_t* out, std::size_t capacity) {
+    if (validate(roster) != FormatError::none || capacity < body_size(roster) + kSignatureBytes) return 0;
     const std::size_t body = encode_body(roster, out, capacity);
-    if (body == 0 || capacity - body < kSignatureBytes) return 0;
+    if (body == 0) return 0;
     std::memcpy(out + body, roster.signature.data(), kSignatureBytes);
     return body + kSignatureBytes;
 }
@@ -254,10 +261,10 @@ bool create_first(std::uint64_t group_id, const PublicKey& admin, std::string_vi
     return true;
 }
 
-bool add_member(const Roster& current, const Digest& current_digest, const PublicKey& key,
+bool add_member(const Roster& current, const RosterCrypto& crypto, const PublicKey& key,
                 std::string_view alias, Roster& out) {
     Roster next{};
-    if (!successor(current, current_digest, next) || next.member_count >= kMaximumMembers) return false;
+    if (!successor(current, crypto, next) || next.member_count >= kMaximumMembers) return false;
     Member& m = next.members[next.member_count];
     m = Member{};
     m.role = Role::member;
@@ -270,10 +277,10 @@ bool add_member(const Roster& current, const Digest& current_digest, const Publi
     return true;
 }
 
-bool remove_member(const Roster& current, const Digest& current_digest, const PublicKey& key,
+bool remove_member(const Roster& current, const RosterCrypto& crypto, const PublicKey& key,
                    Roster& out) {
     Roster next{};
-    if (!successor(current, current_digest, next)) return false;
+    if (!successor(current, crypto, next)) return false;
     for (std::size_t i = 1; i < next.member_count; ++i) {  // member 0 (admin) is never removed
         if (next.members[i].key == key) {
             for (std::size_t j = i; j + 1 < next.member_count; ++j) next.members[j] = next.members[j + 1];
@@ -287,10 +294,10 @@ bool remove_member(const Roster& current, const Digest& current_digest, const Pu
     return false;
 }
 
-bool change_location_rule(const Roster& current, const Digest& current_digest,
+bool change_location_rule(const Roster& current, const RosterCrypto& crypto,
                           LocationRule rule, Roster& out) {
     Roster next{};
-    if (!successor(current, current_digest, next)) return false;
+    if (!successor(current, crypto, next)) return false;
     next.location_rule = rule;
     if (validate(next) != FormatError::none) return false;
     out = next;
@@ -309,17 +316,20 @@ bool sign(Roster& roster, const RosterSigner& signer) {
 
 // ---------------------------------------------------------------- RosterState
 
-bool RosterState::initialize(const PublicKey& admin, std::uint64_t group_id, const PublicKey& own) {
-    if (state_ != State::uninitialized) return false;
+bool RosterState::initialize(const PublicKey& admin, std::uint64_t group_id, const PublicKey& own,
+                             std::uint32_t minimum_version) {
+    if (state_ != State::uninitialized || group_id == 0 || minimum_version == 0) return false;
     admin_ = admin;
     own_ = own;
     group_id_ = group_id;
+    minimum_version_ = minimum_version;
     state_ = State::awaiting_roster;
     return true;
 }
 
-Outcome RosterState::block(ConflictKind kind) {
+Outcome RosterState::block(ConflictKind kind, const Digest& offered) {
     conflict_ = kind;
+    conflict_digest_ = offered;
     state_ = State::conflict;
     return Outcome::conflict;
 }
@@ -339,6 +349,21 @@ bool RosterState::consistent_history(const Roster& next) const {
     return true;
 }
 
+bool RosterState::contradicts_known(std::uint32_t version, const Digest& digest) const {
+    for (const Known& k : known_) {
+        if (k.version != 0 && k.version == version && k.digest != digest) return true;
+    }
+    return false;
+}
+
+void RosterState::remember(std::uint32_t version, const Digest& digest) {
+    for (const Known& k : known_) {
+        if (k.version == version && k.digest == digest) return;
+    }
+    known_[known_next_] = Known{version, digest};
+    known_next_ = (known_next_ + 1) % known_.size();
+}
+
 Outcome RosterState::offer(const std::uint8_t* bytes, std::size_t size, const RosterCrypto& crypto) {
     switch (state_) {
         case State::uninitialized: return Outcome::not_initialized;
@@ -353,26 +378,49 @@ Outcome RosterState::offer(const std::uint8_t* bytes, std::size_t size, const Ro
     // Authority first: nothing unsigned by the pinned admin can change state or cause a conflict.
     if (!verify_signature(next, admin_, crypto)) return Outcome::rejected_signature;
     if (next.group_id != group_id_ || next.members[0].key != admin_) return Outcome::rejected_group;
+    // Fingerprints are recomputed from the listed keys (the design carries none).
+    std::array<Fingerprint, kMaximumMembers> fingerprints{};
+    for (std::size_t i = 0; i < next.member_count; ++i) {
+        if (!crypto.fingerprint(next.members[i].key, fingerprints[i])) return Outcome::crypto_failure;
+        for (std::size_t j = 0; j < i; ++j) {
+            if (fingerprints[j] == fingerprints[i]) return Outcome::rejected_identity;
+        }
+    }
     Digest digest{};
     if (!roster_digest(next, crypto, digest)) return Outcome::crypto_failure;
+    for (const Digest& resolved : resolved_) {
+        if (resolved == digest) return Outcome::resolved_replay;
+    }
 
-    if (has_roster_) {
-        if (next.version < held_.version) return Outcome::stale;
+    if (!has_roster_) {
+        if (next.version < minimum_version_) return Outcome::stale;
+    } else {
+        if (next.version < held_.version) {
+            // An older roster can still prove a fork against versions this board has seen.
+            if (contradicts_known(next.version, digest) ||
+                (next.version > 1 && contradicts_known(next.version - 1, next.previous))) {
+                return block(ConflictKind::known_version_mismatch, digest);
+            }
+            return Outcome::stale;
+        }
         if (next.version == held_.version) {
             return digest == held_digest_ ? Outcome::duplicate
-                                          : block(ConflictKind::same_version_different_roster);
+                                          : block(ConflictKind::same_version_different_roster, digest);
         }
         if (next.version == held_.version + 1 && next.previous != held_digest_) {
-            return block(ConflictKind::chain_break);
+            return block(ConflictKind::chain_break, digest);
         }
-        if (!consistent_history(next)) return block(ConflictKind::history_mismatch);
+        if (!consistent_history(next)) return block(ConflictKind::history_mismatch, digest);
     }
 
     const bool listed = find(next, own_) != nullptr;
     if (!has_roster_ && !listed) return Outcome::rejected_not_listed;
     held_ = next;
     held_digest_ = digest;
+    held_fingerprints_ = fingerprints;
     has_roster_ = true;
+    remember(next.version, digest);
+    if (next.version > 1) remember(next.version - 1, next.previous);
     if (!listed) {
         state_ = State::left;
         return Outcome::accepted_removed_self;
@@ -383,7 +431,10 @@ Outcome RosterState::offer(const std::uint8_t* bytes, std::size_t size, const Ro
 
 bool RosterState::keep_current() {
     if (state_ != State::conflict) return false;
+    resolved_[resolved_next_] = conflict_digest_;
+    resolved_next_ = (resolved_next_ + 1) % resolved_.size();
     conflict_ = ConflictKind::none;
+    conflict_digest_ = Digest{};
     state_ = State::active;
     return true;
 }
