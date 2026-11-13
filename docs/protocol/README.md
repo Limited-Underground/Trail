@@ -1,6 +1,6 @@
 # Trail communication contract selection
 
-The indefinite freeze retains its [narrow host exception](../../CONTRIBUTING.md#working-contract), without selecting or admitting a production protocol. This maintained index maps existing contracts; it does not select a new wire format, algorithm, profile, acceptance rule or implementation. Read [current status](../PROJECT_STATUS.md#current-recovery-handoff), the [architecture](../architecture/README.md) and controlling decisions before treating a versioned document as current.
+The [working contract](../../CONTRIBUTING.md#working-contract) has the current development rules; this page selects or admits no production protocol. This maintained index maps existing contracts; it does not select a new wire format, algorithm, profile, acceptance rule or implementation. Read [current status](../PROJECT_STATUS.md#current-recovery-handoff), the [architecture](../architecture/README.md) and controlling decisions before treating a versioned document as current.
 
 The [firmware V1 guide](../firmware/README.md) and [existing acceptance map](../firmware/V1_ACCEPTANCE.md) route the remaining product criteria. The qualified declared-host reconstruction does not select or admit any protected protocol; its [raw firmware equality limit](../firmware/BUILD_AND_RECOVERY.md#frozen-result-and-exact-artifact-comparison) remains explicit.
 

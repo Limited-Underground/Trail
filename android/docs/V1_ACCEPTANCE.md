@@ -32,9 +32,9 @@ owner-deferred numeric-keypad and cold-power-disassembly work stays deferred.
 
 Use the [current handoff](../../docs/PROJECT_STATUS.md#current-recovery-handoff)
 and [Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
-for live task state, ownership and the existing dependency gates. The
-[November 3 host exception](../../CONTRIBUTING.md#working-contract) selects
-OT-0305-1 only. Its [dormant versioned projection](OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+for live task state, ownership and the existing dependency gates. Under the
+[working contract](../../CONTRIBUTING.md#working-contract), the current Android
+host task is OT-0305-1. Its [dormant versioned projection](OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
 passed 37 focused host tests; real authenticated reader/actor admission,
 production transport and protected persistence remain unimplemented/unverified.
 This reading map does not mark the task Done or admit a physical candidate.

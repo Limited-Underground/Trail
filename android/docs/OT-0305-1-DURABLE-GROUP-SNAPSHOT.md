@@ -7,8 +7,8 @@ OT-0005h/OT-0237e production admission and the real authenticated source/issuer
 remain prerequisites for production composition. Diagnostic local confirmation
 is not a source of membership authority.
 
-The November 3 controlled host exception authorizes this local implementation
-and isolated tests. Physical work, live protected stores, signing, installation,
+This local implementation and its isolated tests were started under the
+November 3 host exception (since replaced by the current working contract). Physical work, live protected stores, signing, installation,
 publication and release remain separately controlled. The parent OT-0305 and
 physical child OT-0305-2 remain open; host checks do not complete them.
 

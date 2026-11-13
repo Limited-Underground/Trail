@@ -8,7 +8,7 @@ project.
 ## Before starting
 
 The working contract below governs the contribution guidance on this page;
-feature suggestions do not resume development during the indefinite product freeze.
+feature suggestions do not by themselves start work; the owner sets priorities.
 
 For questions, use cases and early ideas, start in
 [Discussions](https://github.com/Limited-Underground/Trail/discussions).
@@ -36,31 +36,28 @@ Use full Limited Underground product names in current prose; retain historical
 names and technical identifiers. Optional tool skills must route to these
 portable records without restoring older development or physical permissions.
 
-- **Current freeze and narrow host exception.** The November 2 indefinite freeze
-  remains. On November 3 the owner authorized Firmware OT-0237e, Android
-  OT-0305-1 durable group-state host work and, only after accepted security
-  admission and exact production-source selection, OT-0005i. Allowed work is
-  bounded host implementation, isolated tests/builds, documentation, evidence
-  and draft-PR preparation. First bind the exact live task/source/evidence,
-  preserve relevant dirty overlays and use a clean isolated topic. Maximum
-  three product workers, one per product, with one heavy build at a time;
-  serialize shared Trail contracts and records. Firmware Loader has its own
-  authorized LUF-0009g scope in its separate repository. No physical operations,
-  ADB/USB/serial/BLE/RF, flashing, device installation/reset, live protected-store
-  changes, privileged-machine changes, signing, deployment, release, unapproved
-  publication or main merge. Other product work remains frozen. Read the
+- **Current rules (owner decision, 2026-11-11).** Development is active. The
+  November 2 product freeze and its November 3 and November 4 exceptions have
+  ended. Priority: Trail Firmware, then Firmware Loader (in its separate
+  repository), then Trail Android. Work that serves an approved task may
+  proceed without asking: host implementation, tests, builds, documentation and
+  pull requests on a topic branch. The owner approves each of these first,
+  every time:
+  - a device session: flashing, resets, installation, or USB/serial/BLE/radio
+    work with a board or phone. The owner is present, and the device, port and
+    firmware are confirmed before writing;
+  - pushing to GitHub and merging;
+  - anything involving signing keys or credentials;
+  - releases and deployment.
+
+  Wio Tracker work may start; it follows the device playbook from the
+  beginning. First bind the exact task/source/evidence, preserve relevant dirty
+  overlays and use a clean isolated topic. Read the
   [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
-  dedicated Project; a board status or host test does not expand this authority.
-- **November 4 local editor exception.** The owner separately authorized the
-  bounded OT-0313 local-template-editor host slice while OT-0312 remains open.
-  It permits local edit/save/reload/refusal work only; composer, send/queue,
-  delivery, authenticated issuer, protected-store and transport admission remain
-  excluded. This is no publication, physical or release grant. Wio firmware code
-  waits for completion and required acceptance of Heltec V4 firmware, Android
-  and Firmware Loader.
+  dedicated Project; a board status or host test does not replace these approvals.
 - **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
   source-recovery acceptance then authorized ordinary host-only development.
-  That approval does not override the current freeze. Its five recorded exceptions were:
+  It is historical; the current rules above replace it. Its five recorded exceptions were:
   unverified E: delta bytes; incomplete cloud/off-device recovery and passphrase
   custody verification; the stale saved Codex Trail project path; retained
   historical/ignored holdings; and separate device, release, security-operator

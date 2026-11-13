@@ -28,6 +28,13 @@ else `Trail-XXXXXX`) instead of "nimble". Checked on board A on 2026-11-12:
 Android shows `Trail-XXXXXX` after pairing; a later rename in the app is not
 picked up by Android until the board is paired again.
 
+## Development rules
+
+On 2026-11-11 the owner ended the November 2 product freeze and its November 3
+and November 4 exceptions. Development is active; device sessions, pushing,
+merging, signing and releases each need the owner's approval first. The
+[working contract](../CONTRIBUTING.md#working-contract) has the current rules.
+
 ## Reproducible bench build
 
 On 2026-11-13 the bench build was made independent of the checkout folder
@@ -144,7 +151,7 @@ claims. No documentation build or review increases product acceptance.
 ### Historical recovery checkpoint — October 25, 2026
 
 The checkpoint below is preserved as dated history. Its host-development
-permission and next-action wording are superseded by the current freeze above;
+permission and next-action wording are superseded by the current working contract;
 its recorded evidence and unresolved exceptions remain intact.
 
 **Checked October 25, 2026.** Trail firmware and the Android app share this

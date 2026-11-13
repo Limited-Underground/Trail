@@ -1,6 +1,6 @@
 # Limited Underground Trail architecture
 
-Foundation documentation, updated November 3, 2026. The indefinite freeze retains its [narrow host exception](../../CONTRIBUTING.md#working-contract). This page is the shared architecture reading path, mapping existing decisions, source and evidence with arc42/C4. It grants no behavior change, device operation, deployment, release or merge authority. The [current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies documentation publication/adoption state separately from product acceptance.
+Foundation documentation, updated November 3, 2026. The [working contract](../../CONTRIBUTING.md#working-contract) has the current development rules. This page is the shared architecture reading path, mapping existing decisions, source and evidence with arc42/C4. It grants no behavior change, device operation, deployment, release or merge authority. The [current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies documentation publication/adoption state separately from product acceptance.
 
 Read [current status](../PROJECT_STATUS.md#current-recovery-handoff) for exact accepted artifacts and restrictions, [firmware V1](../firmware/README.md) for the nine assessment areas and remaining criteria, [protocol selection](../protocol/README.md) for contract status, and [the working contract](../../CONTRIBUTING.md) before using any procedure. Intended requirements, implemented source and demonstrated results are distinguished below.
 

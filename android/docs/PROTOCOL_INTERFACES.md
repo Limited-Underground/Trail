@@ -3,8 +3,8 @@
 [Android reading path](../README.md) · [Shared contract selection](../../docs/protocol/README.md)
 
 Do not use this map as a new wire specification. Original contracts, their version
-fields and explicit supersession retain authority. No protocol or security
-selection changes during the product freeze.
+fields and explicit supersession retain authority. A protocol or security
+selection change needs its own reviewed decision.
 
 | Boundary | Actual implementation / contract | Required distinction |
 | --- | --- | --- |
