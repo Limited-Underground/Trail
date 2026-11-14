@@ -37,6 +37,7 @@ internal fun V1HomeScreen(
     onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     additionalDeviceTools: @Composable () -> Unit = {},
+    appSettings: @Composable () -> Unit = {},
     onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
     deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
@@ -136,6 +137,7 @@ internal fun V1HomeScreen(
                     Box(Modifier.weight(1f)) { deviceContent { scope ->
                         navigation = navigation.finish(scope,currentRuntime)
                     } }
+                    appSettings()
                     TextButton(onClick = { setupDraft = true }) { Text("Prepare setup choices") }
                 }
             }

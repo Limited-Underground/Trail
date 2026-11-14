@@ -1,5 +1,11 @@
 # OpenTrail Progress Log
 
+## 2026-11-14
+
+### OT-0318a Show the Android app build beside Bluetooth
+
+Owner decision D-080 adds the exact app build to the existing status strip, on by default. Gradle generates a version/source-commit label, marks an uncommitted tree with `-dirty`, includes non-release build types, and reports `unknown` when Git cannot establish the source. The owner approved a small App settings section on the existing Device tab because there was no app-settings screen; its show/hide switch uses phone-local SharedPreferences and needs no device connection. The label uses the strip's flexible space and wraps to preserve the existing status icons. D-081's firmware version is not added to the app. Eleven formatting, default/persistence and host Compose layout tests are included. Offline unsigned debug assembly passed (JDK 17, SDK 35, Gradle 8.11.1). The app unit/layout tests could not run because Compose ui-test-junit4 1.7.6 and Robolectric 4.14.1 are not cached; further Android attempts stopped without downloading. The 360 dp and 1440 px layout cases are written but not accepted as executed results. Repository documentation checks and 48 documentation tests pass. No device, protocol or Bluetooth behavior is changed. Work is local on `feature/d080-app-build-label`, part of issue #97; publication and physical UI acceptance remain separate.
+
 ## 2026-11-13
 
 ### OT-0305 Implement group frames, receiving and delivery state on the host (group design step 3a)

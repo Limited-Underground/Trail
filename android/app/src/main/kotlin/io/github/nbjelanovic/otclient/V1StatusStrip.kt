@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -41,7 +42,11 @@ internal fun configureTrailFullscreen(activity: ComponentActivity) {
 
 /** Device metrics are never substituted with the phone's GPS, battery, or network activity. */
 @Composable
-internal fun V1StatusStrip(state: TrailAppUiState) {
+internal fun V1StatusStrip(
+    state: TrailAppUiState,
+    showBuildLabel: Boolean = true,
+    buildLabel: String = BuildConfig.APP_BUILD_LABEL,
+) {
     val context = LocalContext.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val statusMaxLines = if (landscape) 1 else Int.MAX_VALUE
@@ -70,7 +75,16 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
             }
             drawPath(path, if (metrics.bluetoothConnected) active else muted.copy(alpha = .45f), style = Stroke(1.5.dp.toPx()))
         }
-        Spacer(Modifier.weight(1f))
+        if (showBuildLabel) {
+            Text(buildLabel, fontSize = 11.sp, lineHeight = 13.sp,
+                maxLines = 3, overflow = TextOverflow.Ellipsis,
+                color = muted,
+                modifier = Modifier.weight(1f).semantics {
+                    contentDescription = "App build $buildLabel"
+                })
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier.semantics(mergeDescendants = true) {
                 contentDescription = "Heltec GPS ${metrics.gps.name.lowercase()}; satellites ${metrics.satellites ?: "unavailable"}"

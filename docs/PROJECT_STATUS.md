@@ -1,6 +1,6 @@
 # Limited Underground Trail project status
 
-Current handoff reviewed 2026-11-10; dated checkpoints retain their own dates
+Current handoff reviewed 2026-11-14; dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -133,18 +133,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-10 |
-| Task | [OT-0312](https://github.com/Limited-Underground/Trail/issues/116) — T-0072 typed-text host integration; Android Project #8 owns live status and full acceptance remains open. |
-| Owner | Existing Android executor owns the isolated twenty-file ALLOWLIST.v2 topic and posted scope. Firmware retains carrier producer/target/security ownership. Canonical dirty source and other worktrees are preserved. |
-| Scope | Accepted D-024 OTXT v1 and D-035 TEXT-CARRIER-V1, one current authenticated recipient, 1–90 strict UTF-8 bytes. Host compose, free-text template selection, receive and request-correlated delivery only. No accepted-format, firmware, production or storage-policy change. |
-| State | The existing service-owned provider retains its immutable accepted OTY0 response in the same current proof. Text derives identity/group/epoch/membership/query binding from that owner, uses the global command allocator and shared OTE0/text event cursor, and never falls back to local transport. Queue, TX and matching delivery-evidence ACK remain distinct; unknown/failed cannot upgrade. Templates remain local until selected. Production profile6 stays disabled/default-null provider. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
-| Source | Topic host/t0072-typed-text-20261110 from main 8aee75e17b43d67f0e221cc4aa488dcd8c679559 after normal adoption of PR #224 at exact approved 8552b4da692ccd5bd3a042d78f1b00c883de8d7c; all seven checks passed. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | Shared carrier/OTXT vectors, byte boundaries, actual completed OTY0-adapter runtime gates, owner forwarding and composed UI qualify the host candidate. Maintained protocol, debug/release app suites, lint and documentation checks bind the exact draft; owning issues record its published head/CI separately from main adoption. Supplied fixture pins and a host carrier peer are not production authentication or physical interoperability. |
-| Blocker | Firmware has no TEXT-CARRIER-V1 implementation yet (G-FW-5). Interoperability is proven only against shared host vectors. Production protected-owner pin acquisition/routing, target/security gates and physical acceptance remain open; no issuer or authority producer is fabricated. |
-| Next action | Review the bounded draft on existing #116/#117/#118 after required checks. Ready/merge requires separate owner authority. Continue the existing firmware carrier task under its own scope; production activation and device/BLE/RF remain gated. |
-| Restrictions | Draft PR only: no Ready or merge. Production profile6 remains disabled and provider unavailable. No firmware or accepted-format/crypto changes, device/BLE/RF, installation, signing, release, live protected-store access or edits to the canonical dirty checkout. |
-| Latest record | [OT-0312 Integrate the accepted typed-text carrier on the host](PROGRESS_LOG.md#ot-0312-integrate-the-accepted-typed-text-carrier-on-the-host). The existing issues record exact draft publication and CI; this candidate is not a main-adoption claim. |
-| Evidence access | Portable CompanionTextCarrierTest and the unchanged OtxtPayloadCodecTest bind accepted shared vectors; BleCompanionRuntimeTest and V1QuickStatusUiTest exercise the actual completed OTY0 consumer and composed host flow. Maintainer-held T-0072 evidence records hashes, preserved first failures, source review, JVM/lint/docs and publication identities. The historical primary diagnostic root remains Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb with PHYSICAL_RESULT.json and execution/SESSION_RESULT.json. |
+| Reviewed | 2026-11-14 |
+| Task | [OT-0318a](https://github.com/Limited-Underground/Trail/issues/97) — D-080 Android app build label. The owner's task brief selects this local child of issue #97; no GitHub update is authorized. |
+| Owner | Codex owns only the isolated app build-label/display-setting change and its host validation on feature/d080-app-build-label. Other executors and worktrees are preserved. |
+| Scope | Build-time version/source/dirty/type identification, the existing top strip, and an owner-approved local App settings section on the Device tab. No Bluetooth, protocol, device logic or in-app firmware version. |
+| State | Implementation and eleven focused tests are written; offline unsigned debug assembly passed. App unit/layout execution is blocked by missing cached test dependencies. The label defaults on and uses durable phone-local SharedPreferences. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Source | New worktree D:/LimitedUnderground/Build/worktrees/trl-app-version from origin/main f3aeb77f2f4e167b3c05217a771ff63547f7bce4. Canonical main and the active radio worktree are not edited. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | Offline unsigned assembleDebug passed; generated label is 1.0.0-dev · f3aeb77-dirty · debug. Documentation checks and 48 documentation tests pass. Unit/layout test execution is not claimed. |
+| Blocker | Compose ui-test-junit4 1.7.6 and Robolectric 4.14.1 are absent from the offline cache. App tests and rendered layout verification remain unexecuted; Android attempts stopped without downloading. |
+| Next action | Review the local commit and task report; complete offline app unit/layout validation only after the missing cached dependencies are supplied under separate scope. Publication and physical acceptance remain pending. |
+| Restrictions | No push, PR/GitHub write, device/COM access, installation, dependency downloads, key/keystore/credential access or release. Keep the branch local for owner review. |
+| Latest record | [OT-0318a Show the Android app build beside Bluetooth](PROGRESS_LOG.md#ot-0318a-show-the-android-app-build-beside-bluetooth). |
+| Evidence access | Source and tests are clone-visible; task-local logs, generated artifacts, layout notes and final source identity are reported in the owner's requested REPORT.md. No physical screen acceptance is claimed. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

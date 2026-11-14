@@ -697,6 +697,7 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0316 | planned | OT-0176a | Bind authenticated location and immediate stop |
 | OT-0317 | planned | OT-0176a | Complete truthful coordinate details |
 | OT-0318 | planned | OT-0172a | Complete responsive populated production UI |
+| OT-0318a | implemented locally; APK built; app tests blocked by offline dependencies | OT-0318 | Show the app build in the status strip with a persisted local show/hide switch (D-080; issue #97). No device/protocol/firmware-version change; physical UI acceptance and publication remain separate. |
 | OT-0319 | planned | OT-0172a | Accept production usability and accessibility |
 | OT-0320 | planned | OT-0177a | Accept user-reviewed support export |
 | OT-0320a | done (owner-accepted host scope) | OT-0177a | [Verified support-region projection](../docs/testing/OT-0320a-VERIFIED-SUPPORT-REGION-2026-10-01.md): current protected positive US915 READ only; uncertainty, reset and session loss remove it. Ninety-five focused tests, 1,377 fresh app tests plus 58 cached protocol results, three lint variants and exact unsigned package audit pass. Full OT-0320 physical export/usability and existing dependencies remain unchanged; no firmware/model producer, new regions, wire or retention change. |

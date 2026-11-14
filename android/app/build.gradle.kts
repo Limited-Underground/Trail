@@ -1,8 +1,23 @@
+import io.github.nbjelanovic.trailbuild.AppBuildLabel
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+// A failed Git command must never turn a known HEAD into a guessed clean build.
+fun gitOutput(vararg arguments: String): String? = runCatching {
+    val result = providers.exec {
+        workingDir(rootDir.parentFile)
+        commandLine("git", "--no-optional-locks", *arguments)
+        isIgnoreExitValue = true
+    }
+    if (result.result.get().exitValue == 0) result.standardOutput.asText.get().trim() else null
+}.getOrNull()
+
+val gitCommit = gitOutput("rev-parse", "--short=7", "HEAD")
+val gitChanges = if (gitCommit != null) gitOutput("status", "--porcelain", "--untracked-files=normal") else null
 
 android {
     namespace = "io.github.nbjelanovic.otclient"
@@ -41,8 +56,21 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = false
+        buildConfig = true
     }
+
+    buildTypes.configureEach {
+        val label = AppBuildLabel.format(
+            defaultConfig.versionName + versionNameSuffix.orEmpty(),
+            if (gitChanges != null) gitCommit else null,
+            !gitChanges.isNullOrEmpty(),
+            name,
+        )
+        buildConfigField("String", "APP_BUILD_LABEL", "\"$label\"")
+    }
+
+    // Exercise the exact formatter used above, rather than a second implementation.
+    sourceSets.getByName("test").java.srcDir(rootProject.file("buildSrc/src/main/java"))
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
