@@ -63,9 +63,13 @@ class AppBuildLabelLayoutTest {
     private fun assertLayout(widthPixels: Float) {
         val build = compose.onNodeWithContentDescription("App build $label").assertIsDisplayed()
         val nodes = statusIcons()
-        val bluetooth = nodes.first().fetchSemanticsNode().boundsInRoot
         val buildBounds = build.fetchSemanticsNode().boundsInRoot
-        assertTrue(buildBounds.left >= bluetooth.right)
+        // Below every status icon, so a top-edge camera cutout cannot cover it.
+        for (node in nodes) {
+            assertTrue("build label must sit below the icon row",
+                buildBounds.top >= node.fetchSemanticsNode().boundsInRoot.bottom)
+        }
+        assertTrue(buildBounds.left >= 0f && buildBounds.right <= widthPixels)
         for (node in nodes) {
             val bounds = node.assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             assertTrue(bounds.left >= 0f && bounds.right <= widthPixels)

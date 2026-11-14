@@ -59,8 +59,11 @@ internal fun V1StatusStrip(
     }
     val active = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    // The build label sits on its own line under the icon row, so a top-edge
+    // camera cutout (punch hole or notch) never covers it (owner, 2026-11-14).
+    Column(Modifier.fillMaxWidth()
+        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))) {
     Row(Modifier.fillMaxWidth().heightIn(min = if (landscape) 28.dp else 48.dp)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
         .padding(horizontal = 12.dp, vertical = if (landscape) 2.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(clock, fontSize = 13.sp, maxLines = statusMaxLines, modifier = Modifier.semantics { contentDescription = "Phone time $clock" })
@@ -75,16 +78,7 @@ internal fun V1StatusStrip(
             }
             drawPath(path, if (metrics.bluetoothConnected) active else muted.copy(alpha = .45f), style = Stroke(1.5.dp.toPx()))
         }
-        if (showBuildLabel) {
-            Text(buildLabel, fontSize = 11.sp, lineHeight = 13.sp,
-                maxLines = 3, overflow = TextOverflow.Ellipsis,
-                color = muted,
-                modifier = Modifier.weight(1f).semantics {
-                    contentDescription = "App build $buildLabel"
-                })
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
+        Spacer(Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier.semantics(mergeDescendants = true) {
                 contentDescription = "Heltec GPS ${metrics.gps.name.lowercase()}; satellites ${metrics.satellites ?: "unavailable"}"
@@ -118,5 +112,14 @@ internal fun V1StatusStrip(
             Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
             if (metrics.transmitting == null && metrics.receiving == null) Text("—", fontSize = 12.sp, maxLines = statusMaxLines, color = muted)
         }
+    }
+    if (showBuildLabel) {
+        Text(buildLabel, fontSize = 11.sp, lineHeight = 13.sp,
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+            color = muted,
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 4.dp).semantics {
+                contentDescription = "App build $buildLabel"
+            })
+    }
     }
 }
