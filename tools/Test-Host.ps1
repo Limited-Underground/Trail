@@ -863,6 +863,13 @@ $builds = @(
         )
     },
     @{
+        Name = 'bench LoRa link test beacon (V1 F5, step R1)'
+        Output = Join-Path $buildDirectory 'lora_link_test_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\lora_link_test_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(

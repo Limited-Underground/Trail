@@ -139,6 +139,21 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def without_lora_link_test(source: str) -> str:
+    # V1 F5 step R1 (D-075): LoRa code in the application is admitted only inside
+    # "#if OPENTRAIL_LORA_LINK_TEST" ... "#endif" blocks (no nesting). The rest of
+    # the source must still pass every original check unchanged.
+    out, rest = [], source
+    while "#if OPENTRAIL_LORA_LINK_TEST" in rest:
+        before, after = rest.split("#if OPENTRAIL_LORA_LINK_TEST", 1)
+        block, rest = after.split("#endif", 1)
+        require("#if" not in block, "LoRa link test blocks must not nest")
+        out.append(before.rstrip(" "))
+        rest = rest[1:] if rest.startswith("\n") else rest
+    out.append(rest)
+    return "".join(out)
+
+
 def admitted_target_sources(cmake: str) -> list[str]:
     # OT-216 adds one ordinary codec plus seven strictly opt-in source units.
     root_cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
@@ -159,6 +174,14 @@ def admitted_target_sources(cmake: str) -> list[str]:
     }
     pattern = r'"([^"\n]+\.(?:cpp|c))"'
     evaluation_tokens = re.findall(pattern, evaluation)
+    # V1 F5 step R1: the opt-in LoRa link test block adds exactly two sources.
+    lora_start = ordinary.index("if(OPENTRAIL_LORA_LINK_TEST)")
+    lora_end = ordinary.index("endif()", lora_start) + len("endif()")
+    lora_tokens = re.findall(pattern, ordinary[lora_start:lora_end])
+    require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"} and
+            len(lora_tokens) == 2 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            "LoRa link test sources must remain exact and opt-in")
+    ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
@@ -261,12 +284,18 @@ def test_contract() -> None:
         "sdkconfig.confirmation-eval.defaults",
         "sdkconfig.defaults",
         "target-contract.json",
+        # V1 F5 step R1: product LoRa transport and the opt-in bench link test.
+        "main/heltec_v4_lora.cpp",
+        "main/heltec_v4_lora.hpp",
+        "main/lora_link_test.hpp",
+        "main/idf_component.yml",
+        ".gitignore",
     }
     observed_files = {
         path.relative_to(TARGET).as_posix()
         for path in TARGET.rglob("*")
         if path.is_file() and
-        path.relative_to(TARGET).parts[0] != "build" and
+        path.relative_to(TARGET).parts[0] not in {"build", "managed_components"} and
         path.relative_to(TARGET).as_posix() not in {"sdkconfig", "sdkconfig.old"}
     }
     require(observed_files == expected_files,
@@ -1336,7 +1365,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
 
 def test_display_surface() -> None:
-    source = SOURCE.read_text(encoding="utf-8")
+    source = without_lora_link_test(SOURCE.read_text(encoding="utf-8"))
     owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
     owner = DISPLAY_OWNER.read_text(encoding="utf-8")
     battery_header = BATTERY_HEADER.read_text(encoding="utf-8")
@@ -1607,7 +1636,7 @@ def test_display_surface() -> None:
 
 
 def test_application_surface() -> None:
-    source = SOURCE.read_text(encoding="utf-8")
+    source = without_lora_link_test(SOURCE.read_text(encoding="utf-8"))
     self_check = SELF_CHECK.read_text(encoding="utf-8")
 
     nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")

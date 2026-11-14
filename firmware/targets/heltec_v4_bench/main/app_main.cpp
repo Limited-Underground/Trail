@@ -25,6 +25,11 @@
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/companion_semantics.hpp"
+#if OPENTRAIL_LORA_LINK_TEST
+#include "esp_mac.h"
+#include "heltec_v4_lora.hpp"
+#include "lora_link_test.hpp"
+#endif
 
 namespace {
 using opentrail::target::heltec_v4_bench::HeltecV4Oled;
@@ -91,6 +96,24 @@ HeltecEnrollmentInputArbiter g_factory_reset_input{g_startup_display};
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
+#if OPENTRAIL_LORA_LINK_TEST
+namespace link_test = opentrail::target::heltec_v4_bench::lora_link_test;
+opentrail::target::heltec_v4_bench::HeltecV4Lora g_lora;
+opentrail::ui::compact_status_footer::Direction g_lora_activity{
+    opentrail::ui::compact_status_footer::Direction::none};
+std::uint64_t g_lora_activity_at_ms{0};
+constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
+
+// Board tag for the link test: the low four bytes of the factory MAC.
+std::uint32_t lora_link_test_tag() {
+    std::array<std::uint8_t, 6> mac{};
+    if (esp_efuse_mac_get_default(mac.data()) != ESP_OK) return 1;
+    const std::uint32_t tag = (static_cast<std::uint32_t>(mac[2]) << 24) |
+        (static_cast<std::uint32_t>(mac[3]) << 16) |
+        (static_cast<std::uint32_t>(mac[4]) << 8) | mac[5];
+    return tag == 0 ? 1 : tag;
+}
+#endif
 
 void observe_display_result(bool succeeded) {
     if (!succeeded && !g_display_failure_logged) {
@@ -110,6 +133,12 @@ CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
     snapshot.battery_percent = g_battery_percent;
     snapshot.freshness = {kBatteryFreshForMs, kGnssFreshForMs};
     snapshot.render_now_ms = now_ms;
+#if OPENTRAIL_LORA_LINK_TEST
+    snapshot.activity_supported = g_lora.running();
+    snapshot.activity = g_lora_activity;
+    snapshot.activity_at_ms = g_lora_activity_at_ms;
+    snapshot.activity_visible_for_ms = kLoraActivityVisibleMs;
+#endif
 
     const auto gnss = g_gnss.satellites(now_ms, kGnssFreshForMs);
     const auto fix = g_gnss.fix(now_ms, kGnssFreshForMs);
@@ -392,6 +421,18 @@ extern "C" void app_main() {
     std::uint32_t display_calls = 0, display_failures = 0, display_max_us = 0;
     std::uint64_t next_connection_diagnostic_ms = started_at_ms;
 #endif
+#if OPENTRAIL_LORA_LINK_TEST
+    link_test::Beaconer beaconer{lora_link_test_tag()};
+    if (g_lora.start()) {
+        ESP_LOGI(kLogTag, "lora_link start ok tag=%08lx period_ms=%llu",
+                 static_cast<unsigned long>(beaconer.self()),
+                 static_cast<unsigned long long>(link_test::period_ms(beaconer.self())));
+    } else {
+        ESP_LOGE(kLogTag, "lora_link start FAIL error=%u",
+                 static_cast<unsigned>(g_lora.status().last_error));
+    }
+    bool lora_fault_logged = false;
+#endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
     std::uint64_t next_gnss_diagnostic_ms = started_at_ms + 30'000;
@@ -483,6 +524,53 @@ extern "C" void app_main() {
             esp_restart();
         }
 #endif
+#if OPENTRAIL_LORA_LINK_TEST
+        if (g_lora.running()) {
+            const auto before = g_lora.counters();
+            g_lora.service(elapsed_ms);
+            if (g_lora.counters().tx_completed != before.tx_completed) {
+                g_lora_activity = opentrail::ui::compact_status_footer::Direction::tx;
+                g_lora_activity_at_ms = elapsed_ms;
+            }
+            link_test::Beacon outgoing{};
+            if (beaconer.due(elapsed_ms, outgoing)) {
+                const auto frame = link_test::encode(outgoing);
+                const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
+                ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
+                         static_cast<unsigned long>(outgoing.sequence),
+                         static_cast<unsigned long>(outgoing.heard_from),
+                         static_cast<unsigned long>(outgoing.heard_sequence),
+                         static_cast<unsigned>(sent.accepted()));
+            }
+            std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
+            const auto got = g_lora.receive({rx.data(), rx.size()});
+            if (got.has_frame()) {
+                link_test::Beacon incoming{};
+                if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
+                    beaconer.heard(incoming)) {
+                    g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
+                    g_lora_activity_at_ms = elapsed_ms;
+                    ESP_LOGI(kLogTag,
+                             "lora_link rx from=%08lx seq=%lu they_heard=%08lx/%lu rssi=%d snr_q=%d heard_total=%lu",
+                             static_cast<unsigned long>(incoming.sender),
+                             static_cast<unsigned long>(incoming.sequence),
+                             static_cast<unsigned long>(incoming.heard_from),
+                             static_cast<unsigned long>(incoming.heard_sequence),
+                             static_cast<int>(got.metadata.rssi_dbm),
+                             static_cast<int>(got.metadata.snr_db_quarter),
+                             static_cast<unsigned long>(beaconer.heard_count()));
+                } else {
+                    ESP_LOGI(kLogTag, "lora_link rx other bytes=%u",
+                             static_cast<unsigned>(got.received_bytes));
+                }
+            }
+        } else if (!lora_fault_logged) {
+            ESP_LOGE(kLogTag, "lora_link stopped state=%u error=%u",
+                     static_cast<unsigned>(g_lora.status().state),
+                     static_cast<unsigned>(g_lora.status().last_error));
+            lora_fault_logged = true;
+        }
+#endif
         g_gnss.service(elapsed_ms);
         opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(
             g_gnss.initialized(),
@@ -536,6 +624,18 @@ extern "C" void app_main() {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
                      static_cast<unsigned long long>(elapsed_ms));
             ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
+#if OPENTRAIL_LORA_LINK_TEST
+            {
+                const auto c = g_lora.counters();
+                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu",
+                         static_cast<unsigned long>(c.tx_completed),
+                         static_cast<unsigned long>(c.tx_attempts),
+                         static_cast<unsigned long>(c.rx_frames),
+                         static_cast<unsigned long>(c.rx_errors),
+                         static_cast<unsigned long>(c.rx_dropped),
+                         static_cast<unsigned long>(beaconer.heard_count()));
+            }
+#endif
             // Pinned ESP-IDF task.h defines this result in bytes, not words.
             ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
