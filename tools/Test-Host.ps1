@@ -854,6 +854,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
+        Output = Join-Path $buildDirectory 'group_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_inbox.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_frame_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(
