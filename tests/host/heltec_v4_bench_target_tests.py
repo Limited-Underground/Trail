@@ -288,6 +288,7 @@ def test_contract() -> None:
         "main/heltec_v4_lora.cpp",
         "main/heltec_v4_lora.hpp",
         "main/lora_link_test.hpp",
+        "main/lora_packet_status.hpp",
         "main/idf_component.yml",
         ".gitignore",
     }

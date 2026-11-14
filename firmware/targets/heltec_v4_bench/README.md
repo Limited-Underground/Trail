@@ -400,6 +400,12 @@ number and the last beacon it heard, so one log line shows both directions.
 It proves the radio works in the product firmware alongside Bluetooth; it is
 not messaging and has no identity or encryption.
 
+The test transmits only while region US915 (catalog id 1) is saved through the
+owner's app (owner decision D-079); with no region, or any other region, it only
+receives and logs `lora_link transmit held region=<id>`. RSSI and SNR come from
+the chip's packet status (`lora_packet_status.hpp`), not RadioLib's `getRSSI()`,
+which returns the wrong status byte in 7.7.1.
+
 ## Build gate
 
 Use `tools/Build-HeltecV4BenchTarget.ps1` from an already installed and exported

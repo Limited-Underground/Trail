@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "lora_link_test.hpp"
+#include "lora_packet_status.hpp"
 
 using namespace opentrail::target::heltec_v4_bench::lora_link_test;
 
@@ -66,16 +67,41 @@ void test_schedule_and_hearing() {
     EXPECT(z.self() == 1);
     (void)b;
 }
+void test_transmit_needs_us915_region() {
+    EXPECT(!transmit_allowed(0));   // no region saved: the board shows "TX DISABLED"
+    EXPECT(transmit_allowed(1));    // US915, the fixed 915 MHz profile
+    EXPECT(!transmit_allowed(2));   // EU868 is saved but the profile is 915 MHz
+    EXPECT(!transmit_allowed(12));
+    EXPECT(!transmit_allowed(0xFFFF));
+}
+
+void test_packet_status_decoding() {
+    using opentrail::target::heltec_v4_bench::decode_lora_packet_status;
+    opentrail::radio::LinkMetadata m{};
+    // RssiPkt 0x50 = -40 dBm, SnrPkt 50 = +12.5 dB, SignalRssiPkt ignored.
+    const std::uint8_t a[3] = {0x50, 50, 0x00};
+    decode_lora_packet_status(a, m);
+    EXPECT(m.rssi_valid && m.rssi_dbm == -40 && m.snr_valid && m.snr_db_quarter == 50);
+    // Negative SNR is signed; an odd RssiPkt rounds toward zero (-0.5 dB step).
+    const std::uint8_t b[3] = {0xFF, 0xEC, 0x22};
+    decode_lora_packet_status(b, m);
+    EXPECT(m.rssi_dbm == -127 && m.snr_db_quarter == -20);
+    const std::uint8_t c[3] = {0x00, 0x00, 0x7F};
+    decode_lora_packet_status(c, m);
+    EXPECT(m.rssi_dbm == 0 && m.snr_db_quarter == 0);  // byte 2 never leaks into RSSI
+}
 }  // namespace
 
 int main() {
     test_round_trip_and_layout();
     test_rejects();
     test_schedule_and_hearing();
+    test_transmit_needs_us915_region();
+    test_packet_status_decoding();
     if (failures != 0) {
         std::cerr << failures << " LoRa link test assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 3 LoRa link test beacon scenario groups\n";
+    std::cout << "PASS: 5 LoRa link test scenario groups\n";
     return EXIT_SUCCESS;
 }

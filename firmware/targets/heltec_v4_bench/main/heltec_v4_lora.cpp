@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "driver/gpio.h"
+#include "lora_packet_status.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -199,10 +200,14 @@ void HeltecV4Lora::service(std::uint64_t now_ms) {
         rx_metadata_.received_at_ms = now_ms;
         rx_metadata_.frequency_hz = frequency_hz_;
         rx_metadata_.frequency_valid = true;
-        rx_metadata_.rssi_dbm = static_cast<std::int16_t>(std::lround(radio_.getRSSI()));
-        rx_metadata_.rssi_valid = true;
-        rx_metadata_.snr_db_quarter = static_cast<std::int16_t>(std::lround(radio_.getSNR() * 4.0F));
-        rx_metadata_.snr_valid = true;
+        // GetPacketStatus (LoRa): RssiPkt, SnrPkt, SignalRssiPkt. Decoded here
+        // because RadioLib 7.7.1 getRSSI() returns the third byte, not RssiPkt.
+        std::uint8_t packet_status[3]{};
+        if (!ok(module_.SPIreadStream(RADIOLIB_SX126X_CMD_GET_PACKET_STATUS,
+                                      packet_status, 3))) {
+            return;
+        }
+        decode_lora_packet_status(packet_status, rx_metadata_);
         rx_bytes_ = count;
         ++counters_.rx_frames;
     }

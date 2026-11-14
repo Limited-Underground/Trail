@@ -432,6 +432,7 @@ extern "C" void app_main() {
                  static_cast<unsigned>(g_lora.status().last_error));
     }
     bool lora_fault_logged = false;
+    int lora_tx_allowed_logged = -1;
 #endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
@@ -532,8 +533,16 @@ extern "C" void app_main() {
                 g_lora_activity = opentrail::ui::compact_status_footer::Direction::tx;
                 g_lora_activity_at_ms = elapsed_ms;
             }
+            const auto region_id = opentrail::target::heltec_v4_bench::
+                companion_configuration_region().selection_id;
+            const bool tx_allowed = link_test::transmit_allowed(region_id);
+            if (static_cast<int>(tx_allowed) != lora_tx_allowed_logged) {
+                ESP_LOGI(kLogTag, "lora_link transmit %s region=%u",
+                         tx_allowed ? "allowed" : "held", static_cast<unsigned>(region_id));
+                lora_tx_allowed_logged = static_cast<int>(tx_allowed);
+            }
             link_test::Beacon outgoing{};
-            if (beaconer.due(elapsed_ms, outgoing)) {
+            if (tx_allowed && beaconer.due(elapsed_ms, outgoing)) {
                 const auto frame = link_test::encode(outgoing);
                 const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
                 ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
