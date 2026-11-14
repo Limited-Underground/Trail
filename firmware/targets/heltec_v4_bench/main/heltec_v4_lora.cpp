@@ -135,85 +135,130 @@ radio::ReceiveResult HeltecV4Lora::receive(radio::MutableByteView destination) {
     return {radio::RadioError::none, count, rx_metadata_};
 }
 
-void HeltecV4Lora::service(std::uint64_t now_ms) {
-    if (!running_) return;
-
-    if (transmitting_) {
-        if (now_ms - tx_started_ms_ >= kMaximumTransmitMs) {
-            fault();
-            return;
-        }
-    } else if (tx_bytes_ != 0) {
-        ++counters_.tx_attempts;
-        receiving_ = false;
-        tx_started_ms_ = now_ms;
-        if (!ok(radio_.startTransmit(tx_.data(), tx_bytes_))) return;
-        tx_bytes_ = 0;
-        transmitting_ = true;
-        return;
-    } else if (!receiving_) {
-        (void)arm_receive();
-        return;
-    }
-
-    if (gpio_get_level(static_cast<gpio_num_t>(kDio1Pin)) == 0) return;
+bool HeltecV4Lora::read_irq(std::uint16_t& irq) {
     std::uint8_t irq_bytes[2]{};
     if (!ok(module_.SPIreadStream(RADIOLIB_SX126X_CMD_GET_IRQ_STATUS, irq_bytes, 2))) {
-        return;
+        return false;
     }
-    const auto irq = static_cast<std::uint16_t>((irq_bytes[0] << 8) | irq_bytes[1]);
+    irq = static_cast<std::uint16_t>((irq_bytes[0] << 8) | irq_bytes[1]);
+    return true;
+}
 
-    if (transmitting_) {
-        if ((irq & RADIOLIB_SX126X_IRQ_TIMEOUT) != 0 ||
-            (irq & RADIOLIB_SX126X_IRQ_TX_DONE) == 0) {
-            fault();
-            return;
-        }
-        if (!ok(radio_.finishTransmit())) return;
-        transmitting_ = false;
-        ++counters_.tx_completed;
-        (void)arm_receive();
-        return;
-    }
+bool HeltecV4Lora::receive_completed(std::uint16_t irq) const {
+    return (irq & RADIOLIB_SX126X_IRQ_RX_DONE) != 0;
+}
 
+bool HeltecV4Lora::take_received_frame(std::uint16_t irq, std::uint64_t now_ms) {
+    // Review F3: RadioLib's own rule. A header error is fatal only without a
+    // valid header (a stale HEADER_ERR can sit latched beside a later good
+    // frame, because DIO1 is routed to RX_DONE only). CRC errors and timeouts
+    // are always fatal.
+    const bool header_bad = (irq & RADIOLIB_SX126X_IRQ_HEADER_ERR) != 0 &&
+                            (irq & RADIOLIB_SX126X_IRQ_HEADER_VALID) == 0;
     const bool bad =
-        (irq & (RADIOLIB_SX126X_IRQ_CRC_ERR | RADIOLIB_SX126X_IRQ_HEADER_ERR |
-                RADIOLIB_SX126X_IRQ_TIMEOUT)) != 0 ||
-        (irq & RADIOLIB_SX126X_IRQ_RX_DONE) == 0;
+        (irq & (RADIOLIB_SX126X_IRQ_CRC_ERR | RADIOLIB_SX126X_IRQ_TIMEOUT)) != 0 ||
+        header_bad || !receive_completed(irq);
     std::uint8_t buffer_status[2]{};
     if (!bad &&
         !ok(module_.SPIreadStream(RADIOLIB_SX126X_CMD_GET_RX_BUFFER_STATUS,
                                   buffer_status, 2))) {
-        return;
+        return false;
     }
     const std::size_t count = buffer_status[0];
     if (bad || count == 0 || count > rx_.size()) {
         ++counters_.rx_errors;
-    } else if (rx_bytes_ != 0) {
+        return true;
+    }
+    if (rx_bytes_ != 0) {
         // The previous frame has not been taken yet; drop the new one.
         ++counters_.rx_dropped;
-    } else {
-        const std::uint8_t command[2] = {RADIOLIB_SX126X_CMD_READ_BUFFER,
-                                         buffer_status[1]};
-        if (!ok(module_.SPIreadStream(command, 2, rx_.data(), count))) return;
-        rx_metadata_ = {};
-        rx_metadata_.received_at_ms = now_ms;
-        rx_metadata_.frequency_hz = frequency_hz_;
-        rx_metadata_.frequency_valid = true;
-        // GetPacketStatus (LoRa): RssiPkt, SnrPkt, SignalRssiPkt. Decoded here
-        // because RadioLib 7.7.1 getRSSI() returns the third byte, not RssiPkt.
-        std::uint8_t packet_status[3]{};
-        if (!ok(module_.SPIreadStream(RADIOLIB_SX126X_CMD_GET_PACKET_STATUS,
-                                      packet_status, 3))) {
+        return true;
+    }
+    const std::uint8_t command[2] = {RADIOLIB_SX126X_CMD_READ_BUFFER, buffer_status[1]};
+    if (!ok(module_.SPIreadStream(command, 2, rx_.data(), count))) return false;
+    rx_metadata_ = {};
+    rx_metadata_.received_at_ms = now_ms;
+    rx_metadata_.frequency_hz = frequency_hz_;
+    rx_metadata_.frequency_valid = true;
+    // GetPacketStatus (LoRa): RssiPkt, SnrPkt, SignalRssiPkt, decoded directly
+    // (RadioLib's getRSSI() reports the third field, the signal RSSI).
+    std::uint8_t packet_status[3]{};
+    if (!ok(module_.SPIreadStream(RADIOLIB_SX126X_CMD_GET_PACKET_STATUS, packet_status, 3))) {
+        return false;
+    }
+    last_packet_status_ = {packet_status[0], packet_status[1], packet_status[2]};
+    decode_lora_packet_status(packet_status, rx_metadata_);
+    rx_bytes_ = count;
+    ++counters_.rx_frames;
+    return true;
+}
+
+bool HeltecV4Lora::complete_transmit(std::uint16_t irq) {
+    if ((irq & RADIOLIB_SX126X_IRQ_TX_DONE) == 0) return false;
+    if (!ok(radio_.finishTransmit())) return true;
+    transmitting_ = false;
+    ++counters_.tx_completed;
+    (void)arm_receive();
+    return true;
+}
+
+void HeltecV4Lora::service(std::uint64_t now_ms) {
+    if (!running_) return;
+
+    // 1. A transmission in flight: inspect completion before any time check
+    //    (review F5: a latched TX_DONE serviced late is a completion, not a
+    //    fault). Only a missing completion past the limit is a device fault.
+    if (transmitting_) {
+        const bool dio1 = gpio_get_level(static_cast<gpio_num_t>(kDio1Pin)) != 0;
+        const bool expired = now_ms - tx_started_ms_ >= kMaximumTransmitMs;
+        if (!dio1 && !expired) return;
+        std::uint16_t irq = 0;
+        if (!read_irq(irq)) return;
+        if ((irq & RADIOLIB_SX126X_IRQ_TIMEOUT) != 0) {
+            fault();
             return;
         }
-        decode_lora_packet_status(packet_status, rx_metadata_);
-        rx_bytes_ = count;
-        ++counters_.rx_frames;
+        if (complete_transmit(irq)) return;
+        if (expired) fault();
+        return;
     }
-    if (!ok(radio_.finishReceive())) return;
-    receiving_ = false;
-    (void)arm_receive();
+
+    // 2. Receiving: take any completed frame first.
+    if (receiving_ && gpio_get_level(static_cast<gpio_num_t>(kDio1Pin)) != 0) {
+        std::uint16_t irq = 0;
+        if (!read_irq(irq)) return;
+        if (!take_received_frame(irq, now_ms)) return;
+        if (!ok(radio_.finishReceive())) return;
+        receiving_ = false;
+    }
+
+    // 3. A queued frame: check the transmit grant at the moment of launch
+    //    (review F4), then stop receiving and collect anything that completed
+    //    up to that instant before TX staging clears the IRQs and the FIFO
+    //    (review F2). Standby ends reception, so no frame can complete during
+    //    staging.
+    if (tx_bytes_ != 0) {
+        if (permission_ == nullptr || !permission_(permission_context_)) {
+            tx_bytes_ = 0;
+            ++counters_.tx_refused;
+        } else {
+            if (receiving_) {
+                if (!ok(radio_.standby())) return;
+                receiving_ = false;
+                std::uint16_t irq = 0;
+                if (!read_irq(irq)) return;
+                if (receive_completed(irq) && !take_received_frame(irq, now_ms)) return;
+            }
+            ++counters_.tx_attempts;
+            tx_started_ms_ = now_ms;
+            if (!ok(radio_.startTransmit(tx_.data(), tx_bytes_))) return;
+            tx_bytes_ = 0;
+            transmitting_ = true;
+            return;
+        }
+    }
+
+    if (!receiving_) (void)arm_receive();
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

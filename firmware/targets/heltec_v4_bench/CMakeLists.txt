@@ -42,7 +42,54 @@ idf_build_set_property(COMPILE_OPTIONS "-ffile-prefix-map=${OPENTRAIL_ROOT}=/ope
     if(NOT OPENTRAIL_INPUTS EQUAL 0)
         message(FATAL_ERROR "Evaluation source admission failed")
     endif()
+# F5 R1 review F1: RadioLib's SX126x TX launch and calibration wait on BUSY with no
+# timeout. With the radio enabled, build the two affected translation units from the
+# same pinned generator as the evaluation targets (bounded by RadioLib's own SPI
+# BUSY deadline). Inputs are SHA-256 checked; the managed sources are never edited.
+if(OPENTRAIL_LORA_LINK_TEST)
+    idf_build_get_property(OPENTRAIL_RADIO_PYTHON PYTHON)
+    set(OPENTRAIL_RADIOLIB "${CMAKE_CURRENT_LIST_DIR}/managed_components/jgromes__radiolib")
+    set(OPENTRAIL_RADIO_CORE "${OPENTRAIL_RADIOLIB}/src/modules/SX126x/SX126x.cpp")
+    set(OPENTRAIL_RADIO_CONFIG "${OPENTRAIL_RADIOLIB}/src/modules/SX126x/SX126x_config.cpp")
+    set(OPENTRAIL_RADIO_GENERATOR "${OPENTRAIL_ROOT}/tools/pair_radio_driver_source.py")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${OPENTRAIL_RADIO_GENERATOR}" "${OPENTRAIL_ROOT}/tools/radiolib_busy_source.py")
+endif()
 project(opentrail_heltec_v4_bench)
+if(OPENTRAIL_LORA_LINK_TEST)
+    execute_process(COMMAND "${OPENTRAIL_RADIO_PYTHON}" "${OPENTRAIL_RADIO_GENERATOR}"
+        --core-source "${OPENTRAIL_RADIO_CORE}" --config-source "${OPENTRAIL_RADIO_CONFIG}"
+        --core-output "${CMAKE_CURRENT_BINARY_DIR}/bounded_SX126x.cpp"
+        --config-output "${CMAKE_CURRENT_BINARY_DIR}/bounded_SX126x_config.cpp"
+        RESULT_VARIABLE OPENTRAIL_RADIO_GENERATED)
+    if(NOT OPENTRAIL_RADIO_GENERATED EQUAL 0)
+        message(FATAL_ERROR "Bounded RadioLib generation failed (pinned source mismatch?)")
+    endif()
+    idf_component_get_property(OPENTRAIL_RADIO_TARGET jgromes__radiolib COMPONENT_LIB)
+    get_target_property(OPENTRAIL_RADIO_SOURCES ${OPENTRAIL_RADIO_TARGET} SOURCES)
+    set(OPENTRAIL_RADIO_REPLACED 0)
+    set(OPENTRAIL_RADIO_NEW_SOURCES "")
+    foreach(OPENTRAIL_SOURCE IN LISTS OPENTRAIL_RADIO_SOURCES)
+        get_filename_component(OPENTRAIL_SOURCE_REAL "${OPENTRAIL_SOURCE}" REALPATH)
+        get_filename_component(OPENTRAIL_CORE_REAL "${OPENTRAIL_RADIO_CORE}" REALPATH)
+        get_filename_component(OPENTRAIL_CONFIG_REAL "${OPENTRAIL_RADIO_CONFIG}" REALPATH)
+        if(OPENTRAIL_SOURCE_REAL STREQUAL OPENTRAIL_CORE_REAL)
+            list(APPEND OPENTRAIL_RADIO_NEW_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/bounded_SX126x.cpp")
+            math(EXPR OPENTRAIL_RADIO_REPLACED "${OPENTRAIL_RADIO_REPLACED} + 1")
+        elseif(OPENTRAIL_SOURCE_REAL STREQUAL OPENTRAIL_CONFIG_REAL)
+            list(APPEND OPENTRAIL_RADIO_NEW_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/bounded_SX126x_config.cpp")
+            math(EXPR OPENTRAIL_RADIO_REPLACED "${OPENTRAIL_RADIO_REPLACED} + 1")
+        else()
+            list(APPEND OPENTRAIL_RADIO_NEW_SOURCES "${OPENTRAIL_SOURCE}")
+        endif()
+    endforeach()
+    if(NOT OPENTRAIL_RADIO_REPLACED EQUAL 2)
+        message(FATAL_ERROR "Expected to replace exactly the two pinned RadioLib units, replaced ${OPENTRAIL_RADIO_REPLACED}")
+    endif()
+    set_property(TARGET ${OPENTRAIL_RADIO_TARGET} PROPERTY SOURCES "${OPENTRAIL_RADIO_NEW_SOURCES}")
+    target_include_directories(${OPENTRAIL_RADIO_TARGET} PRIVATE "${OPENTRAIL_RADIOLIB}/src/modules/SX126x")
+    target_compile_options(${OPENTRAIL_RADIO_TARGET} PRIVATE "-ffile-prefix-map=${CMAKE_CURRENT_BINARY_DIR}=/opentrail_build")
+endif()
 
 # OT0101e host-stack admission: existing sdkconfig overrides defaults on resume.
 if(NOT CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE MATCHES "^[0-9]+$" OR

@@ -37,7 +37,12 @@ struct LoraCounters {
     std::uint32_t rx_frames{0};
     std::uint32_t rx_errors{0};
     std::uint32_t rx_dropped{0};
+    std::uint32_t tx_refused{0};  // queued frames dropped because transmit was not permitted
 };
+
+// Transmit grant, asked at the moment each frame would be launched (review F4).
+// Without a grant the driver never transmits; it still receives.
+using TransmitPermission = bool (*)(void* context);
 
 class HeltecV4Lora final : public radio::RadioTransport {
 public:
@@ -53,7 +58,15 @@ public:
     // Puts the chip in standby and powers the front end down.
     void stop();
     [[nodiscard]] bool running() const { return running_; }
+    // Sets the transmit grant consulted at every launch. A queued frame that is
+    // not permitted at launch is dropped and counted (tx_refused).
+    void set_transmit_permission(TransmitPermission permission, void* context) {
+        permission_ = permission;
+        permission_context_ = context;
+    }
     [[nodiscard]] LoraCounters counters() const { return counters_; }
+    // Raw GetPacketStatus bytes of the last received frame (bench diagnostic).
+    [[nodiscard]] std::array<std::uint8_t, 3> last_packet_status() const { return last_packet_status_; }
 
     [[nodiscard]] std::size_t mtu() const override { return kMtu; }
     [[nodiscard]] radio::TransportStatus status() const override;
@@ -63,6 +76,10 @@ public:
 
 private:
     bool ok(std::int16_t result);
+    bool read_irq(std::uint16_t& irq);
+    bool receive_completed(std::uint16_t irq) const;
+    bool take_received_frame(std::uint16_t irq, std::uint64_t now_ms);
+    bool complete_transmit(std::uint16_t irq);
     bool arm_receive();
     void fault();
     void fem_off();
@@ -80,12 +97,15 @@ private:
     radio::LinkMetadata rx_metadata_{};
     std::uint64_t tx_started_ms_{0};
     LoraCounters counters_{};
+    std::array<std::uint8_t, 3> last_packet_status_{};
     radio::RadioError last_error_{radio::RadioError::none};
     std::uint32_t frequency_hz_{0};
     bool running_{false};
     bool transmitting_{false};
     bool receiving_{false};
     bool faulted_{false};
+    TransmitPermission permission_{nullptr};
+    void* permission_context_{nullptr};
 };
 
 }  // namespace opentrail::target::heltec_v4_bench

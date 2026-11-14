@@ -140,18 +140,55 @@ def require(condition: bool, message: str) -> None:
 
 
 def without_lora_link_test(source: str) -> str:
-    # V1 F5 step R1 (D-075): LoRa code in the application is admitted only inside
-    # "#if OPENTRAIL_LORA_LINK_TEST" ... "#endif" blocks (no nesting). The rest of
-    # the source must still pass every original check unchanged.
-    out, rest = [], source
-    while "#if OPENTRAIL_LORA_LINK_TEST" in rest:
-        before, after = rest.split("#if OPENTRAIL_LORA_LINK_TEST", 1)
-        block, rest = after.split("#endif", 1)
-        require("#if" not in block, "LoRa link test blocks must not nest")
-        out.append(before.rstrip(" "))
-        rest = rest[1:] if rest.startswith("\n") else rest
-    out.append(rest)
-    return "".join(out)
+    # V1 F5 step R1 (D-075): LoRa code in an application source is admitted only
+    # inside blocks that open with the exact line "#if OPENTRAIL_LORA_LINK_TEST"
+    # and close with "#endif". Review F6: anything else that mentions the flag
+    # (#ifdef, #else, #elif, extended conditions such as "|| 1") and any nested
+    # conditional inside a block is refused, so the remaining text is exactly
+    # what a normal build compiles and every original check still applies to it.
+    kept, inside = [], False
+    for line in source.splitlines(keepends=True):
+        directive = line.strip()
+        if not inside:
+            if directive == "#if OPENTRAIL_LORA_LINK_TEST":
+                inside = True
+                continue
+            require("OPENTRAIL_LORA_LINK_TEST" not in line,
+                    "LoRa link test flag used outside an exact opt-in block")
+            kept.append(line)
+            continue
+        require(not directive.startswith(("#if", "#else", "#elif")),
+                "LoRa link test blocks must not nest or branch")
+        if directive.startswith("#endif"):
+            inside = False
+    require(not inside, "LoRa link test block not closed")
+    return "".join(kept)
+
+
+def test_lora_link_test_filter() -> None:
+    # Review F6 regressions: both bypasses Codex demonstrated must be refused.
+    plain = "a\n#if OPENTRAIL_LORA_LINK_TEST\nRadioLib x;\n#endif\nb\n"
+    require(without_lora_link_test(plain) == "a\nb\n", "exact opt-in block must be removed")
+    for bypass in (
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n#else\nRadioLib y;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST || 1\nSX126 z;\n#endif\n",
+        "#ifdef OPENTRAIL_LORA_LINK_TEST\nSX126 z;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\n#if 1\nx\n#endif\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n#elif 1\nRadioLib y;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n",
+    ):
+        try:
+            without_lora_link_test(bypass)
+        except AssertionError:
+            continue
+        raise AssertionError(f"LoRa filter accepted a bypass: {bypass!r}")
+    # Review F1: with the radio enabled, the product build must use the pinned
+    # bounded RadioLib generator and replace exactly its two translation units.
+    root_cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    for needle in ('tools/pair_radio_driver_source.py"',
+                   'NOT OPENTRAIL_RADIO_REPLACED EQUAL 2',
+                   'set_property(TARGET ${OPENTRAIL_RADIO_TARGET} PROPERTY SOURCES "${OPENTRAIL_RADIO_NEW_SOURCES}")'):
+        require(needle in root_cmake, f"bounded RadioLib substitution missing: {needle}")
 
 
 def admitted_target_sources(cmake: str) -> list[str]:
@@ -3475,7 +3512,7 @@ def test_selected_enrollment_request_route():
 
 
 def main() -> int:
-    tests = (test_contract, test_executed_oled_startup_flash_plan,
+    tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
              test_protected_storage_candidate_plan,
              test_authorization_nvs_backend_surface,

@@ -1,5 +1,19 @@
 # OpenTrail Progress Log
 
+## 2026-11-14
+
+### OT-0005i Fix the product LoRa driver findings from the R1 review (V1 F5)
+
+An independent Codex review of the R1 driver asked for changes before it carries pairing or Packet-v1 traffic. All six confirmed findings are fixed:
+- F1 (High), TX launch could block forever on the radio's BUSY line. With the radio enabled, the product build now replaces RadioLib's two affected translation units with the same pinned, SHA-256-checked bounded copies the evaluation targets use (`tools/pair_radio_driver_source.py`).
+- F2, a queued transmission discarded a frame that had already arrived. The driver now stops reception and collects any completed frame before TX staging clears the flags and the FIFO.
+- F3, a stale header error dropped a valid frame. It now uses RadioLib's rule: a header error counts only without a valid header.
+- F4, the region was checked at enqueue. The driver now asks a transmit grant at every launch (D-079: region US915 saved) and drops and counts a frame that is no longer permitted; without a grant it never transmits.
+- F5, a completed transmission serviced late became a permanent fault. Completion is now inspected before the time limit is applied.
+- F6, the bench target test's LoRa filter accepted `#else` and extended conditions. It now accepts only exact opt-in blocks and has regression cases for both bypasses.
+
+New `tests/host/heltec_v4_lora_driver_tests.cpp` (6 scenario groups) runs the real driver against stubs that model the chip's flag behavior (`tests/host/heltec_v4_lora_stubs`). A mutation check re-creating each finding was caught 9 of 9 times. The bench target test has 20 groups, including the filter and bounded-RadioLib checks. A bench diagnostic in the link-test build logs the raw packet-status bytes and the status replies served to a phone: on the boards the chip reports packet RSSI 0 (raw `00 3x 00`), and a phone that connected seconds after a board restart got GNSS "unknown" for the whole session because the app reads status once per connection.
+
 ## 2026-11-13
 
 ### OT-0005i Put the LoRa radio in the product firmware, with a bench link test (V1 F5, step R1)

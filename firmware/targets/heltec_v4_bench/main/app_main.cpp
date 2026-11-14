@@ -113,6 +113,12 @@ std::uint32_t lora_link_test_tag() {
         (static_cast<std::uint32_t>(mac[4]) << 8) | mac[5];
     return tag == 0 ? 1 : tag;
 }
+
+// Transmit grant asked by the driver at every launch (D-079, review F4).
+bool lora_transmit_permitted(void*) {
+    return link_test::transmit_allowed(
+        opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id);
+}
 #endif
 
 void observe_display_result(bool succeeded) {
@@ -423,6 +429,7 @@ extern "C" void app_main() {
 #endif
 #if OPENTRAIL_LORA_LINK_TEST
     link_test::Beaconer beaconer{lora_link_test_tag()};
+    g_lora.set_transmit_permission(&lora_transmit_permitted, nullptr);
     if (g_lora.start()) {
         ESP_LOGI(kLogTag, "lora_link start ok tag=%08lx period_ms=%llu",
                  static_cast<unsigned long>(beaconer.self()),
@@ -559,6 +566,9 @@ extern "C" void app_main() {
                     beaconer.heard(incoming)) {
                     g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
                     g_lora_activity_at_ms = elapsed_ms;
+                    const auto raw = g_lora.last_packet_status();
+                    ESP_LOGI(kLogTag, "lora_link pkt_status raw=%02x %02x %02x",
+                             raw[0], raw[1], raw[2]);
                     ESP_LOGI(kLogTag,
                              "lora_link rx from=%08lx seq=%lu they_heard=%08lx/%lu rssi=%d snr_q=%d heard_total=%lu",
                              static_cast<unsigned long>(incoming.sender),
@@ -635,10 +645,17 @@ extern "C" void app_main() {
             ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
 #if OPENTRAIL_LORA_LINK_TEST
             {
+                const auto served = opentrail::target::heltec_v4_bench::snapshot_served_diagnostic();
+                ESP_LOGI(kLogTag, "status_diag served=%lu refused=%lu last_gnss=%u last_revision=%lu",
+                         static_cast<unsigned long>(served.served),
+                         static_cast<unsigned long>(served.refused),
+                         static_cast<unsigned>(served.last_gnss),
+                         static_cast<unsigned long>(served.last_revision));
                 const auto c = g_lora.counters();
-                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu",
+                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu",
                          static_cast<unsigned long>(c.tx_completed),
                          static_cast<unsigned long>(c.tx_attempts),
+                         static_cast<unsigned long>(c.tx_refused),
                          static_cast<unsigned long>(c.rx_frames),
                          static_cast<unsigned long>(c.rx_errors),
                          static_cast<unsigned long>(c.rx_dropped),

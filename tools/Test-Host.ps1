@@ -863,6 +863,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'product LoRa driver (V1 F5, R1 review F2 to F5)'
+        Output = Join-Path $buildDirectory 'heltec_v4_lora_driver_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'tests\host\heltec_v4_lora_stubs'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_lora.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_lora_driver_tests.cpp')
+        )
+    },
+    @{
         Name = 'bench LoRa link test beacon (V1 F5, step R1)'
         Output = Join-Path $buildDirectory 'lora_link_test_tests.exe'
         Sources = @(
