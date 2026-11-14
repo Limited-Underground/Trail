@@ -162,6 +162,25 @@ CompanionSemanticCodecError validate_action(
                : CompanionSemanticCodecError::incoherent_action;
 }
 
+// D-085 pairing fields: required and bounded for start_enrollment, absent
+// for every other action kind.
+CompanionSemanticCodecError validate_enrollment_fields(
+    CompanionActionKind kind,
+    CompanionEnrollmentRole role,
+    std::uint32_t code) {
+    if (kind != CompanionActionKind::start_enrollment) {
+        return role == CompanionEnrollmentRole::none && code == 0
+                   ? CompanionSemanticCodecError::none
+                   : CompanionSemanticCodecError::incoherent_action;
+    }
+    const bool role_ok = role == CompanionEnrollmentRole::initiator ||
+                         role == CompanionEnrollmentRole::responder;
+    const bool code_ok = code >= kCompanionPairingCodeMin &&
+                         code <= kCompanionPairingCodeMax;
+    return role_ok && code_ok ? CompanionSemanticCodecError::none
+                              : CompanionSemanticCodecError::incoherent_action;
+}
+
 std::uint8_t encoded_detail(const CompanionActionRequest& request) {
     return request.kind == CompanionActionKind::quick_status
                ? static_cast<std::uint8_t>(request.quick_status)
@@ -325,8 +344,12 @@ CompanionSemanticEncodeResult encode_companion_action_request(
     if (output.data == nullptr) {
         return {CompanionSemanticCodecError::invalid_argument, 0};
     }
-    const auto error = validate_action(
+    auto error = validate_action(
         request.kind, request.quick_status, request.critical_alert_id);
+    if (error == CompanionSemanticCodecError::none) {
+        error = validate_enrollment_fields(
+            request.kind, request.enrollment_role, request.pairing_code);
+    }
     if (error != CompanionSemanticCodecError::none) {
         return {error, 0};
     }
@@ -339,6 +362,10 @@ CompanionSemanticEncodeResult encode_companion_action_request(
     candidate[6] = static_cast<std::uint8_t>(request.kind);
     candidate[7] = encoded_detail(request);
     write_u64_le(candidate.data() + 8, request.critical_alert_id);
+    candidate[16] = static_cast<std::uint8_t>(request.enrollment_role);
+    candidate[17] = static_cast<std::uint8_t>(request.pairing_code & 0xffU);
+    candidate[18] = static_cast<std::uint8_t>((request.pairing_code >> 8) & 0xffU);
+    candidate[19] = static_cast<std::uint8_t>((request.pairing_code >> 16) & 0xffU);
     return write_candidate(candidate, output);
 }
 
@@ -349,14 +376,25 @@ decode_companion_action_request(radio::ByteView encoded) {
     if (prefix_error != CompanionSemanticCodecError::none) {
         return {prefix_error, {}};
     }
-    for (std::size_t index = 16; index < kCompanionActionRequestBytes;
-         ++index) {
-        if (encoded.data[index] != 0) {
-            return {CompanionSemanticCodecError::reserved_bits_set, {}};
+    const auto kind = static_cast<CompanionActionKind>(encoded.data[6]);
+    if (kind != CompanionActionKind::start_enrollment) {
+        for (std::size_t index = 16; index < kCompanionActionRequestBytes;
+             ++index) {
+            if (encoded.data[index] != 0) {
+                return {CompanionSemanticCodecError::reserved_bits_set, {}};
+            }
         }
     }
     CompanionActionRequest request{};
-    request.kind = static_cast<CompanionActionKind>(encoded.data[6]);
+    request.kind = kind;
+    if (kind == CompanionActionKind::start_enrollment) {
+        request.enrollment_role =
+            static_cast<CompanionEnrollmentRole>(encoded.data[16]);
+        request.pairing_code =
+            static_cast<std::uint32_t>(encoded.data[17]) |
+            (static_cast<std::uint32_t>(encoded.data[18]) << 8) |
+            (static_cast<std::uint32_t>(encoded.data[19]) << 16);
+    }
     request.quick_status = static_cast<protocol::QuickStatusKind>(
         encoded.data[7]);
     request.critical_alert_id = read_u64_le(encoded.data + 8);
@@ -365,8 +403,12 @@ decode_companion_action_request(radio::ByteView encoded) {
         encoded.data[7] != 0) {
         return {CompanionSemanticCodecError::reserved_bits_set, {}};
     }
-    const auto error = validate_action(
+    auto error = validate_action(
         request.kind, request.quick_status, request.critical_alert_id);
+    if (error == CompanionSemanticCodecError::none) {
+        error = validate_enrollment_fields(
+            request.kind, request.enrollment_role, request.pairing_code);
+    }
     return error == CompanionSemanticCodecError::none
                ? CompanionSemanticDecodeResult<CompanionActionRequest>{
                      CompanionSemanticCodecError::none, request}
