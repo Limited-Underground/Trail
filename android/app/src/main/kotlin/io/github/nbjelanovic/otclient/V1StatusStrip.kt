@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -41,7 +42,11 @@ internal fun configureTrailFullscreen(activity: ComponentActivity) {
 
 /** Device metrics are never substituted with the phone's GPS, battery, or network activity. */
 @Composable
-internal fun V1StatusStrip(state: TrailAppUiState) {
+internal fun V1StatusStrip(
+    state: TrailAppUiState,
+    showBuildLabel: Boolean = true,
+    buildLabel: String = BuildConfig.APP_BUILD_LABEL,
+) {
     val context = LocalContext.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val statusMaxLines = if (landscape) 1 else Int.MAX_VALUE
@@ -54,8 +59,11 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
     }
     val active = MaterialTheme.colorScheme.primary
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    // The build label sits on its own line under the icon row, so a top-edge
+    // camera cutout (punch hole or notch) never covers it (owner, 2026-11-14).
+    Column(Modifier.fillMaxWidth()
+        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))) {
     Row(Modifier.fillMaxWidth().heightIn(min = if (landscape) 28.dp else 48.dp)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
         .padding(horizontal = 12.dp, vertical = if (landscape) 2.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(clock, fontSize = 13.sp, maxLines = statusMaxLines, modifier = Modifier.semantics { contentDescription = "Phone time $clock" })
@@ -104,5 +112,14 @@ internal fun V1StatusStrip(state: TrailAppUiState) {
             Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
             if (metrics.transmitting == null && metrics.receiving == null) Text("—", fontSize = 12.sp, maxLines = statusMaxLines, color = muted)
         }
+    }
+    if (showBuildLabel) {
+        Text(buildLabel, fontSize = 11.sp, lineHeight = 13.sp,
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+            color = muted,
+            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 4.dp).semantics {
+                contentDescription = "App build $buildLabel"
+            })
+    }
     }
 }

@@ -2,6 +2,10 @@
 
 ## 2026-11-14
 
+### OT-0318a Show the Android app build beside Bluetooth
+
+Owner decision D-080 adds the exact app build to the status strip, on by default. Gradle generates a version and source-commit label, marks an uncommitted tree with `-dirty`, includes non-release build types, and reports `unknown` when Git cannot establish the source. The owner approved a small App settings section on the existing Device tab because there was no app-settings screen; its show/hide switch uses phone-local SharedPreferences and needs no device connection. After the first install the owner reported that the front camera covered part of the label, so it now sits on its own line under the status icons, and the layout test checks that it is below every icon. D-081's firmware version is not added to the app. With the missing test libraries downloaded (owner approved), `:app:testDebugUnitTest` passes 617 tests with 0 failures, including the 11 new formatting, persistence and 360 dp and 1440 px layout tests. The debug-key-signed build of `330810f` is installed on the Note20 and the S24 (same SHA-256 on both), and both show `1.0.0-dev · 330810f · debug` clear of the camera. No device, protocol or Bluetooth behavior is changed.
+
 ### OT-0005i Fix the product LoRa driver findings from the R1 review (V1 F5)
 
 An independent Codex review of the R1 driver asked for changes before it carries pairing or Packet-v1 traffic. All six confirmed findings are fixed:

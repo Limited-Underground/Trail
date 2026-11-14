@@ -103,6 +103,9 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val displayPreferences = remember(context) { AppDisplayPreferences(context) }
+    var showBuildLabel by remember { mutableStateOf(displayPreferences.showBuildLabel()) }
+    var displaySettingSaveFailed by remember { mutableStateOf(false) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { controller.onNearbyDevicesPermissionResult() }
@@ -147,7 +150,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     }
 
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
-      V1StatusStrip(state)
+      V1StatusStrip(state, showBuildLabel = showBuildLabel)
       if (!landscape) additionalTools()
       androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
       Surface(modifier = Modifier.fillMaxSize()) {
@@ -173,6 +176,13 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
             additionalDeviceTools = { if (landscape) additionalTools() },
+            appSettings = {
+                AppDisplaySettings(showBuildLabel, { show ->
+                    val saved = displayPreferences.setShowBuildLabel(show)
+                    displaySettingSaveFailed = !saved
+                    if (saved) showBuildLabel = show
+                }, displaySettingSaveFailed)
+            },
         ) { onSetupComplete ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(

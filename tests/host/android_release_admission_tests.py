@@ -434,11 +434,24 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
     draft_path = package / "V1SetupDraftScreen.kt"
     templates_path = package / "V1HomeScreen.kt"
     support_path = package / "V1SupportScreen.kt"
+    # D-080 (owner, 2026-11-14) separately approves one phone-local display
+    # choice: whether the app build label is shown. Admit only its exact private
+    # store and single boolean key; it holds no identity, location or BLE data,
+    # and the backup and device-transfer exclusions above still cover it.
+    display_path = package / "AppDisplayPreferences.kt"
     assert all(
         "SharedPreferences" not in source
         for path, source in production_by_path.items()
-        if path not in {gatt_facade_path, draft_path, templates_path}
+        if path not in {gatt_facade_path, draft_path, templates_path, display_path}
     )
+    display = production_by_path[display_path]
+    assert display.count("getSharedPreferences(") == 1
+    assert 'getSharedPreferences("v1-app-settings", Context.MODE_PRIVATE)' in display
+    assert re.findall(r'getBoolean\("([^"\n]+)"', display) == ["show-build-label"]
+    assert re.findall(r'putBoolean\("([^"\n]+)"', display) == ["show-build-label"]
+    for forbidden in ("getString(", "putString(", "getStringSet(", "putStringSet(",
+                      "getLong(", "putLong(", "getInt(", "putInt(", "getFloat(", "putFloat("):
+        assert forbidden not in display
 
     draft = production_by_path[draft_path]
     assert draft.count("getSharedPreferences(") == 1
