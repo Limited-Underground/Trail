@@ -82,3 +82,15 @@ Coordinator rules this implies:
 - Each received frame is passed to the session at most once. A repeated identical frame is ignored, and a different frame of an already-consumed type ends the attempt.
 - A board repeats its last frame until the next expected frame arrives, within the D-078 limits.
 - Everything is bounded by the 120 s request window, which the phone connection must hold.
+
+## Slice 5 storage (finding, 2026-11-14)
+
+The evaluation target stored the session's journal, binding, boot and generation records in a dedicated `ot238_nvs` partition. The product partition table (`heltec_v4_bench/partitions.csv`) has no free space, and changing it would affect every board's layout and the Loader's target record.
+
+The product already has a home that needs no layout change:
+- the `ot_state` partition (1 MB, application type 0x40);
+- the product key-value layer on it (`persistent_storage_kv.hpp`);
+- factory reset already erases the whole raw `ot_state` partition;
+- the bench confirmation evaluation build already keeps enrollment-session storage there (`confirmation_nvs_backend.hpp`, `confirmation_evaluation_backend.cpp`).
+
+The board identity stays where it is today (default `nvs`, `EnrollmentIdentityNvsStorage`, invalidated by reset). Slice 5 reuses this pattern for the pairing stores.
