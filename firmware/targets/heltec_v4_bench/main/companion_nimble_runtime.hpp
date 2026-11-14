@@ -46,6 +46,18 @@ service_companion_nimble_runtime(std::uint64_t now_ms);
 void publish_companion_gnss_observation(
     bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms);
 
+#if OPENTRAIL_LORA_LINK_TEST
+// Bench diagnostic only: status replies served to a phone, refused reads, and
+// the GNSS value (CompanionGnssState) and revision in the last reply.
+struct SnapshotServedDiagnostic {
+    std::uint32_t served{0};
+    std::uint32_t refused{0};
+    std::uint8_t last_gnss{0xFF};
+    std::uint32_t last_revision{0};
+};
+SnapshotServedDiagnostic snapshot_served_diagnostic();
+#endif
+
 // Evaluation admission only; known runtime faults are sticky before queued
 // lifecycle work is drained. This performs no SDK, storage, or crypto work.
 [[nodiscard]] bool companion_confirmation_runtime_current();

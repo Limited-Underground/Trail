@@ -387,6 +387,25 @@ Compiler output maps the Trail checkout folder to `/opentrail`
 folder. Without it, the image differed in its recorded ELF SHA-256 (and the
 image checksum) because debug information held the checkout path.
 
+## LoRa link test (V1 F5, step R1)
+
+Normal builds never start the radio. A development build with
+`-DOPENTRAIL_LORA_LINK_TEST=ON` (release generation 0 only) starts the SX1262
+in receive at boot (915 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 2 dBm) and
+sends a 21-byte unauthenticated beacon about every 5 s. Each board logs
+`lora_link tx`, `lora_link rx from=... rssi=... snr_q=...` and, with the
+heartbeat, `lora_link counters`; the footer shows the LoRa TX/RX arrow. The
+beacon carries the board tag (low four bytes of the factory MAC), a sequence
+number and the last beacon it heard, so one log line shows both directions.
+It proves the radio works in the product firmware alongside Bluetooth; it is
+not messaging and has no identity or encryption.
+
+The test transmits only while region US915 (catalog id 1) is saved through the
+owner's app (owner decision D-079); with no region, or any other region, it only
+receives and logs `lora_link transmit held region=<id>`. RSSI and SNR come from
+the chip's packet status (`lora_packet_status.hpp`), not RadioLib's `getRSSI()`,
+which returns the wrong status byte in 7.7.1.
+
 ## Build gate
 
 Use `tools/Build-HeltecV4BenchTarget.ps1` from an already installed and exported

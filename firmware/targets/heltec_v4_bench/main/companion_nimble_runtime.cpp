@@ -77,6 +77,14 @@ public:
 portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;
 HeltecV4GnssSnapshot g_gnss_snapshot;
 
+#if OPENTRAIL_LORA_LINK_TEST
+// Bench diagnostic: every status reply served to a phone.
+std::atomic<std::uint32_t> g_snapshot_served_count{0};
+std::atomic<std::uint32_t> g_snapshot_served_refused{0};
+std::atomic<std::uint8_t> g_snapshot_served_gnss{0xFF};
+std::atomic<std::uint32_t> g_snapshot_served_revision{0};
+#endif
+
 class HeltecV4SnapshotAuthority final : public CompanionSnapshotAuthority {
 public:
     CompanionSnapshotAuthorityResult read_snapshot() override {
@@ -84,6 +92,15 @@ public:
         const auto result = g_gnss_snapshot.read(
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
         portEXIT_CRITICAL(&g_snapshot_mux);
+#if OPENTRAIL_LORA_LINK_TEST
+        if (result.ready()) {
+            g_snapshot_served_gnss.store(static_cast<std::uint8_t>(result.snapshot.gnss));
+            g_snapshot_served_revision.store(result.snapshot.revision);
+            g_snapshot_served_count.fetch_add(1);
+        } else {
+            g_snapshot_served_refused.fetch_add(1);
+        }
+#endif
         return result;
     }
 };
@@ -1494,6 +1511,13 @@ bool companion_confirmation_runtime_current() {
 #if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
 bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
     return g_runtime_port.host_stack_minimum_free_bytes(bytes);
+}
+#endif
+
+#if OPENTRAIL_LORA_LINK_TEST
+SnapshotServedDiagnostic snapshot_served_diagnostic() {
+    return {g_snapshot_served_count.load(), g_snapshot_served_refused.load(),
+            g_snapshot_served_gnss.load(), g_snapshot_served_revision.load()};
 }
 #endif
 
