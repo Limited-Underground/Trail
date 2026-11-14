@@ -806,8 +806,10 @@ bool admit_selected_enrollment_request(
         {frame.value.payload.data(), frame.value.payload_bytes});
     if (!action.decoded() ||
         action.value.kind != CompanionActionKind::start_enrollment) return false;
+    // D-085: the product request carries the phone-chosen role and code.
     return g_selected_enrollment_requests.admit(
-        g_configuration_authority, lane.connection, lane.token, exchange_id) ==
+        g_configuration_authority, lane.connection, lane.token, exchange_id,
+        action.value.enrollment_role, action.value.pairing_code) ==
         SelectedEnrollmentRequestResult::admitted;
 #endif
 }

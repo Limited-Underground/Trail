@@ -130,11 +130,49 @@ void test_invalid_and_terminal_containment() {
 }
 }  // namespace
 
+void test_product_pairing_role_and_code() {
+    // D-085: phone-chosen role and 1..999999 code travel with the request.
+    SelectedEnrollmentRequestOwner owner;
+    const auto current = authority();
+    EXPECT(owner.admit(current, 8, 9, 10, CompanionEnrollmentRole::responder,
+                       654321) == SelectedEnrollmentRequestResult::admitted);
+    const auto request = owner.request();
+    EXPECT(request.product_pairing());
+    EXPECT(request.role == CompanionEnrollmentRole::responder);
+    EXPECT(request.pairing_code == 654321);
+    auto other = request;
+    other.pairing_code = 654320;  // a different code is a different request
+    EXPECT(!owner.cancel_exact(other));
+    other = request;
+    other.role = CompanionEnrollmentRole::initiator;
+    EXPECT(!owner.cancel_exact(other));
+    EXPECT(owner.cancel_exact(request));
+
+    // Evaluation requests carry neither and are not product pairings.
+    EXPECT(owner.admit(current, 8, 11, 12) ==
+           SelectedEnrollmentRequestResult::admitted);
+    EXPECT(!owner.request().product_pairing());
+    EXPECT(owner.cancel_exact(owner.request()));
+
+    // Half-filled or out-of-range pairing fields are refused.
+    EXPECT(owner.admit(current, 8, 13, 14, CompanionEnrollmentRole::none, 5) ==
+           SelectedEnrollmentRequestResult::invalid);
+    EXPECT(owner.admit(current, 8, 13, 14, CompanionEnrollmentRole::initiator,
+                       0) == SelectedEnrollmentRequestResult::invalid);
+    EXPECT(owner.admit(current, 8, 13, 14, CompanionEnrollmentRole::initiator,
+                       1000000) == SelectedEnrollmentRequestResult::invalid);
+    EXPECT(owner.admit(current, 8, 13, 14,
+                       static_cast<CompanionEnrollmentRole>(3), 5) ==
+           SelectedEnrollmentRequestResult::invalid);
+    EXPECT(!owner.pending());
+}
+
 int main() {
     test_exact_admission_and_reentry();
     test_stale_disconnect_cannot_cancel_new_request();
     test_current_authority_change_and_expiry();
     test_invalid_and_terminal_containment();
+    test_product_pairing_role_and_code();
     if (failures != 0) return EXIT_FAILURE;
     std::cout << "PASS: selected enrollment request owner lifecycle\n";
     return EXIT_SUCCESS;

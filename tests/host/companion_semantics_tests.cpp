@@ -392,17 +392,23 @@ void test_action_requests_reject_ambiguous_or_unknown_values() {
 
 void test_enrollment_start_is_versioned_pending_request_only() {
     const CompanionActionRequest request{
-        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0};
+        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+        CompanionEnrollmentRole::initiator, 123456};
     std::array<std::uint8_t, kCompanionActionRequestBytes> bytes{};
     EXPECT(encode_companion_action_request(
         request, {bytes.data(), bytes.size()}).encoded());
     EXPECT(bytes[4] == kCompanionSemanticMajor);
     EXPECT(bytes[5] == kCompanionSemanticMinor);
     EXPECT(bytes[6] == 6);
+    // D-085 layout: role at byte 16, code little-endian at bytes 17-19.
+    EXPECT(bytes[16] == 1);
+    EXPECT(bytes[17] == 0x40 && bytes[18] == 0xE2 && bytes[19] == 0x01);
     const auto decoded = decode_companion_action_request(
         {bytes.data(), bytes.size()});
     EXPECT(decoded.decoded());
     EXPECT(decoded.value.kind == CompanionActionKind::start_enrollment);
+    EXPECT(decoded.value.enrollment_role == CompanionEnrollmentRole::initiator);
+    EXPECT(decoded.value.pairing_code == 123456);
     auto altered = bytes;
     altered[7] = 1;
     EXPECT(decode_companion_action_request(
@@ -421,6 +427,66 @@ void test_enrollment_start_is_versioned_pending_request_only() {
         pending, {response.data(), response.size()}).encoded());
     EXPECT(decode_companion_action_result(
         {response.data(), response.size()}).decoded());
+}
+
+void test_enrollment_start_requires_owner_role_and_code() {
+    // D-085: role and code come only from the owner's phone and are bounded.
+    auto encode = [](CompanionEnrollmentRole role, std::uint32_t code) {
+        const CompanionActionRequest request{
+            CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+            role, code};
+        std::array<std::uint8_t, kCompanionActionRequestBytes> bytes{};
+        return encode_companion_action_request(
+            request, {bytes.data(), bytes.size()}).error;
+    };
+    EXPECT(encode(CompanionEnrollmentRole::initiator, 1) ==
+           CompanionSemanticCodecError::none);
+    EXPECT(encode(CompanionEnrollmentRole::responder, 999999) ==
+           CompanionSemanticCodecError::none);
+    EXPECT(encode(CompanionEnrollmentRole::none, 123456) ==
+           CompanionSemanticCodecError::incoherent_action);
+    EXPECT(encode(static_cast<CompanionEnrollmentRole>(3), 123456) ==
+           CompanionSemanticCodecError::incoherent_action);
+    EXPECT(encode(CompanionEnrollmentRole::responder, 0) ==
+           CompanionSemanticCodecError::incoherent_action);
+    EXPECT(encode(CompanionEnrollmentRole::responder, 1000000) ==
+           CompanionSemanticCodecError::incoherent_action);
+
+    const CompanionActionRequest good{
+        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+        CompanionEnrollmentRole::responder, 654321};
+    std::array<std::uint8_t, kCompanionActionRequestBytes> bytes{};
+    EXPECT(encode_companion_action_request(
+        good, {bytes.data(), bytes.size()}).encoded());
+    auto altered = bytes;
+    altered[16] = 0;  // role missing
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
+    altered = bytes;
+    altered[16] = 7;  // unknown role
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
+    altered = bytes;
+    altered[17] = altered[18] = altered[19] = 0;  // code missing
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
+    altered = bytes;
+    altered[17] = altered[18] = altered[19] = 0xFF;  // above 999999
+    EXPECT(decode_companion_action_request(
+        {altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
+
+    // Other kinds may not carry pairing fields.
+    const CompanionActionRequest stray{
+        CompanionActionKind::start_position_sharing, QuickStatusKind::ok, 0,
+        CompanionEnrollmentRole::initiator, 5};
+    std::array<std::uint8_t, kCompanionActionRequestBytes> unused{};
+    EXPECT(encode_companion_action_request(
+        stray, {unused.data(), unused.size()}).error ==
+           CompanionSemanticCodecError::incoherent_action);
 }
 
 void test_outbound_action_result_means_queued_not_delivered() {
@@ -638,6 +704,7 @@ int main() {
     test_factory_reset_has_exact_receipt_vectors();
     test_action_requests_reject_ambiguous_or_unknown_values();
     test_enrollment_start_is_versioned_pending_request_only();
+    test_enrollment_start_requires_owner_role_and_code();
     test_outbound_action_result_means_queued_not_delivered();
     test_local_and_rejected_results_are_typed_and_coherent();
     test_result_codec_rejects_delivery_like_or_incoherent_states();

@@ -3483,7 +3483,9 @@ def test_selected_enrollment_request_route():
     for gate in ("#if OPENTRAIL_CONFIRMATION_EVALUATION", "GattLock lock;",
                  "selected_enrollment_lane_admissible(", "g_phone_status.ready(",
                  "decode_configuration_frame(", "CompanionActionKind::start_enrollment",
-                 "g_selected_enrollment_requests.admit("):
+                 "g_selected_enrollment_requests.admit(",
+                 # D-085: phone-chosen role and pairing code reach the request.
+                 "action.value.enrollment_role, action.value.pairing_code"):
         require(gate in admission, f"selected enrollment admission gate missing: {gate}")
     disconnect = gatt[gatt.index("case BLE_GAP_EVENT_DISCONNECT: {"):
                       gatt.index("case BLE_GAP_EVENT_ENC_CHANGE:")]
