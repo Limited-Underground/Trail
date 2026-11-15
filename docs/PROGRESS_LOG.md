@@ -2,6 +2,15 @@
 
 ## 2026-11-15
 
+### OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)
+
+First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boards A and B): both boards started pairing from the phones, exchanged pairing frames over LoRa in both directions and showed the review pages. Board A then stopped with `A stack overflow in task main has been detected` and rebooted; board B's main task fell to 1,520 free bytes. Board pairing runs the Noise session on the 8,192-byte main task; the confirmation evaluation, which runs the same session crypto, already used 24,576.
+
+- Link-test builds (the only builds with board pairing) now add `sdkconfig.lora-link-test.defaults`: main task stack 24,576 bytes. CMake refuses a link-test build whose resolved stack is smaller, because an existing `sdkconfig` overrides the defaults; build with `-DSDKCONFIG=<build dir>/sdkconfig`. Normal builds keep 8,192.
+- The startup logo, with the firmware version (D-081), now stays at least 5 s instead of 1.2 s (owner decision D-088), counted from when the logo is on screen rather than from app entry (independent audit finding). Urgent screens (phone PIN, reset, faults) still replace it at once.
+
+Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
+
 ### OT-0170a Apply the MeshTrail Android display name
 
 Owner decision D-089 and [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The Android app uses Limited Underground MeshTrail for the launcher, home-screen accessibility label and notification title. Reset and recovery copy, support-share subjects, and the MeshTrail V1-Test label and log heading use the new name. The existing wordmark image stays for the separate artwork change. Application IDs, signing configuration, version code, Bluetooth UUIDs, the Trail-XXXXXX setup label and saved-state and support formats retain their prior values. The rename follows the local board-session fixes. Phone update verification remains pending.
