@@ -54,6 +54,13 @@ public:
         configuration_region_ = region_selection;
     }
 
+    // App-owner task only (D-081): the firmware version shown on the startup logo's
+    // bottom row, which the logo artwork leaves blank. Set once at boot.
+    void set_firmware_line(std::string_view text) {
+        firmware_line_bytes_ = text.size() < firmware_line_.size() ? text.size() : firmware_line_.size();
+        for (std::size_t i = 0; i < firmware_line_bytes_; ++i) firmware_line_[i] = text[i];
+    }
+
     // App-owner task only (V1 F5 R2a): the board pairing line on the normal screen.
     void set_board_pairing(ui::oled_presentation::BoardPairing state) {
         configuration_dirty_ = configuration_dirty_ || state != board_pairing_;
@@ -70,6 +77,8 @@ private:
     time::OledClockReading configuration_clock_{};
     std::uint16_t configuration_region_{0};
     ui::oled_presentation::BoardPairing board_pairing_{ui::oled_presentation::BoardPairing::none};
+    std::array<char, 40> firmware_line_{};
+    std::size_t firmware_line_bytes_{0};
     bool configuration_dirty_{false};
     i2c_master_bus_handle_t bus_{nullptr};
     esp_lcd_panel_io_handle_t io_{nullptr};
