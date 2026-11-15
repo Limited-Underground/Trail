@@ -119,6 +119,92 @@ internal static partial class Program
             "The recipient's opt-in at acceptance was overwritten by the sender's choice.");
     }
 
+    private static void SampleConversationButtonsFit()
+    {
+        foreach (var size in new[] { new Size(760, 440), new Size(800, 480), new Size(824, 520) })
+        {
+            var screen = new ConsoleSampleConversations();
+            VerifyVisibleButtonLabels(screen, size);
+
+            ClickSampleControl(screen.PolicyRequired);
+            ClickSampleControl(screen.JoinWithoutSharingButton);
+            VerifyVisibleButtonLabels(screen, size);
+
+            ClickSampleControl(screen.CreateGroupButton);
+            VerifyVisibleButtonLabels(screen, size);
+
+            ClickSampleControl(screen.DirectTabButton);
+            VerifyVisibleButtonLabels(screen, size);
+            ClickSampleControl(screen.SendInviteButton);
+            VerifyVisibleButtonLabels(screen, size);
+            ClickSampleControl(screen.AcceptInviteButton);
+            VerifyVisibleButtonLabels(screen, size);
+
+            screen.CreateGroupButton.Content = "Create a sample group for this weekend's trail outing";
+            VerifyVisibleButtonLabels(screen, size);
+            var label = FindVisibleVisualChildren<TextBlock>(screen.CreateGroupButton).Single();
+            Require(label.ActualHeight > label.FontSize * 2,
+                "A long sample button label did not grow to multiple lines.");
+        }
+    }
+
+    private static void VerifyVisibleButtonLabels(ConsoleSampleConversations screen, Size size)
+    {
+        LayoutSample(screen, size);
+        var screenBounds = new Rect(size);
+        const double tolerance = 1;
+        var buttons = FindVisibleVisualChildren<Button>(screen).ToArray();
+        Require(buttons.Length >= 5, $"The sample controls were not laid out at {size}.");
+        foreach (var button in buttons)
+        {
+            var label = FindVisibleVisualChildren<TextBlock>(button).SingleOrDefault();
+            Require(label is not null && Equals(label.Text, button.Content),
+                $"The {button.Name} label did not render its full text at {size}.");
+            var text = label!;
+            var bounds = new Rect(text.RenderSize);
+            var buttonBounds = text.TransformToAncestor(button).TransformBounds(bounds);
+            var padding = button.Padding;
+            var border = button.BorderThickness;
+            var contentBounds = new Rect(
+                padding.Left + border.Left, padding.Top + border.Top,
+                button.ActualWidth - padding.Left - padding.Right - border.Left - border.Right,
+                button.ActualHeight - padding.Top - padding.Bottom - border.Top - border.Bottom);
+            contentBounds.Inflate(tolerance, tolerance);
+            var metrics = new FormattedText(text.Text, text.Language.GetSpecificCulture(), text.FlowDirection,
+                new Typeface(text.FontFamily, text.FontStyle, text.FontWeight, text.FontStretch),
+                text.FontSize, Brushes.Black, VisualTreeHelper.GetDpi(text).PixelsPerDip);
+            if (text.TextWrapping != TextWrapping.NoWrap && bounds.Width > 0)
+                metrics.MaxTextWidth = bounds.Width + tolerance;
+            Require(bounds.Width > 0 && metrics.Width <= bounds.Width + tolerance &&
+                metrics.Height <= bounds.Height + tolerance && contentBounds.Contains(buttonBounds) &&
+                screenBounds.Contains(text.TransformToAncestor(screen).TransformBounds(bounds)),
+                $"The {button.Name} label '{text.Text}' clips at {size}. " +
+                $"Text requires {metrics.Width:F1} × {metrics.Height:F1} " +
+                $"and was arranged in {bounds.Width:F1} × {bounds.Height:F1}.");
+        }
+    }
+
+    private static IEnumerable<T> FindVisibleVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is UIElement { Visibility: not Visibility.Visible })
+                continue;
+            if (child is T match)
+                yield return match;
+            foreach (var descendant in FindVisibleVisualChildren<T>(child))
+                yield return descendant;
+        }
+    }
+
+    private static void LayoutSample(ConsoleSampleConversations screen, Size size)
+    {
+        screen.Measure(size);
+        screen.Arrange(new Rect(size));
+        screen.UpdateLayout();
+    }
+
     private static void SampleConversationScreensRender()
     {
         var screen = new ConsoleSampleConversations();
@@ -142,9 +228,7 @@ internal static partial class Program
     {
         const int width = 800;
         const int height = 480;
-        screen.Measure(new Size(width, height));
-        screen.Arrange(new Rect(0, 0, width, height));
-        screen.UpdateLayout();
+        LayoutSample(screen, new Size(width, height));
         Require(PresentationSource.FromVisual(screen) is null &&
             screen.ActualWidth == width && screen.ActualHeight == height,
             "The sample render required a window or did not receive the target canvas size.");

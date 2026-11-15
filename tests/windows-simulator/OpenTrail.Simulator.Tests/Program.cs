@@ -38,10 +38,11 @@ internal static partial class Program
         Run("sample preferred policy permits refusing location", SampleGroupLocationPreferred);
         Run("sample required policy blocks joining without location", SampleGroupLocationRequired);
         Run("sample direct conversation requires acceptance with independent sharing", SampleDirectInvitationAndSharing);
+        Run("all sample button labels fit across simulator sizes", SampleConversationButtonsFit);
         Run("sample screens render at 800 by 480 without opening windows", SampleConversationScreensRender);
         if (!hostOnly)
             Run("second native session failure rolls startup back", SecondNativeSessionFailureRollsStartupBack);
-        Console.WriteLine($"Trail simulator UI tests passed: {passed}/{(hostOnly ? 22 : 23)}" +
+        Console.WriteLine($"Trail simulator UI tests passed: {passed}/{(hostOnly ? 23 : 24)}" +
             (hostOnly ? " (host-only; hardware runtime composition excluded)" : string.Empty));
         return 0;
     }
