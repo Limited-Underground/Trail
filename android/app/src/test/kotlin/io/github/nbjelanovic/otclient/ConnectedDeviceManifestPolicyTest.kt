@@ -166,12 +166,12 @@ class ConnectedDeviceManifestPolicyTest {
             "src/main/res/drawable-nodpi/limited_underground_trail.png",
         )
 
-        assertEquals(2_559_044L, artwork.length())
+        assertEquals(34_870L, artwork.length())
         val artworkSha256 = MessageDigest.getInstance("SHA-256")
             .digest(artwork.readBytes())
             .joinToString("") { byte -> "%02X".format(byte) }
         assertEquals(
-            "A3024504BA261ADDAFD2A85F49F6BCE630D1E9AB994EEA348D5842A6D2AB7422",
+            "10D9729BC3965CDC96D7B55839E85BF82B0EDA4BFAAD186136BBEB90F47FB89E", // D-091 Linked Route
             artworkSha256,
         )
         val homeSource = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/V1HomeScreen.kt").readText()
