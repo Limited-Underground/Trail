@@ -48,4 +48,6 @@ interface TrailLifecycleController : AutoCloseable {
 }
 
 /** Service-owned subset; implemented by the production Bluetooth controller, never the Activity host. */
-interface TrailServiceController : TrailUiController, TrailLifecycleController
+interface TrailServiceController : TrailUiController, TrailLifecycleController {
+    fun setStatusRefreshForeground(foreground: Boolean) = Unit
+}

@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otclient
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
@@ -9,6 +10,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,9 +33,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -96,19 +100,50 @@ private data class DeviceSettingsAuthority(
     val sessionNonce: Long,
 )
 
+internal enum class NearbyPermissionDenial {
+    RETRYABLE,
+    SETTINGS_ONLY,
+}
+
+internal fun nearbyPermissionDenial(
+    result: Map<String, Boolean>,
+    isGranted: (String) -> Boolean,
+    shouldShowRationale: (String) -> Boolean?,
+): NearbyPermissionDenial? {
+    // A false rationale alone also describes a permission that has never been requested.
+    val denied = AndroidBlePermissionContract.runtimePermissions.filter {
+        result[it] == false && !isGranted(it)
+    }
+    if (denied.isEmpty()) return null
+    return if (denied.any { shouldShowRationale(it) == false }) {
+        NearbyPermissionDenial.SETTINGS_ONLY
+    } else {
+        NearbyPermissionDenial.RETRYABLE
+    }
+}
+
 @Composable
 fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> Unit = {}) {
     var state by remember { mutableStateOf(controller.state) }
     val homeStateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
+    val activity = LocalActivity.current
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val displayPreferences = remember(context) { AppDisplayPreferences(context) }
     var showBuildLabel by remember { mutableStateOf(displayPreferences.showBuildLabel()) }
     var displaySettingSaveFailed by remember { mutableStateOf(false) }
+    var nearbyDenial by rememberSaveable { mutableStateOf<NearbyPermissionDenial?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { controller.onNearbyDevicesPermissionResult() }
+    ) { result ->
+        nearbyDenial = nearbyPermissionDenial(
+            result,
+            isGranted = { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED },
+            shouldShowRationale = { activity?.shouldShowRequestPermissionRationale(it) },
+        )
+        controller.onNearbyDevicesPermissionResult()
+    }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { controller.refreshPermissionState() }
@@ -121,6 +156,10 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         if (controller.beginNearbyDevicesPermissionRequest()) {
             permissionLauncher.launch(AndroidBlePermissionContract.runtimePermissions.toTypedArray())
         }
+    }
+    val findBluetoothDevice = {
+        controller.chooseBluetoothDeviceMode()
+        requestNearbyPermissions()
     }
     val openAppSettings = {
         context.startActivity(
@@ -141,6 +180,9 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
     }
     val bluetooth = state as? TrailAppUiState.BluetoothDevice
+    LaunchedEffect(bluetooth?.permissionState) {
+        if (bluetooth?.permissionState == NearbyDevicesPermissionState.GRANTED) nearbyDenial = null
+    }
     val readySession = (bluetooth?.runtimeState as? BleRuntimeState.Ready)?.session
     val settingsSession = readySession?.takeIf { session ->
         deviceSettingsAuthority?.let { authority ->
@@ -190,7 +232,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     "Connect below to read your device name and radio-region settings."),
                 onAction = {},
                 connectionContent = {
-                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Find device")
                     }
                 },
@@ -204,7 +246,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                 TrailAppUiState.ChooseMode -> {
                     Text("Connect your Trail device", style = MaterialTheme.typography.titleLarge)
                     Text("Turn on your device and keep it nearby. Android will ask for Nearby Devices permission when needed.")
-                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Connect device")
                     }
                 }
@@ -213,6 +255,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     state = current,
                     controller = controller,
                     requestNearbyPermissions = requestNearbyPermissions,
+                    nearbyDenial = nearbyDenial,
                     requestNotificationPermission = requestNotificationPermission,
                     openAppSettings = openAppSettings,
                     openBluetoothSettings = openBluetoothSettings,
@@ -324,6 +367,7 @@ private fun BluetoothDevicePanel(
     state: TrailAppUiState.BluetoothDevice,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    nearbyDenial: NearbyPermissionDenial?,
     requestNotificationPermission: () -> Unit,
     openAppSettings: () -> Unit,
     openBluetoothSettings: () -> Unit,
@@ -341,17 +385,20 @@ private fun BluetoothDevicePanel(
             "Waiting for Android's permission decision. No scan has started.",
         )
         state.permissionState == NearbyDevicesPermissionState.MISSING -> {
+            val settingsOnly = nearbyDenial == NearbyPermissionDenial.SETTINGS_ONLY
+            val denied = nearbyDenial != null || state.permissionWasDenied
             StatusCard(
-                if (state.permissionWasDenied) "Nearby Devices permission denied" else "Nearby Devices permission required",
-                "Bluetooth scan and connection stay disabled until both Nearby Devices permissions are granted.",
+                if (denied) "Nearby devices access is off" else "Allow nearby devices",
+                if (settingsOnly) "Open app settings, tap Permissions, and allow Nearby devices."
+                else "Trail needs Nearby devices access to find and connect to your board.",
             )
-            Button(onClick = requestNearbyPermissions, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.permissionWasDenied) "Request permission again" else "Allow Nearby Devices")
-            }
-            if (state.permissionWasDenied) {
-                OutlinedButton(onClick = openAppSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Open app permission settings")
+            if (!settingsOnly) {
+                Button(onClick = requestNearbyPermissions, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (denied) "Ask again" else "Allow Nearby Devices")
                 }
+            }
+            OutlinedButton(onClick = openAppSettings, modifier = Modifier.fillMaxWidth()) {
+                Text("Open app settings")
             }
         }
         state.serviceState == ConnectedDeviceServiceUiState.START_REQUIRED -> {
@@ -385,7 +432,9 @@ private fun BluetoothDevicePanel(
             }
         }
         else -> {
-            if (state.notificationPermissionState == NotificationPermissionState.DENIED) {
+            if (state.serviceState == ConnectedDeviceServiceUiState.RUNNING &&
+                state.notificationPermissionState == NotificationPermissionState.DENIED
+            ) {
                 StatusCard(
                     "Service running · reduced notification visibility",
                     "Notification permission is not granted. Android still discloses the foreground service in Task " +

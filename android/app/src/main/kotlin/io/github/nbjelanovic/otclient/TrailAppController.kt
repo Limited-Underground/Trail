@@ -526,6 +526,11 @@ class TrailAppController(
             bluetoothRuntime.retryFactoryResetVerification()
     }
 
+    override fun setStatusRefreshForeground(foreground: Boolean) {
+        requireOwnerThread()
+        bluetoothRuntime.setStatusRefreshForeground(foreground)
+    }
+
     override fun onLifecycleStart() {
         requireOwnerThread()
         if (closed) return

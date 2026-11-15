@@ -56,6 +56,7 @@ internal const val PERIODIC_RECONNECT_DELAY_MILLIS = 15_000L
 internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
+internal const val STATUS_REFRESH_INTERVAL_MILLIS = 30_000L
 internal const val FACTORY_RESET_RESTART_TIMEOUT_MILLIS = 20_000L
 internal const val AUTHORIZATION_RESULT_TIMEOUT_MILLIS = 30_000L
 private val RECOVERED_FACTORY_RESET_COMPANION =
@@ -363,6 +364,7 @@ data class BleActiveSession(
     val groupLocation: GroupLocationSnapshot,
     val lastActionResult: CompanionActionResult? = null,
     val configuration: BleConfigurationState = BleConfigurationState(),
+    val statusReadAtMillis: Long? = null,
 )
 
 enum class FactoryResetLocalCleanupResult {
@@ -510,9 +512,13 @@ class BleCompanionRuntime(
     private enum class DiscoveryRoute { ADD_DEVICE, RETURNING_OWNER }
     private var retryDiscoveryRoute = DiscoveryRoute.RETURNING_OWNER
     private var pendingSnapshotExchangeId = 0L
+    private var statusRefreshForeground = false
+    private var statusRefreshTimer: BleReconnectLease? = null
+    private var pendingStatusRefresh: PendingStatusRefresh? = null
     private val authorizationTracker = CompanionAuthorizationResponseTracker()
     private var authorizationClaim: RuntimeAuthorizationClaim? = null
     private data class PendingAction(val exchangeId: Long, val request: CompanionActionRequest)
+    private data class PendingStatusRefresh(val exchangeId: Long, val startedAtMillis: Long)
     private data class FactoryResetVerificationTarget(
         val receipt: ULong,
         val companion: BleDiscoveredCompanion?,
@@ -884,6 +890,79 @@ class BleCompanionRuntime(
         return submitActionInternal(request, factoryResetAuthorized = false)
     }
 
+    /** The service owns the connection. Only a live Activity observation can enable polling. */
+    @Synchronized
+    fun setStatusRefreshForeground(foreground: Boolean) {
+        requireOwnerThread()
+        if (closed || foreground == statusRefreshForeground) return
+        statusRefreshForeground = foreground
+        if (foreground) scheduleStatusRefresh(0)
+        else {
+            statusRefreshTimer?.close()
+            statusRefreshTimer = null
+        }
+    }
+
+    private fun scheduleStatusRefresh(delayMillis: Long) {
+        statusRefreshTimer?.close()
+        statusRefreshTimer = null
+        if (!canRefreshStatus()) return
+        val callbackGeneration = generation
+        statusRefreshTimer = scheduler.schedule(delayMillis) {
+            requireOwnerThread()
+            if (accepts(callbackGeneration) && canRefreshStatus()) {
+                statusRefreshTimer = null
+                requestStatusRefresh()
+            }
+        }
+    }
+
+    private fun canRefreshStatus() = statusRefreshForeground && state is BleRuntimeState.Ready &&
+        normalProfileConfirmedAfterPromotion &&
+        configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE
+
+    private fun requestStatusRefresh() {
+        val lease = gattLease ?: return
+        if (deliveringObserver || pendingStatusRefresh != null || pendingAction != null ||
+            configurationSession?.busy == true || groupConfirmationSession?.busy == true
+        ) {
+            scheduleStatusRefresh(1_000)
+            return
+        }
+        val exchange = nextRequestId
+        val started = confirmationClockMillis()
+        if (exchange !in 1..0xffff_ffffL || started < 0) return
+        val encoded = encodeNormalFragment(CompanionFragment(
+            kind = CompanionFrameKind.SNAPSHOT_REQUEST,
+            sessionNonce = activeSessionNonce,
+            exchangeId = exchange,
+            payload = CompanionSemanticCodec.encodeSnapshotRequest(),
+        )) ?: return
+        val pending = PendingStatusRefresh(exchange, started)
+        val callbackGeneration = generation
+        nextRequestId++
+        pendingStatusRefresh = pending
+        val written = runCatching { lease.writeCommandWithResponse(encoded) }.getOrDefault(false)
+        if (!accepts(callbackGeneration) || pendingStatusRefresh !== pending) return
+        if (!written) {
+            finishStatusRefresh()
+            return
+        }
+        // Keep the lane occupied through the existing response deadline, even if the UI leaves.
+        operationTimeoutLease = scheduler.schedule(ACTION_RESULT_TIMEOUT_MILLIS) {
+            requireOwnerThread()
+            if (accepts(callbackGeneration) && pendingStatusRefresh === pending) finishStatusRefresh()
+        }
+    }
+
+    private fun finishStatusRefresh() {
+        pendingStatusRefresh = null
+        operationTimeoutLease?.close()
+        operationTimeoutLease = null
+        pumpAutomaticConfiguration()
+        if (statusRefreshTimer == null) scheduleStatusRefresh(STATUS_REFRESH_INTERVAL_MILLIS)
+    }
+
     /** Dedicated fixed-status lane: never falls back to a legacy/plaintext action. */
     @Synchronized
     fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: CompanionQuickStatus): Boolean {
@@ -913,7 +992,7 @@ class BleCompanionRuntime(
         val lease = gattLease ?: return false
         if (recipient !== quickStatusRecipient) return false
         val binding = currentTextBinding() ?: return false
-        if (textConversation.busy || pendingAction != null || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
+        if (textConversation.busy || pendingAction != null || pendingStatusRefresh != null || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
             configurationSession?.busy == true || groupConfirmationSession?.busy == true) return false
         val id = nextRequestId
         if (id !in 1..0xffff_ffffL || textOperation == ULong.MAX_VALUE) {
@@ -1037,7 +1116,8 @@ class BleCompanionRuntime(
         if (deliveringObserver) return false
         val ready = state as? BleRuntimeState.Ready ?: return false
         val lease = gattLease ?: return false
-        if (pendingAction != null || textConversation.busy || configurationSession?.busy == true || groupConfirmationSession?.busy == true) return false
+        if (pendingAction != null || pendingStatusRefresh != null || textConversation.busy ||
+            configurationSession?.busy == true || groupConfirmationSession?.busy == true) return false
         if (
             request.kind == CompanionActionKind.FACTORY_RESET &&
             (
@@ -1599,7 +1679,7 @@ class BleCompanionRuntime(
                 configurationInfo?.minorVersion == CompanionConfirmationCodec.PROFILE },
             allocate = {
                 if (deliveringObserver || state !is BleRuntimeState.Ready || pendingAction != null ||
-                    configurationSession?.busy == true || groupConfirmationSession?.busy == true ||
+                    pendingStatusRefresh != null || configurationSession?.busy == true || groupConfirmationSession?.busy == true ||
                     nextRequestId !in 1..0xffff_ffffL) null
                 else nextRequestId.toUInt().also { nextRequestId++ }
             },
@@ -1657,12 +1737,14 @@ class BleCompanionRuntime(
     fun synchronizeDisplayTime(): Boolean { requireOwnerThread(); return configurationOperation { it.synchronizeTime() } }
     // Coalesce source-clock changes; queued work never steals an occupied action/configuration lane.
     private fun pumpAutomaticConfiguration() {
-        if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null || groupConfirmationSession?.busy==true) return
+        if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready ||
+            pendingAction!=null || pendingStatusRefresh!=null || groupConfirmationSession?.busy==true) return
         val session=configurationSession ?: return
         if(session.busy || (!automaticNameReadPending && !automaticTimeSyncPending)) return
         pumpingAutomaticConfiguration=true
         try {
-            while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null && !session.busy && groupConfirmationSession?.busy!=true) {
+            while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null &&
+                pendingStatusRefresh==null && !session.busy && groupConfirmationSession?.busy!=true) {
                 when {
                     automaticNameReadPending -> { automaticNameReadPending=false;session.readName() }
                     automaticTimeSyncPending -> { automaticTimeSyncPending=false;session.synchronizeTime() }
@@ -1674,7 +1756,8 @@ class BleCompanionRuntime(
         } finally { pumpingAutomaticConfiguration=false }
     }
     private fun configurationOperation(operation: (BleConfigurationSession)->Boolean): Boolean {
-        if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null || groupConfirmationSession?.busy==true) return false
+        if(deliveringObserver || state !is BleRuntimeState.Ready || pendingAction!=null ||
+            pendingStatusRefresh!=null || groupConfirmationSession?.busy==true) return false
         val session=configurationSession ?: return false
         val result=operation(session)
         if(result) armConfigurationTimeout()
@@ -2141,6 +2224,15 @@ class BleCompanionRuntime(
             acceptInitialSnapshot(companion, fragment)
             return
         }
+        // Selected-profile status replies are solicited. A late reply cannot interfere with
+        // an action that acquired the command lane after the status exchange ended.
+        if (configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE &&
+            fragment.kind == CompanionFrameKind.SNAPSHOT
+        ) {
+            val ready = state as? BleRuntimeState.Ready ?: return
+            if (fragment.sessionNonce == activeSessionNonce) acceptStatusRefresh(ready, fragment)
+            return
+        }
         val activeSession = when (val current = state) {
             is BleRuntimeState.Ready -> current.session
             is BleRuntimeState.FactoryResetRequesting -> current.session
@@ -2356,10 +2448,15 @@ class BleCompanionRuntime(
         }
         publish(
             BleRuntimeState.Ready(
-                BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),
+                BleActiveSession(
+                    companion, fragment.sessionNonce, snapshot, info, groupLocation,
+                    statusReadAtMillis = if (configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE)
+                        confirmationClockMillis().takeIf { it >= 0 } else null,
+                ),
             ),
         )
         initializeConfigurationSession()
+        if (statusRefreshTimer == null) scheduleStatusRefresh(STATUS_REFRESH_INTERVAL_MILLIS)
     }
 
     private fun acceptSnapshotUpdate(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
@@ -2378,6 +2475,24 @@ class BleCompanionRuntime(
             snapshot.positionSharing,
         ) ?: return failAndRelease(BleRuntimeFailure.PROTOCOL_VIOLATION)
         publish(BleRuntimeState.Ready(ready.session.copy(snapshot = snapshot, groupLocation = groupLocation)))
+    }
+
+    private fun acceptStatusRefresh(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
+        val pending = pendingStatusRefresh ?: return
+        if (fragment.exchangeId != pending.exchangeId) return
+        val now = confirmationClockMillis()
+        if (now < pending.startedAtMillis || now - pending.startedAtMillis >= ACTION_RESULT_TIMEOUT_MILLIS) return
+        val previous = ready.session.snapshot
+        val snapshot = CompanionSemanticCodec.decodeStatusSnapshot(fragment.payload).value ?: return
+        if (snapshot.revision < previous.revision ||
+            (snapshot.revision == previous.revision && snapshot != previous)) return
+        val groupLocation = ready.session.groupLocation.withAuthoritativeStatus(
+            snapshot.revision, snapshot.positionSharing,
+        ) ?: return
+        publish(BleRuntimeState.Ready(ready.session.copy(
+            snapshot = snapshot, groupLocation = groupLocation, statusReadAtMillis = now,
+        )))
+        if (pendingStatusRefresh === pending) finishStatusRefresh()
     }
 
     private fun acceptActionResult(session: BleActiveSession, fragment: CompanionFragment) {
@@ -2949,6 +3064,9 @@ class BleCompanionRuntime(
         nextRequestId = firstRequestId
         pendingAction = null
         pendingSnapshotExchangeId = 0
+        statusRefreshTimer?.close()
+        statusRefreshTimer = null
+        pendingStatusRefresh = null
         authorizationProtocolInfo = null
         authorizationSecurityEvidence = null
     }

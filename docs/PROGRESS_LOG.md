@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-15
+
+### OT-0170a Reconnect to the owned board and refresh device status
+
+- I-023: On a cold launch with Nearby Devices already granted, the visible app can recover the user's board using Android's bond inventory and the bounded owned Trail service scan. A unique candidate still has to pass the existing protected claim and snapshot. The temporary binding ends when the app leaves the foreground. No board identity is saved by Trail, and no background service is started on launch.
+- I-023: The first Find device tap requests Nearby Devices. A denial explains how to continue through app settings, and offers another request when Android permits it. The broader wording work remains separate.
+- I-045: The selected board configuration profile reuses its protected status request about every 30 seconds and on foreground return. A single shared command lane guards each request. Stale, contradictory and expired replies leave the displayed status age unchanged.
+
+Offline host validation passed with 111 protocol tests, 631 app tests and 23 Android admission scenario groups. Both unit suites had zero failures, errors or skips. The two-phone and two-board checks remain pending. Scope tracked under [issue #97](https://github.com/Limited-Underground/Trail/issues/97).
+
 ## 2026-11-14
 
 ### OT-0005i Fix the R2a review findings before the board session (V1 F5)

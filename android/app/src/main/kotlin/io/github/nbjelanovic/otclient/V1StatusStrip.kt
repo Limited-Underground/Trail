@@ -51,6 +51,8 @@ internal fun V1StatusStrip(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val statusMaxLines = if (landscape) 1 else Int.MAX_VALUE
     val metrics = V1DeviceStatusStripProjector.from(state)
+    val readAt = ((state as? TrailAppUiState.BluetoothDevice)?.runtimeState as? BleRuntimeState.Ready)
+        ?.session?.statusReadAtMillis
     val clock by produceState(initialValue = DateFormat.getTimeFormat(context).format(Date())) {
         while (true) {
             value = DateFormat.getTimeFormat(context).format(Date())
@@ -111,6 +113,18 @@ internal fun V1StatusStrip(
             Text("↑", color = if (metrics.transmitting == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
             Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
             if (metrics.transmitting == null && metrics.receiving == null) Text("—", fontSize = 12.sp, maxLines = statusMaxLines, color = muted)
+        }
+    }
+    if (readAt != null) key(readAt) {
+        val statusAge by produceState(statusAgeLabel(readAt, android.os.SystemClock.elapsedRealtime())) {
+            while (true) {
+                value = statusAgeLabel(readAt, android.os.SystemClock.elapsedRealtime())
+                delay(1_000)
+            }
+        }
+        statusAge?.let {
+            Text(it, fontSize = 11.sp, lineHeight = 13.sp, color = muted,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp))
         }
     }
     if (showBuildLabel) {

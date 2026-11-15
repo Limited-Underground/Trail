@@ -73,3 +73,7 @@ internal object V1DeviceStatusStripProjector {
         CompanionGnssState.FAULT -> V1DeviceGpsStatus.FAULT
     }
 }
+
+internal fun statusAgeLabel(readAtMillis: Long?, nowMillis: Long): String? =
+    if (readAtMillis == null || readAtMillis < 0 || nowMillis < readAtMillis) null
+    else "Board status updated ${(nowMillis - readAtMillis) / 1000} s ago"
