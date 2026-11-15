@@ -339,6 +339,11 @@ internal static partial class Program
         try
         {
             ShowOffscreen(window); PumpUntil(() => window.CurrentOffer is not null);
+            Require(window.Title.StartsWith("Limited Underground MeshTrail Console Simulator", StringComparison.Ordinal) &&
+                window.ClientNameText.Text == "Limited Underground MeshTrail Console A" &&
+                window.SourceEvidenceText.Text.StartsWith("Limited Underground MeshTrail · simulated messages",
+                    StringComparison.Ordinal),
+                "The simulator title, client name, or evidence banner did not use the product names.");
             Require(window.DeviceChoiceCombo.Visibility == Visibility.Collapsed &&
                 window.AssignedDeviceChoiceBorder.Visibility == Visibility.Visible &&
                 !string.IsNullOrWhiteSpace(window.AssignedDeviceChoiceText.Text),

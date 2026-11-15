@@ -1,7 +1,6 @@
 <Window x:Class="OpenTrail.Simulator.VirtualLcdWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Trail Console Simulator"
         Width="600" Height="760" MinWidth="570" MinHeight="690"
         WindowStartupLocation="Manual"
         Background="{DynamicResource WindowBrush}"

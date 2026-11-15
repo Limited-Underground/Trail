@@ -11,6 +11,8 @@ internal static partial class Program
     private static void SampleGroupFirstAndCreate()
     {
         var screen = new ConsoleSampleConversations();
+        Require(screen.ConsoleNameLabel.Text == "Limited Underground MeshTrail Console",
+            "The sample screen did not display the Console product name.");
         Require(screen.ConversationTitle.Text == ConsoleSampleStrings.GroupName &&
             screen.ConversationStatus.Text == ConsoleSampleStrings.GroupInvitation &&
             screen.ThreadMessages.Children.Count == 2 && !screen.SampleReplyButton.IsEnabled,

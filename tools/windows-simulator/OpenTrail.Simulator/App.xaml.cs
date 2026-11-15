@@ -57,8 +57,8 @@ public partial class App : Application
             windowA?.Hide();
             DisposeQuietly(composition);
             MessageBox.Show(
-                "The two native portable UI sessions could not be started safely. No device connection was opened.",
-                "OpenTrail Simulator",
+                ConsoleSampleStrings.StartupError,
+                ConsoleSampleStrings.SimulatorTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(-1);

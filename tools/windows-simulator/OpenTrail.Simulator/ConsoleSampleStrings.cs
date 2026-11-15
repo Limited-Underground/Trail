@@ -2,9 +2,18 @@ namespace OpenTrail.Simulator;
 
 public static class ConsoleSampleStrings
 {
-    // Keep sample-screen copy together so it can move to localized resources.
-    public const string WindowTitle = "Trail Console Simulator — Conversations";
+    // Keep simulator branding and sample-screen copy together for localization.
+    public const string ProductName = "Limited Underground MeshTrail";
+    public const string ConsoleName = ProductName + " Console";
+    public const string SimulatorTitle = ConsoleName + " Simulator";
+    public const string ClientTitleFormat = SimulatorTitle + " — Client {0}";
+    public const string ClientLabelFormat = ConsoleName + " {0}";
+    public const string ClientAutomationFormat = "{0} virtual touchscreen simulator";
+    public const string LoopbackEvidence = ProductName + " · simulated messages, no authenticated device delivery";
+    public const string StartupError =
+        "The two native portable UI sessions could not be started safely. No device connection was opened.";
     public const string Title = "Conversations";
+    public const string WindowTitle = SimulatorTitle + " — " + Title;
     public const string SampleData = "Simulator · Sample data";
     public const string Group = "Group";
     public const string GroupName = "Pine Ridge Crew";

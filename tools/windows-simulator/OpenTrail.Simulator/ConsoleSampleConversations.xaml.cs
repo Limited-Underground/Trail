@@ -27,6 +27,7 @@ public partial class ConsoleSampleConversations : UserControl
     public ConsoleSampleConversations()
     {
         InitializeComponent();
+        ConsoleNameLabel.Text = ConsoleSampleStrings.ConsoleName;
         SampleDataLabel.Text = ConsoleSampleStrings.SampleData;
         HeaderTitle.Text = ConsoleSampleStrings.Title;
         GroupLabel.Text = ConsoleSampleStrings.Group;

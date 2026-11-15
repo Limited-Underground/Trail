@@ -66,8 +66,12 @@ public partial class VirtualLcdWindow : Window
             throw new ArgumentOutOfRangeException(nameof(operationTimeout));
         InitializeComponent();
         firmwareState = BuildFirmwareState(this.presenter.Snapshot, firmwareState);
-        Title = $"Trail Console Simulator — {DisplayClientLabel(presenter.Snapshot.ClientLabel)}";
-        AutomationProperties.SetName(this, $"{presenter.Snapshot.ClientLabel} virtual touchscreen simulator");
+        var clientLabel = presenter.Snapshot.ClientLabel;
+        Title = ClientSuffix(clientLabel) is { } suffix
+            ? string.Format(ConsoleSampleStrings.ClientTitleFormat, suffix)
+            : ConsoleSampleStrings.SimulatorTitle;
+        AutomationProperties.SetName(this,
+            string.Format(ConsoleSampleStrings.ClientAutomationFormat, DisplayClientLabel(clientLabel)));
         this.presenter.SnapshotChanged += HandleSnapshotChanged;
         Loaded += HandleLoaded;
         RenderHostSnapshot(this.presenter.Snapshot);
@@ -241,8 +245,7 @@ public partial class VirtualLcdWindow : Window
         {
             case SimulatorUiConnectionSource.LocalSimulation:
                 SourceBannerText.Text = "SIMULATION · LOCAL LOOPBACK";
-                SourceEvidenceText.Text =
-                    "Limited Underground Trail · simulated messages, no authenticated device delivery";
+                SourceEvidenceText.Text = ConsoleSampleStrings.LoopbackEvidence;
                 break;
             case SimulatorUiConnectionSource.UsbCandidate:
                 SourceBannerText.Text = snapshot.ConnectionState == SimulatorUiConnectionState.Connected
@@ -1016,10 +1019,20 @@ public partial class VirtualLcdWindow : Window
     };
 
     private static string DisplayClientLabel(string label) =>
-        label.StartsWith("OpenTrail Client ", StringComparison.Ordinal)
-            ? "Trail Console " + label["OpenTrail Client ".Length..]
-            : label.StartsWith("Client ", StringComparison.Ordinal)
-                ? "Trail Console " + label["Client ".Length..] : label;
+        ClientSuffix(label) is { } suffix
+            ? string.Format(ConsoleSampleStrings.ClientLabelFormat, suffix)
+            : label;
+
+    private static string? ClientSuffix(string label)
+    {
+        const string corePrefix = "OpenTrail Client ";
+        const string shortPrefix = "Client ";
+        if (label.StartsWith(corePrefix, StringComparison.Ordinal))
+            return label[corePrefix.Length..];
+        if (label.StartsWith(shortPrefix, StringComparison.Ordinal))
+            return label[shortPrefix.Length..];
+        return null;
+    }
 
     private Brush ConnectionBrush(SimulatorUiConnectionState state) => state switch
     {

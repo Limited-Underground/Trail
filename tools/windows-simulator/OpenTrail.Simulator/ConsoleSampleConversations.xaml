@@ -59,8 +59,11 @@
                 <TextBlock x:Name="SampleDataLabel"
                            Style="{StaticResource SectionLabel}" />
             </Border>
-            <TextBlock x:Name="HeaderTitle" FontSize="32" FontWeight="SemiBold"
-                       AutomationProperties.HeadingLevel="Level1" VerticalAlignment="Center" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock x:Name="ConsoleNameLabel" Style="{StaticResource ContextText}" />
+                <TextBlock x:Name="HeaderTitle" FontSize="32" FontWeight="SemiBold"
+                           AutomationProperties.HeadingLevel="Level1" />
+            </StackPanel>
         </DockPanel>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
