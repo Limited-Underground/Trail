@@ -42,6 +42,10 @@ struct PairingWindow {
 };
 
 /** Borrowed labels are replaceable display metadata, never identifiers or authority. */
+// V1 F5 R2a: first board pairing as seen on this board. paired_here means
+// this board committed; it is not proof that the other board did.
+enum class BoardPairing : std::uint8_t { none, in_progress, paired_here, failed };
+
 struct Snapshot {
     bool failure{false};
     bool reset_in_progress{false};
@@ -50,6 +54,7 @@ struct Snapshot {
     std::string_view device_name{};
     PhoneState phone{PhoneState::unknown};
     GroupState group{GroupState::unknown};
+    BoardPairing board_pairing{BoardPairing::none};
     bool location_available{false};
     bool location_on{false};
     bool region_configured{false};
@@ -74,7 +79,7 @@ struct Frame {
     bool clipped{false};
 };
 
-// Normal rows: name, phone, group/location, region/TX, battery/satellites,
+// Normal rows: name, phone, group/location (or board pairing), region/TX, battery/satellites,
 // GPS fix, radio pulses, clock. Exclusive surfaces leave unused rows blank.
 // Each call creates an independent frame; caller owns its lifetime and display I/O.
 // Pure renderer requires an independently checked nondecreasing time source;

@@ -16,7 +16,8 @@ public:
     [[nodiscard]] ui::oled_presentation::Frame present(
         const StartupDisplayView& view, std::uint64_t now_ms,
         std::string_view name = {}, time::OledClockReading clock = {},
-        std::uint16_t region_selection = 0);
+        std::uint16_t region_selection = 0,
+        ui::oled_presentation::BoardPairing board_pairing = ui::oled_presentation::BoardPairing::none);
 
 private:
     ui::oled_presentation::PresentationOwner owner_{};

@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-15
+
+### OT-0005i Show board pairing on the screen (V1 F5, step R2a)
+
+The board's normal screen now shows the pairing state in place of the group/location row:
+- "PAIRING..." while an attempt runs;
+- then "PAIRED - THIS BOARD" or "PAIRING FAILED" for 60 seconds.
+
+The wording does not claim the other board committed; that point came from the R2a review. The new `BoardPairing` field in the OLED presentation snapshot defaults to `none`, so every other frame is unchanged. Exclusive surfaces (factory reset, failure, region required) keep priority. `oled_presentation_tests` grows to 8 groups. The heltec presentation tests and the bench target admission (20 groups) pass. Builds: link test 808,000 bytes, default 605,792 bytes, no warnings.
+
 ## 2026-11-14
 
 ### OT-0005i Fix the R2a review findings before the board session (V1 F5)
