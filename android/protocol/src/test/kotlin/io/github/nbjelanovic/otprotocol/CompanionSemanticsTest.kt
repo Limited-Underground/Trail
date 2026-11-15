@@ -135,6 +135,92 @@ class CompanionSemanticsTest {
     }
 
     @Test
+    fun enrollmentMatchesFirmwareRequestAndResponseBytes() {
+        val request = CompanionActionRequest(
+            CompanionActionKind.START_ENROLLMENT,
+            enrollmentRole = CompanionEnrollmentRole.INITIATOR,
+            pairingCode = 123456,
+        )
+        val initiator = "4f5441300000060000000000000000000140e201".decodeHex()
+        assertContentEquals(initiator, CompanionSemanticCodec.encodeActionRequest(request).value)
+        assertEquals(request, CompanionSemanticCodec.decodeActionRequest(initiator).value)
+
+        val responder = request.copy(enrollmentRole = CompanionEnrollmentRole.RESPONDER, pairingCode = 1)
+        val responderBytes = "4f54413000000600000000000000000002010000".decodeHex()
+        assertContentEquals(responderBytes, CompanionSemanticCodec.encodeActionRequest(responder).value)
+        assertEquals(responder, CompanionSemanticCodec.decodeActionRequest(responderBytes).value)
+        assertFalse(request.toString().contains("123456"))
+
+        val result = CompanionActionResult(CompanionActionKind.START_ENROLLMENT,
+            disposition = CompanionActionDisposition.ADMITTED)
+        val admitted = "4f54523000000100060000000000000000000000".decodeHex()
+        assertContentEquals(admitted, CompanionSemanticCodec.encodeActionResult(result).value)
+        assertEquals(result, CompanionSemanticCodec.decodeActionResult(admitted).value)
+        assertFalse(CompanionSemanticCodec.decodeActionResult(admitted.changed(12, 1)).isSuccess)
+        assertFalse(CompanionSemanticCodec.encodeActionResult(
+            result.copy(disposition = CompanionActionDisposition.QUEUED),
+        ).isSuccess)
+    }
+
+    @Test
+    fun enrollmentRejectionsMatchFirmwareBytesAndKeepBusyScoped() {
+        val vectors = mapOf(
+            CompanionActionRejectReason.BUSY to "4f54523000000307060000000000000000000000",
+            CompanionActionRejectReason.POLICY_DENIED to "4f54523000000305060000000000000000000000",
+            CompanionActionRejectReason.UNAVAILABLE to "4f54523000000303060000000000000000000000",
+        )
+        for ((reason, hex) in vectors) {
+            val payload = hex.decodeHex()
+            val expected = CompanionActionResult(
+                CompanionActionKind.START_ENROLLMENT,
+                disposition = CompanionActionDisposition.REJECTED,
+                rejectReason = reason,
+            )
+            assertEquals(expected, CompanionSemanticCodec.decodeActionResult(payload).value)
+            assertContentEquals(payload, CompanionSemanticCodec.encodeActionResult(expected).value)
+        }
+        val busy = vectors.getValue(CompanionActionRejectReason.BUSY).decodeHex()
+        for (disposition in listOf(CompanionActionDisposition.ADMITTED, CompanionActionDisposition.QUEUED)) {
+            assertEquals(CompanionSemanticCodecError.INCOHERENT_RESULT,
+                CompanionSemanticCodec.decodeActionResult(busy.changed(6, disposition.wireValue)).error)
+        }
+        for (kind in CompanionActionKind.entries.filterNot { it == CompanionActionKind.START_ENROLLMENT }) {
+            assertFalse(CompanionSemanticCodec.decodeActionResult(busy.changed(8, kind.wireValue)).isSuccess)
+        }
+        assertFalse(CompanionSemanticCodec.encodeActionResult(CompanionActionResult(
+            CompanionActionKind.FACTORY_RESET,
+            disposition = CompanionActionDisposition.REJECTED,
+            rejectReason = CompanionActionRejectReason.BUSY,
+        )).isSuccess)
+        assertEquals(CompanionSemanticCodecError.UNKNOWN_ENUM,
+            CompanionSemanticCodec.decodeActionResult(busy.changed(7, 8)).error)
+    }
+
+    @Test
+    fun enrollmentFieldsAreStrictAndForbiddenForOtherActions() {
+        val request = CompanionActionRequest(
+            CompanionActionKind.START_ENROLLMENT,
+            enrollmentRole = CompanionEnrollmentRole.INITIATOR,
+            pairingCode = 123456,
+        )
+        val encoded = checkNotNull(CompanionSemanticCodec.encodeActionRequest(request).value)
+        for (invalid in listOf(request.copy(enrollmentRole = null), request.copy(pairingCode = 0),
+            request.copy(pairingCode = 1_000_000), request.copy(criticalAlertId = 1uL))) {
+            assertFalse(CompanionSemanticCodec.encodeActionRequest(invalid).isSuccess)
+        }
+        val zero = encoded.copyOf().also { it.fill(0, 17, 20) }
+        val aboveMax = encoded.changed(17, 0x40).changed(18, 0x42).changed(19, 0x0f)
+        for (invalid in listOf(encoded.changed(16, 0), encoded.changed(16, 3), zero, aboveMax,
+            encoded.changed(7, 1), encoded.changed(8, 1))) {
+            assertFalse(CompanionSemanticCodec.decodeActionRequest(invalid).isSuccess)
+        }
+        for (kind in CompanionActionKind.entries.filter { it != CompanionActionKind.START_ENROLLMENT }) {
+            assertFalse(CompanionSemanticCodec.encodeActionRequest(request.copy(kind = kind)).isSuccess)
+            assertFalse(CompanionSemanticCodec.decodeActionRequest(encoded.changed(6, kind.wireValue)).isSuccess)
+        }
+    }
+
+    @Test
     fun actionRequestsRejectUnknownAmbiguousAndReservedValues() {
         assertEquals(
             CompanionSemanticCodecError.INVALID_ALERT_ID,
