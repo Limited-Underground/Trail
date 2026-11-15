@@ -1687,10 +1687,10 @@ def test_display_surface() -> None:
     require(any(value != 0 for value in logo_bytes) and
             any(value != 0xFF for value in logo_bytes),
             "startup logo must be neither blank nor all-on")
-    require("LIMITED UNDERGROUND" in logo and "TRAIL" in logo,
+    require("LIMITED UNDERGROUND" in logo and "TRAIL" in logo and "MESH" in logo,
             "startup asset must retain the accepted Trail identity description")
     require(hashlib.sha256(bytes(logo_bytes)).hexdigest() ==
-            "7ca7bfa0f7b96742dd459237a8b24dda0cd5ddea8ae0cdb60ed68dbaabea04e6",
+            "35fde8479c652f96b6f98ff89b596ffafafbeb3dc929ac446e7fc828c3ab2d41",  # D-089 MESH above TRAIL
             "startup logo bitmap changed without explicit visual admission")
 
 

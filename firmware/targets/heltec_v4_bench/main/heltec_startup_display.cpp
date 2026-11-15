@@ -375,7 +375,7 @@ const char* startup_display_text(StartupDisplayFrame frame) {
         case StartupDisplayFrame::ble_error:
             return "BLE ERROR";
         case StartupDisplayFrame::factory_reset_confirmation:
-            return "ERASE ALL TRAIL DATA?";
+            return "ERASE MESHTRAIL DATA?";
         case StartupDisplayFrame::factory_resetting:
             return "RESETTING";
     }

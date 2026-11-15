@@ -180,7 +180,7 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         row(frame, 1, "DO NOT REMOVE POWER");
     } else if (snapshot.reset_confirmation) {
         frame.surface = Surface::reset_confirmation;
-        row(frame, 0, "ERASE ALL TRAIL DATA?");
+        row(frame, 0, "ERASE MESHTRAIL DATA?");
         row(frame, 1, "RELEASE THEN CONFIRM");
     } else if (pairing(snapshot.pairing, now_ms)) {
         frame.surface = Surface::pairing;
