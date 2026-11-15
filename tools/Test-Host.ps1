@@ -879,6 +879,20 @@ $builds = @(
         )
     },
     @{
+        Name = 'LoRa first-pairing frame (V1 F5, step R2a)'
+        Output = Join-Path $buildDirectory 'pairing_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_frame_tests.cpp')
+        )
+    },
+    @{
+        Name = 'LoRa first-pairing coordinator (V1 F5, step R2a)'
+        Output = Join-Path $buildDirectory 'pairing_coordinator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_coordinator_tests.cpp')
+        )
+    },
+    @{
         Name = 'delivery controller'
         Output = Join-Path $buildDirectory 'delivery_controller_tests.exe'
         Sources = @(

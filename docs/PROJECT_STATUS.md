@@ -30,7 +30,7 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
-LoRa is now in the product firmware for V1 item F5 (owner decision D-075, hardware first): an SX1262 transport and an opt-in bench link test (`OPENTRAIL_LORA_LINK_TEST`) that sends unauthenticated beacons between boards (2026-11-13, not yet run on a board). Group step 3b waits.
+LoRa is now in the product firmware for V1 item F5 (owner decision D-075, hardware first): an SX1262 transport and an opt-in bench link test (`OPENTRAIL_LORA_LINK_TEST`) that sends unauthenticated beacons between boards (2026-11-13, not yet run on a board). Group step 3b waits. First board pairing (F5 step R2a) has started: the phone sends a role and a 6-digit pairing code (D-085), and LoRa pairing frames and a pairing coordinator are host-tested; the board does not pair yet (2026-11-14).
 
 Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: step 3b, indexed per-pair storage, message numbers and the group header (step 3).
 

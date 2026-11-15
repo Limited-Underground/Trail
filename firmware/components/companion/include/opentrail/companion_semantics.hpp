@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "opentrail/companion_protocol.hpp"
+#include "opentrail/companion_enrollment_role.hpp"
 #include "opentrail/quick_status_codec.hpp"
 #include "opentrail/radio_transport.hpp"
 
@@ -57,6 +58,7 @@ enum class CompanionActionKind : std::uint8_t {
     stop_position_sharing = 4,
     factory_reset = 5,
     // OTA0/v0 request only. Admitted means a bounded local request is pending.
+    // Carries the owner-chosen role and pairing code (D-085); see below.
     start_enrollment = 6,
 };
 
@@ -112,10 +114,14 @@ struct CompanionStatusSnapshot {
 // and a nonzero, app-generated correlation receipt for factory_reset. That
 // receipt is never identity or authorization; protected authorization and
 // destructive user confirmation remain outside this wire record.
+// start_enrollment alone uses enrollment_role (byte 16) and pairing_code
+// (bytes 17-19, little-endian); every other kind keeps bytes 16-19 zero.
 struct CompanionActionRequest {
     CompanionActionKind kind{CompanionActionKind::quick_status};
     protocol::QuickStatusKind quick_status{protocol::QuickStatusKind::ok};
     std::uint64_t critical_alert_id{0};
+    CompanionEnrollmentRole enrollment_role{CompanionEnrollmentRole::none};
+    std::uint32_t pairing_code{0};
 };
 
 // Correlation to the request is supplied by the enclosing OTC0 exchange ID.
