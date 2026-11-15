@@ -1542,6 +1542,102 @@ class BleCompanionRuntimeTest {
         assertFalse(runtime.synchronizeDisplayTime())
     }
 
+    private fun pairingRequest() = CompanionActionRequest(
+        CompanionActionKind.START_ENROLLMENT,
+        enrollmentRole = io.github.nbjelanovic.otprotocol.CompanionEnrollmentRole.INITIATOR,
+        pairingCode = 123456,
+    )
+
+    private fun ConfigurationFixture.pairingState(): BoardPairingState? =
+        (runtime.state as? BleRuntimeState.Ready)?.session?.boardPairing
+
+    private fun ConfigurationFixture.pairingResult(
+        disposition: CompanionActionDisposition,
+        stale: Boolean = false,
+    ) {
+        val payload = checkNotNull(CompanionSemanticCodec.encodeActionResult(
+            CompanionActionResult(CompanionActionKind.START_ENROLLMENT, disposition = disposition),
+        ).value)
+        respond(0x82, payload, stale = stale)
+    }
+
+    @Test fun boardPairingWritesExactSelectedFrameAndWaitsForAdmittedResult() {
+        val f = ConfigurationFixture(profile = 5)
+        f.name(); f.clock()
+        assertEquals(BoardPairingState.Available, f.pairingState())
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        assertEquals(BoardPairingState.Waiting, f.pairingState())
+        val frame = f.last()
+        assertEquals(5, frame.minorVersion)
+        assertEquals(2, frame.kind)
+        assertEquals(f.nonce, frame.sessionNonce)
+        assertContentEquals(byteArrayOf(1, 0x40, 0xe2.toByte(), 1), frame.payload.copyOfRange(16, 20))
+        val count = f.gatt.commands.size
+        assertFalse(f.runtime.submitAction(pairingRequest()))
+        assertEquals(count, f.gatt.commands.size)
+
+        f.now += 500
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        val deadline = 100 + BOARD_PAIRING_WINDOW_MILLIS
+        assertEquals(BoardPairingState.Ready(deadline), f.pairingState())
+        f.now = deadline - 1
+        assertFalse(f.runtime.submitAction(pairingRequest()))
+        assertEquals(count, f.gatt.commands.size)
+        f.now = deadline
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        assertEquals(count + 1, f.gatt.commands.size)
+    }
+
+    @Test fun boardPairingExposesOnlyCorrelatedExplicitRejections() {
+        val f = ConfigurationFixture(profile = 5)
+        f.name(); f.clock()
+        val rejections = listOf(
+            7 to CompanionActionRejectReason.BUSY,
+            5 to CompanionActionRejectReason.POLICY_DENIED,
+            3 to CompanionActionRejectReason.UNAVAILABLE,
+        )
+        fun rejectedPayload(reason: Int) =
+            byteArrayOf(0x4f, 0x54, 0x52, 0x30, 0, 0, 3, reason.toByte(), 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+        for ((wireReason, reason) in rejections) {
+            assertTrue(f.runtime.submitAction(pairingRequest()))
+            val sent = f.gatt.commands.size
+            f.respond(0x82, rejectedPayload(wireReason))
+            assertEquals(BoardPairingState.Rejected(reason), f.pairingState())
+            assertEquals(sent, f.gatt.commands.size)
+        }
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        f.respond(0x82, rejectedPayload(7), f.last().exchangeId - 1u)
+        assertNull(f.pairingState())
+        assertIs<BleRuntimeState.Failed>(f.runtime.state)
+    }
+
+    @Test fun boardPairingRefusesBusyLaneLegacyAndDisconnectedAndDoesNotRetryOnSilence() {
+        val f = ConfigurationFixture(profile = 5)
+        val count = f.gatt.commands.size
+        assertFalse(f.runtime.submitAction(pairingRequest())) // Automatic configuration owns the lane.
+        assertEquals(count, f.gatt.commands.size)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val sent = f.gatt.commands.size
+        f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS)
+        assertNull(f.pairingState())
+        assertEquals(sent, f.gatt.commands.size)
+        assertFalse(f.runtime.submitAction(pairingRequest()))
+        f.runtime.disconnect()
+        f.pairingResult(CompanionActionDisposition.ADMITTED, stale = true)
+        assertNull(f.pairingState())
+        assertFalse(f.runtime.submitAction(pairingRequest()))
+        assertEquals(sent, f.gatt.commands.size)
+
+        val legacy = ConfigurationFixture(profile = 3)
+        legacy.name(); legacy.clock()
+        val legacyCount = legacy.gatt.commands.size
+        assertNull(legacy.pairingState())
+        assertFalse(legacy.runtime.submitAction(pairingRequest()))
+        assertEquals(legacyCount, legacy.gatt.commands.size)
+    }
+
     @Test fun publicProfileTraversesProtectedRuntimeAndLosesOldIndicationsWithoutRetry() {
         val f=ConfigurationFixture(profile=5);f.name();f.clock()
         fun state()=assertIs<BleRuntimeState.Ready>(f.runtime.state).session.configuration
@@ -2363,9 +2459,14 @@ class BleCompanionRuntimeTest {
             }
         }
         fun last()=checkNotNull(codec.decodeFrame(facade.connections.last().commands.last(),profile,allowProfile06=profile==6))
-        fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId) {
-            facade.connections.last().emit(BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
-                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,nonce,id,payload,profile),allowProfile06=profile==6))))
+        fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId,stale:Boolean=false) {
+            val lease = facade.connections.last()
+            val event = BleGattEvent.StreamIndication(checkNotNull(codec.encodeFrame(
+                io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame(kind,nonce,id,payload,profile),allowProfile06=profile==6)))
+            if (stale) {
+                check(lease.closed)
+                lease.emitStale(event)
+            } else lease.emit(event)
         }
         fun name(value:String="Trail test") {
             assertEquals(4,last().kind)
