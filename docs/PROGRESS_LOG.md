@@ -2,6 +2,10 @@
 
 ## 2026-11-15
 
+### OT-0175a Messaging checklist for Trail issue 158
+
+Closes checklist scope only: [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). See the [acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
+
 ### OT-0005i Start first board pairing from the app (V1 F5 R2b)
 
 Part of [Trail #232](https://github.com/Limited-Underground/Trail/issues/232). The Device tab lets an authorized owner start or join first board pairing. Start generates a six-digit code and Join accepts the same code, including leading zeros. Android sends action 6 with the selected role and code over the existing protected BLE configuration lane, clears the input on send, and shows the two-minute window after admission. A correlated firmware reply distinguishes Busy, Policy Denied and Unavailable. Silence uses the existing timeout with no automatic resend. The owner still compares fingerprints and confirms the pairing on each board.
@@ -25,6 +29,14 @@ The wording does not claim the other board committed; that point came from the R
 ### OT-0176a Location sharing checklist for Trail issue 159
 
 Closes checklist scope only: [Trail #159](https://github.com/Limited-Underground/Trail/issues/159). See the [acceptance checklist](testing/OT-176-LOCATION-SHARING-ACCEPTANCE-CHECKLIST.md). Covers requirements 6 and 7 and records open design/code differences. No design change or device execution; parent and device acceptance remain open.
+
+### OT-0170a Reconnect to the owned board and refresh device status
+
+- I-023: On a cold launch with Nearby Devices already granted, the visible app can recover the user's board using Android's bond inventory and the bounded owned Trail service scan. A unique candidate still has to pass the existing protected claim and snapshot. The temporary binding ends when the app leaves the foreground. No board identity is saved by Trail, and no background service is started on launch.
+- I-023: The first Find device tap requests Nearby Devices. A denial explains how to continue through app settings, and offers another request when Android permits it. The broader wording work remains separate.
+- I-045: The selected board configuration profile reuses its protected status request about every 30 seconds and on foreground return. A single shared command lane guards each request. Stale, contradictory and expired replies leave the displayed status age unchanged.
+
+Offline host validation passed with 111 protocol tests, 631 app tests and 23 Android admission scenario groups. Both unit suites had zero failures, errors or skips. The two-phone and two-board checks remain pending. Scope tracked under [issue #97](https://github.com/Limited-Underground/Trail/issues/97).
 
 ## 2026-11-14
 

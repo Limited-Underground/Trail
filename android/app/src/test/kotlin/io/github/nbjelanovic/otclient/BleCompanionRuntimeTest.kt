@@ -1542,6 +1542,128 @@ class BleCompanionRuntimeTest {
         assertFalse(runtime.synchronizeDisplayTime())
     }
 
+    @Test fun statusRefreshUsesForegroundObservationAndOneProtectedLane() {
+        val f = ConfigurationFixture(profile = 5, withSessionOwner = true)
+        f.name(); f.clock()
+        val count = f.gatt.commands.size
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(count, f.gatt.commands.size)
+
+        val owner = checkNotNull(f.owner)
+        val observation = checkNotNull(owner.observe {})
+        f.scheduler.advanceBy(0)
+        val request = f.last()
+        assertEquals(1, request.kind)
+        assertEquals(f.nonce, request.sessionNonce)
+        assertContentEquals(CompanionSemanticCodec.encodeSnapshotRequest(), request.payload)
+        assertEquals(count + 1, f.gatt.commands.size)
+        assertFalse(f.runtime.readRadioRegion())
+        assertFalse(f.runtime.submitAction(CompanionActionRequest(CompanionActionKind.START_POSITION_SHARING)))
+
+        f.now += 500
+        val original = f.readySession().snapshot
+        val updated = original.copy(revision = original.revision + 1, gnss = CompanionGnssState.CURRENT)
+        f.statusReply(updated)
+        assertEquals(updated, f.readySession().snapshot)
+        assertEquals(f.now, f.readySession().statusReadAtMillis)
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS - 1)
+        assertEquals(count + 1, f.gatt.commands.size)
+        f.scheduler.advanceBy(1)
+        assertEquals(count + 2, f.gatt.commands.size)
+
+        observation.close()
+        f.statusReply(updated)
+        f.scheduler.advanceBy(2 * STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(count + 2, f.gatt.commands.size)
+        val resumed = checkNotNull(owner.observe {})
+        f.scheduler.advanceBy(0)
+        assertEquals(count + 3, f.gatt.commands.size)
+        resumed.close()
+        owner.close()
+    }
+
+    @Test fun statusRefreshWaitsForConfigurationAndNeverPollsAfterDisconnect() {
+        val f = ConfigurationFixture(profile = 5)
+        val count = f.gatt.commands.size
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        assertEquals(count, f.gatt.commands.size)
+        f.name(); f.clock()
+        val configuredCount = f.gatt.commands.size
+        f.scheduler.advanceBy(1_000)
+        assertEquals(configuredCount + 1, f.gatt.commands.size)
+        assertEquals(1, f.last().kind)
+        val oldStatus = checkNotNull(CompanionSemanticCodec.encodeStatusSnapshot(f.readySession().snapshot).value)
+        val lateReply = checkNotNull(f.codec.encodeFrame(CompanionConfigurationFrame(
+            kind = 0x81,
+            sessionNonce = f.nonce,
+            exchangeId = f.last().exchangeId,
+            payload = oldStatus,
+            minorVersion = 5,
+        )))
+        f.runtime.disconnect()
+        f.scheduler.advanceBy(3 * STATUS_REFRESH_INTERVAL_MILLIS)
+        f.gatt.emitStale(BleGattEvent.StreamIndication(lateReply))
+        assertEquals(BleRuntimeState.Idle, f.runtime.state)
+        assertEquals(configuredCount + 1, f.gatt.commands.size)
+    }
+
+    @Test fun statusRefreshRejectsUncorrelatedRegressingContradictoryAndLateReplies() {
+        val f = ConfigurationFixture(profile = 5)
+        f.name(); f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val before = f.readySession()
+        val fresh = before.snapshot.copy(revision = before.snapshot.revision + 1)
+        f.now += 250
+        f.statusReply(fresh, f.last().exchangeId - 1u)
+        f.statusReply(before.snapshot.copy(revision = before.snapshot.revision - 1))
+        f.statusReply(before.snapshot.copy(gnss = CompanionGnssState.UNKNOWN))
+        assertEquals(before.snapshot, f.readySession().snapshot)
+        assertEquals(before.statusReadAtMillis, f.readySession().statusReadAtMillis)
+
+        f.now += ACTION_RESULT_TIMEOUT_MILLIS
+        f.statusReply(fresh)
+        assertEquals(before.statusReadAtMillis, f.readySession().statusReadAtMillis)
+        val count = f.gatt.commands.size
+        f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS)
+        f.statusReply(fresh)
+        assertEquals(before.snapshot, f.readySession().snapshot)
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(count + 1, f.gatt.commands.size)
+        f.statusReply(before.snapshot)
+        assertEquals(f.now, f.readySession().statusReadAtMillis)
+    }
+
+    @Test fun expiredStatusReplyDoesNotInterruptLaterResetRequest() {
+        val f = ConfigurationFixture(profile = 5)
+        f.name(); f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val statusId = f.last().exchangeId
+        val oldStatus = f.readySession().snapshot
+        f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS)
+        assertTrue(f.runtime.submitFactoryReset())
+        assertIs<BleRuntimeState.FactoryResetRequesting>(f.runtime.state)
+        f.statusReply(oldStatus, statusId)
+        assertIs<BleRuntimeState.FactoryResetRequesting>(f.runtime.state)
+        val receipt = checkNotNull(CompanionSemanticCodec.decodeActionRequest(f.last().payload).value)
+            .factoryResetReceipt
+        val result = CompanionActionResult(
+            CompanionActionKind.FACTORY_RESET,
+            factoryResetReceipt = receipt,
+            disposition = CompanionActionDisposition.ADMITTED,
+        )
+        f.respond(0x82, checkNotNull(CompanionSemanticCodec.encodeActionResult(result).value))
+        assertIs<BleRuntimeState.FactoryResetErasing>(f.runtime.state)
+    }
+
+    private fun ConfigurationFixture.readySession() = assertIs<BleRuntimeState.Ready>(runtime.state).session
+
+    private fun ConfigurationFixture.statusReply(snapshot: CompanionStatusSnapshot, exchange: UInt = last().exchangeId) {
+        respond(0x81, checkNotNull(CompanionSemanticCodec.encodeStatusSnapshot(snapshot).value), exchange)
+    }
+
     private fun pairingRequest() = CompanionActionRequest(
         CompanionActionKind.START_ENROLLMENT,
         enrollmentRole = io.github.nbjelanovic.otprotocol.CompanionEnrollmentRole.INITIATOR,

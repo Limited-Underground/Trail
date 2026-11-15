@@ -339,6 +339,116 @@ class ActivityServiceAttachmentTest {
     }
 
     @Test
+    fun coldForegroundBindingUsesOwnedDiscoveryAndProtectedClaimWithoutStartingService() {
+        val service = ServiceGraph()
+        val connector = Connector(service).apply { allowReturningOwner = true }
+        val activity = service.activity(connector)
+        service.enableReturningOwnerBond()
+
+        activity.onLifecycleStart()
+        assertEquals(1, connector.existingRequests)
+        assertEquals(1, connector.returningOwnerBindings)
+        assertEquals(0, service.starts)
+        assertIs<BleRuntimeState.FindingReturningOwner>(bluetooth(activity).runtimeState)
+        assertEquals(ConnectedDeviceServiceUiState.BOUND_ONLY, bluetooth(activity).serviceState)
+        assertTrue(service.facade.scans.isEmpty())
+        val scan = service.facade.returningOwnerScans.single()
+        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertTrue(service.facade.connections.isEmpty())
+        scan.emit(BleScanEvent.Complete)
+        val gatt = service.facade.connections.single()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, gatt.purpose)
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.Failed(BleGattFailure.AUTHORIZATION_REJECTED))
+        assertEquals(
+            BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE,
+            assertIs<BleRuntimeState.Failed>(bluetooth(activity).runtimeState).reason,
+        )
+        assertEquals(1, gatt.closes)
+        assertEquals(0, service.authorization.claims)
+        activity.onLifecycleStop()
+        assertEquals(1, connector.closedBindings)
+        assertEquals(0, service.stops)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
+    fun absentBondOrCompletedScanWithoutOwnedBoardLeavesFirstUseAvailable() {
+        for (bond in listOf(false, true)) {
+            val service = ServiceGraph()
+            val connector = Connector(service).apply { allowReturningOwner = true }
+            val activity = service.activity(connector)
+            service.port.generationOverride = 0L
+            if (bond) service.enableReturningOwnerBond()
+
+            activity.onLifecycleStart()
+            if (bond) service.facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
+            assertEquals(TrailAppUiState.ChooseMode, activity.state)
+            assertEquals(1, connector.returningOwnerBindings)
+            assertEquals(1, connector.closedBindings)
+            assertEquals(0, service.starts)
+            assertEquals(0, service.stops)
+            assertTrue(service.facade.scans.isEmpty())
+            assertTrue(service.facade.connections.isEmpty())
+
+            service.port.generationOverride = null
+            activity.chooseBluetoothDeviceMode()
+            activity.startBluetoothService()
+            assertEquals(1, service.starts)
+            assertEquals(1, connector.startupBindings)
+            activity.close()
+            service.owner.close()
+        }
+    }
+
+    @Test
+    fun delayedReturningOwnerBindingCannotActivateAfterBackgroundOrPermissionRevocation() {
+        for (background in listOf(false, true)) {
+            val service = ServiceGraph()
+            val connector = Connector(service).apply { allowReturningOwner = true; delayed = true }
+            val activity = service.activity(connector)
+            service.enableReturningOwnerBond()
+
+            activity.onLifecycleStart()
+            val pending = connector.callbacks.single()
+            if (background) activity.onLifecycleStop()
+            else service.permissions.value = NearbyDevicesPermissionState.MISSING
+            pending(ConnectedDeviceServiceConnection.Connected(service.port))
+
+            assertEquals(TrailAppUiState.ChooseMode, activity.state)
+            assertEquals(1, connector.closedBindings)
+            assertTrue(service.facade.returningOwnerScans.isEmpty())
+            assertEquals(0, service.starts)
+            assertEquals(0, service.stops)
+            activity.close()
+            service.owner.close()
+        }
+    }
+
+    @Test
+    fun explicitDisconnectDoesNotRestartReturningOwnerOnSameActivityForeground() {
+        val service = ServiceGraph()
+        val connector = Connector(service).apply { allowReturningOwner = true }
+        val activity = service.activity(connector)
+        service.enableReturningOwnerBond()
+
+        activity.onLifecycleStart()
+        assertIs<BleRuntimeState.FindingReturningOwner>(bluetooth(activity).runtimeState)
+        activity.disconnectBluetoothDevice()
+        assertEquals(TrailAppUiState.ChooseMode, activity.state)
+        activity.onLifecycleStop()
+        activity.onLifecycleStart()
+
+        assertEquals(TrailAppUiState.ChooseMode, activity.state)
+        assertEquals(1, connector.returningOwnerBindings)
+        assertEquals(1, service.facade.returningOwnerScans.size)
+        assertEquals(0, service.starts)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
     fun replacementActivityObservesTheSameLiveReadyOwnerWithoutStartingOrClaimingAgain() {
         val service = ServiceGraph()
         val first = service.activity()
@@ -756,6 +866,18 @@ class ActivityServiceAttachmentTest {
             assertIs<BleRuntimeState.Ready>(assertIs<TrailAppUiState.BluetoothDevice>(activity.state).runtimeState)
         }
 
+        fun enableReturningOwnerBond() {
+            port.generationOverride = 0L
+            port.returningOwnerActivation = {
+                runtime.onLifecycleStop()
+                facade.allowReturningOwnerScan = true
+                port.boundOnly = true
+                runtime.onLifecycleStart()
+                port.generationOverride = null
+                true
+            }
+        }
+
         fun operationCounts() = listOf(starts, stops, counted.scans, counted.claims,
             counted.disconnects, counted.closes, facade.scans.size, facade.connections.size,
             authorization.claims, facade.connections.sumOf { it.closes })
@@ -778,9 +900,14 @@ class ActivityServiceAttachmentTest {
         var generationOverride: Long? = null
         var duringClose: (() -> Unit)? = null
         var afterObserve: (() -> Unit)? = null
+        var returningOwnerActivation: (() -> Boolean)? = null
         var deadGeneration = false
+        override fun activateReturningOwner(): Boolean = returningOwnerActivation?.invoke() == true
         override val generation get() = if (deadGeneration) error("host dead binder") else generationOverride ?: owner.generation
-        override val state get() = owner.state
+        var boundOnly = false
+        override val state get() = if (boundOnly) owner.state.copy(
+            serviceState = ConnectedDeviceServiceUiState.BOUND_ONLY,
+        ) else owner.state
         override fun observe(observer: (TrailAppUiState.BluetoothDevice) -> Unit): ConnectedDeviceStateObservation? {
             callbacks += observer
             if (observeMode == "null") return null
@@ -804,6 +931,13 @@ class ActivityServiceAttachmentTest {
         var closedBindings = 0
         var bindMode = "normal"
         var acceptPendingWithoutOwner = false
+        var allowReturningOwner = false
+        var returningOwnerBindings = 0
+        override fun bindForReturningOwner(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? {
+            if (!allowReturningOwner) return null
+            returningOwnerBindings++
+            return lease(observer)
+        }
         override fun startFromVisibleUserAction(): ConnectedDeviceServiceStartFailure? {
             service.starts++; service.running = true; return null
         }
@@ -859,11 +993,15 @@ class ActivityServiceAttachmentTest {
 
     private class Facade : AndroidBluetoothFacade, AutoCloseable {
         val scans = mutableListOf<Scan>()
+        val returningOwnerScans = mutableListOf<Scan>()
         val connections = mutableListOf<Gatt>()
+        var allowReturningOwnerScan = false
         override fun preflight() = BlePreflight()
         override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease = Scan(observer).also(scans::add)
+        override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
+            if (allowReturningOwnerScan) Scan(observer).also(returningOwnerScans::add) else null
         override fun createConnection(endpointToken: String, purpose: BleConnectionPurpose,
-            observer: (BleGattEvent) -> Unit): BleGattLease = Gatt(observer).also(connections::add)
+            observer: (BleGattEvent) -> Unit): BleGattLease = Gatt(purpose, observer).also(connections::add)
         override fun close() = Unit
     }
 
@@ -873,7 +1011,7 @@ class ActivityServiceAttachmentTest {
         fun emit(event: BleScanEvent) = observer(event)
     }
 
-    private class Gatt(private val observer: (BleGattEvent) -> Unit) : BleGattLease {
+    private class Gatt(val purpose: BleConnectionPurpose, private val observer: (BleGattEvent) -> Unit) : BleGattLease {
         var closes = 0
         override fun start() = true
         override fun requestMtu(mtu: Int) = true

@@ -28,6 +28,10 @@ class AndroidConnectedDeviceServiceConnector(private val context: Context) : Con
         }
     }
 
+    override fun bindForReturningOwner(
+        observer: (ConnectedDeviceServiceConnection) -> Unit,
+    ): ConnectedDeviceServiceBinding? = bindWithFlags(Context.BIND_AUTO_CREATE, observer)
+
     override fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? =
         bindWithFlags(Context.BIND_AUTO_CREATE, observer)
 

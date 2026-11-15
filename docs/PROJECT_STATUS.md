@@ -7,6 +7,15 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Android reconnect and status refresh
+
+The local OT-0170a topic lets a visible app attach to an existing owner or
+recover a bonded board through the same protected claim and initial snapshot.
+First-use Nearby Devices permission now follows the Find device tap. The
+selected board profile refreshes status while the app is visible and shows the
+age of the last accepted read. This is a host candidate awaiting publication
+and phone verification. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-reconnect-to-the-owned-board-and-refresh-device-status).
+
 ## Heltec V4 factory reset fixes
 
 On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
@@ -789,6 +798,8 @@ unsigned. Physical fresh post-reset behavior of the latest navigation marker and
 normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
+
+The [OT-0175a acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md) covers [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
 
 The durable invitation authority is now integrated with isolated target NVS and
 trusted startup. The [actual target host proof](testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md)
