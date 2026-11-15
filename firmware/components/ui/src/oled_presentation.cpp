@@ -154,6 +154,21 @@ void pixels(Frame& frame) {
 
 }  // namespace
 
+void draw_text_row(std::array<std::uint8_t, kWidth * kHeight / 8>& pixels,
+                   std::size_t row, std::string_view text) {
+    if (row >= kRows) return;
+    for (std::size_t x = 0; x < kWidth; ++x) pixels[row * kWidth + x] = 0;
+    const bool clip = text.size() > kCharacters;
+    const std::size_t count = clip ? kCharacters : text.size();
+    for (std::size_t cell = 0; cell < count; ++cell) {
+        const char value = clip && cell == kCharacters - 1 ? '~' : sanitized(text[cell]);
+        const auto glyph = glyph_for(value);
+        for (std::size_t column = 0; column < kGlyphWidth; ++column) {
+            pixels[row * kWidth + cell * kGlyphAdvance + column] = glyph[column];
+        }
+    }
+}
+
 Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
     Frame frame{};
     if (snapshot.failure) {

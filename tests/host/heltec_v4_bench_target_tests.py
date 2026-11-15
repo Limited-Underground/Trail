@@ -1512,13 +1512,22 @@ def test_display_surface() -> None:
     presentation = (TARGET / "main" / "heltec_oled_presentation.cpp").read_text(encoding="utf-8")
     render = adapter.split("bool HeltecV4Oled::render(const StartupDisplayView& view)", 1)[1].split(
         "bool HeltecV4Oled::render_pairing_pin", 1)[0]
-    require("kTrailStartupLogoSsd1306.data()" in render and
+    # D-081: the logo is drawn from a copy whose blank bottom row (row 7) carries
+    # the firmware version; the artwork itself is not altered.
+    require("auto logo = kTrailStartupLogoSsd1306;" in render and
+            "logo, ui::oled_presentation::kRows - 1," in render and
+            "kDisplayHeight, logo.data());" in render and
             "if (view.frame == StartupDisplayFrame::logo)" in render and
             "presentation_.present(view, now_ms," in render and "frame.pixels.data()" in render and
             "configuration_name_.data()" in render and "configuration_clock_" in render and
             "auto pixels" not in render and
             "HeltecOledPresentation presentation_{}" in adapter_header,
             "non-logo panel frames must use the tested presentation mapper while preserving the logo")
+    # D-081: the version row only works while the logo leaves page 7 blank.
+    logo_source = (TARGET / "main" / "trail_startup_logo.hpp").read_text(encoding="utf-8")
+    logo_bytes = [int(v, 16) for v in re.findall(r"0x([0-9A-Fa-f]{2})", logo_source)][-1024:]
+    require(len(logo_bytes) == 1024 and not any(logo_bytes[7 * 128:]),
+            "startup logo must keep its bottom row blank for the firmware version (D-081)")
     time_gate = adapter.split("bool HeltecV4Oled::admit_display_time", 1)[1].split(
         "bool HeltecV4Oled::initialize", 1)[0]
     pairing_render = adapter.split("bool HeltecV4Oled::render_pairing_pin", 1)[1].split(

@@ -2,6 +2,12 @@
 
 ## 2026-11-15
 
+### OT-0178a Show the firmware version on the startup screen
+
+Owner decision D-081. The Heltec V4 startup screen now shows the firmware version on the bottom row of the Trail logo, which the artwork leaves blank. The text is "FW <version>", with "FW R<n> <version>" for a Firmware Loader release. It is the same version the boot log reports (`esp_app_get_description()`), for example "FW C486A42A-DIRTY" for a development build from uncommitted changes.
+
+New `draw_text_row` in the OLED presentation component draws one sanitized row, clipping long text with "~". `oled_presentation_tests` grows to 9 groups. The bench target admission now pins the logo-copy drawing and checks that the logo's bottom row stays blank. Builds: default 606,464 bytes, link test 808,672 bytes, no warnings. Showing the version in the app may wait until after V1 (D-081).
+
 ### OT-0005i Show board pairing on the screen (V1 F5, step R2a)
 
 The board's normal screen now shows the pairing state in place of the group/location row:

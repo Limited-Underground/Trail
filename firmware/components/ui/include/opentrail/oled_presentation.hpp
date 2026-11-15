@@ -86,6 +86,12 @@ struct Frame {
 // normal consumers use PresentationOwner to contain rollback across calls.
 [[nodiscard]] Frame render(const Snapshot& snapshot, std::uint64_t now_ms);
 
+// Draws one text row into an SSD1306 page-major 128x64 bitmap, clearing that
+// row first. Text is sanitized like every other row; text longer than one row
+// ends in '~'. Used for the startup screen's firmware version line (D-081).
+void draw_text_row(std::array<std::uint8_t, kWidth * kHeight / 8>& pixels,
+                   std::size_t row, std::string_view text);
+
 /** Retains only monotonic-time admission, never snapshots, labels or pairing digits. */
 class PresentationOwner {
 public:

@@ -131,6 +131,28 @@ void board_pairing_line() {
     auto r=s;r.reset_confirmation=true;f=render(r,1000);CHECK(f.surface==Surface::reset_confirmation);CHECK(!has(f,"PAIRING"));
     auto u=Snapshot{};u.board_pairing=BoardPairing::in_progress;f=render(u,1000);CHECK(f.surface==Surface::region_required);
 }
+// D-081: the startup screen draws the firmware version on one row of the logo.
+void firmware_text_row() {
+    std::array<std::uint8_t,kWidth*kHeight/8> pixels{};
+    for(std::size_t i=0;i<7*kWidth;++i) pixels[i]=0x5a;   // rows 0-6: stand-in artwork
+    for(std::size_t i=7*kWidth;i<8*kWidth;++i) pixels[i]=0xff;  // row 7 dirty: must be cleared
+    draw_text_row(pixels,7,"FW c486a42");
+    bool art_kept=true;for(std::size_t i=0;i<7*kWidth;++i) art_kept=art_kept&&pixels[i]==0x5a;CHECK(art_kept);
+    std::size_t lit=0;bool high_bit=false;bool tail_blank=true;
+    for(std::size_t x=0;x<kWidth;++x){const auto v=pixels[7*kWidth+x];if(v)++lit;if(v&0x80)high_bit=true;if(x>=125&&v)tail_blank=false;}
+    CHECK(lit>0);CHECK(!high_bit);CHECK(tail_blank);
+    // Lowercase is shown uppercase: same pixels as the uppercase text.
+    std::array<std::uint8_t,kWidth*kHeight/8> upper{};draw_text_row(upper,7,"FW C486A42");
+    CHECK(std::equal(upper.begin()+7*kWidth,upper.end(),pixels.begin()+7*kWidth));
+    // Too long: clipped to one row, last cell '~'.
+    std::array<std::uint8_t,kWidth*kHeight/8> longer{},tilde{};
+    draw_text_row(longer,7,"FW 0123456789ABCDEFGHIJKLMNOP");
+    draw_text_row(tilde,7,"~");
+    CHECK(std::equal(tilde.begin()+7*kWidth,tilde.begin()+7*kWidth+5,longer.begin()+7*kWidth+20*6));
+    for(std::size_t x=125;x<kWidth;++x) CHECK(longer[7*kWidth+x]==0);
+    // Out-of-range row changes nothing.
+    auto before=pixels;draw_text_row(pixels,8,"X");CHECK(before==pixels);
+}
 void write_pbm(const Frame& f,const std::string& path) {
     std::ofstream o(path);o<<"P1\n128 64\n";
     for(std::size_t y=0;y<64;++y) {for(std::size_t x=0;x<128;++x)o<<((f.pixels[(y/8)*128+x]>>(y%8))&1)<<' ';o<<'\n';}
@@ -140,6 +162,7 @@ int main(int argc,char**argv) {
     priority_and_concealment();rollback_containment();region_and_unknown_authority();metric_and_activity_edges();sanitization_and_pixel_bounds();clock_composition();
     unconfigured_region_preserves_independent_settings();
     board_pairing_line();
+    firmware_text_row();
     if(failures) return EXIT_FAILURE;
     if(argc==2) {
         auto s=normal();s.phone=PhoneState::ready;s.group=GroupState::administrator;s.location_available=true;s.location_on=true;
@@ -152,6 +175,6 @@ int main(int argc,char**argv) {
         Snapshot unconfigured;unconfigured.device_name="Bench One";unconfigured.clock=clock.observe(1000);
         write_pbm(render(unconfigured,1000),dir+"/region-name-time.pbm");
     }
-    std::cout<<"PASS: 8 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition, unconfigured region, board pairing)\n";
+    std::cout<<"PASS: 9 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition, unconfigured region, board pairing, firmware row)\n";
     return failures?EXIT_FAILURE:EXIT_SUCCESS;
 }
