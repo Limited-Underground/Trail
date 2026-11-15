@@ -83,14 +83,15 @@ Coordinator rules this implies:
 - A board repeats its last frame until the next expected frame arrives, within the D-078 limits.
 - Everything is bounded by the 120 s request window, which the phone connection must hold.
 
-## Slice 5 storage (finding, 2026-11-14)
+## Slice 5 storage (corrected 2026-11-14)
 
-The evaluation target stored the session's journal, binding, boot and generation records in a dedicated `ot238_nvs` partition. The product partition table (`heltec_v4_bench/partitions.csv`) has no free space, and changing it would affect every board's layout and the Loader's target record.
+An earlier note here said the pairing stores could use `ot_state` like the confirmation evaluation. That was wrong:
+- `ConfirmationNvsBackend` opens namespaces in the **default** NVS partition; its `ot_state` argument is only a label check.
+- Nothing in the product writes the raw `ot_state` partition. Factory reset erases it, along with the `ot_v1_owner`, `ot_name_v1`, `ot_region_v1` and `ot_identity_v1` namespaces.
 
-The product already has a home that needs no layout change:
-- the `ot_state` partition (1 MB, application type 0x40);
-- the product key-value layer on it (`persistent_storage_kv.hpp`);
-- factory reset already erases the whole raw `ot_state` partition;
-- the bench confirmation evaluation build already keeps enrollment-session storage there (`confirmation_nvs_backend.hpp`, `confirmation_evaluation_backend.cpp`).
+Budget, from the evaluation target's own constants (`candidate_nvs_storage.hpp`): 37 fixed slots plus 7 per generation (capacity 2), at 4 NVS entries per 64-byte slot, comes to 204 entries. The default NVS (12 KB) has about 252 usable entries in total, already shared with the Bluetooth bond, owner record, name, region and the board identity (10 slots, about 40 entries). The pairing stores do not fit there.
 
-The board identity stays where it is today (default `nvs`, `EnrollmentIdentityNvsStorage`, invalidated by reset). Slice 5 reuses this pattern for the pairing stores.
+Options (owner decision):
+- A. A dedicated pairing NVS partition, taken from the unused end of `ota_1`. The bench app never uses OTA. This reuses the board-tested evaluation storage design, and factory reset gains one partition. It changes the partition table: both boards need one full reflash, and the Loader's layout checks follow Trail's `partitions.csv`.
+- B. New crash-safe storage over raw flash in `ot_state`. No layout change, but it is new security-critical code.
+- C. Default NVS. Does not fit.
