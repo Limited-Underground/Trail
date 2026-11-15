@@ -87,6 +87,12 @@ class BleStackAdmissionTests(unittest.TestCase):
                          ("8192", "8192"))
         self.assertEqual((evaluation[HOST], evaluation["CONFIG_ESP_MAIN_TASK_STACK_SIZE"]),
                          ("8192", "24576"))
+        # I-051: board pairing in link-test builds needs the same main-task budget.
+        link_test = config(TARGET / "sdkconfig.lora-link-test.defaults")
+        self.assertEqual(link_test, {"CONFIG_ESP_MAIN_TASK_STACK_SIZE": "24576"})
+        cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("sdkconfig.lora-link-test.defaults", cmake)
+        self.assertIn("CONFIG_ESP_MAIN_TASK_STACK_SIZE LESS 24576", cmake)
 
     @unittest.skipUnless(AUDIT_ARTIFACTS, "private retained-build audit not requested")
     def test_seed_changes_only_the_three_host_stack_names(self):

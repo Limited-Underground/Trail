@@ -81,7 +81,8 @@ void prepare_release_line() {
                   running_app_offset());
 }
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
-constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
+// D-088: long enough to read the firmware version on the logo (D-081).
+constexpr std::uint32_t kMinimumLogoPeriodMs = 5000;
 constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
 constexpr std::uint64_t kBatteryFreshForMs = 60'000;
 constexpr std::uint64_t kGnssFreshForMs = 5'000;
