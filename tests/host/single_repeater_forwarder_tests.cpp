@@ -395,6 +395,55 @@ void test_gate_uncertainty_reentry_and_input_snapshots() {
     }
 }
 
+// OP v1 fixture: max-size invitation part and its separate signature.
+// Framing matches Trail's pairing_frame.hpp at c486a42a; payloads are synthetic.
+// The repeated public code supplies no authority or duplicate identity.
+void test_pairing_shaped_bytes_require_authority_and_keep_original_fifo_age() {
+    std::array<std::uint8_t, 194> invitation{};
+    std::array<std::uint8_t, 70> signature{};
+    const std::array<std::uint8_t, 6> invite_header{'O', 'P', 0x15, 0x40, 0xE2, 0x01};
+    auto signature_header = invite_header;
+    signature_header[2] = 0x16;
+    for (std::size_t i = 0; i < invitation.size(); ++i) {
+        invitation[i] = i < invite_header.size() ? invite_header[i] :
+            static_cast<std::uint8_t>(i * 37U);
+    }
+    for (std::size_t i = 0; i < signature.size(); ++i) {
+        signature[i] = i < signature_header.size() ? signature_header[i] :
+            static_cast<std::uint8_t>(i * 13U);
+    }
+    const auto original_signature = signature;
+    DuplicateWindow window{10000};
+    SingleRepeaterForwarder owner{kRepeater, kGroupContext, kEpoch, policy(2), window};
+
+    auto untrusted = metadata(201);
+    untrusted.source_authenticated = false;
+    const auto refused = owner.process(untrusted, {invitation.data(), invitation.size()}, 10);
+    EXPECT(refused.disposition == SingleRepeaterDisposition::source_authentication_required);
+    EXPECT(!refused.replay_state_changed && owner.status().queue_depth == 0);
+
+    // Synthetic authority is supplied by the harness, never derived from either payload.
+    EXPECT(owner.process(metadata(201), {invitation.data(), invitation.size()}, 11).queued);
+    EXPECT(owner.process(metadata(202), {signature.data(), signature.size()}, 50).queued);
+    EXPECT(owner.process(metadata(201), {invitation.data(), invitation.size()}, 100).disposition ==
+           SingleRepeaterDisposition::duplicate);
+    const auto full = owner.process(metadata(203), {frame.data(), frame.size()}, 101);
+    EXPECT(full.disposition == SingleRepeaterDisposition::queue_full);
+    EXPECT(!full.queued && full.replay_state_changed && owner.status().queue_depth == 2);
+
+    signature.fill(0);
+    const auto output = owner.next_forward(111);  // invitation expires at its original age
+    EXPECT(output.has_frame && output.frame.size == original_signature.size());
+    EXPECT(output.provenance.metadata.message_id == 202);
+    EXPECT(output.provenance.enqueued_at_ms == 50);
+    for (std::size_t i = 0; i < original_signature.size(); ++i) {
+        EXPECT(output.frame.bytes[i] == original_signature[i]);
+    }
+    EXPECT(!owner.next_forward(112).has_frame);
+    EXPECT(owner.process(metadata(203), {frame.data(), frame.size()}, 113).disposition ==
+           SingleRepeaterDisposition::duplicate);
+}
+
 }  // namespace
 
 int main() {
@@ -410,11 +459,12 @@ int main() {
     test_original_provenance_and_expiry_only_service();
     test_gate_order_and_conservative_denied_observations();
     test_gate_uncertainty_reentry_and_input_snapshots();
+    test_pairing_shaped_bytes_require_authority_and_keep_original_fifo_age();
     if (failures != 0) {
         std::cerr << failures
                   << " single-repeater forwarder assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 immutable single-repeater scenario groups (9 legacy + A1-A3)\n";
+    std::cout << "PASS: 13 immutable single-repeater scenario groups (9 legacy + A1-A3 + F5 framing custody)\n";
     return EXIT_SUCCESS;
 }
