@@ -108,6 +108,11 @@ constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
 HeltecV4SecureRandom g_board_pairing_random;
 opentrail::target::heltec_v4_bench::BoardPairingRuntime g_board_pairing{
     g_factory_reset_input, g_board_pairing_random};
+// Screen line: shown while pairing, and for a minute after it ends.
+opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase g_board_pairing_last_phase{
+    opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase::idle};
+std::uint64_t g_board_pairing_changed_ms{0};
+constexpr std::uint64_t kBoardPairingShownMs = 60000;
 
 // Board tag for the link test: the low four bytes of the factory MAC.
 std::uint32_t lora_link_test_tag() {
@@ -582,6 +587,21 @@ extern "C" void app_main() {
                          static_cast<unsigned>(pairing_out[2] & 0x0f),
                          static_cast<unsigned>(pairing_size),
                          static_cast<unsigned>(accepted));
+            }
+            {
+                using PairingPhase = opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase;
+                using PairingLine = opentrail::ui::oled_presentation::BoardPairing;
+                const auto phase = g_board_pairing.phase();
+                if (phase != g_board_pairing_last_phase) {
+                    g_board_pairing_last_phase = phase;
+                    g_board_pairing_changed_ms = elapsed_ms;
+                }
+                const bool recent = elapsed_ms - g_board_pairing_changed_ms < kBoardPairingShownMs;
+                g_oled_port.set_board_pairing(
+                    phase == PairingPhase::running ? PairingLine::in_progress :
+                    phase == PairingPhase::paired && recent ? PairingLine::paired_here :
+                    phase == PairingPhase::failed && recent ? PairingLine::failed :
+                    PairingLine::none);
             }
             std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
             const auto got = g_lora.receive({rx.data(), rx.size()});

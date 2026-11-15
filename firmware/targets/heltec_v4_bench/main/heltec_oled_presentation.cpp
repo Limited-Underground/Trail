@@ -5,11 +5,13 @@ namespace opentrail::target::heltec_v4_bench {
 
 ui::oled_presentation::Frame HeltecOledPresentation::present(
     const StartupDisplayView& view, std::uint64_t now_ms,
-    std::string_view name, time::OledClockReading clock, std::uint16_t region_selection) {
+    std::string_view name, time::OledClockReading clock, std::uint16_t region_selection,
+    ui::oled_presentation::BoardPairing board_pairing) {
     using ui::oled_presentation::PhoneState;
     ui::oled_presentation::Snapshot snapshot{};
     snapshot.device_name = name;
     snapshot.clock = clock;
+    snapshot.board_pairing = board_pairing;
     using ui::compact_status_footer::GpsFixCode;
     using ui::compact_status_footer::ObservationState;
     const auto& battery = view.battery_percent;

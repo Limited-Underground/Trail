@@ -118,6 +118,19 @@ void unconfigured_region_preserves_independent_settings() {
     f=render(s,86'400'010);
     CHECK(f.surface==Surface::reset_confirmation && !has(f,"BENCH ONE") && !has(f,"TIME"));
 }
+// V1 F5 R2a: board pairing replaces the group/location row on the normal
+// screen and never claims the other board committed.
+void board_pairing_line() {
+    auto s=normal();s.group=GroupState::administrator;s.location_available=true;s.location_on=true;
+    auto f=render(s,1000);bounds(f);CHECK(row(f,2)=="GROUP ADMIN LOC ON" || row(f,2).rfind("GROUP ",0)==0);
+    s.board_pairing=BoardPairing::in_progress;f=render(s,1000);bounds(f);
+    CHECK(f.surface==Surface::normal);CHECK(row(f,2)=="PAIRING...");CHECK(!has(f,"GROUP"));
+    s.board_pairing=BoardPairing::paired_here;f=render(s,1000);bounds(f);CHECK(row(f,2)=="PAIRED - THIS BOARD");
+    s.board_pairing=BoardPairing::failed;f=render(s,1000);bounds(f);CHECK(row(f,2)=="PAIRING FAILED");
+    // Exclusive surfaces keep priority over the pairing line.
+    auto r=s;r.reset_confirmation=true;f=render(r,1000);CHECK(f.surface==Surface::reset_confirmation);CHECK(!has(f,"PAIRING"));
+    auto u=Snapshot{};u.board_pairing=BoardPairing::in_progress;f=render(u,1000);CHECK(f.surface==Surface::region_required);
+}
 void write_pbm(const Frame& f,const std::string& path) {
     std::ofstream o(path);o<<"P1\n128 64\n";
     for(std::size_t y=0;y<64;++y) {for(std::size_t x=0;x<128;++x)o<<((f.pixels[(y/8)*128+x]>>(y%8))&1)<<' ';o<<'\n';}
@@ -126,6 +139,7 @@ void write_pbm(const Frame& f,const std::string& path) {
 int main(int argc,char**argv) {
     priority_and_concealment();rollback_containment();region_and_unknown_authority();metric_and_activity_edges();sanitization_and_pixel_bounds();clock_composition();
     unconfigured_region_preserves_independent_settings();
+    board_pairing_line();
     if(failures) return EXIT_FAILURE;
     if(argc==2) {
         auto s=normal();s.phone=PhoneState::ready;s.group=GroupState::administrator;s.location_available=true;s.location_on=true;
@@ -138,6 +152,6 @@ int main(int argc,char**argv) {
         Snapshot unconfigured;unconfigured.device_name="Bench One";unconfigured.clock=clock.observe(1000);
         write_pbm(render(unconfigured,1000),dir+"/region-name-time.pbm");
     }
-    std::cout<<"PASS: 7 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition, unconfigured region)\n";
+    std::cout<<"PASS: 8 OLED presentation groups (priority/expiry, authority, freshness, byte/pixel bounds, clock composition, unconfigured region, board pairing)\n";
     return failures?EXIT_FAILURE:EXIT_SUCCESS;
 }

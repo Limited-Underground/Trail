@@ -54,6 +54,12 @@ public:
         configuration_region_ = region_selection;
     }
 
+    // App-owner task only (V1 F5 R2a): the board pairing line on the normal screen.
+    void set_board_pairing(ui::oled_presentation::BoardPairing state) {
+        configuration_dirty_ = configuration_dirty_ || state != board_pairing_;
+        board_pairing_ = state;
+    }
+
 private:
     [[nodiscard]] bool record_failure(const char* step, int error_code);
     [[nodiscard]] bool admit_display_time(std::uint64_t& now_ms);
@@ -63,6 +69,7 @@ private:
     std::size_t configuration_name_bytes_{0};
     time::OledClockReading configuration_clock_{};
     std::uint16_t configuration_region_{0};
+    ui::oled_presentation::BoardPairing board_pairing_{ui::oled_presentation::BoardPairing::none};
     bool configuration_dirty_{false};
     i2c_master_bus_handle_t bus_{nullptr};
     esp_lcd_panel_io_handle_t io_{nullptr};
