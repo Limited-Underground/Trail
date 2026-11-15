@@ -2,6 +2,25 @@
 
 ## 2026-11-15
 
+### OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)
+
+First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boards A and B): both boards started pairing from the phones, exchanged pairing frames over LoRa in both directions and showed the review pages. Board A then stopped with `A stack overflow in task main has been detected` and rebooted; board B's main task fell to 1,520 free bytes. Board pairing runs the Noise session on the 8,192-byte main task; the confirmation evaluation, which runs the same session crypto, already used 24,576.
+
+- Link-test builds (the only builds with board pairing) now add `sdkconfig.lora-link-test.defaults`: main task stack 24,576 bytes. CMake refuses a link-test build whose resolved stack is smaller, because an existing `sdkconfig` overrides the defaults; build with `-DSDKCONFIG=<build dir>/sdkconfig`. Normal builds keep 8,192.
+- The startup logo, with the firmware version (D-081), now stays at least 5 s instead of 1.2 s (owner decision D-088), counted from when the logo is on screen rather than from app entry (independent audit finding). Urgent screens (phone PIN, reset, faults) still replace it at once.
+
+Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
+
+### OT-0170a Recover the owned board session and retain the pairing code
+
+Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The 2026-11-15 Note20 session exposed two returning-owner defects and a pairing display defect:
+
+- I-050: When Android accepts the noncreating service bind but supplies no callback, the Activity releases that binding after one second and tries the existing foreground-only owned-board route. A current service callback cancels the deadline.
+- I-050: After a returning-owner link failure, Scan again uses the bonded owned-board scan and a fresh protected claim. Logcat showed advertisements from the same board during both failed retries and the later successful connection after restart. The old retry was looking for an unowned setup advertisement.
+- I-052: The initiator's six-digit code remains visible while the Device panel waits for the board and during the admitted window. It is held in memory and is cleared on refusal, expiry or panel dismissal. The board still owns the confirmation and result.
+
+The four focused regressions failed on the unchanged base. Post-fix validation is recorded in the task report. The candidate has not been tested on phones.
+
 ### OT-0178a Show the MeshTrail name on the board (D-089)
 
 Owner decision D-089 renames the product to Limited Underground MeshTrail. On the Heltec V4:

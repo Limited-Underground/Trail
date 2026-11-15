@@ -326,6 +326,8 @@ def test_contract() -> None:
         "main/confirmation_nvs_backend.hpp",
         "main/confirmation_runtime_guard.hpp",
         "sdkconfig.confirmation-eval.defaults",
+        # I-051: link-test builds (board pairing) use the evaluation main-task stack.
+        "sdkconfig.lora-link-test.defaults",
         "sdkconfig.defaults",
         "target-contract.json",
         # V1 F5 step R1: product LoRa transport and the opt-in bench link test.
@@ -1666,8 +1668,11 @@ def test_display_surface() -> None:
     require(display_start < self_check_start < pass_log < runtime_start <
             runtime_service < typed_status,
             "logo, self-check, runtime, and typed status order changed")
-    require("kMinimumLogoPeriodMs = 1200" in source and
-            "render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
+    require("kMinimumLogoPeriodMs = 5000" in source and
+            "render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs" in source and
+            source.index("observe_display_result(g_startup_display.start())") <
+            source.index("const auto logo_shown_at_ms =") and
+            "boot_started_at_ms" not in source,
             "startup logo must remain visible before typed BLE status replaces it")
     require("startup display unavailable; runtime continues" in source,
             "display failure must explicitly preserve runtime progress")

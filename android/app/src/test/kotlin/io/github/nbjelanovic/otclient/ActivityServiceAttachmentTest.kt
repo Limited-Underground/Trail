@@ -339,6 +339,84 @@ class ActivityServiceAttachmentTest {
     }
 
     @Test
+    fun silentAcceptedExistingBindFallsBackToOwnedDiscoveryAtDeadline() {
+        val service = ServiceGraph()
+        val connector = Connector(service).apply {
+            allowReturningOwner = true
+            acceptSilentExistingWithoutOwner = true
+        }
+        val activity = service.activity(connector)
+        service.enableReturningOwnerBond()
+
+        activity.onLifecycleStart()
+        assertEquals(1, connector.existingRequests)
+        assertEquals(0, connector.returningOwnerBindings)
+        val oldCallback = connector.callbacks.single()
+        assertEquals(TrailAppUiState.ChooseMode, activity.state)
+
+        service.scheduler.callbacks.toList().forEach { it() }
+
+        assertEquals(1, connector.closedBindings)
+        assertEquals(1, connector.returningOwnerBindings)
+        assertEquals(1, service.facade.returningOwnerScans.size)
+        assertIs<BleRuntimeState.FindingReturningOwner>(bluetooth(activity).runtimeState)
+        assertEquals(0, service.starts)
+        assertEquals(0, service.stops)
+        oldCallback(ConnectedDeviceServiceConnection.Disconnected)
+        assertIs<BleRuntimeState.FindingReturningOwner>(bluetooth(activity).runtimeState)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
+    fun existingAttachmentDeadlineCannotReplaceAConnectedOwner() {
+        val service = returningService()
+        val ready = assertIs<BleRuntimeState.Ready>(service.owner.state.runtimeState)
+        val before = service.operationCounts()
+        val connector = Connector(service).apply { delayed = true; allowReturningOwner = true }
+        val activity = service.activity(connector)
+        activity.onLifecycleStart()
+        val deadline = service.scheduler.callbacks.last()
+        connector.callbacks.single()(ConnectedDeviceServiceConnection.Connected(service.port))
+
+        deadline()
+
+        assertSame(ready.session, assertIs<BleRuntimeState.Ready>(bluetooth(activity).runtimeState).session)
+        assertEquals(before, service.operationCounts())
+        assertEquals(0, connector.returningOwnerBindings)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
+    fun silentExistingDeadlineCannotStartAfterBackgroundOrPermissionLoss() {
+        for (background in listOf(false, true)) {
+            val service = ServiceGraph()
+            val connector = Connector(service).apply {
+                allowReturningOwner = true
+                acceptSilentExistingWithoutOwner = true
+            }
+            val activity = service.activity(connector)
+            service.enableReturningOwnerBond()
+            activity.onLifecycleStart()
+            val deadline = service.scheduler.callbacks.single()
+            if (background) activity.onLifecycleStop()
+            else service.permissions.value = NearbyDevicesPermissionState.MISSING
+
+            deadline()
+
+            assertEquals(TrailAppUiState.ChooseMode, activity.state)
+            assertEquals(1, connector.closedBindings)
+            assertEquals(0, connector.returningOwnerBindings)
+            assertTrue(service.facade.returningOwnerScans.isEmpty())
+            assertEquals(0, service.starts)
+            assertEquals(0, service.stops)
+            activity.close()
+            service.owner.close()
+        }
+    }
+
+    @Test
     fun coldForegroundBindingUsesOwnedDiscoveryAndProtectedClaimWithoutStartingService() {
         val service = ServiceGraph()
         val connector = Connector(service).apply { allowReturningOwner = true }
@@ -931,6 +1009,7 @@ class ActivityServiceAttachmentTest {
         var closedBindings = 0
         var bindMode = "normal"
         var acceptPendingWithoutOwner = false
+        var acceptSilentExistingWithoutOwner = false
         var allowReturningOwner = false
         var returningOwnerBindings = 0
         override fun bindForReturningOwner(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? {
@@ -948,7 +1027,9 @@ class ActivityServiceAttachmentTest {
         override fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? {
             existingRequests++
             if (throwBind || bindMode == "throw") error("host binding failure")
-            if ((!service.running && !acceptPendingWithoutOwner) || reject || bindMode == "null") return null
+            if (reject || bindMode == "null") return null
+            if (!service.running && acceptSilentExistingWithoutOwner) return lease(observer, waitForCallback = true)
+            if (!service.running && !acceptPendingWithoutOwner) return null
             if (bindMode == "callback-then-null" || bindMode == "callback-then-throw") {
                 callbacks += observer
                 observer(ConnectedDeviceServiceConnection.Connected(service.port))
@@ -957,9 +1038,12 @@ class ActivityServiceAttachmentTest {
             }
             return lease(observer)
         }
-        private fun lease(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding {
+        private fun lease(
+            observer: (ConnectedDeviceServiceConnection) -> Unit,
+            waitForCallback: Boolean = delayed,
+        ): ConnectedDeviceServiceBinding {
             callbacks += observer
-            if (!delayed) observer(if (bindMode == "disconnected") ConnectedDeviceServiceConnection.Disconnected
+            if (!waitForCallback) observer(if (bindMode == "disconnected") ConnectedDeviceServiceConnection.Disconnected
                 else ConnectedDeviceServiceConnection.Connected(service.port))
             return object : ConnectedDeviceServiceBinding {
                 var closed = false

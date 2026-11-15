@@ -13,8 +13,11 @@ The local OT-0170a topic lets a visible app attach to an existing owner or
 recover a bonded board through the same protected claim and initial snapshot.
 First-use Nearby Devices permission now follows the Find device tap. The
 selected board profile refreshes status while the app is visible and shows the
-age of the last accepted read. This is a host candidate awaiting publication
-and phone verification. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-reconnect-to-the-owned-board-and-refresh-device-status).
+age of the last accepted read. These changes were on the November 15 bench build.
+That session exposed I-050 and I-052. The local correction bounds a silent service
+bind, retries the owned board after a link failure, and keeps the initiator's code
+visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
+The correction still needs phone verification.
 
 ## Heltec V4 factory reset fixes
 
@@ -39,7 +42,7 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
-V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The owner-present two-board pairing session and authenticated message exchange remain pending. Group step 3b waits.
+V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b waits.
 
 The product is renamed Limited Underground MeshTrail (owner decision D-089). On the board, the startup logo shows MESH above TRAIL and the reset question reads "ERASE MESHTRAIL DATA?"; the Bluetooth setup label and all identifiers are unchanged. The app and Firmware Loader follow in separate changes.
 
@@ -156,7 +159,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
 | Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Start first board pairing from the app (V1 F5 R2b)](PROGRESS_LOG.md#ot-0005i-start-first-board-pairing-from-the-app-v1-f5-r2b). |
+| Latest record | [OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)](PROGRESS_LOG.md#ot-0005i-fix-the-board-pairing-stack-overflow-longer-startup-logo-v1-f5-d-088). |
 | Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
