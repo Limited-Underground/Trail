@@ -2,6 +2,10 @@
 
 ## 2026-11-15
 
+### OT-0175a Messaging checklist for Trail issue 158
+
+Closes checklist scope only: [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). See the [acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
+
 ### OT-0005i Start first board pairing from the app (V1 F5 R2b)
 
 Part of [Trail #232](https://github.com/Limited-Underground/Trail/issues/232). The Device tab lets an authorized owner start or join first board pairing. Start generates a six-digit code and Join accepts the same code, including leading zeros. Android sends action 6 with the selected role and code over the existing protected BLE configuration lane, clears the input on send, and shows the two-minute window after admission. A correlated firmware reply distinguishes Busy, Policy Denied and Unavailable. Silence uses the existing timeout with no automatic resend. The owner still compares fingerprints and confirms the pairing on each board.
