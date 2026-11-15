@@ -952,6 +952,8 @@ physical activation/status acceptance remains open.
 
 ## Remaining acceptance and decisions
 
+The [OT-0176a acceptance checklist](testing/OT-176-LOCATION-SHARING-ACCEPTANCE-CHECKLIST.md) covers [Trail #159](https://github.com/Limited-Underground/Trail/issues/159). Covers requirements 6 and 7 and records open design/code differences. No design change or device execution; parent and device acceptance remain open.
+
 The [compact landscape status strip](testing/OT-0304-LANDSCAPE-STATUS-STRIP-2026-10-01.md)
 now builds and passes the affected Android tests/lint. It removes the extra
 landscape test-log row and preserves portrait sizing. This new APK has separate
