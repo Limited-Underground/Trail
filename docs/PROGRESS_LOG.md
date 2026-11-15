@@ -5,7 +5,7 @@
 ### OT-0178a Show the MeshTrail name on the board (D-089)
 
 Owner decision D-089 renames the product to Limited Underground MeshTrail. On the Heltec V4:
-- The startup logo adds **MESH** above **TRAIL** in the same 2-pixel letter style, in the empty rows 8-19. LIMITED UNDERGROUND, the LT monogram and the trail line are unchanged, and the bottom row stays blank for the firmware version (D-081). New bitmap SHA-256 `35fde847...2d41`.
+- The startup logo keeps the LIMITED UNDERGROUND top line and replaces the retired LT/TRAIL art with the new Linked Route symbol (owner decision D-091) and the MeshTrail wordmark. In one colour the three nodes have a thin gap so they read as dots on the route. The bottom row stays blank for the firmware version (D-081). Bitmap SHA-256 `e6a3e6ff...6227`.
 - The reset question reads "ERASE MESHTRAIL DATA?" (21 characters, one row) on both display paths.
 
 The Bluetooth setup label `Trail-XXXXXX`, identifiers, storage and protocol are unchanged. Host tests pass (startup display 19 groups, Heltec OLED presentation 8, OLED presentation 9, bench target 20). Default build 606,464 bytes, no warnings. Not flashed: renamed firmware goes on the boards only after the F5 R2 pairing passes.
