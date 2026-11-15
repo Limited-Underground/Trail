@@ -54,12 +54,17 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - a repeated frame from the peer identifies exactly which of our frames it still needs.
    It stops resending after `max_sends` (2, D-078) but keeps listening until the 120 s window ends, because the other person may still be reviewing.
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
-5. Target composition in `heltec_v4_bench`:
-   - consume the admitted request and start the session with the request's role and code;
-   - feed the product radio both ways;
-   - OLED status;
-   - product NVS namespaces and factory-reset coverage.
-6. Two-board session (owner present): identities exchanged over LoRa, fingerprints compared, a press on each board.
+5. Target composition in `heltec_v4_bench`, in steps:
+   - 5a. `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.
+   - 5b. Pairing runtime:
+     - consume the admitted request;
+     - hand the board identity from the load-only boot owner to the session;
+     - create the session through the enrollment reset gate, as the evaluation does, so factory reset and pairing cannot interleave;
+     - start it with the request's role and code;
+     - drive the coordinator.
+   - 5c. `app_main` wiring: feed the product radio both ways, OLED status line, link-test-only gating; admission tests.
+   - 5d. Owner-present two-board session.
+
 
 ## Message order over LoRa (from `enrollment_candidate_session_tests.cpp`)
 
