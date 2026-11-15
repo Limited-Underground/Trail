@@ -877,6 +877,8 @@ await using (var bridge = ScriptedBridge(lateAckFactory))
         "a later session cannot acknowledge a retained earlier-session alert");
 }
 
+groups += ConsoleLocalLinkTests.Run(Expect);
+
 Console.WriteLine($"OpenTrail simulator core: {groups} groups, {failures} failures");
 return failures == 0 ? 0 : 1;
 
