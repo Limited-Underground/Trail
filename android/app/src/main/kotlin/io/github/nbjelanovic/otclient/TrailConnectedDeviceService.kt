@@ -20,6 +20,7 @@ class TrailConnectedDeviceService : Service() {
     private val packetAuthority = BlePacketAuthorityAdapter(this) { android.os.SystemClock.elapsedRealtime() }
     private val binder = LocalBinder()
     private var owner: ConnectedDeviceSessionOwner? = null
+    private var foregroundStarted = false
     private var destroyed = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -28,7 +29,7 @@ class TrailConnectedDeviceService : Service() {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        if (owner != null) return START_NOT_STICKY
+        if (foregroundStarted) return START_NOT_STICKY
         if (!nearbyPermissionsGranted()) {
             stopSelfResult(startId)
             return START_NOT_STICKY
@@ -37,25 +38,33 @@ class TrailConnectedDeviceService : Service() {
             stopSelfResult(startId)
             return START_NOT_STICKY
         }
-        val generation = nextServiceGeneration()
-        if (generation == null) {
+        foregroundStarted = true
+        // An explicit start can arrive while a foreground-only owner is already bound.
+        // Promote the service in that case and keep the same owner.
+        val existingOwner = owner
+        if (!activateOwner(requireReturningBond = false)) {
+            foregroundStarted = false
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelfResult(startId)
-            return START_NOT_STICKY
+        } else if (existingOwner != null) {
+            binder.publishCurrentState()
         }
+        return START_NOT_STICKY
+    }
+
+    private fun activateOwner(requireReturningBond: Boolean): Boolean {
+        assertMainThread()
+        if (destroyed || !nearbyPermissionsGranted()) return false
+        if (owner != null) return true
+        val generation = nextServiceGeneration() ?: return false
         val created = try {
-            createOwner(generation)
+            createOwner(generation, requireReturningBond)
         } catch (_: RuntimeException) {
             null
-        }
-        if (created == null) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelfResult(startId)
-            return START_NOT_STICKY
-        }
+        } ?: return false
         owner = created
-        binder.attach(owner)
-        return START_NOT_STICKY
+        binder.attach(created)
+        return true
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -75,17 +84,21 @@ class TrailConnectedDeviceService : Service() {
                     // Ownership is invalidated before cleanup; Android service teardown continues.
                 }
             } finally {
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                if (foregroundStarted) stopForeground(STOP_FOREGROUND_REMOVE)
             }
         }
         super.onDestroy()
     }
 
-    private fun createOwner(generation: Long): ConnectedDeviceSessionOwner {
+    private fun createOwner(generation: Long, requireReturningBond: Boolean): ConnectedDeviceSessionOwner? {
         packetAuthority.invalidate(BlePacketAuthorityAdapter.Invalidation.OWNER_REPLACEMENT)
         val facade = AndroidBluetoothGattFacade(applicationContext)
         var controller: TrailAppController? = null
         return try {
+            if (requireReturningBond && !facade.canLookForReturningOwner()) {
+                facade.close()
+                return null
+            }
             val scheduler = AndroidMainThreadBleRuntimeScheduler()
             val confirmationClock = { android.os.SystemClock.elapsedRealtime() }
             val evaluationConfirmation = application is EvaluationGroupConfirmationOptIn
@@ -205,11 +218,11 @@ class TrailConnectedDeviceService : Service() {
             ownerObservations.clear()
             attached = next
             observers.toList().forEach { (token, observer) ->
-                val lease = next?.observe(observer)
+                val lease = next?.observe { observer(servicePresentation(it)) }
                 if (lease != null) {
                     ownerObservations[token] = lease
                 } else if (next == null) {
-                    notifyUnavailable(token, observer)
+                    notifyObserver(token, observer, unavailableState())
                 } else {
                     observers.remove(token)
                 }
@@ -225,7 +238,7 @@ class TrailConnectedDeviceService : Service() {
         override val state: TrailAppUiState.BluetoothDevice
             get() {
                 assertMainThread()
-                return attached?.state ?: unavailableState()
+                return attached?.state?.let(::servicePresentation) ?: unavailableState()
             }
 
         override fun observe(
@@ -236,11 +249,11 @@ class TrailConnectedDeviceService : Service() {
             nextObserverToken += 1
             val token = nextObserverToken
             observers[token] = observer
-            val ownerObservation = attached?.observe(observer)
+            val ownerObservation = attached?.observe { observer(servicePresentation(it)) }
             if (ownerObservation != null) {
                 ownerObservations[token] = ownerObservation
             } else if (attached == null) {
-                if (!notifyUnavailable(token, observer)) return null
+                if (!notifyObserver(token, observer, unavailableState())) return null
             } else {
                 observers.remove(token)
                 return null
@@ -251,6 +264,8 @@ class TrailConnectedDeviceService : Service() {
                 ownerObservations.remove(token)?.close()
             }
         }
+
+        override fun activateReturningOwner(): Boolean = activateOwner(requireReturningBond = true)
 
         override fun refreshPermissionState() {
             assertMainThread()
@@ -346,11 +361,22 @@ class TrailConnectedDeviceService : Service() {
             serviceState = ConnectedDeviceServiceUiState.STARTING,
         )
 
-        private fun notifyUnavailable(
+        internal fun publishCurrentState() {
+            val current = state
+            observers.toList().forEach { (token, observer) ->
+                if (observers[token] === observer) notifyObserver(token, observer, current)
+            }
+        }
+
+        private fun servicePresentation(state: TrailAppUiState.BluetoothDevice) =
+            if (foregroundStarted) state else state.copy(serviceState = ConnectedDeviceServiceUiState.BOUND_ONLY)
+
+        private fun notifyObserver(
             token: Long,
             observer: (TrailAppUiState.BluetoothDevice) -> Unit,
+            state: TrailAppUiState.BluetoothDevice,
         ): Boolean = try {
-            observer(unavailableState())
+            observer(state)
             true
         } catch (_: Exception) {
             observers.remove(token)
