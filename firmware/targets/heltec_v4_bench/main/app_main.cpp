@@ -131,6 +131,21 @@ bool lora_transmit_permitted(void*) {
 }
 #endif
 
+// D-081: the firmware version on the startup screen, the same version the boot
+// log reports; a Firmware Loader release adds its generation.
+void prepare_firmware_line() {
+    const esp_app_desc_t* description = esp_app_get_description();
+    const char* version = description != nullptr ? description->version : "UNKNOWN";
+    std::array<char, 40> line{};
+    if (OPENTRAIL_RELEASE_GENERATION != 0) {
+        std::snprintf(line.data(), line.size(), "FW R%lu %.32s",
+                      static_cast<unsigned long>(OPENTRAIL_RELEASE_GENERATION), version);
+    } else {
+        std::snprintf(line.data(), line.size(), "FW %.32s", version);
+    }
+    g_oled_port.set_firmware_line(line.data());
+}
+
 void observe_display_result(bool succeeded) {
     if (!succeeded && !g_display_failure_logged) {
         ESP_LOGW(kLogTag, "startup display unavailable; runtime continues");
@@ -363,6 +378,7 @@ bool run_companion_codec_self_check() {
 extern "C" void app_main() {
     const auto boot_started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    prepare_firmware_line();
     observe_display_result(g_startup_display.start());
 
     if (!run_companion_codec_self_check() ||

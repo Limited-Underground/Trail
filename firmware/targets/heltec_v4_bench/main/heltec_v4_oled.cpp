@@ -227,9 +227,15 @@ bool HeltecV4Oled::render(const StartupDisplayView& view) {
     if (!admit_display_time(now_ms)) return false;
     esp_err_t result;
     if (view.frame == StartupDisplayFrame::logo) {
+        // D-081: firmware version on the logo's blank bottom row.
+        auto logo = kTrailStartupLogoSsd1306;
+        if (firmware_line_bytes_ != 0) {
+            ui::oled_presentation::draw_text_row(
+                logo, ui::oled_presentation::kRows - 1,
+                {firmware_line_.data(), firmware_line_bytes_});
+        }
         result = esp_lcd_panel_draw_bitmap(
-            panel_, 0, 0, kDisplayWidth, kDisplayHeight,
-            kTrailStartupLogoSsd1306.data());
+            panel_, 0, 0, kDisplayWidth, kDisplayHeight, logo.data());
     } else {
         const auto frame = presentation_.present(view, now_ms,
             {configuration_name_.data(), configuration_name_bytes_}, configuration_clock_,
