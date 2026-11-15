@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using OpenTrail.Simulator;
 
-internal static class Program
+internal static partial class Program
 {
     private static int passed;
 
@@ -33,9 +33,15 @@ internal static class Program
         Run("snapshot during blocked start reaches native UI", SnapshotDuringBlockedStartReachesNativeUi);
         Run("snapshot refresh burst is bounded and touch remains live", SnapshotRefreshBurstIsBoundedAndTouchRemainsLive);
         Run("dual LCD native request crosses local bridge", DualLcdNativeRequestCrossesLocalBridge);
+        Run("sample group is first and supports local creation and replies", SampleGroupFirstAndCreate);
+        Run("sample off policy joins without sharing", SampleGroupLocationOff);
+        Run("sample preferred policy permits refusing location", SampleGroupLocationPreferred);
+        Run("sample required policy blocks joining without location", SampleGroupLocationRequired);
+        Run("sample direct conversation requires acceptance with independent sharing", SampleDirectInvitationAndSharing);
+        Run("sample screens render at 800 by 480 without opening windows", SampleConversationScreensRender);
         if (!hostOnly)
             Run("second native session failure rolls startup back", SecondNativeSessionFailureRollsStartupBack);
-        Console.WriteLine($"Trail simulator UI tests passed: {passed}/{(hostOnly ? 16 : 17)}" +
+        Console.WriteLine($"Trail simulator UI tests passed: {passed}/{(hostOnly ? 22 : 23)}" +
             (hostOnly ? " (host-only; hardware runtime composition excluded)" : string.Empty));
         return 0;
     }
@@ -800,7 +806,10 @@ internal static class Program
 
     private static void ShowOffscreen(Window window)
     {
-        window.Left = -20000; window.Top = -20000; window.ShowInTaskbar = false; window.Show(); PumpDispatcher();
+        window.Left = -20000; window.Top = -20000; window.ShowInTaskbar = false;
+        window.ShowActivated = false;
+        window.Show();
+        PumpDispatcher();
     }
 
     private static void SaveRenderedWindow(Window window, string fileName)

@@ -14,6 +14,22 @@ public partial class App : Application
         ApplyCurrentTheme();
         SystemParameters.StaticPropertyChanged += HandleSystemParametersChanged;
 
+        if (e.Args.SequenceEqual(["--sample-conversations"], StringComparer.Ordinal))
+        {
+            MainWindow = new Window
+            {
+                Title = ConsoleSampleStrings.WindowTitle,
+                Content = new ConsoleSampleConversations(),
+                Width = 824,
+                Height = 520,
+                MinWidth = 784,
+                MinHeight = 480,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            };
+            MainWindow.Show();
+            return;
+        }
+
         SimulatorStartupComposition? composition = null;
         VirtualLcdWindow? windowA = null;
         VirtualLcdWindow? windowB = null;

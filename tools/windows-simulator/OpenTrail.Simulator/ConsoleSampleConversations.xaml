@@ -1,0 +1,152 @@
+<UserControl x:Class="OpenTrail.Simulator.ConsoleSampleConversations"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="760" MinHeight="440"
+             FontFamily="Segoe UI" UseLayoutRounding="True"
+             Background="{DynamicResource WindowBrush}">
+    <UserControl.Resources>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="ContextText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="PanelCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style x:Key="ControlButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style x:Key="Choice" TargetType="RadioButton">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="Consent" TargetType="CheckBox">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="4,3" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,12">
+            <Border DockPanel.Dock="Right" Padding="10,5" VerticalAlignment="Center" CornerRadius="10"
+                    Background="{DynamicResource PanelBrush}">
+                <TextBlock x:Name="SampleDataLabel"
+                           Style="{StaticResource SectionLabel}" />
+            </Border>
+            <TextBlock x:Name="HeaderTitle" FontSize="32" FontWeight="SemiBold"
+                       AutomationProperties.HeadingLevel="Level1" VerticalAlignment="Center" />
+        </DockPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="176" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="228" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource PanelCard}" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock x:Name="GroupLabel" Style="{StaticResource SectionLabel}"
+                                   Margin="0,0,0,5" />
+                        <Button x:Name="GroupTabButton" Click="OpenGroup" Style="{StaticResource ControlButton}" />
+                        <TextBlock x:Name="OutsideGroupLabel" Style="{StaticResource SectionLabel}"
+                                   Margin="0,14,0,5" />
+                        <Button x:Name="DirectTabButton"
+                                Click="OpenDirect" Style="{StaticResource ControlButton}" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="1">
+                        <Button x:Name="CreateGroupButton"
+                                Click="CreateGroup" Style="{StaticResource ControlButton}" />
+                        <Button x:Name="PreviewGroupButton"
+                                Click="PreviewGroup" Style="{StaticResource ControlButton}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource PanelCard}" Margin="0,0,10,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,0,10">
+                        <TextBlock x:Name="ConversationTitle" FontSize="24" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" AutomationProperties.HeadingLevel="Level2" />
+                        <TextBlock x:Name="ConversationStatus" Style="{StaticResource ContextText}"
+                                   AutomationProperties.LiveSetting="Polite" />
+                    </StackPanel>
+                    <ScrollViewer x:Name="ThreadScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="ThreadMessages" />
+                    </ScrollViewer>
+                    <Button x:Name="SampleReplyButton" Grid.Row="2" Style="{StaticResource ControlButton}" Click="AddReply"
+                            HorizontalAlignment="Right" Margin="0,6,0,0" />
+                </Grid>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource PanelCard}">
+                <Grid>
+                    <StackPanel x:Name="GroupControls">
+                        <TextBlock x:Name="PolicyTitle"
+                                   FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,4" />
+                        <RadioButton x:Name="PolicyOff"
+                                     GroupName="SampleGroupPolicy" Style="{StaticResource Choice}" Click="SelectPolicy" />
+                        <RadioButton x:Name="PolicyPreferred"
+                                     GroupName="SampleGroupPolicy" Style="{StaticResource Choice}" Click="SelectPolicy" />
+                        <RadioButton x:Name="PolicyRequired"
+                                     GroupName="SampleGroupPolicy" Style="{StaticResource Choice}" Click="SelectPolicy" />
+                        <TextBlock x:Name="PolicyDetails" Style="{StaticResource ContextText}" Margin="0,5,0,12" />
+                        <Button x:Name="JoinAndShareButton"
+                                Style="{StaticResource ControlButton}" Click="JoinAndShare" />
+                        <Button x:Name="JoinWithoutSharingButton"
+                                Style="{StaticResource ControlButton}" Click="JoinWithoutSharing" />
+                        <CheckBox x:Name="GroupSharing" Style="{StaticResource Consent}"
+                                  Click="SetGroupSharing" />
+                        <TextBlock x:Name="JoinFeedback" Style="{StaticResource ContextText}" Margin="0,5,0,0"
+                                   AutomationProperties.LiveSetting="Polite" />
+                    </StackPanel>
+                    <StackPanel x:Name="DirectControls">
+                        <TextBlock x:Name="DirectHeading" FontSize="17" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" Margin="0,0,0,8" />
+                        <TextBlock x:Name="DirectDetails"
+                                   Style="{StaticResource ContextText}" Margin="0,0,0,10" />
+                        <CheckBox x:Name="DirectLocalSharing" Style="{StaticResource Consent}" Click="SetDirectLocalSharing" />
+                        <CheckBox x:Name="DirectPeerSharing" Style="{StaticResource Consent}" Click="SetDirectPeerSharing" />
+                        <Button x:Name="SendInviteButton"
+                                Style="{StaticResource ControlButton}" Click="SendInvite" Margin="0,12,0,0" />
+                        <Button x:Name="AcceptInviteButton"
+                                Style="{StaticResource ControlButton}" Click="AcceptInvite" Margin="0,12,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
