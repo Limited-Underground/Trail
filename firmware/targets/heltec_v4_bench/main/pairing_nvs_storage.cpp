@@ -4,12 +4,29 @@
 #include <cstdio>
 #include <cstring>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "nvs_flash.h"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
 PairingNvsStorage* g_live = nullptr;
 bool g_reset_retired = false;
+
+// One recursive lock serializes every storage operation with retire() and the
+// factory-reset hook, which may run on another task (review R2A-6): reset waits
+// for an in-flight write, and every later write fails.
+SemaphoreHandle_t storage_lock() {
+    static StaticSemaphore_t buffer;
+    static SemaphoreHandle_t handle = xSemaphoreCreateRecursiveMutexStatic(&buffer);
+    return handle;
+}
+struct Guard {
+    Guard() { xSemaphoreTakeRecursive(storage_lock(), portMAX_DELAY); }
+    ~Guard() { xSemaphoreGiveRecursive(storage_lock()); }
+    Guard(const Guard&) = delete;
+    Guard& operator=(const Guard&) = delete;
+};
 }  // namespace
 
 const esp_partition_t* PairingNvsStorage::partition() {
@@ -26,6 +43,7 @@ const esp_partition_t* PairingNvsStorage::partition() {
 PairingNvsStorage::PairingNvsStorage()
     : views_{{{*this, Store::identity}, {*this, Store::journal},
               {*this, Store::binding}, {*this, Store::boot}}} {
+    Guard guard;
     if (g_reset_retired) return;
     const auto* p = partition();
     if (p == nullptr) return;
@@ -38,6 +56,7 @@ PairingNvsStorage::PairingNvsStorage()
 PairingNvsStorage::~PairingNvsStorage() { retire(); }
 
 void PairingNvsStorage::retire() {
+    Guard guard;
     good_ = false;
     wipe(pending_bytes_);
     if (handle_ != 0) { nvs_close(handle_); handle_ = 0; }
@@ -46,18 +65,21 @@ void PairingNvsStorage::retire() {
 }
 
 bool register_pairing_storage(PairingNvsStorage* storage) {
+    Guard guard;
     if (g_reset_retired || storage == nullptr || g_live != nullptr) return false;
     g_live = storage;
     return true;
 }
 
 void retire_pairing_storage_for_reset() {
+    Guard guard;
     g_reset_retired = true;
     if (g_live != nullptr) g_live->retire();
     g_live = nullptr;
 }
 
 bool PairingNvsStorage::budget_ok() {
+    Guard guard;
     if (!good_) return false;
     nvs_stats_t stats{};
     std::size_t own = 0;
@@ -162,6 +184,7 @@ bool PairingNvsStorage::load(const char* key, Bytes& out) {
 
 persistence::StorageReadResult PairingNvsStorage::read_tuple(std::uint64_t g, unsigned n, Domain d, std::size_t s,
                                                              persistence::MutableStorageByteView out) {
+    Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key) || !out.data || out.size != 64) return {Error::invalid_argument, 0};
     Bytes bytes{};
@@ -178,6 +201,7 @@ bool PairingNvsStorage::start_mutation(const char* key) {
 }
 
 PairingNvsStorage::Error PairingNvsStorage::erase_tuple(std::uint64_t g, unsigned n, Domain d, std::size_t s) {
+    Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key)) return Error::invalid_argument;
     if (!start_mutation(key)) return Error::io_failure;
@@ -193,6 +217,7 @@ PairingNvsStorage::Error PairingNvsStorage::erase_tuple(std::uint64_t g, unsigne
 
 PairingNvsStorage::Error PairingNvsStorage::write_tuple(std::uint64_t g, unsigned n, Domain d, std::size_t s,
                                                         std::size_t offset, persistence::StorageByteView in) {
+    Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key) || !in.data || !in.size || offset > 64 || in.size > 64 - offset) {
         return Error::invalid_argument;
@@ -226,6 +251,7 @@ PairingNvsStorage::Error PairingNvsStorage::write_tuple(std::uint64_t g, unsigne
 }
 
 PairingNvsStorage::Error PairingNvsStorage::sync_tuple(std::uint64_t g, unsigned n, Domain d, std::size_t s) {
+    Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key)) return Error::invalid_argument;
     if (!good_) return Error::io_failure;

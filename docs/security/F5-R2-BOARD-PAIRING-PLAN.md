@@ -23,7 +23,7 @@ The product target (`heltec_v4_bench`) already admits the phone's start-enrollme
 ## What R2a adds
 
 - **Pairing coordinator.** A product pairing coordinator in the bench target, modelled on `candidate_runtime.cpp`. It runs in the app task and consumes the admitted request. It drives `EnrollmentCandidateSession` without a USB operator.
-- **LoRa wire.** A small versioned LoRa frame for each session message (candidate, offer, possession, clock mark, invitation, handshake, control, status). Every received frame stays untrusted, and the frames are bounded to the existing 154-byte radio limit. The product radio (R1) carries them under the D-078 test limits and the D-079 transmit permission.
+- **LoRa wire.** A small versioned LoRa frame for each session message (candidate, offer, possession, clock mark, invitation, handshake, control, status). Every received frame stays untrusted. The largest frame is 194 bytes, under the product radio's 255-byte MTU. The product radio (R1) carries them under D-087 (120 s window, at most 2 accepted sends per frame) and the D-079 transmit permission.
 - **Product storage.** Product NVS namespaces for identity, journal, binding and boot, included in factory reset.
 - **Screen.** The OLED shows a pairing status line and the review pages.
 
@@ -59,7 +59,7 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - 5b (done, `board_pairing_runtime.cpp/.hpp`). Pairing runtime:
      - consume the admitted request;
      - hand the board identity from the load-only boot owner to the session;
-     - create the session through the enrollment reset gate, as the evaluation does, so factory reset and pairing cannot interleave;
+     - fence factory reset with a storage lock and a close before the reset commits (the product does not use the evaluation's `EnrollmentCandidateReset` gate);
      - start it with the request's role and code;
      - drive the coordinator.
    - 5c. `app_main` wiring, link-test-only (done with 5b):
@@ -114,3 +114,33 @@ Options (owner decision):
   - a frame the radio refuses to queue counts as lost, which the coordinator's repeat logic covers;
   - frames are sent only when the region permits transmit (D-079);
   - after a failed attempt, retained enrollment records may block a fresh first enrollment until factory reset (the session's rekey and recovery paths are not wired).
+
+## Independent review and fixes (2026-11-14)
+
+The Codex review of PR #253/#254 (`REVIEW-R2A.md`) requested changes. What changed:
+
+- **R2A-1, lost final control:**
+  - A local step, including commit, now waits until every produced frame has been accepted by the radio.
+  - After local commit the runtime keeps answering the peer for 15 s (`kLingerMs`), so the initiator's repeat recovers a lost final control (test `test_final_control_loss_needs_linger`).
+  - Local "paired" means this board committed; it is not proof that the other board did.
+- **R2A-2, send accounting:**
+  - `service()` only offers a frame. The caller reports `sent(accepted)`, and only an accepted frame counts against the 2-send limit (D-087).
+  - A new attempt starts only when the radio runs and transmit is permitted; a held transmit spends nothing.
+  - Tests: `test_refused_offers_are_not_counted`, `test_held_transmit_spends_nothing`.
+- **R2A-3, cancellation:**
+  - Every active tick re-reads the exact phone request, and the attempt ends as soon as it is gone.
+  - The attempt also ends if the radio stops.
+  - A frame already queued in the driver's one TX slot may still launch once (the driver checks the region at launch); that is bounded and noted.
+- **R2A-6, reset fence:** one recursive lock serializes every pairing-storage operation with `retire()` and the factory-reset hook, so a reset from the BLE side waits for an in-flight write and every later write fails. Session close results are checked and logged.
+- **R2A-7, wording:** D-087 sets the pairing limits; this plan's frame-size and reset-gate statements are corrected.
+- **R2A-8, NVS wrapper leak:** the pairing storage is mounted once per boot and retired only by factory reset, so there are no repeated mount and deinit cycles.
+- **R2b dependency:** the board now answers a refused pairing request with a correlated rejected result:
+  - `busy` (new reason 7) when one is already pending;
+  - `policy_denied` for an invalid request;
+  - `unavailable` when retired.
+
+  Lane and security-gate failures stay unanswered. Expected bytes for busy: `4F 54 52 30 00 00 03 07 06 00 ...` (20 bytes).
+
+Accepted for now, with reasons:
+- **R2A-4, same-code stale traffic:** it cannot grant trust (the session authenticates and both people press), but it can disrupt an attempt. The person retries with a new code.
+- **R2A-5, retry after durable work:** first enrollment refuses when retained records exist. The runtime never erases or retries them; factory reset is the current recovery, and rekey and recovery are not wired yet.

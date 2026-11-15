@@ -572,13 +572,16 @@ extern "C" void app_main() {
             }
             opentrail::protocol::pairing::FrameBuffer pairing_out{};
             std::size_t pairing_size = 0;
-            g_board_pairing.service(elapsed_ms, pairing_out, pairing_size);
-            if (pairing_size != 0 && tx_allowed) {
-                const auto sent = g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms);
-                ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u queued=%u",
+            g_board_pairing.service(elapsed_ms, tx_allowed, pairing_out, pairing_size);
+            if (pairing_size != 0) {
+                // Only a frame the radio accepts counts as a send (D-087).
+                const bool accepted = tx_allowed &&
+                    g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms).accepted();
+                g_board_pairing.sent(accepted, elapsed_ms);
+                ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u accepted=%u",
                          static_cast<unsigned>(pairing_out[2] & 0x0f),
                          static_cast<unsigned>(pairing_size),
-                         static_cast<unsigned>(sent.accepted()));
+                         static_cast<unsigned>(accepted));
             }
             std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
             const auto got = g_lora.receive({rx.data(), rx.size()});
@@ -607,6 +610,7 @@ extern "C" void app_main() {
                 }
             }
         } else if (!lora_fault_logged) {
+            g_board_pairing.radio_lost();
             ESP_LOGE(kLogTag, "lora_link stopped state=%u error=%u",
                      static_cast<unsigned>(g_lora.status().state),
                      static_cast<unsigned>(g_lora.status().last_error));

@@ -7,6 +7,10 @@
 // the person confirms fingerprints and the transcript on each board. A refused
 // payload ends the attempt.
 //
+// Sends: service() only offers a frame; the caller reports sent(accepted). Only
+// frames the radio accepted count against max_sends (D-087), and every
+// produced frame must be accepted before a local step (including commit) runs.
+//
 // Loss recovery, within Limits:
 // - While waiting to receive, a board repeats the frames it sent since its last
 //   receive, every resend_after_ms.
@@ -168,6 +172,19 @@ public:
         return transmit(now_ms, out, out_size);
     }
 
+    // Reports what the radio did with the frame the last service() offered.
+    // Only an accepted frame counts against max_sends (D-087); a refused or
+    // held frame is offered again on a later service().
+    void sent(bool accepted, std::uint64_t now_ms) {
+        if (offered_ == 0) return;
+        auto& o = sent_[offered_ - 1];
+        offered_ = 0;
+        if (!accepted) return;
+        ++o.sends;
+        o.last_ms = now_ms;
+        o.due = false;
+    }
+
     Outcome outcome() const { return outcome_; }
     FailReason reason() const { return reason_; }
     std::size_t step() const { return step_; }
@@ -285,6 +302,9 @@ private:
                 ++step_;
                 continue;
             }
+            // Every produced frame is accepted by the radio at least once before
+            // a local step; in particular the final control goes out before commit.
+            if (unsent_pending()) return true;
             const auto r = adapter_.local(st.local, now_ms);
             if (r == LocalResult::pending) return true;
             if (r == LocalResult::failed) return fail(FailReason::local_failed);
@@ -297,14 +317,14 @@ private:
     bool transmit(std::uint64_t now_ms, FrameBuffer& out, std::size_t& out_size) {
         // 1. First sends, in order.
         for (std::size_t k = 0; k < sent_count_; ++k) {
-            if (sent_[k].sends == 0) return emit(sent_[k], now_ms, out, out_size);
+            if (sent_[k].sends == 0) return offer(k, out, out_size);
         }
         // 2. Frames the peer asked for by repeating.
         for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
             if (!o.due) continue;
+            if (o.sends < limits_.max_sends) return offer(k, out, out_size);
             o.due = false;
-            if (o.sends < limits_.max_sends) return emit(o, now_ms, out, out_size);
         }
         if (outcome_ != Outcome::running) return false;
         const bool waiting = step_ < kScriptSteps && own_[step_].kind == StepKind::receive;
@@ -316,17 +336,18 @@ private:
             auto& o = sent_[k];
             if (o.sends >= limits_.max_sends) continue;
             if (now_ms - o.last_ms >= limits_.resend_after_ms) {
-                return emit(o, now_ms, out, out_size);
+                return offer(k, out, out_size);
             }
         }
         return false;
     }
 
-    static bool emit(Outgoing& o, std::uint64_t now_ms, FrameBuffer& out, std::size_t& out_size) {
-        out = o.bytes;
-        out_size = o.size;
-        ++o.sends;
-        o.last_ms = now_ms;
+    // Offers a frame to the caller. It counts as a send only when the caller
+    // reports that the radio accepted it (sent(true, ...)); D-087.
+    bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
+        out = sent_[k].bytes;
+        out_size = sent_[k].size;
+        offered_ = k + 1;
         return true;
     }
 
@@ -349,6 +370,7 @@ private:
     std::array<Outgoing, kSlots> sent_{};
     std::size_t sent_count_{0};
     std::size_t batch_start_{0};
+    std::size_t offered_{0};  // 1-based index of the frame last offered
     std::uint64_t start_ms_{0};
     bool begun_{false};
     Outcome outcome_{Outcome::running};

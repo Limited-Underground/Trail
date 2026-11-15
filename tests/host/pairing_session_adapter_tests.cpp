@@ -101,8 +101,8 @@ Result run(int drop_a = -1, int drop_b = -1, std::uint32_t code_b = 123456) {
         b.person(t);
         FrameBuffer buf{};
         std::size_t n = 0;
-        if (ca.service(t, buf, n) && n) { if (sent_a++ != drop_a) cb.on_receive(buf.data(), n); }
-        if (cb.service(t, buf, n) && n) { if (sent_b++ != drop_b) ca.on_receive(buf.data(), n); }
+        if (ca.service(t, buf, n) && n) { ca.sent(true, t); if (sent_a++ != drop_a) cb.on_receive(buf.data(), n); }
+        if (cb.service(t, buf, n) && n) { cb.sent(true, t); if (sent_b++ != drop_b) ca.on_receive(buf.data(), n); }
         if (ca.outcome() != Outcome::running && cb.outcome() != Outcome::running) break;
     }
     r.a = ca.outcome(); r.b = cb.outcome();

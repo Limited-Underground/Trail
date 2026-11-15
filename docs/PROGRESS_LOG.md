@@ -2,6 +2,24 @@
 
 ## 2026-11-14
 
+### OT-0005i Fix the R2a review findings before the board session (V1 F5)
+
+An independent review of PRs #253 and #254 asked for changes. The fixes are listed in [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md#independent-review-and-fixes-2026-11-14):
+- **Lost final control:** commit now waits for radio acceptance, and the runtime keeps answering the peer for 15 s after a local commit.
+- **Send accounting:** sends count only when the radio accepts them, and an attempt starts only when transmit is permitted (owner decision D-087: 120 s window, 2 sends).
+- **Cancellation:** every tick re-reads the exact phone request, and a stopped radio ends the attempt.
+- **Reset fence:** a storage lock for factory reset from the BLE side.
+- **Storage:** mounted once per boot.
+- **Rejection reply:** a correlated rejected result for a refused pairing request, with a new `busy` reason (7), so the app can tell busy from silence.
+
+Tests:
+- `pairing_coordinator_tests` grows to 12 groups (final-control loss with and without linger, refused offers not counted, commit waits for acceptance, held transmit spends nothing).
+- `companion_semantics_tests` grows to 17 groups (busy and rejection bytes). Its summary line had printed 15 since PR #253; now corrected.
+- `pairing_session_adapter_tests` reports radio acceptance.
+- Bench target admission pins the reply mapping. The OT-0005i composition pins are updated for the codec change.
+
+Builds: link test 807,712 bytes, default 605,648 bytes, no warnings.
+
 ### OT-0005i Compose first board pairing in the product firmware (V1 F5, step R2a, slices 4 and 5a-5c)
 
 Plan: [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md). Follows the request role and code, LoRa frames and coordinator from PR #253.

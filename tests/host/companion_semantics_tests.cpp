@@ -429,6 +429,46 @@ void test_enrollment_start_is_versioned_pending_request_only() {
         {response.data(), response.size()}).decoded());
 }
 
+void test_enrollment_start_busy_and_rejection_results() {
+    // R2a review: the board answers a refused pairing request with a correlated
+    // rejected result. busy (7) is valid only for start_enrollment.
+    const CompanionActionResult busy{
+        CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+        CompanionActionDisposition::rejected, CompanionActionRejectReason::busy};
+    std::array<std::uint8_t, kCompanionActionResultBytes> bytes{};
+    EXPECT(encode_companion_action_result(busy, {bytes.data(), bytes.size()}).encoded());
+    // Expected bytes for the app: OTR0, 0, 0, rejected(3), busy(7), kind 6.
+    const std::array<std::uint8_t, kCompanionActionResultBytes> expected{
+        0x4F, 0x54, 0x52, 0x30, 0x00, 0x00, 0x03, 0x07,
+        0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+    };
+    EXPECT(bytes == expected);
+    const auto decoded = decode_companion_action_result({bytes.data(), bytes.size()});
+    EXPECT(decoded.decoded());
+    EXPECT(decoded.value.reject_reason == CompanionActionRejectReason::busy);
+    EXPECT(decoded.value.disposition == CompanionActionDisposition::rejected);
+
+    for (const auto reason : {CompanionActionRejectReason::policy_denied,
+                              CompanionActionRejectReason::unavailable}) {
+        const CompanionActionResult rejected{
+            CompanionActionKind::start_enrollment, QuickStatusKind::ok, 0,
+            CompanionActionDisposition::rejected, reason};
+        EXPECT(encode_companion_action_result(rejected, {bytes.data(), bytes.size()}).encoded());
+    }
+    // busy is incoherent for other kinds.
+    const CompanionActionResult wrong{
+        CompanionActionKind::start_position_sharing, QuickStatusKind::ok, 0,
+        CompanionActionDisposition::rejected, CompanionActionRejectReason::busy};
+    EXPECT(encode_companion_action_result(wrong, {bytes.data(), bytes.size()}).error ==
+           CompanionSemanticCodecError::incoherent_result);
+    // An unknown reason above busy is refused on decode.
+    auto altered = expected;
+    altered[7] = 8;
+    EXPECT(decode_companion_action_result({altered.data(), altered.size()}).error ==
+           CompanionSemanticCodecError::unknown_enum);
+}
+
 void test_enrollment_start_requires_owner_role_and_code() {
     // D-085: role and code come only from the owner's phone and are bounded.
     auto encode = [](CompanionEnrollmentRole role, std::uint32_t code) {
@@ -705,6 +745,7 @@ int main() {
     test_action_requests_reject_ambiguous_or_unknown_values();
     test_enrollment_start_is_versioned_pending_request_only();
     test_enrollment_start_requires_owner_role_and_code();
+    test_enrollment_start_busy_and_rejection_results();
     test_outbound_action_result_means_queued_not_delivered();
     test_local_and_rejected_results_are_typed_and_coherent();
     test_result_codec_rejects_delivery_like_or_incoherent_states();
@@ -715,6 +756,6 @@ int main() {
                   << " companion semantic codec assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 15 companion semantic payload scenario groups\n";
+    std::cout << "PASS: 17 companion semantic payload scenario groups\n";
     return EXIT_SUCCESS;
 }

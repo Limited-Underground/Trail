@@ -1,17 +1,22 @@
 #pragma once
 // First board pairing over LoRa, product composition (V1 F5, step R2a 5b).
 // Plan: docs/security/F5-R2-BOARD-PAIRING-PLAN.md. Decisions D-076, D-082,
-// D-085, D-086.
+// D-085, D-086, D-087.
 //
 // App task only. When the owner's phone has an admitted product pairing request
 // (role and code, D-085), this owner starts exactly one enrollment session for
 // it. It copies the request into its own app-task request owner; the phone's
-// request still governs: once it is cancelled, expires or the connection
-// changes, current() reports the authority unavailable and the session stops.
+// request still governs: every active tick re-reads it, and once it is
+// cancelled, expires or the connection changes, the attempt ends.
 //
 // Trust is never decided here. The enrollment session authenticates every
 // frame; the person compares fingerprints and the transcript on each board and
 // presses the button (BOOT arbiter, which also preempts for factory reset).
+//
+// After local commit this owner keeps answering the peer's repeats for
+// kLingerMs (review R2A-1), so a lost final control frame can still be
+// recovered. Local "paired" means this board committed; it is not proof that
+// the other board did.
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -31,10 +36,11 @@ public:
     enum class Phase : std::uint8_t {
         idle,         // no attempt
         running,      // exchanging frames or waiting for a press
-        paired,       // committed and ready on this board
-        failed,       // attempt ended without pairing
+        paired,       // this board committed (peer not proven)
+        failed,       // attempt ended without pairing on this board
         closed,       // terminal (factory reset)
     };
+    static constexpr std::uint64_t kLingerMs = 15000;
 
     BoardPairingRuntime(HeltecEnrollmentInputArbiter& input, security::SecureRandomSource& random)
         : input_(input), random_(random) {}
@@ -42,16 +48,23 @@ public:
     BoardPairingRuntime(const BoardPairingRuntime&) = delete;
     BoardPairingRuntime& operator=(const BoardPairingRuntime&) = delete;
 
-    // Starts an attempt for a new admitted request, advances the current one,
-    // and returns a frame to transmit now (out_size 0 if none).
-    void service(std::uint64_t now_ms, protocol::pairing::FrameBuffer& out, std::size_t& out_size);
+    // radio_ready: the radio is running and transmit is permitted now. A new
+    // attempt starts only when it is ready. Returns a frame to offer to the
+    // radio (out_size 0 if none); report the result with sent().
+    void service(std::uint64_t now_ms, bool radio_ready, protocol::pairing::FrameBuffer& out,
+                 std::size_t& out_size);
+    // Whether the radio accepted the frame the last service() offered.
+    void sent(bool accepted, std::uint64_t now_ms);
     // Received LoRa bytes. Non-pairing traffic is ignored by the coordinator.
     void on_receive(const std::uint8_t* data, std::size_t size);
+    // The radio stopped: an attempt in progress ends.
+    void radio_lost();
     // Terminal: called before factory reset. Closes the session and unmounts storage.
     void close();
 
     Phase phase() const { return phase_; }
-    bool active() const { return phase_ == Phase::running; }
+    // True while frames may flow: running, or lingering after a local commit.
+    bool active() const { return phase_ == Phase::running || lingering_; }
     security_evaluation::PairingSessionAdapter::Prompt prompt() const {
         return adapter_ ? adapter_->prompt() : security_evaluation::PairingSessionAdapter::Prompt::none;
     }
@@ -71,9 +84,9 @@ private:
     security::SecureRandomSource& random_;
     companion::SelectedEnrollmentRequestOwner request_{};
     companion::SelectedEnrollmentRequest phone_{};
-    std::uint64_t last_ms_{0};
-    bool clock_seen_{false}, have_phone_{false}, busy_{false};
-    std::optional<PairingNvsStorage> storage_;
+    std::uint64_t last_ms_{0}, linger_until_ms_{0};
+    bool clock_seen_{false}, have_phone_{false}, busy_{false}, lingering_{false};
+    std::optional<PairingNvsStorage> storage_;  // mounted once per boot (review R2A-8)
     std::optional<targets::heltec_v4_bench::EnrollmentIdentityNvsStorage> identity_;
     std::optional<Device> device_;
     std::optional<Session> session_;

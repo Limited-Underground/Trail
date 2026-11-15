@@ -116,7 +116,7 @@ bool known_disposition(CompanionActionDisposition value) {
 
 bool known_reject_reason(CompanionActionRejectReason value) {
     return value >= CompanionActionRejectReason::none &&
-           value <= CompanionActionRejectReason::internal_failure;
+           value <= CompanionActionRejectReason::busy;
 }
 
 CompanionSemanticCodecError validate_snapshot(
@@ -217,6 +217,10 @@ CompanionSemanticCodecError validate_result(
         }
         if (result.reject_reason == CompanionActionRejectReason::queue_full &&
             !outbound_action) {
+            return CompanionSemanticCodecError::incoherent_result;
+        }
+        if (result.reject_reason == CompanionActionRejectReason::busy &&
+            result.kind != CompanionActionKind::start_enrollment) {
             return CompanionSemanticCodecError::incoherent_result;
         }
         return CompanionSemanticCodecError::none;
