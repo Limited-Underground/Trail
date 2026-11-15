@@ -17,6 +17,7 @@ enum class ConnectedDeviceServiceUiState {
     START_REQUIRED,
     STARTING,
     RUNNING,
+    BOUND_ONLY,
     START_FAILED,
 }
 
@@ -71,6 +72,8 @@ interface ConnectedDeviceServiceConnector : AutoCloseable {
     fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding?
     /** Observe an already running owner only. Implementations must not create or start a service. */
     fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? = null
+    /** Activity-scoped binding for a cold returning-owner check. This never starts a foreground service. */
+    fun bindForReturningOwner(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? = null
     fun stopService()
 }
 
@@ -83,6 +86,8 @@ interface ConnectedDeviceSessionPort {
     val state: TrailAppUiState.BluetoothDevice
 
     fun observe(observer: (TrailAppUiState.BluetoothDevice) -> Unit): ConnectedDeviceStateObservation?
+    /** Called only from a current foreground Activity's returning-owner binding. */
+    fun activateReturningOwner(): Boolean = false
     fun refreshPermissionState()
     fun scan()
     fun authorize(endpointToken: String)

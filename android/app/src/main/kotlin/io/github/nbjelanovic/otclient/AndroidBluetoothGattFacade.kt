@@ -277,6 +277,10 @@ class AndroidBluetoothGattFacade(
 
     override fun preflight(): BlePreflight = AndroidBlePreflightPolicy.evaluate(platformSnapshot())
 
+    // A system bond only permits discovery. The D0 scan and current board claim still decide access.
+    internal fun canLookForReturningOwner(): Boolean =
+        onMainThread() && !closed && preflight().isReady && currentBondedDevices()?.isNotEmpty() == true
+
     override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         candidates.clear()
