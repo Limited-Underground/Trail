@@ -35,6 +35,10 @@ The board's normal screen now shows the pairing state in place of the group/loca
 
 The wording does not claim the other board committed; that point came from the R2a review. The new `BoardPairing` field in the OLED presentation snapshot defaults to `none`, so every other frame is unchanged. Exclusive surfaces (factory reset, failure, region required) keep priority. `oled_presentation_tests` grows to 8 groups. The heltec presentation tests and the bench target admission (20 groups) pass. Builds: link test 808,000 bytes, default 605,792 bytes, no warnings.
 
+### OT-0176a Location sharing checklist for Trail issue 159
+
+Closes checklist scope only: [Trail #159](https://github.com/Limited-Underground/Trail/issues/159). See the [acceptance checklist](testing/OT-176-LOCATION-SHARING-ACCEPTANCE-CHECKLIST.md). Covers requirements 6 and 7 and records open design/code differences. No design change or device execution; parent and device acceptance remain open.
+
 ### OT-0170a Reconnect to the owned board and refresh device status
 
 - I-023: On a cold launch with Nearby Devices already granted, the visible app can recover the user's board using Android's bond inventory and the bounded owned Trail service scan. A unique candidate still has to pass the existing protected claim and snapshot. The temporary binding ends when the app leaves the foreground. No board identity is saved by Trail, and no background service is started on launch.
