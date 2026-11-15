@@ -799,6 +799,8 @@ normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
 
+The [OT-0175a acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md) covers [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
+
 The durable invitation authority is now integrated with isolated target NVS and
 trusted startup. The [actual target host proof](testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md)
 passes 130 groups; two [final firmware builds](../tests/benchmarks/crypto/OT-208-INVITATION-TARGET-BUILD-2026-09-12.json)
