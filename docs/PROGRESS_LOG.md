@@ -2,6 +2,14 @@
 
 ## 2026-11-15
 
+### OT-0005i Show board pairing on the screen (V1 F5, step R2a)
+
+The board's normal screen now shows the pairing state in place of the group/location row:
+- "PAIRING..." while an attempt runs;
+- then "PAIRED - THIS BOARD" or "PAIRING FAILED" for 60 seconds.
+
+The wording does not claim the other board committed; that point came from the R2a review. The new `BoardPairing` field in the OLED presentation snapshot defaults to `none`, so every other frame is unchanged. Exclusive surfaces (factory reset, failure, region required) keep priority. `oled_presentation_tests` grows to 8 groups. The heltec presentation tests and the bench target admission (20 groups) pass. Builds: link test 808,000 bytes, default 605,792 bytes, no warnings.
+
 ### OT-0170a Reconnect to the owned board and refresh device status
 
 - I-023: On a cold launch with Nearby Devices already granted, the visible app can recover the user's board using Android's bond inventory and the bounded owned Trail service scan. A unique candidate still has to pass the existing protected claim and snapshot. The temporary binding ends when the app leaves the foreground. No board identity is saved by Trail, and no background service is started on launch.

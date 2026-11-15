@@ -67,7 +67,7 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
      - pass non-beacon frames to it;
      - pause beacons while pairing;
      - close it before factory reset.
-     Not yet: an OLED status line ("Pairing", "Paired", "Failed"); the review pages already draw through the arbiter.
+     OLED status line (done 2026-11-15): on the normal screen, row 2 shows "PAIRING..." while an attempt runs, then "PAIRED - THIS BOARD" or "PAIRING FAILED" for 60 s. "Paired" names this board only, never the peer. The review pages draw through the arbiter as before.
    - 5d. Owner-present two-board session.
 
 

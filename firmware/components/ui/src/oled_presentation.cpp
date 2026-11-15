@@ -189,9 +189,17 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         row(frame, 0, snapshot.device_name.empty() ? std::string_view("DEVICE") : snapshot.device_name);
         row(frame, 1, phone(snapshot.phone));
         std::array<char, 32> line{};
-        std::snprintf(line.data(), line.size(), "GROUP %s LOC %s", group(snapshot.group),
-            snapshot.location_available ? (snapshot.location_on ? "ON" : "OFF") : "?");
-        row(frame, 2, line.data());
+        if (snapshot.board_pairing == BoardPairing::in_progress) {
+            row(frame, 2, "PAIRING...");
+        } else if (snapshot.board_pairing == BoardPairing::paired_here) {
+            row(frame, 2, "PAIRED - THIS BOARD");
+        } else if (snapshot.board_pairing == BoardPairing::failed) {
+            row(frame, 2, "PAIRING FAILED");
+        } else {
+            std::snprintf(line.data(), line.size(), "GROUP %s LOC %s", group(snapshot.group),
+                snapshot.location_available ? (snapshot.location_on ? "ON" : "OFF") : "?");
+            row(frame, 2, line.data());
+        }
 
         // Reserve width for TX status even when the non-secret region label is long.
         std::array<char, 8> region{};
