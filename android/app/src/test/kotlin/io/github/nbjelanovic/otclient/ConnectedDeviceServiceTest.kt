@@ -339,7 +339,9 @@ class ConnectedDeviceServiceTest {
             ConnectedDeviceServiceUiState.RUNNING,
             assertIs<TrailAppUiState.BluetoothDevice>(fixture.controller.state).serviceState,
         )
-        assertEquals(1, fixture.startupScheduler.leases.single().closeCount)
+        val startupDeadline = fixture.startupScheduler.leases.single()
+        assertEquals(10_000L, startupDeadline.delayMillis)
+        assertEquals(1, startupDeadline.closeCount)
     }
 
     @Test
@@ -351,6 +353,7 @@ class ConnectedDeviceServiceTest {
         fixture.controller.startBluetoothService()
         fixture.connector.emit(0, ConnectedDeviceServiceConnection.Connected(port))
 
+        assertEquals(10_000L, fixture.startupScheduler.leases.single().delayMillis)
         fixture.startupScheduler.fire(0)
 
         assertEquals(1, fixture.connector.stopCount)
@@ -373,7 +376,11 @@ class ConnectedDeviceServiceTest {
         val current = FakePort(71)
         fixture.connector.emit(1, ConnectedDeviceServiceConnection.Connected(current))
 
+        val deadlines = fixture.startupScheduler.leases
+        assertEquals(listOf(10_000L, 1_000L), deadlines.map { it.delayMillis })
+        assertEquals(listOf(1, 1), deadlines.map { it.closeCount })
         fixture.startupScheduler.fire(0)
+        fixture.startupScheduler.fire(1)
 
         assertEquals(0, fixture.connector.stopCount)
         assertEquals(
@@ -754,15 +761,13 @@ class ConnectedDeviceServiceTest {
     private class FakeStartupScheduler : BleRuntimeScheduler {
         val leases = mutableListOf<FakeDeadline>()
 
-        override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease {
-            assertEquals(10_000L, delayMillis)
-            return FakeDeadline(callback).also(leases::add)
-        }
+        override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease =
+            FakeDeadline(delayMillis, callback).also(leases::add)
 
         fun fire(index: Int) = leases[index].callback()
     }
 
-    private class FakeDeadline(val callback: () -> Unit) : BleReconnectLease {
+    private class FakeDeadline(val delayMillis: Long, val callback: () -> Unit) : BleReconnectLease {
         var closeCount = 0
         override fun close() {
             closeCount += 1

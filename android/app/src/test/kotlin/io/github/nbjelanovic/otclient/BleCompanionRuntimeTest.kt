@@ -413,6 +413,43 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun scanAgainAfterReturningOwnerLinkFailureFindsTheSameBondedBoard() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val fixture = Fixture(facade = facade)
+        val runtime = fixture.runtime
+        facade.returningOwnerScans.single().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            emit(BleScanEvent.Complete)
+        }
+        val failedLease = facade.connections.single()
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, failedLease.purpose)
+        failedLease.emit(BleGattEvent.Failed(BleGattFailure.PLATFORM_FAILURE))
+        val failure = assertIs<BleRuntimeState.Failed>(runtime.state)
+        assertEquals(BleConnectionDiagnostic.GATT_PLATFORM_FAILURE, failure.connectionDiagnostic)
+        assertTrue(failedLease.closed)
+
+        // The Scan again button calls this same runtime entry point.
+        runtime.requestScan()
+
+        assertIs<BleRuntimeState.FindingReturningOwner>(runtime.state)
+        assertTrue(facade.scans.isEmpty())
+        assertEquals(2, facade.returningOwnerScans.size)
+        facade.returningOwnerScans.last().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            assertEquals(1, facade.connections.size)
+            emit(BleScanEvent.Complete)
+        }
+        val renewed = facade.connections.last()
+        assertEquals(2, facade.connections.size)
+        assertEquals(BleConnectionPurpose.EXISTING_OWNER, renewed.purpose)
+        assertEquals(failedLease.endpointToken, renewed.endpointToken)
+        fixture.advanceReturningOwnerToInitialSnapshot(renewed, sessionNonce = 27)
+        renewed.emit(BleGattEvent.StreamIndication(snapshotEnvelope(sessionNonce = 27, eventId = 1)))
+        assertEquals(CANDIDATE, assertIs<BleRuntimeState.Ready>(runtime.state).session.companion)
+        runtime.close()
+    }
+
+    @Test
     fun returningOwnerCannotSubstituteInjectedSecurityOrPlainProtocolInfoForProtectedOwnerProof() {
         run {
             val facade = TestBluetoothFacade(returningOwnerScanSupported = true)

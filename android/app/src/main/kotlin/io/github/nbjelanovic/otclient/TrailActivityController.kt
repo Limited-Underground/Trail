@@ -392,11 +392,8 @@ class TrailActivityController(
         }
         if (next == null) {
             if (activeBindingGeneration == nextGeneration) {
-                failServiceConnection()
-                if (route == BindingRoute.EXISTING && !returningOwnerAttempted && !returningOwnerSuppressed &&
-                    mode != TrailConnectionMode.LOCAL_TEST &&
-                    permissionReader.current() == NearbyDevicesPermissionState.GRANTED
-                ) bindToRequestedService(BindingRoute.RETURNING_OWNER)
+                if (route == BindingRoute.EXISTING) fallBackFromExistingAttachment()
+                else failServiceConnection()
             }
         } else if (
             closed || !lifecycleActive || !serviceRequested ||
@@ -408,7 +405,42 @@ class TrailActivityController(
             val deferred = deferredConnection
             deferredConnection = null
             if (deferred != null) onServiceConnection(deferred.first, deferred.second)
+            else if (route == BindingRoute.EXISTING) armExistingAttachmentDeadline(nextGeneration, next)
         }
+    }
+
+    private fun armExistingAttachmentDeadline(
+        generation: Long,
+        expected: ConnectedDeviceServiceBinding,
+    ) {
+        fun stillWaiting() = !closed && lifecycleActive && serviceRequested &&
+            bindingRoute == BindingRoute.EXISTING && activeBindingGeneration == generation &&
+            binding === expected && port == null
+
+        // Android may accept the noncreating bind without ever delivering a service callback.
+        val lease = try {
+            serviceStartupScheduler.schedule(EXISTING_ATTACHMENT_TIMEOUT_MILLIS) {
+                requireOwnerThread()
+                if (stillWaiting()) fallBackFromExistingAttachment()
+            }
+        } catch (_: Exception) {
+            if (stillWaiting()) fallBackFromExistingAttachment()
+            return
+        }
+        if (stillWaiting()) serviceStartupDeadline = lease else closeObservationLease(lease)
+    }
+
+    private fun fallBackFromExistingAttachment() {
+        retiringPendingAttachment = true
+        try {
+            detachServiceAttachment()
+        } finally {
+            retiringPendingAttachment = false
+        }
+        if (!returningOwnerAttempted && !returningOwnerSuppressed &&
+            mode != TrailConnectionMode.LOCAL_TEST &&
+            permissionReader.current() == NearbyDevicesPermissionState.GRANTED
+        ) bindToRequestedService(BindingRoute.RETURNING_OWNER)
     }
 
     private fun onServiceConnection(generation: Long, connection: ConnectedDeviceServiceConnection) {
@@ -421,6 +453,7 @@ class TrailActivityController(
             deferredConnection = generation to connection
             return
         }
+        if (bindingRoute == BindingRoute.EXISTING) closeServiceStartupDeadline()
         permissionState = permissionReader.current()
         notificationPermissionState = notificationPermissionReader.current()
         if (permissionState != NearbyDevicesPermissionState.GRANTED) {
@@ -766,6 +799,7 @@ class TrailActivityController(
     }
 
     private companion object {
+        const val EXISTING_ATTACHMENT_TIMEOUT_MILLIS = 1_000L
         const val SERVICE_STARTUP_TIMEOUT_MILLIS = 10_000L
     }
 }

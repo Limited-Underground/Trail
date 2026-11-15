@@ -44,13 +44,13 @@ class V1BoardPairingUiTest {
         }
     }
 
-    @Test fun startShowsLeadingZerosAndClearsCodeOnSend() {
+    @Test fun startCodeStaysVisibleUntilThePairingWindowEnds() {
         show()
         ui.onNodeWithText("Start pairing").performClick()
         ui.onNodeWithText("000042").assertExists()
         ui.runOnIdle { assertNull(submitted) }
         ui.onNodeWithText("Send to my board").performClick()
-        ui.onNodeWithText("000042").assertDoesNotExist()
+        ui.onNodeWithText("000042").assertExists()
         ui.onNodeWithText("Waiting for your board to answer.").assertExists()
         ui.runOnIdle {
             assertEquals(CompanionEnrollmentRole.INITIATOR, submitted?.enrollmentRole)
@@ -59,11 +59,33 @@ class V1BoardPairingUiTest {
 
         ui.runOnIdle { state.value = BoardPairingState.Ready(now + BOARD_PAIRING_WINDOW_MILLIS) }
         ui.onNodeWithText("Pairing window: 2:00 left").assertExists()
+        ui.onNodeWithText("000042").assertExists()
         ui.onNodeWithText("Start pairing").assertDoesNotExist()
         ui.runOnIdle { now += BOARD_PAIRING_WINDOW_MILLIS }
         ui.mainClock.advanceTimeBy(1_100)
         ui.onNodeWithText("The two-minute pairing window ended.").assertExists()
+        ui.onNodeWithText("000042").assertDoesNotExist()
         ui.onNodeWithText("Start pairing").assertExists()
+    }
+
+    @Test fun starterCodeClearsOnRefusalOrCancel() {
+        show()
+        ui.onNodeWithText("Start pairing").performClick()
+        ui.onNodeWithText("Cancel").performClick()
+        ui.onNodeWithText("000042").assertDoesNotExist()
+        ui.runOnIdle { assertNull(submitted) }
+
+        ui.onNodeWithText("Start pairing").performClick()
+        ui.onNodeWithText("Send to my board").performClick()
+        ui.onNodeWithText("000042").assertExists()
+        ui.runOnIdle { state.value = BoardPairingState.Rejected(CompanionActionRejectReason.POLICY_DENIED) }
+        ui.onNodeWithText("000042").assertDoesNotExist()
+
+        ui.onNodeWithText("Start pairing").performClick()
+        ui.onNodeWithText("Send to my board").performClick()
+        ui.onNodeWithText("000042").assertExists()
+        ui.runOnIdle { state.value = null }
+        ui.onNodeWithText("000042").assertDoesNotExist()
     }
 
     @Test fun joinRequiresSixDigitsAndShowsExplicitRefusalOrDisconnect() {
