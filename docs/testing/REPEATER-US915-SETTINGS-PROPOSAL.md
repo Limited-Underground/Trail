@@ -1,4 +1,4 @@
-# I-012 · Trail Repeater US915 settings proposal
+# I-012 · Limited Underground MeshTrail Repeater US915 settings proposal
 
 November 15, 2026. **Engineering review proposal only.** D-028 selects the US
 and US915 for development; it does not select an authorized transmitter
@@ -8,9 +8,9 @@ no defaults, firmware, endpoint settings, or stage of acceptance.
 
 | Setting | Candidate for later review | Reason and unresolved check |
 | --- | --- | --- |
-| Endpoint reference | 915.000 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 8 preamble symbols, explicit header and CRC. | [Current Trail close-bench profile](https://github.com/Limited-Underground/Trail/blob/c486a42aed97852eac0d7d3826b1dd97340d01c5/firmware/targets/heltec_v4_bench/main/heltec_v4_lora.hpp). Use as a receive-only interoperability reference under separate authority. Existing endpoint evidence is not authorization for Repeater TX. |
+| Endpoint reference | 915.000 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 8 preamble symbols, explicit header and CRC. | [Current Limited Underground MeshTrail close-bench profile](https://github.com/Limited-Underground/Trail/blob/c486a42aed97852eac0d7d3826b1dd97340d01c5/firmware/targets/heltec_v4_bench/main/heltec_v4_lora.hpp). Use as a receive-only interoperability reference under separate authority. Existing endpoint evidence is not authorization for Repeater TX. |
 | Channel and mode | Investigate **907.800 MHz** in the exact documented Wio-SX1262 digital transmission system (DTS) mode. | A center evaluated in the DTS exhibit and inside that grant range. Review the precise firmware modulation and measured 6 dB bandwidth rather than copying the fixed 125 kHz profile or assuming a nominal 500 kHz setting qualifies. Changing the endpoints to match would be separate shared scope. |
-| Power | Start conducted engineering review at **+2 dBm** (about 1.6 mW); measured value, not an assumed chip setting or maximum. | Matches the level of the reference close-bench profile and avoids overdriving a short link. With a verified 2 dBi receiver-side-independent transmit antenna and negligible feedline loss, nominal EIRP would be about +4 dBm; that arithmetic does not prove compliance. The +22 dBm data-sheet scenario in the battery worksheet was for current estimation only. |
+| Power | Start conducted engineering review at **+2 dBm** (about 1.6 mW); measured value, not an assumed chip setting or maximum. | Matches the level of the reference close-bench profile and avoids overdriving a short link. With a verified 2 dBi transmit antenna and negligible feedline loss, nominal EIRP would be about +4 dBm; that arithmetic does not prove compliance. The +22 dBm data-sheet scenario in the battery worksheet was for current estimation only. |
 | Antenna | Prefer the supplied Seeed 868–915 MHz 2 dBi rubber rod and original harness, **only if confirmed authorized for the exact module/configuration**. No amplifier or substitute antenna proposed. | Confirm the received unit, antenna part/type, gain, cable, installation and grant conditions. Being stock, within the band, or lower gain is not sufficient by itself. |
 
 The [Wio-SX1262 equipment grant](https://files.seeedstudio.com/Seeed_Certificate/documents_certificate/113010003-FCC.pdf)
@@ -52,7 +52,7 @@ Before asking for separate permission to transmit:
 3. In a separately authorized session, confirm direct endpoint operation,
    then qualify a single-relay path only after protected relay admission,
    driver reconciliation and the required recovery evidence exist. Measure
-   actual RX/TX and GNSS power before accepting battery or solar performance.
+   actual RX/TX and GNSS power to confirm the three-sunless-day battery planning target (D-098).
 
 **Owner recommendation:** approve an RF engineering review of the conditional
 907.800 MHz DTS / +2 dBm / verified stock-antenna candidate; retain TX refusal

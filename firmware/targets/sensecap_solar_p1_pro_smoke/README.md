@@ -1,4 +1,4 @@
-# SenseCAP Solar Node P1-Pro build-only smoke target
+# Limited Underground MeshTrail Repeater · SenseCAP Solar Node P1-Pro build target
 
 Owner-authorized OT-0266b-5 five-file milestone. Never upload this image.
 Uses the physical target's XIAO nRF52840 Plus MCU/BSP; no Solar Node radio,
@@ -31,6 +31,13 @@ identity or hardware acceptance. Actual linked size and package evidence are
 in the task build.log and verification.json. The installed device bootloader
 and SoftDevice have not been inspected. This target does not establish RF,
 continuous receive, radio completion/rearm, power management or P4 protection.
+
+## Battery autonomy
+
+Limited Underground MeshTrail Repeater has a planning target of **three
+sunless days** (D-098). The estimate is about 9,000 mAh against the P1-Pro
+bank's nominal 13,400 mAh. A later bench power measurement will confirm the
+target against the actual receive duty, GNSS use, and usable battery capacity.
 
 ## Dependency custody
 
