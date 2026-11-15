@@ -25,6 +25,14 @@ Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The
 
 The four focused regressions failed on the unchanged base. Post-fix validation is recorded in the task report. The candidate has not been tested on phones.
 
+### OT-0178a Show the MeshTrail name on the board (D-089)
+
+Owner decision D-089 renames the product to Limited Underground MeshTrail. On the Heltec V4:
+- The startup logo keeps the LIMITED UNDERGROUND top line and replaces the retired LT/TRAIL art with the new Linked Route symbol (owner decision D-091) and the MeshTrail wordmark. In one colour the three nodes have a thin gap so they read as dots on the route. The bottom row stays blank for the firmware version (D-081). Bitmap SHA-256 `e6a3e6ff...6227`.
+- The reset question reads "ERASE MESHTRAIL DATA?" (21 characters, one row) on both display paths.
+
+The Bluetooth setup label `Trail-XXXXXX`, identifiers, storage and protocol are unchanged. Host tests pass (startup display 19 groups, Heltec OLED presentation 8, OLED presentation 9, bench target 20). Default build 606,464 bytes, no warnings. Not flashed: renamed firmware goes on the boards only after the F5 R2 pairing passes.
+
 ### OT-0175a Messaging checklist for Trail issue 158
 
 Closes checklist scope only: [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). See the [acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.

@@ -97,7 +97,7 @@ void safety_surfaces_and_transition_clear_lower_content() {
     view.frame = StartupDisplayFrame::factory_reset_confirmation;
     auto frame = mapper.present(view, 1);
     require(frame.surface == Surface::reset_confirmation, "confirmation priority");
-    require(row(frame, 0) == "ERASE ALL TRAIL DATA?", "confirmation text");
+    require(row(frame, 0) == "ERASE MESHTRAIL DATA?", "confirmation text");
     require(row(frame, 1) == "RELEASE THEN CONFIRM", "confirmation direction");
     unused_rows_blank(frame, 2);
     view.frame = StartupDisplayFrame::factory_resetting;
