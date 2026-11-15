@@ -44,6 +44,8 @@ picked up by Android until the board is paired again.
 
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b waits.
 
+The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055).
+
 Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: step 3b, indexed per-pair storage, message numbers and the group header (step 3).
 
 ## Development rules
@@ -157,7 +159,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
 | Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)](PROGRESS_LOG.md#ot-0005i-fix-the-board-pairing-stack-overflow-longer-startup-logo-v1-f5-d-088). |
+| Latest record | [OT-0005i Allow pairing retries and log why a start is refused (I-055)](PROGRESS_LOG.md#ot-0005i-allow-pairing-retries-and-log-why-a-start-is-refused-i-055). |
 | Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 

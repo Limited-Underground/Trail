@@ -27,14 +27,21 @@ public:
     using Domain = persistence::StorageDomain;
     using Error = persistence::StorageError;
     enum class Store : unsigned { identity = 7, journal, binding, boot };
-    static constexpr std::uint64_t kCapacity = 2;
+    // I-055: every pairing attempt, even a failed or interrupted one, permanently
+    // consumes one session generation. Capacity 2 blocked both bench boards after
+    // two attempts. 32 allows routine retries; a factory reset restores it.
+    static constexpr std::uint64_t kCapacity = 32;
     static constexpr char kPartition[] = "ot_state";
     static constexpr char kNamespace[] = "ot_pair";
     static constexpr std::uint32_t kPartitionAddress = 0xf00000;
     static constexpr std::uint32_t kPartitionBytes = 0x100000;
-    // 256 pages x 126 entries; the evaluation's measured pairing ceiling.
+    // 256 pages x 126 entries in ot_state.
     static constexpr std::size_t kTotalEntries = 256 * 126;
-    static constexpr std::size_t kPairingEntries = 204;
+    // Worst case for the pairing records: 37 fixed slots plus 7 per generation,
+    // 4 NVS entries per 64-byte slot (F5-R2 plan budget). 1,044 at capacity 32,
+    // about 3% of ot_state.
+    static constexpr std::size_t kPairingEntries = (37 + 7 * kCapacity) * 4;
+    static_assert(kPairingEntries == 1044 && kPairingEntries < kTotalEntries / 8);
 
     PairingNvsStorage();
     ~PairingNvsStorage() override;
