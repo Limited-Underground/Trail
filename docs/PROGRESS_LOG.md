@@ -21,6 +21,10 @@ First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boa
 
 Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
 
+### OT-0170a Apply the MeshTrail Android display name
+
+Owner decision D-089 and [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The Android app uses Limited Underground MeshTrail for the launcher, home-screen accessibility label and notification title. Reset and recovery copy, support-share subjects, and the MeshTrail V1-Test label and log heading use the new name. The existing wordmark image stays for the separate artwork change. Application IDs, signing configuration, version code, Bluetooth UUIDs, the Trail-XXXXXX setup label and saved-state and support formats retain their prior values. The rename follows the local board-session fixes. Phone update verification remains pending.
+
 ### OT-0170a Recover the owned board session and retain the pairing code
 
 Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The 2026-11-15 Note20 session exposed two returning-owner defects and a pairing display defect:
@@ -30,6 +34,14 @@ Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The
 - I-052: The initiator's six-digit code remains visible while the Device panel waits for the board and during the admitted window. It is held in memory and is cleared on refusal, expiry or panel dismissal. The board still owns the confirmation and result.
 
 The four focused regressions failed on the unchanged base. Post-fix validation is recorded in the task report. The candidate has not been tested on phones.
+
+### OT-0178a Show the MeshTrail name on the board (D-089)
+
+Owner decision D-089 renames the product to Limited Underground MeshTrail. On the Heltec V4:
+- The startup logo keeps the LIMITED UNDERGROUND top line and replaces the retired LT/TRAIL art with the new Linked Route symbol (owner decision D-091) and the MeshTrail wordmark. In one colour the three nodes have a thin gap so they read as dots on the route. The bottom row stays blank for the firmware version (D-081). Bitmap SHA-256 `e6a3e6ff...6227`.
+- The reset question reads "ERASE MESHTRAIL DATA?" (21 characters, one row) on both display paths.
+
+The Bluetooth setup label `Trail-XXXXXX`, identifiers, storage and protocol are unchanged. Host tests pass (startup display 19 groups, Heltec OLED presentation 8, OLED presentation 9, bench target 20). Default build 606,464 bytes, no warnings. Not flashed: renamed firmware goes on the boards only after the F5 R2 pairing passes.
 
 ### OT-0175a Messaging checklist for Trail issue 158
 

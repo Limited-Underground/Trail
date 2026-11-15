@@ -24,7 +24,7 @@ The current source names the BOOT/GPIO0 input; physical Button 1/Button 2
 numbering remains UNKNOWN. This gesture is wired only in the ordinary bench
 build (`OPENTRAIL_CONFIRMATION_EVALUATION=0`). It requires initialized input and an
 available confirmation display; the prompt is refused while a pairing PIN is
-visible. The warning is `Erase all Trail data?`. Its durable
+visible. The warning is `ERASE MESHTRAIL DATA?`. Its durable
 cleanup contract removes prior-user Trail state and retains firmware,
 boot/OTA trust, hardware identity, and calibration. V1 has no phone-replacement
 path. OT-168 remains partial until the complete reset, reconnect, two-device,

@@ -134,7 +134,7 @@ The physical path requires local access to the Trail device and uses the
 designated Heltec user control:
 
 1. Press and hold the control continuously for at least 10 seconds.
-2. At the 10-second threshold, the LCD displays `Erase all Trail data?` while
+2. At the 10-second threshold, the LCD displays `ERASE MESHTRAIL DATA?` while
    no user data has been changed.
 3. Release the control. Release after the threshold arms one 10-second
    confirmation window.

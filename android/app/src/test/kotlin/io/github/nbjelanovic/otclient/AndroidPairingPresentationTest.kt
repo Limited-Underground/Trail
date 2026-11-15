@@ -56,7 +56,7 @@ class AndroidPairingPresentationTest {
         assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("at least 10 seconds"))
         assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("release when prompted"))
         assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("short-press within 10 seconds"))
-        assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("erases all Trail user data"))
+        assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("erases all MeshTrail user data"))
         assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("reboots the device unowned"))
         assertTrue(LOST_PHONE_RECOVERY_PUBLIC_TEXT.contains("open automatically for 60 seconds"))
         assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("permanently erases"))

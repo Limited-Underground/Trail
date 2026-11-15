@@ -654,7 +654,7 @@ void test_factory_reset_overlay_suppresses_redraw_and_restores_latest_view() {
             "confirmation is a full-screen transient overlay");
     require(std::string(startup_display_text(
                 StartupDisplayFrame::factory_reset_confirmation)) ==
-                "ERASE ALL TRAIL DATA?",
+                "ERASE MESHTRAIL DATA?",
             "factory-reset confirmation copy is exact");
     require(owner.show_factory_reset_confirmation(),
             "duplicate factory-reset confirmation accepted");
