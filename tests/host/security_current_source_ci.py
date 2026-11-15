@@ -224,6 +224,9 @@ def run(output):
         suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],
               (), " enrollment candidate session groups")
+        suite("pairing_session_adapter_tests", [*common, ROOT / "tests/host/pairing_session_adapter_tests.cpp"],
+              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include"],
+              (), " pairing session adapter groups")
         suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],
               (), " enrollment candidate recovery groups")

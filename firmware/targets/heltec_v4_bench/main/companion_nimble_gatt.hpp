@@ -4,6 +4,7 @@
 
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
 #include "opentrail/companion_configuration_dispatcher.hpp"
+#include "opentrail/selected_enrollment_request_owner.hpp"
 
 struct ble_gap_event;
 
@@ -24,6 +25,12 @@ void service_companion_configuration();
 void invalidate_companion_configuration(bool revoke = false);
 // Terminal containment gate. Must succeed before BLE teardown or reset cleanup.
 [[nodiscard]] bool retire_selected_enrollment_request();
+// V1 F5 R2a: the app task reads the admitted pairing request and a fresh
+// connection authority together, under the GATT lock. It observes (and so
+// expires or cancels) the request but never admits, extends or claims it.
+[[nodiscard]] bool companion_pairing_request_snapshot(
+    companion::SelectedEnrollmentRequest& request,
+    companion::DeviceNameAuthority& authority);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 [[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();

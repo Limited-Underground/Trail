@@ -54,12 +54,22 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - a repeated frame from the peer identifies exactly which of our frames it still needs.
    It stops resending after `max_sends` (2, D-078) but keeps listening until the 120 s window ends, because the other person may still be reviewing.
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
-5. Target composition in `heltec_v4_bench`:
-   - consume the admitted request and start the session with the request's role and code;
-   - feed the product radio both ways;
-   - OLED status;
-   - product NVS namespaces and factory-reset coverage.
-6. Two-board session (owner present): identities exchanged over LoRa, fingerprints compared, a press on each board.
+5. Target composition in `heltec_v4_bench`, in steps:
+   - 5a (done). `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.
+   - 5b (done, `board_pairing_runtime.cpp/.hpp`). Pairing runtime:
+     - consume the admitted request;
+     - hand the board identity from the load-only boot owner to the session;
+     - create the session through the enrollment reset gate, as the evaluation does, so factory reset and pairing cannot interleave;
+     - start it with the request's role and code;
+     - drive the coordinator.
+   - 5c. `app_main` wiring, link-test-only (done with 5b):
+     - service the runtime and send its frames when transmit is permitted;
+     - pass non-beacon frames to it;
+     - pause beacons while pairing;
+     - close it before factory reset.
+     Not yet: an OLED status line ("Pairing", "Paired", "Failed"); the review pages already draw through the arbiter.
+   - 5d. Owner-present two-board session.
+
 
 ## Message order over LoRa (from `enrollment_candidate_session_tests.cpp`)
 
@@ -82,3 +92,25 @@ Coordinator rules this implies:
 - Each received frame is passed to the session at most once. A repeated identical frame is ignored, and a different frame of an already-consumed type ends the attempt.
 - A board repeats its last frame until the next expected frame arrives, within the D-078 limits.
 - Everything is bounded by the 120 s request window, which the phone connection must hold.
+
+## Slice 5 storage (corrected 2026-11-14)
+
+An earlier note here said the pairing stores could use `ot_state` like the confirmation evaluation. That was wrong:
+- `ConfirmationNvsBackend` opens namespaces in the **default** NVS partition; its `ot_state` argument is only a label check.
+- Nothing in the product writes the raw `ot_state` partition. Factory reset erases it, along with the `ot_v1_owner`, `ot_name_v1`, `ot_region_v1` and `ot_identity_v1` namespaces.
+
+Budget, from the evaluation target's own constants (`candidate_nvs_storage.hpp`): 37 fixed slots plus 7 per generation (capacity 2), at 4 NVS entries per 64-byte slot, comes to 204 entries. The default NVS (12 KB) has about 252 usable entries in total, already shared with the Bluetooth bond, owner record, name, region and the board identity (10 slots, about 40 entries). The pairing stores do not fit there.
+
+Options (owner decision):
+- A. A dedicated pairing NVS partition, taken from the unused end of `ota_1`. The bench app never uses OTA. This reuses the board-tested evaluation storage design, and factory reset gains one partition. It changes the partition table: both boards need one full reflash, and the Loader's layout checks follow Trail's `partitions.csv`.
+- B. New crash-safe storage over raw flash in `ot_state`. No layout change, but it is new security-critical code.
+- C. Default NVS. Does not fit.
+
+## Before the two-board session (5d)
+
+- The phone app must send action 6 with a role and code (R2b, Codex brief ready). Nothing else creates a product pairing request.
+- Recommended: an independent review of 5a to 5c before the boards run it.
+- Known limits to observe on the boards:
+  - a frame the radio refuses to queue counts as lost, which the coordinator's repeat logic covers;
+  - frames are sent only when the region permits transmit (D-079);
+  - after a failed attempt, retained enrollment records may block a fresh first enrollment until factory reset (the session's rekey and recovery paths are not wired).

@@ -2,6 +2,32 @@
 
 ## 2026-11-14
 
+### OT-0005i Compose first board pairing in the product firmware (V1 F5, step R2a, slices 4 and 5a-5c)
+
+Plan: [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md). Follows the request role and code, LoRa frames and coordinator from PR #253.
+- [`pairing_session_adapter.hpp`](../firmware/components/security_evaluation/include/opentrail/pairing_session_adapter.hpp) connects the coordinator to the enrollment session:
+  - converts each session value to and from its exact frame payload, with explicit little-endian fields;
+  - drives the local steps through the session's review observer: own key, peer key and transcript, each confirmed by a press on the board;
+  - adds no trust decision.
+- [`pairing_nvs_storage.cpp`](../firmware/targets/heltec_v4_bench/main/pairing_nvs_storage.cpp): owner decision D-086. The pairing records need about 204 NVS entries and do not fit the default NVS. They go in a standard NVS instance inside the existing 1 MB `ot_state` partition (`nvs_flash_init_partition_ptr`), opened only when pairing starts and modelled on the board-tested evaluation storage. Factory reset unmounts it before erasing `ot_state`. No partition table change.
+- [`board_pairing_runtime.cpp`](../firmware/targets/heltec_v4_bench/main/board_pairing_runtime.cpp) starts one enrollment session per admitted product pairing request:
+  - It mirrors the phone request into an app-task owner. The phone request keeps governing, through a locked GATT snapshot (`companion_pairing_request_snapshot`) that reports the authority unavailable once that request ends.
+  - It hands the board identity from the load-only boot owner to the session.
+  - The review uses the existing BOOT/OLED arbiter.
+- `app_main`, in link-test blocks only:
+  - services the runtime and sends its frames when transmit is permitted (D-079);
+  - passes non-beacon frames to it;
+  - pauses beacons while pairing;
+  - closes pairing before factory reset.
+  The radio build adds the confirmation evaluation's supporting sources and refuses to be combined with it.
+
+Tests and builds:
+- New `pairing_session_adapter_tests` (security matrix): two real sessions pair over a simulated link with three presses per board; pairing survives a lost frame early and late; a different code never pairs; a mutant corrupting one offer field fails.
+- Bench target admission: 20 groups. Factory-reset storage admission passes.
+- Builds: link test 807,008 bytes, default 605,616 bytes, no warnings.
+
+Not yet run on a board. The phone side (R2b) and an OLED status line are still to come.
+
 ### OT-0005i Start first board pairing: request role and code, LoRa pairing frames and coordinator (V1 F5, step R2a)
 
 Plan: [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md). Pairing starts from the phone (D-082) and runs over LoRa (D-076). Owner decision D-085: the phone that taps Start pairing shows a 6-digit code, and the other phone types it on Join pairing. Each phone sends its role and the code, which becomes the pair's group number. A peer board never selects either. Existing enrollment owners are reused; this change adds three slices:

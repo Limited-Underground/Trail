@@ -215,8 +215,15 @@ def admitted_target_sources(cmake: str) -> list[str]:
     lora_start = ordinary.index("if(OPENTRAIL_LORA_LINK_TEST)")
     lora_end = ordinary.index("endif()", lora_start) + len("endif()")
     lora_tokens = re.findall(pattern, ordinary[lora_start:lora_end])
-    require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"} and
-            len(lora_tokens) == 2 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+    # V1 F5 step R2a (D-086): plus the pairing storage in ot_state.
+    require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp",
+                                 "pairing_nvs_storage.cpp", "board_pairing_runtime.cpp",
+                                 "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
+            len(lora_tokens) == 9 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
@@ -326,6 +333,11 @@ def test_contract() -> None:
         "main/heltec_v4_lora.hpp",
         "main/lora_link_test.hpp",
         "main/lora_packet_status.hpp",
+        # V1 F5 step R2a: board pairing storage (D-086).
+        "main/pairing_nvs_storage.cpp",
+        "main/pairing_nvs_storage.hpp",
+        "main/board_pairing_runtime.cpp",
+        "main/board_pairing_runtime.hpp",
         "main/idf_component.yml",
         ".gitignore",
     }

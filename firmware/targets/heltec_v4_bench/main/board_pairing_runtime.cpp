@@ -1,0 +1,131 @@
+#include "board_pairing_runtime.hpp"
+
+#include "companion_nimble_gatt.hpp"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "heltec_enrollment_identity_owner.hpp"
+
+namespace opentrail::target::heltec_v4_bench {
+namespace {
+constexpr char kTag[] = "pairing";
+}  // namespace
+
+bool BoardPairingRuntime::same_phone_request(const companion::SelectedEnrollmentRequest& r) const {
+    return have_phone_ && r.connection_handle == phone_.connection_handle &&
+           r.delivery_token == phone_.delivery_token && r.exchange_id == phone_.exchange_id &&
+           r.admitted_ms == phone_.admitted_ms && r.deadline_ms == phone_.deadline_ms &&
+           r.role == phone_.role && r.pairing_code == phone_.pairing_code &&
+           r.authority.transport_generation == phone_.authority.transport_generation &&
+           r.authority.session_nonce == phone_.authority.session_nonce;
+}
+
+// The session's only authority source: a fresh, locked GATT snapshot, valid
+// only while the very phone request this attempt started from is still pending.
+companion::DeviceNameAuthority BoardPairingRuntime::current() noexcept {
+    companion::SelectedEnrollmentRequest phone{};
+    companion::DeviceNameAuthority authority{};
+    const bool pending = companion_pairing_request_snapshot(phone, authority);
+    if (authority.now_ms < last_ms_ && clock_seen_) return {};
+    clock_seen_ = true;
+    last_ms_ = authority.now_ms;
+    if (!pending || !same_phone_request(phone)) {
+        authority.phase = companion::DeviceNamePhase::unavailable;
+    }
+    return authority;
+}
+
+bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phone, std::uint64_t now_ms) {
+    using security_evaluation::InvitationRole;
+    phone_ = phone;
+    have_phone_ = true;
+    const auto authority = current();
+    if (authority.phase != companion::DeviceNamePhase::connected) return false;
+    // Mirror the exact phone request in this task's owner. Its window is never
+    // longer in effect: current() ends the attempt with the phone's request.
+    if (request_.admit(authority, phone.connection_handle, phone.delivery_token, phone.exchange_id,
+                       phone.role, phone.pairing_code) != companion::SelectedEnrollmentRequestResult::admitted) {
+        return false;
+    }
+    storage_.emplace();
+    if (!storage_->ready() || !register_pairing_storage(&*storage_)) return false;
+    // The session becomes the only owner of the board identity (ot_identity_v1).
+    targets::heltec_v4_bench::retire_retained_enrollment_identity();
+    identity_.emplace();
+    device_.emplace(input_);
+    companion::DeviceNameAuthoritySource& authority_source = *this;  // private base
+    session_.emplace(request_, authority_source, *device_, random_, *identity_,
+                     storage_->external(PairingNvsStorage::Store::journal),
+                     storage_->external(PairingNvsStorage::Store::binding), *storage_,
+                     PairingNvsStorage::kCapacity, kClockDomain,
+                     &storage_->external(PairingNvsStorage::Store::boot));
+    const bool initiator = phone.role == companion::CompanionEnrollmentRole::initiator;
+    if (!session_->start(initiator ? InvitationRole::initiator : InvitationRole::responder,
+                         phone.pairing_code)) {
+        return false;
+    }
+    adapter_.emplace(*session_);
+    coordinator_.emplace(*adapter_, initiator, phone.pairing_code);
+    return coordinator_->begin(now_ms);
+}
+
+void BoardPairingRuntime::end(Phase result) {
+    coordinator_.reset();
+    adapter_.reset();
+    if (session_) (void)session_->close();
+    session_.reset();
+    device_.reset();
+    identity_.reset();
+    if (storage_) storage_->retire();
+    storage_.reset();
+    if (request_.pending()) (void)request_.cancel_exact(request_.request());
+    if (phase_ != Phase::closed) phase_ = result;
+}
+
+void BoardPairingRuntime::service(std::uint64_t now_ms, protocol::pairing::FrameBuffer& out,
+                                  std::size_t& out_size) {
+    out_size = 0;
+    if (busy_ || phase_ == Phase::closed) return;
+    busy_ = true;
+    if (phase_ != Phase::running) {
+        companion::SelectedEnrollmentRequest phone{};
+        companion::DeviceNameAuthority authority{};
+        // One attempt per admitted product request; never restart the same one.
+        if (companion_pairing_request_snapshot(phone, authority) && phone.product_pairing() &&
+            !same_phone_request(phone)) {
+            phase_ = Phase::running;
+            ESP_LOGI(kTag, "start role=%u", static_cast<unsigned>(phone.role));
+            if (!start(phone, now_ms)) {
+                ESP_LOGW(kTag, "start refused");
+                end(Phase::failed);
+            }
+        }
+    }
+    if (phase_ == Phase::running && coordinator_) {
+        (void)coordinator_->service(now_ms, out, out_size);
+        const auto outcome = coordinator_->outcome();
+        if (outcome == protocol::pairing::Outcome::paired) {
+            ESP_LOGI(kTag, "paired");
+            end(Phase::paired);
+        } else if (outcome == protocol::pairing::Outcome::failed) {
+            ESP_LOGW(kTag, "failed reason=%u step=%u", static_cast<unsigned>(coordinator_->reason()),
+                     static_cast<unsigned>(coordinator_->step()));
+            end(Phase::failed);
+        }
+    }
+    busy_ = false;
+}
+
+void BoardPairingRuntime::on_receive(const std::uint8_t* data, std::size_t size) {
+    if (busy_ || phase_ != Phase::running || !coordinator_) return;
+    busy_ = true;
+    coordinator_->on_receive(data, size);
+    busy_ = false;
+}
+
+void BoardPairingRuntime::close() {
+    if (phase_ == Phase::closed) return;
+    end(Phase::closed);
+    phase_ = Phase::closed;
+}
+
+}  // namespace opentrail::target::heltec_v4_bench
