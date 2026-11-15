@@ -153,7 +153,7 @@ internal fun shareSupportReport(
             )
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = report.mimeType
-                putExtra(Intent.EXTRA_SUBJECT, "Trail support report")
+                putExtra(Intent.EXTRA_SUBJECT, "MeshTrail support report")
                 putExtra(Intent.EXTRA_STREAM, uri)
                 clipData = ClipData.newUri(context.contentResolver, report.fileName, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

@@ -176,7 +176,7 @@ class ConnectedDeviceManifestPolicyTest {
         )
         val homeSource = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/V1HomeScreen.kt").readText()
         assertTrue(homeSource.contains("R.drawable.limited_underground_trail"))
-        assertTrue(homeSource.contains("contentDescription = \"Limited Underground Trail\""))
+        assertTrue(homeSource.contains("contentDescription = \"Limited Underground MeshTrail\""))
         assertTrue(homeSource.contains("delay(1_800)"))
         assertTrue(homeSource.contains("splashFinished by rememberSaveable"))
         assertFalse(activitySource.contains("Text(\"Limited Underground\""))

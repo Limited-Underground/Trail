@@ -44,7 +44,7 @@ android {
             applicationIdSuffix = ".v1test"
             versionNameSuffix = "-v1test"
             matchingFallbacks += listOf("debug")
-            resValue("string", "app_name", "Trail V1-Test")
+            resValue("string", "app_name", "MeshTrail V1-Test")
         }
         getByName("release") {
             isDebuggable = false
