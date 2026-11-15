@@ -233,7 +233,7 @@ bool HeltecV4Oled::render(const StartupDisplayView& view) {
     } else {
         const auto frame = presentation_.present(view, now_ms,
             {configuration_name_.data(), configuration_name_bytes_}, configuration_clock_,
-            configuration_region_);
+            configuration_region_, board_pairing_);
         result = esp_lcd_panel_draw_bitmap(
             panel_, 0, 0, kDisplayWidth, kDisplayHeight, frame.pixels.data());
     }
