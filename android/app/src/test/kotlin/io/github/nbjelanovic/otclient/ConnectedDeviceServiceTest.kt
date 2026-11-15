@@ -509,7 +509,7 @@ class ConnectedDeviceServiceTest {
 
     @Test
     fun notificationTextIsFixedAndContainsNoDynamicIdentityFields() {
-        assertEquals("Limited Underground Trail", CONNECTED_DEVICE_NOTIFICATION_TITLE)
+        assertEquals("Limited Underground MeshTrail", CONNECTED_DEVICE_NOTIFICATION_TITLE)
         assertEquals("Bluetooth device connection service is running", CONNECTED_DEVICE_NOTIFICATION_TEXT)
         val combined = "$CONNECTED_DEVICE_NOTIFICATION_TITLE $CONNECTED_DEVICE_NOTIFICATION_TEXT".lowercase()
         listOf("address", "token", "correlation", "message", "candidate").forEach {
