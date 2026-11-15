@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-11-15
+
+### OT-0005i Start first board pairing from the app (V1 F5 R2b)
+
+Part of [Trail #232](https://github.com/Limited-Underground/Trail/issues/232). The Device tab lets an authorized owner start or join first board pairing. Start generates a six-digit code and Join accepts the same code, including leading zeros. Android sends action 6 with the selected role and code over the existing protected BLE configuration lane, clears the input on send, and shows the two-minute window after admission. A correlated firmware reply distinguishes Busy, Policy Denied and Unavailable. Silence uses the existing timeout with no automatic resend. The owner still compares fingerprints and confirms the pairing on each board.
+
+Validated offline against main at 3999660 (PR #255): 114 protocol tests, 622 Android debug unit tests including the pairing UI, and 23 Android operational-release admission groups passed. The owner-present two-board session and the later authenticated message exchange remain pending.
+
 ## 2026-11-14
 
 ### OT-0005i Fix the R2a review findings before the board session (V1 F5)

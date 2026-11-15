@@ -363,6 +363,7 @@ data class BleActiveSession(
     val groupLocation: GroupLocationSnapshot,
     val lastActionResult: CompanionActionResult? = null,
     val configuration: BleConfigurationState = BleConfigurationState(),
+    val boardPairing: BoardPairingState? = null,
 )
 
 enum class FactoryResetLocalCleanupResult {
@@ -512,7 +513,11 @@ class BleCompanionRuntime(
     private var pendingSnapshotExchangeId = 0L
     private val authorizationTracker = CompanionAuthorizationResponseTracker()
     private var authorizationClaim: RuntimeAuthorizationClaim? = null
-    private data class PendingAction(val exchangeId: Long, val request: CompanionActionRequest)
+    private data class PendingAction(
+        val exchangeId: Long,
+        val request: CompanionActionRequest,
+        val pairingDeadlineMillis: Long? = null,
+    )
     private data class FactoryResetVerificationTarget(
         val receipt: ULong,
         val companion: BleDiscoveredCompanion?,
@@ -1045,6 +1050,13 @@ class BleCompanionRuntime(
                     (ready.session.protocolInfo.capabilities and COMPANION_FACTORY_RESET_CAPABILITY) == 0
                 )
         ) return false
+        val isPairing = request.kind == CompanionActionKind.START_ENROLLMENT
+        val pairingDeadline = if (isPairing) {
+            val now = confirmationClockMillis()
+            val pairing = ready.session.boardPairing ?: return false
+            if (pairing.isBusy(now) || now < 0 || now > Long.MAX_VALUE - BOARD_PAIRING_WINDOW_MILLIS) return false
+            now + BOARD_PAIRING_WINDOW_MILLIS
+        } else null
         val isPacket = configurationInfo?.minorVersion == 6
         if (isPacket && (request.kind != CompanionActionKind.QUICK_STATUS ||
                 !currentPacketAuthority() || packetReceiver.pendingRequest || packetReceiver.activeEvent != null)) return false
@@ -1104,7 +1116,16 @@ class BleCompanionRuntime(
         }
         // Consume an ID before handing bytes to the platform because a false return can still be uncertain.
         nextRequestId = requestId + 1
-        pendingAction = PendingAction(requestId, effectiveRequest)
+        val correlationRequest = if (isPairing) {
+            // Role and code are required only in the outgoing record. The reply echoes neither.
+            effectiveRequest.copy(enrollmentRole = null, pairingCode = 0)
+        } else effectiveRequest
+        val pending = PendingAction(requestId, correlationRequest, pairingDeadline)
+        pendingAction = pending
+        if (isPairing) {
+            publish(BleRuntimeState.Ready(ready.session.copy(boardPairing = BoardPairingState.Waiting)))
+            if (pendingAction !== pending || gattLease !== lease) return false
+        }
         if(isPacket) publish(BleRuntimeState.Ready(ready.session.copy(lastActionResult=null)))
         if (isPacket && !currentPacketAuthority()) {
             retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED, unknown=false)
@@ -1112,13 +1133,16 @@ class BleCompanionRuntime(
         }
         val submittedOrigin=if(isPacket) packetOrigin else null
         if (isPacket) submittedOrigin?.handedOff=true
-        val written=if(isPacket) try { lease.writeCommandWithResponse(encoded) } catch(_:Exception) { false } else lease.writeCommandWithResponse(encoded)
+        val written = if (isPacket || isPairing) {
+            try { lease.writeCommandWithResponse(encoded) } catch (_: Exception) { false }
+        } else lease.writeCommandWithResponse(encoded)
         if (isPacket && (!currentPacketAuthority() || !written)) {
             // A synchronous accepted response/event cannot be undone by a false platform return.
             retirePacket(if(written) BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED else BleRuntimeFailure.ACTION_WRITE_FAILED,
                 unknown=submittedOrigin?.terminal != true)
             return false
         }
+        if (isPairing && pendingAction !== pending) return written
         if (!written) {
             if (effectiveRequest.kind == CompanionActionKind.FACTORY_RESET) {
                 // A synchronous callback may already have published the authoritative admitted or
@@ -2356,7 +2380,13 @@ class BleCompanionRuntime(
         }
         publish(
             BleRuntimeState.Ready(
-                BleActiveSession(companion, fragment.sessionNonce, snapshot, info, groupLocation),
+                BleActiveSession(
+                    companion, fragment.sessionNonce, snapshot, info, groupLocation,
+                    boardPairing = BoardPairingState.Available.takeIf {
+                        normalProfileConfirmedAfterPromotion &&
+                            configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE
+                    },
+                ),
             ),
         )
         initializeConfigurationSession()
@@ -2458,6 +2488,13 @@ class BleCompanionRuntime(
             }
             publish(BleRuntimeState.FactoryResetErasing(session.companion))
             armFactoryResetRestartTimeout(generation, target)
+            return
+        }
+        if (pending.pairingDeadlineMillis != null) {
+            val pairing = if (result.disposition == CompanionActionDisposition.ADMITTED) {
+                BoardPairingState.Ready(pending.pairingDeadlineMillis)
+            } else BoardPairingState.Rejected(result.rejectReason)
+            publish(BleRuntimeState.Ready(session.copy(boardPairing = pairing)))
             return
         }
         publish(BleRuntimeState.Ready(session.copy(lastActionResult = result)))

@@ -779,6 +779,18 @@ private fun BluetoothReadyPanel(
     val device = connectedDevicePresentation(session.configuration)
     StatusCard(device.title, device.detail)
     SnapshotSummary("Device status", session.snapshot)
+    if (session.boardPairing != null) {
+        androidx.compose.runtime.key(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
+            V1BoardPairingPanel(session.boardPairing) { request ->
+                val current = ((controller.state as? TrailAppUiState.BluetoothDevice)
+                    ?.runtimeState as? BleRuntimeState.Ready)?.session
+                current != null && current.sessionNonce == session.sessionNonce &&
+                    current.companion.endpointToken == session.companion.endpointToken &&
+                    current.configuration.editorSessionId == session.configuration.editorSessionId &&
+                    controller.submitBluetoothAction(request)
+            }
+        }
+    }
     var editConfiguration by remember(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
         mutableStateOf(false)
     }

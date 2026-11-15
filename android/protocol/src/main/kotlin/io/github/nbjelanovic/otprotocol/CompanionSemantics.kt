@@ -36,10 +36,18 @@ enum class CompanionQuickStatus(val wireValue: Int) {
 }
 
 enum class CompanionActionKind(val wireValue: Int) {
-    QUICK_STATUS(1), ACKNOWLEDGE_CRITICAL_ALERT(2), START_POSITION_SHARING(3), STOP_POSITION_SHARING(4), FACTORY_RESET(5);
+    QUICK_STATUS(1), ACKNOWLEDGE_CRITICAL_ALERT(2), START_POSITION_SHARING(3), STOP_POSITION_SHARING(4), FACTORY_RESET(5), START_ENROLLMENT(6);
 
     companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
 }
+
+enum class CompanionEnrollmentRole(val wireValue: Int) {
+    INITIATOR(1), RESPONDER(2);
+
+    companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
+}
+
+const val COMPANION_PAIRING_CODE_MAX = 999999
 
 enum class CompanionActionDisposition(val wireValue: Int) {
     ADMITTED(1), QUEUED(2), REJECTED(3);
@@ -48,7 +56,7 @@ enum class CompanionActionDisposition(val wireValue: Int) {
 }
 
 enum class CompanionActionRejectReason(val wireValue: Int) {
-    NONE(0), UNSUPPORTED_ACTION(1), STALE_ALERT(2), UNAVAILABLE(3), QUEUE_FULL(4), POLICY_DENIED(5), INTERNAL_FAILURE(6);
+    NONE(0), UNSUPPORTED_ACTION(1), STALE_ALERT(2), UNAVAILABLE(3), QUEUE_FULL(4), POLICY_DENIED(5), INTERNAL_FAILURE(6), BUSY(7);
 
     companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
 }
@@ -96,7 +104,11 @@ data class CompanionActionRequest(
     val quickStatus: CompanionQuickStatus = CompanionQuickStatus.OK,
     val criticalAlertId: ULong = 0uL,
     val factoryResetReceipt: ULong = 0uL,
-)
+    val enrollmentRole: CompanionEnrollmentRole? = null,
+    val pairingCode: Int = 0,
+) {
+    override fun toString() = "CompanionActionRequest(kind=$kind)"
+}
 
 data class CompanionActionResult(
     val kind: CompanionActionKind,
@@ -168,7 +180,7 @@ object CompanionSemanticCodec {
     }
 
     fun encodeActionRequest(request: CompanionActionRequest): SemanticCodecResult<ByteArray> {
-        validateAction(request)?.let { return SemanticCodecResult.failure(it) }
+        validateRequest(request)?.let { return SemanticCodecResult.failure(it) }
         val output = ByteArray(COMPANION_ACTION_REQUEST_BYTES)
         actionRequestMagic.copyInto(output)
         output[6] = request.kind.wireValue.toByte()
@@ -179,6 +191,10 @@ object CompanionSemanticCodec {
             else -> 0uL
         }
         writeU64Le(output, 8, subject)
+        if (request.kind == CompanionActionKind.START_ENROLLMENT) {
+            output[16] = checkNotNull(request.enrollmentRole).wireValue.toByte()
+            for (index in 0..2) output[17 + index] = (request.pairingCode ushr (8 * index)).toByte()
+        }
         return SemanticCodecResult.success(output)
     }
 
@@ -186,11 +202,14 @@ object CompanionSemanticCodec {
         validatePrefix(encoded, actionRequestMagic, COMPANION_ACTION_REQUEST_BYTES)?.let {
             return SemanticCodecResult.failure(it)
         }
-        if ((16 until COMPANION_ACTION_REQUEST_BYTES).any { encoded[it].toInt() != 0 }) {
-            return SemanticCodecResult.failure(CompanionSemanticCodecError.RESERVED_BITS_SET)
-        }
         val kind = CompanionActionKind.fromWire(encoded.u8(6))
-            ?: return SemanticCodecResult.failure(CompanionSemanticCodecError.UNKNOWN_ENUM)
+        if (kind != CompanionActionKind.START_ENROLLMENT &&
+            (16 until COMPANION_ACTION_REQUEST_BYTES).any { encoded[it].toInt() != 0 }
+        ) return SemanticCodecResult.failure(CompanionSemanticCodecError.RESERVED_BITS_SET)
+        if (kind == null) return SemanticCodecResult.failure(CompanionSemanticCodecError.UNKNOWN_ENUM)
+        val role = if (kind == CompanionActionKind.START_ENROLLMENT)
+            CompanionEnrollmentRole.fromWire(encoded.u8(16)) else null
+        val code = encoded.u8(17) or (encoded.u8(18) shl 8) or (encoded.u8(19) shl 16)
         if (kind != CompanionActionKind.QUICK_STATUS && encoded.u8(7) != 0) {
             return SemanticCodecResult.failure(CompanionSemanticCodecError.RESERVED_BITS_SET)
         }
@@ -204,8 +223,12 @@ object CompanionSemanticCodec {
             quickStatus = quickStatus,
             criticalAlertId = if (kind == CompanionActionKind.ACKNOWLEDGE_CRITICAL_ALERT) subject else 0uL,
             factoryResetReceipt = if (kind == CompanionActionKind.FACTORY_RESET) subject else 0uL,
+            enrollmentRole = role,
+            pairingCode = code,
         )
-        validateAction(request)?.let { return SemanticCodecResult.failure(it) }
+        if (kind == CompanionActionKind.START_ENROLLMENT && subject != 0uL)
+            return SemanticCodecResult.failure(CompanionSemanticCodecError.INCOHERENT_ACTION)
+        validateRequest(request)?.let { return SemanticCodecResult.failure(it) }
         return SemanticCodecResult.success(request)
     }
 
@@ -255,6 +278,8 @@ object CompanionSemanticCodec {
             disposition = disposition,
             rejectReason = rejectReason,
         )
+        if (kind == CompanionActionKind.START_ENROLLMENT && subject != 0uL)
+            return SemanticCodecResult.failure(CompanionSemanticCodecError.INCOHERENT_ACTION)
         validateResult(result)?.let { return SemanticCodecResult.failure(it) }
         return SemanticCodecResult.success(result)
     }
@@ -288,6 +313,14 @@ object CompanionSemanticCodec {
         return null
     }
 
+    private fun validateRequest(request: CompanionActionRequest): CompanionSemanticCodecError? {
+        val validPairingFields = if (request.kind == CompanionActionKind.START_ENROLLMENT) {
+            request.enrollmentRole != null && request.pairingCode in 1..COMPANION_PAIRING_CODE_MAX
+        } else request.enrollmentRole == null && request.pairingCode == 0
+        if (!validPairingFields) return CompanionSemanticCodecError.INCOHERENT_ACTION
+        return validateAction(request)
+    }
+
     private fun validateAction(request: CompanionActionRequest): CompanionSemanticCodecError? = when (request.kind) {
         CompanionActionKind.QUICK_STATUS ->
             if (request.criticalAlertId == 0uL && request.factoryResetReceipt == 0uL) null
@@ -297,6 +330,7 @@ object CompanionSemanticCodec {
             else CompanionSemanticCodecError.INVALID_ALERT_ID
         CompanionActionKind.START_POSITION_SHARING,
         CompanionActionKind.STOP_POSITION_SHARING,
+        CompanionActionKind.START_ENROLLMENT,
         -> if (request.criticalAlertId == 0uL && request.factoryResetReceipt == 0uL) null
         else CompanionSemanticCodecError.INCOHERENT_ACTION
         CompanionActionKind.FACTORY_RESET ->
@@ -320,6 +354,9 @@ object CompanionSemanticCodec {
                 return CompanionSemanticCodecError.INCOHERENT_RESULT
             }
             if (result.rejectReason == CompanionActionRejectReason.QUEUE_FULL && !outbound) {
+                return CompanionSemanticCodecError.INCOHERENT_RESULT
+            }
+            if (result.rejectReason == CompanionActionRejectReason.BUSY && result.kind != CompanionActionKind.START_ENROLLMENT) {
                 return CompanionSemanticCodecError.INCOHERENT_RESULT
             }
             return null

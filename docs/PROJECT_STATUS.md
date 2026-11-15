@@ -1,6 +1,6 @@
 # Limited Underground Trail project status
 
-Current handoff reviewed 2026-11-14; dated checkpoints retain their own dates
+Current handoff reviewed 2026-11-15. Dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -30,7 +30,7 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
-LoRa is now in the product firmware for V1 item F5 (owner decision D-075, hardware first): an SX1262 transport and an opt-in bench link test (`OPENTRAIL_LORA_LINK_TEST`) that sends unauthenticated beacons between boards (2026-11-13, not yet run on a board). Group step 3b waits. First board pairing (F5 step R2a) has started: the phone sends a role and a 6-digit pairing code (D-085), and LoRa pairing frames and a pairing coordinator are host-tested. The product firmware now composes pairing end to end (session adapter, pairing storage in `ot_state` per D-086, pairing runtime); the independent review's findings are fixed. It has not run on a board yet and waits for the phone side (2026-11-14).
+V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PR #255). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals. The local R2b branch passed full protocol and Android JVM validation. The owner-present two-board pairing session and authenticated message exchange remain pending. Group step 3b waits.
 
 Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: step 3b, indexed per-pair storage, message numbers and the group header (step 3).
 
@@ -135,18 +135,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-14 |
-| Task | [OT-0318a](https://github.com/Limited-Underground/Trail/issues/97) — D-080 Android app build label. The owner's task brief selects this local child of issue #97; no GitHub update is authorized. |
-| Owner | Codex owns only the isolated app build-label/display-setting change and its host validation on feature/d080-app-build-label. Other executors and worktrees are preserved. |
-| Scope | Build-time version/source/dirty/type identification, the existing top strip, and an owner-approved local App settings section on the Device tab. No Bluetooth, protocol, device logic or in-app firmware version. |
-| State | Implementation and eleven focused tests are written; offline unsigned debug assembly passed. App unit/layout execution is blocked by missing cached test dependencies. The label defaults on and uses durable phone-local SharedPreferences. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
-| Source | New worktree D:/LimitedUnderground/Build/worktrees/trl-app-version from origin/main f3aeb77f2f4e167b3c05217a771ff63547f7bce4. Canonical main and the active radio worktree are not edited. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | Offline unsigned assembleDebug passed; generated label is 1.0.0-dev · f3aeb77-dirty · debug. Documentation checks and 48 documentation tests pass. Unit/layout test execution is not claimed. |
-| Blocker | Compose ui-test-junit4 1.7.6 and Robolectric 4.14.1 are absent from the offline cache. App tests and rendered layout verification remain unexecuted; Android attempts stopped without downloading. |
-| Next action | Review the local commit and task report; complete offline app unit/layout validation only after the missing cached dependencies are supplied under separate scope. Publication and physical acceptance remain pending. |
-| Restrictions | No push, PR/GitHub write, device/COM access, installation, dependency downloads, key/keystore/credential access or release. Keep the branch local for owner review. |
-| Latest record | [OT-0318a Show the Android app build beside Bluetooth](PROGRESS_LOG.md#ot-0318a-show-the-android-app-build-beside-bluetooth). |
-| Evidence access | Source and tests are clone-visible; task-local logs, generated artifacts, layout notes and final source identity are reported in the owner's requested REPORT.md. No physical screen acceptance is claimed. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
+| Reviewed | 2026-11-15 |
+| Task | [OT-0005i, Trail #232](https://github.com/Limited-Underground/Trail/issues/232) — Android start/join for first board pairing (V1 F5 R2b). |
+| Owner | Codex owns the isolated Android R2b code, host checks and closeout on feature/f5-r2b-app-pairing-start. |
+| Scope | Protected action 6 role and code, correlated admission/refusal, and the Device tab pairing flow. Board-local trust confirmation and final completion stay with firmware. |
+| State | Host validation passed on the local feature branch. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Source | R2b worktree in D:/LimitedUnderground/Build/worktrees/trl-r2b-app. Integrated origin/main 39996607ae140271b59d75a950b3d1cd646c4e32 (PR #255). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | Offline protocol tests 114 of 114, Android debug unit tests 622 of 622, and Android operational-release admission 23 of 23. |
+| Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
+| Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
+| Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
+| Latest record | [OT-0005i Start first board pairing from the app (V1 F5 R2b)](PROGRESS_LOG.md#ot-0005i-start-first-board-pairing-from-the-app-v1-f5-r2b). |
+| Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and
