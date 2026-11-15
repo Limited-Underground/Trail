@@ -27,6 +27,12 @@ set(OPENTRAIL_RELEASE_GENERATION "0" CACHE STRING "Firmware Loader release gener
 if(NOT OPENTRAIL_RELEASE_GENERATION MATCHES "^(0|[1-9][0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?[0-9]?)$")
     message(FATAL_ERROR "OPENTRAIL_RELEASE_GENERATION must be 0 or a positive integer below 1000000000")
 endif()
+if(OPENTRAIL_LORA_LINK_TEST)
+    if(NOT SDKCONFIG_DEFAULTS)
+        set(SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults")
+    endif()
+    list(APPEND SDKCONFIG_DEFAULTS "${CMAKE_CURRENT_LIST_DIR}/sdkconfig.lora-link-test.defaults")
+endif()
 if(OPENTRAIL_LORA_LINK_TEST AND NOT OPENTRAIL_RELEASE_GENERATION STREQUAL "0")
     message(FATAL_ERROR "The LoRa link test is a development build only (release generation 0)")
 endif()
@@ -97,3 +103,10 @@ if(NOT CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE MATCHES "^[0-9]+$" OR
     message(FATAL_ERROR "OpenTrail BLE host task requires at least 8192 stack bytes")
 endif()
 # End OT0101e host-stack admission.
+# I-051: board pairing (link-test builds) needs the 24576-byte main task stack.
+if(OPENTRAIL_LORA_LINK_TEST AND
+   (NOT CONFIG_ESP_MAIN_TASK_STACK_SIZE MATCHES "^[0-9]+$" OR
+    CONFIG_ESP_MAIN_TASK_STACK_SIZE LESS 24576))
+    message(FATAL_ERROR "LoRa link-test pairing requires at least 24576 main task stack bytes; "
+        "build with a fresh sdkconfig (-DSDKCONFIG=<build dir>/sdkconfig)")
+endif()

@@ -81,7 +81,8 @@ void prepare_release_line() {
                   running_app_offset());
 }
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
-constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
+// D-088: long enough to read the firmware version on the logo (D-081).
+constexpr std::uint32_t kMinimumLogoPeriodMs = 5000;
 constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
 constexpr std::uint64_t kBatteryFreshForMs = 60'000;
 constexpr std::uint64_t kGnssFreshForMs = 5'000;
@@ -376,10 +377,12 @@ bool run_companion_codec_self_check() {
 }  // namespace
 
 extern "C" void app_main() {
-    const auto boot_started_at_ms =
-        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
     prepare_firmware_line();
     observe_display_result(g_startup_display.start());
+    // D-088: the logo dwell counts from when the logo is on screen (start() draws it
+    // after the OLED power-settle and I2C setup), not from app entry.
+    const auto logo_shown_at_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 
     if (!run_companion_codec_self_check() ||
         !opentrail::target::heltec_v4_bench::
@@ -684,7 +687,7 @@ extern "C" void app_main() {
         }
         const auto render_now_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-        if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
+        if (render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs) {
 #if OPENTRAIL_CONNECTION_DIAGNOSTICS
             const auto display_started_us = esp_timer_get_time();
 #endif
