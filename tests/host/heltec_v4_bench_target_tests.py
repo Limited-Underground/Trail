@@ -3490,14 +3490,22 @@ def test_selected_enrollment_request_route():
             "admit_selected_enrollment_request(request_context," in base and
             "#if OPENTRAIL_CONFIRMATION_EVALUATION\n                return false;" in base,
             "normal selected kind-2 action must route only to pending admission")
-    admission = gatt[gatt.index("bool admit_selected_enrollment_request("):
+    # R2a review: busy, invalid and retired get a correlated rejected result;
+    # lane and gate failures (refused) stay unanswered.
+    require("if (admission == SelectedEnrollmentAdmission::refused) return false;" in base and
+            "admission == SelectedEnrollmentAdmission::busy ? CompanionActionRejectReason::busy" in base and
+            "admission == SelectedEnrollmentAdmission::invalid ? CompanionActionRejectReason::policy_denied" in base,
+            "pairing admission reply must distinguish busy, invalid and unanswered refusals")
+    admission = gatt[gatt.index("SelectedEnrollmentAdmission admit_selected_enrollment_request("):
                      gatt.index("bool companion_nimble_gatt_definition_self_check()")]
     for gate in ("#if OPENTRAIL_CONFIRMATION_EVALUATION", "GattLock lock;",
                  "selected_enrollment_lane_admissible(", "g_phone_status.ready(",
                  "decode_configuration_frame(", "CompanionActionKind::start_enrollment",
                  "g_selected_enrollment_requests.admit(",
                  # D-085: phone-chosen role and pairing code reach the request.
-                 "action.value.enrollment_role, action.value.pairing_code"):
+                 "action.value.enrollment_role, action.value.pairing_code",
+                 # R2a review: request-level refusals map to distinct results.
+                 "case SelectedEnrollmentRequestResult::busy: return SelectedEnrollmentAdmission::busy;"):
         require(gate in admission, f"selected enrollment admission gate missing: {gate}")
     disconnect = gatt[gatt.index("case BLE_GAP_EVENT_DISCONNECT: {"):
                       gatt.index("case BLE_GAP_EVENT_ENC_CHANGE:")]

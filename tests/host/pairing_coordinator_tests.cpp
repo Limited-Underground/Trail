@@ -71,7 +71,13 @@ struct Run {
     // drop(n, from_a): drop the n-th frame transmitted by that side (0-based).
     std::function<bool(int, bool)> drop = [](int, bool) { return false; };
     std::function<void(int, PairingCoordinator<FakeSession>&, PairingCoordinator<FakeSession>&)> inject;
-    int sent_a{0}, sent_b{0};
+    // refuse(k, from_a): the radio refuses the k-th offer from that side (0-based).
+    std::function<bool(int, bool)> refuse = [](int, bool) { return false; };
+    // Like the product runtime: once a board leaves `running`, it keeps
+    // servicing (answering repeats) only for linger_ms, then stops entirely.
+    std::uint64_t linger_ms{~std::uint64_t{0}};
+    int sent_a{0}, sent_b{0};      // frames the radio accepted
+    int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
     std::uint64_t end_ms{};
@@ -80,19 +86,32 @@ struct Run {
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
         EXPECT(ca.begin(0));
         EXPECT(cb.begin(0));
-        std::uint64_t now = 0;
+        std::uint64_t now = 0, a_end = 0, b_end = 0;
+        bool a_live = true, b_live = true;
         for (int tick = 0; now <= limit_ms; ++tick, now += 100) {
             if (inject) inject(tick, ca, cb);
             FrameBuffer buf{};
             std::size_t n = 0;
-            if (ca.service(now, buf, n) && n) {
-                if (!drop(sent_a, true)) cb.on_receive(buf.data(), n);
-                ++sent_a;
+            if (a_live && ca.service(now, buf, n) && n) {
+                const bool accepted = !refuse(offered_a++, true);
+                ca.sent(accepted, now);
+                if (accepted) {
+                    if (!drop(sent_a, true) && b_live) cb.on_receive(buf.data(), n);
+                    ++sent_a;
+                }
             }
-            if (cb.service(now, buf, n) && n) {
-                if (!drop(sent_b, false)) ca.on_receive(buf.data(), n);
-                ++sent_b;
+            if (b_live && cb.service(now, buf, n) && n) {
+                const bool accepted = !refuse(offered_b++, false);
+                cb.sent(accepted, now);
+                if (accepted) {
+                    if (!drop(sent_b, false) && a_live) ca.on_receive(buf.data(), n);
+                    ++sent_b;
+                }
             }
+            if (ca.outcome() != Outcome::running && a_end == 0) a_end = now + 1;
+            if (cb.outcome() != Outcome::running && b_end == 0) b_end = now + 1;
+            if (a_end && now + 1 - a_end > linger_ms) a_live = false;
+            if (b_end && now + 1 - b_end > linger_ms) b_live = false;
             const bool a_done = ca.outcome() != Outcome::running;
             const bool b_done = cb.outcome() != Outcome::running;
             if (a_done && b_done) {
@@ -195,6 +214,58 @@ void test_attempt_window_expires() {
     EXPECT(r.ob != Outcome::paired);
 }
 
+// Review R2A-1: the responder's last control is lost. The product stops a
+// board shortly after it leaves `running`. With a linger window the paired
+// responder still answers the initiator's repeat; without one the initiator
+// cannot complete, which is why the runtime must linger.
+void test_final_control_loss_needs_linger() {
+    {
+        Run r;
+        r.drop = [](int n, bool from_a) { return !from_a && n == 7; };  // B's last control
+        r.linger_ms = 15000;
+        r.go();
+        EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+    }
+    {
+        Run r;
+        r.drop = [](int n, bool from_a) { return !from_a && n == 7; };
+        r.linger_ms = 0;
+        r.go();
+        EXPECT(r.ob == Outcome::paired);  // B committed locally
+        EXPECT(r.oa == Outcome::failed);  // A never heard it: one-sided
+    }
+}
+
+// Review R2A-2: only frames the radio accepted count against max_sends.
+void test_refused_offers_are_not_counted() {
+    Run r;
+    r.refuse = [](int k, bool) { return k % 2 == 1; };  // every other offer refused
+    r.go();
+    EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+    EXPECT(r.sent_a == 11 && r.sent_b == 8);  // each frame accepted exactly once
+    EXPECT(r.offered_a > r.sent_a && r.offered_b > r.sent_b);
+}
+
+// Review R2A-1: commit waits until the final frame was accepted by the radio.
+void test_commit_waits_for_final_frame_acceptance() {
+    Run r;
+    r.refuse = [](int k, bool from_a) { return !from_a && k >= 7; };  // B's last control never accepted
+    r.go(130000);
+    EXPECT(!r.b.committed);
+    EXPECT(r.ob != Outcome::paired);
+}
+
+// Review R2A-2: a held transmit (no region) produces no counted sends and
+// never moves past the first frame.
+void test_held_transmit_spends_nothing() {
+    Run r;
+    r.refuse = [](int, bool from_a) { return from_a; };
+    r.go(130000);
+    EXPECT(r.sent_a == 0);
+    EXPECT(r.a.review_waited == 0);
+    EXPECT(r.oa == Outcome::failed && r.ra == FailReason::expired);
+}
+
 void test_begin_refusals() {
     FakeSession s{1, 2};
     PairingCoordinator<FakeSession> bad_code(s, true, 0);
@@ -218,10 +289,14 @@ int main() {
     test_silent_peer_stops_within_limits();
     test_attempt_window_expires();
     test_begin_refusals();
+    test_final_control_loss_needs_linger();
+    test_refused_offers_are_not_counted();
+    test_commit_waits_for_final_frame_acceptance();
+    test_held_transmit_spends_nothing();
     if (failures != 0) {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 8 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 12 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

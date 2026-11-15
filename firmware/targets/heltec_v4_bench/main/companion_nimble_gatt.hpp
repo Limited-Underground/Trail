@@ -15,9 +15,15 @@ namespace opentrail::target::heltec_v4_bench {
     companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
     companion::RegionPersistence&, companion::PublicProfilePersistence* public_profile = nullptr);
 void service_companion_configuration();
+// R2a: why an admission did not happen. `refused` covers lane, session and
+// security-gate failures, which get no reply; the others are answered with
+// a correlated rejected result so the phone can tell them apart.
+enum class SelectedEnrollmentAdmission : std::uint8_t {
+    refused, admitted, busy, invalid, retired,
+};
 // Called only by the normal selected configuration owner after a kind-2
 // request is decoded. It admits a pending phone request, not enrollment.
-[[nodiscard]] bool admit_selected_enrollment_request(
+[[nodiscard]] SelectedEnrollmentAdmission admit_selected_enrollment_request(
     const companion::DeviceNameContext&, std::uint32_t exchange_id);
 // Application-owner only; no GATT mutex may be held. Must succeed before the
 // existing NimBLE/controller owner disables its shared physical entropy source.

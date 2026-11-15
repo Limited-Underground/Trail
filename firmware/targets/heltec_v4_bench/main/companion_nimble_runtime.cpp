@@ -233,16 +233,25 @@ public:
 #if OPENTRAIL_CONFIRMATION_EVALUATION
                 return false;
 #else
+                // R2a: lane and gate failures stay unanswered; a request-level
+                // refusal gets a correlated rejected result the phone can show.
+                const auto admission = admit_selected_enrollment_request(request_context,
+                                                                         request.exchange_id);
+                if (admission == SelectedEnrollmentAdmission::refused) return false;
+                const bool admitted = admission == SelectedEnrollmentAdmission::admitted;
+                const auto reason =
+                    admitted ? CompanionActionRejectReason::none :
+                    admission == SelectedEnrollmentAdmission::busy ? CompanionActionRejectReason::busy :
+                    admission == SelectedEnrollmentAdmission::invalid ? CompanionActionRejectReason::policy_denied :
+                    CompanionActionRejectReason::unavailable;
                 response.kind = 0x82;
                 encoded = encode_companion_action_result(
                     {action.value.kind, action.value.quick_status, 0,
-                     CompanionActionDisposition::admitted,
-                     CompanionActionRejectReason::none},
+                     admitted ? CompanionActionDisposition::admitted
+                              : CompanionActionDisposition::rejected,
+                     reason},
                     {response.payload.data(), response.payload.size()});
-                if (!encoded.encoded() ||
-                    !admit_selected_enrollment_request(request_context,
-                                                        request.exchange_id))
-                    return false;
+                if (!encoded.encoded()) return false;
 #endif
             } else {
             if (g_factory_reset_action_authority == nullptr) return false;

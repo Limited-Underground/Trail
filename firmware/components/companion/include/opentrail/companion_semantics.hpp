@@ -76,6 +76,8 @@ enum class CompanionActionRejectReason : std::uint8_t {
     queue_full = 4,
     policy_denied = 5,
     internal_failure = 6,
+    // start_enrollment only: a pairing request is already pending (R2a).
+    busy = 7,
 };
 
 enum class CompanionSemanticCodecError : std::uint8_t {
