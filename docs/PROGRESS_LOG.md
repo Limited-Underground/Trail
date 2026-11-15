@@ -11,6 +11,16 @@ First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boa
 
 Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
 
+### OT-0170a Recover the owned board session and retain the pairing code
+
+Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The 2026-11-15 Note20 session exposed two returning-owner defects and a pairing display defect:
+
+- I-050: When Android accepts the noncreating service bind but supplies no callback, the Activity releases that binding after one second and tries the existing foreground-only owned-board route. A current service callback cancels the deadline.
+- I-050: After a returning-owner link failure, Scan again uses the bonded owned-board scan and a fresh protected claim. Logcat showed advertisements from the same board during both failed retries and the later successful connection after restart. The old retry was looking for an unowned setup advertisement.
+- I-052: The initiator's six-digit code remains visible while the Device panel waits for the board and during the admitted window. It is held in memory and is cleared on refusal, expiry or panel dismissal. The board still owns the confirmation and result.
+
+The four focused regressions failed on the unchanged base. Post-fix validation is recorded in the task report. The candidate has not been tested on phones.
+
 ### OT-0175a Messaging checklist for Trail issue 158
 
 Closes checklist scope only: [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). See the [acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.

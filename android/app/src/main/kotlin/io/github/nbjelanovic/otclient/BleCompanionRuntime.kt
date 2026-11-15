@@ -685,11 +685,14 @@ class BleCompanionRuntime(
         selected = null
         reconnectAttempt = 0
         invalidateAndRelease()
-        if (!beginReturningOwnerDiscovery()) {
-            val current = facade.preflight()
-            publish(if (current.isReady) BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED)
-                else BleRuntimeState.Blocked(current.blocker!!))
-        }
+        beginReturningOwnerDiscoveryOrFail()
+    }
+
+    private fun beginReturningOwnerDiscoveryOrFail() {
+        if (beginReturningOwnerDiscovery()) return
+        val current = facade.preflight()
+        publish(if (current.isReady) BleRuntimeState.Failed(BleRuntimeFailure.SCAN_START_FAILED)
+            else BleRuntimeState.Blocked(current.blocker!!))
     }
 
     @Synchronized
@@ -697,7 +700,10 @@ class BleCompanionRuntime(
         requireOwnerThread()
         if (deliveringObserver) return
         if (!lifecycleActive || closed) return
-        retryDiscoveryRoute = DiscoveryRoute.ADD_DEVICE
+        val failure = (state as? BleRuntimeState.Failed)?.reason
+        val retryReturningOwner = retryDiscoveryRoute == DiscoveryRoute.RETURNING_OWNER &&
+            (failure == BleRuntimeFailure.CONNECTION_START_FAILED || failure == BleRuntimeFailure.RECONNECT_EXHAUSTED)
+        if (!retryReturningOwner) retryDiscoveryRoute = DiscoveryRoute.ADD_DEVICE
         lifecycleAuthorizationFailure = null
         val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
             if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
@@ -714,6 +720,11 @@ class BleCompanionRuntime(
         val preflight = facade.preflight()
         if (!preflight.isReady) {
             publish(BleRuntimeState.Blocked(preflight.blocker!!))
+            return
+        }
+        // The link-failure retry keeps the bonded discovery route and its current authority checks.
+        if (retryReturningOwner) {
+            beginReturningOwnerDiscoveryOrFail()
             return
         }
         val callbackGeneration = nextGeneration() ?: return
