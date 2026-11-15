@@ -13,7 +13,7 @@ internal fun factoryResetRecoveryPresentation(state: BleRuntimeState.FactoryRese
         bondGuidance=if(state.systemBondRemovalRequired)
             "Android may still have an old pairing. In Bluetooth settings, forget only the entry you know belongs " +
                 "to this device. Leave other entries alone. If you are unsure, do not remove anything. " +
-                "Trail cannot check whether Android removed it."
+                "MeshTrail cannot check whether Android removed it."
             else null,
         windowGuidance="Start fresh setup, then choose your device and enter its PIN. The 60-second window keeps " +
             "running. If the PIN is gone, restart the reset device when you are ready.",

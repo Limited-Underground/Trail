@@ -53,7 +53,7 @@ internal fun V1HomeScreen(
     if (!splashFinished) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Image(painterResource(R.drawable.limited_underground_trail),
-                contentDescription = "Limited Underground Trail",
+                contentDescription = "Limited Underground MeshTrail",
                 modifier = Modifier.fillMaxWidth().padding(24.dp))
         }
         return

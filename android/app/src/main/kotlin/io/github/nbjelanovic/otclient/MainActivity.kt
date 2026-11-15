@@ -607,7 +607,7 @@ private fun BluetoothRuntimePanel(
             StatusCard(
                 "Scan complete",
                 if (state.candidates.isEmpty()) {
-                    "No compatible Trail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
+                    "No compatible MeshTrail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
                 } else {
                     "The scan ended. Choose a compatible device found during this scan, or scan again."
                 },
@@ -778,7 +778,7 @@ private fun PairingHelp() {
 internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
     "A replacement phone cannot take over an owned device. On the device, hold the physical control for at " +
         "least 10 seconds, release when prompted, then short-press within 10 seconds to confirm. The physical " +
-        "factory reset erases all Trail user data. After the verified reset reboots the device unowned, its " +
+        "factory reset erases all MeshTrail user data. After the verified reset reboots the device unowned, its " +
         "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
         "the window closes."
 
@@ -803,13 +803,13 @@ internal fun androidSystemPairingInstructions(
         beforeActionBody =
             "Restart the unowned or just-reset device if its six-digit PIN is not showing. The PIN and pairable " +
                 "window open automatically for 60 seconds after unowned boot. Then tap Authorize this phone and " +
-                "enter the displayed six digits only in Android's system pairing dialog. Trail never receives " +
+                "enter the displayed six digits only in Android's system pairing dialog. MeshTrail never receives " +
                 "or stores the code.",
         startingTitle = "Android system pairing starting",
         startingBody =
             "Keep the automatically opened 60-second PIN window active. If Android asks for a code, enter the " +
                 "six digits shown on the device only in Android's system pairing dialog. If the PIN is no " +
-                "longer showing, cancel, restart the unowned device, and retry. Trail never receives or stores " +
+                "longer showing, cancel, restart the unowned device, and retry. MeshTrail never receives or stores " +
                 "the code.",
         pendingTitle = "Secure pairing completed",
         pendingBody =
@@ -916,16 +916,16 @@ private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Erase all Trail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Erase all MeshTrail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
                 "Keep the device nearby",
-                "After you confirm, Trail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
+                "After you confirm, MeshTrail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Button(onClick = { controller.confirmFactoryReset() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Erase all Trail data")
+                Text("Erase all MeshTrail data")
             }
             OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")
@@ -952,13 +952,13 @@ private fun FactoryResetNotVerifiedReason.factoryResetPublicText(): String = whe
     FactoryResetNotVerifiedReason.MALFORMED_RESPONSE ->
         "The reset response was invalid. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE ->
-        "Trail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
+        "MeshTrail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT ->
         "This exact device did not show its verified unowned state before the check ended. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED ->
         "The observed device did not match the reset target. It was ignored, no success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED ->
-        "The reset device was observed unowned, but Trail could not safely remove its saved record. Completion is not claimed."
+        "The reset device was observed unowned, but MeshTrail could not safely remove its saved record. Completion is not claimed."
 }
 
 @Composable
@@ -1156,7 +1156,7 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS -> "Two nearby devices showed the same setup label. Restart one of the devices awaiting setup and scan again, then match the Trail label on its display."
     BleRuntimeFailure.SETUP_LABEL_CHANGED -> "A nearby device's setup label changed or became invalid. Scan again and match the current Trail label on your Heltec display."
     BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS ->
-        "More than one bonded Trail device answered. Reconnect stopped without choosing or storing an identity."
+        "More than one bonded MeshTrail device answered. Reconnect stopped without choosing or storing an identity."
     BleRuntimeFailure.CONNECTION_START_FAILED -> "The selected companion connection ended or could not start."
     BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> "The companion did not meet the required security checks."
     BleRuntimeFailure.MTU_NEGOTIATION_FAILED -> "The companion could not negotiate the required message size."

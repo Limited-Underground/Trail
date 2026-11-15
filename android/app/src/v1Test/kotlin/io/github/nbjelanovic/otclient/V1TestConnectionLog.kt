@@ -122,7 +122,7 @@ class V1TestConnectionLog(private val storage: V1TestConnectionLogStorage) {
     fun snapshot(): List<V1TestConnectionLogRecord> = records.toList()
 
     fun exportText(): String = buildString {
-        appendLine("Trail V1-Test connection log (format $V1_TEST_CONNECTION_LOG_VERSION, loaded $loadedVersion)")
+        appendLine("MeshTrail V1-Test connection log (format $V1_TEST_CONNECTION_LOG_VERSION, loaded $loadedVersion)")
         appendLine("Observed connection, lifecycle, stage and protected-read events; not a continuous radio trace.")
         appendLine("Elapsed milliseconds restart at each recording session. Gaps are unobserved, not proof of disconnection.")
         appendLine("Connection and app lifecycle rows are coarse presentation categories.")

@@ -11,6 +11,10 @@ First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boa
 
 Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
 
+### OT-0170a Apply the MeshTrail Android display name
+
+Owner decision D-089 and [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The Android app uses Limited Underground MeshTrail for the launcher, home-screen accessibility label and notification title. Reset and recovery copy, support-share subjects, and the MeshTrail V1-Test label and log heading use the new name. The existing wordmark image stays for the separate artwork change. Application IDs, signing configuration, version code, Bluetooth UUIDs, the Trail-XXXXXX setup label and saved-state and support formats retain their prior values. The rename follows the local board-session fixes. Phone update verification remains pending.
+
 ### OT-0170a Recover the owned board session and retain the pairing code
 
 Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The 2026-11-15 Note20 session exposed two returning-owner defects and a pairing display defect:
