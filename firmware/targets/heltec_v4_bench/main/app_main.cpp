@@ -29,6 +29,7 @@
 #include "esp_mac.h"
 #include "heltec_v4_lora.hpp"
 #include "lora_link_test.hpp"
+#include "board_pairing_runtime.hpp"
 #endif
 
 namespace {
@@ -103,6 +104,10 @@ opentrail::ui::compact_status_footer::Direction g_lora_activity{
     opentrail::ui::compact_status_footer::Direction::none};
 std::uint64_t g_lora_activity_at_ms{0};
 constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
+// V1 F5 R2a: first board pairing over LoRa (D-085, D-086).
+HeltecV4SecureRandom g_board_pairing_random;
+opentrail::target::heltec_v4_bench::BoardPairingRuntime g_board_pairing{
+    g_factory_reset_input, g_board_pairing_random};
 
 // Board tag for the link test: the low four bytes of the factory MAC.
 std::uint32_t lora_link_test_tag() {
@@ -386,6 +391,10 @@ extern "C" void app_main() {
 #endif
     g_pairing_random.set_entropy_state(
         opentrail::security::EntropyState::ready);
+#if OPENTRAIL_LORA_LINK_TEST
+    g_board_pairing_random.set_entropy_state(
+        opentrail::security::EntropyState::ready);
+#endif
     const auto runtime_start_result =
         opentrail::target::heltec_v4_bench::start_companion_nimble_runtime(
             started_at_ms, g_pairing_window, g_pairing_random,
@@ -516,6 +525,9 @@ extern "C" void app_main() {
             // BLE is fully contained before reset intent is committed. Every
             // result reboots: verified intent resumes cleanup, uncertain
             // intent is reconciled, and known no-change restores old state.
+#if OPENTRAIL_LORA_LINK_TEST
+            g_board_pairing.close();
+#endif
             const auto reset_result =
                 opentrail::target::heltec_v4_bench::
                     begin_companion_factory_reset();
@@ -549,13 +561,23 @@ extern "C" void app_main() {
                 lora_tx_allowed_logged = static_cast<int>(tx_allowed);
             }
             link_test::Beacon outgoing{};
-            if (tx_allowed && beaconer.due(elapsed_ms, outgoing)) {
+            if (tx_allowed && !g_board_pairing.active() && beaconer.due(elapsed_ms, outgoing)) {
                 const auto frame = link_test::encode(outgoing);
                 const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
                 ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
                          static_cast<unsigned long>(outgoing.sequence),
                          static_cast<unsigned long>(outgoing.heard_from),
                          static_cast<unsigned long>(outgoing.heard_sequence),
+                         static_cast<unsigned>(sent.accepted()));
+            }
+            opentrail::protocol::pairing::FrameBuffer pairing_out{};
+            std::size_t pairing_size = 0;
+            g_board_pairing.service(elapsed_ms, pairing_out, pairing_size);
+            if (pairing_size != 0 && tx_allowed) {
+                const auto sent = g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms);
+                ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u queued=%u",
+                         static_cast<unsigned>(pairing_out[2] & 0x0f),
+                         static_cast<unsigned>(pairing_size),
                          static_cast<unsigned>(sent.accepted()));
             }
             std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
@@ -579,6 +601,7 @@ extern "C" void app_main() {
                              static_cast<int>(got.metadata.snr_db_quarter),
                              static_cast<unsigned long>(beaconer.heard_count()));
                 } else {
+                    g_board_pairing.on_receive(rx.data(), got.received_bytes);
                     ESP_LOGI(kLogTag, "lora_link rx other bytes=%u",
                              static_cast<unsigned>(got.received_bytes));
                 }

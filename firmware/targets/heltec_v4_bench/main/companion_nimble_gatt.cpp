@@ -814,6 +814,27 @@ bool admit_selected_enrollment_request(
 #endif
 }
 
+bool companion_pairing_request_snapshot(
+    SelectedEnrollmentRequest& request, DeviceNameAuthority& authority) {
+    request = {};
+    authority = {};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    return false;
+#else
+    GattLock lock;
+    if (!lock) return false;
+    update_configuration_authority();
+    g_configuration_authority.now_ms = now_ms();
+    if (g_selected_enrollment_requests.pending())
+        (void)g_selected_enrollment_requests.observe(
+            g_configuration_authority,
+            g_selected_enrollment_requests.request().connection_handle);
+    authority = g_configuration_authority;
+    request = g_selected_enrollment_requests.request();
+    return g_selected_enrollment_requests.pending();
+#endif
+}
+
 bool companion_nimble_gatt_definition_self_check() {
     const auto info = decode_companion_authorization_protocol_info(
         {kAuthorizationProtocolInfo.data(), kAuthorizationProtocolInfo.size()});
