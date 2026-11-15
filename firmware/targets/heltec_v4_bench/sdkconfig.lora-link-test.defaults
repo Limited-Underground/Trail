@@ -1,0 +1,4 @@
+# V1 F5 R2 (I-051): board pairing runs the Noise session on the main task. With 8192 bytes
+# board A overflowed during the 2026-11-15 session; the confirmation evaluation, which
+# runs the same session crypto, already uses 24576.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=24576
