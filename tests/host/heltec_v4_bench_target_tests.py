@@ -1669,7 +1669,10 @@ def test_display_surface() -> None:
             runtime_service < typed_status,
             "logo, self-check, runtime, and typed status order changed")
     require("kMinimumLogoPeriodMs = 5000" in source and
-            "render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
+            "render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs" in source and
+            source.index("observe_display_result(g_startup_display.start())") <
+            source.index("const auto logo_shown_at_ms =") and
+            "boot_started_at_ms" not in source,
             "startup logo must remain visible before typed BLE status replaces it")
     require("startup display unavailable; runtime continues" in source,
             "display failure must explicitly preserve runtime progress")

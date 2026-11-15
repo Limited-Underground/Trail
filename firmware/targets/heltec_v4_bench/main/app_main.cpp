@@ -377,10 +377,12 @@ bool run_companion_codec_self_check() {
 }  // namespace
 
 extern "C" void app_main() {
-    const auto boot_started_at_ms =
-        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
     prepare_firmware_line();
     observe_display_result(g_startup_display.start());
+    // D-088: the logo dwell counts from when the logo is on screen (start() draws it
+    // after the OLED power-settle and I2C setup), not from app entry.
+    const auto logo_shown_at_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 
     if (!run_companion_codec_self_check() ||
         !opentrail::target::heltec_v4_bench::
@@ -685,7 +687,7 @@ extern "C" void app_main() {
         }
         const auto render_now_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-        if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
+        if (render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs) {
 #if OPENTRAIL_CONNECTION_DIAGNOSTICS
             const auto display_started_us = esp_timer_get_time();
 #endif
