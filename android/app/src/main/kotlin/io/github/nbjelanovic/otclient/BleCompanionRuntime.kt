@@ -924,6 +924,7 @@ class BleCompanionRuntime(
     private fun requestStatusRefresh() {
         val lease = gattLease ?: return
         if (deliveringObserver || pendingStatusRefresh != null || pendingAction != null ||
+            textConversation.busy || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
             configurationSession?.busy == true || groupConfirmationSession?.busy == true
         ) {
             scheduleStatusRefresh(1_000)
