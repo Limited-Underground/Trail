@@ -22,8 +22,11 @@ The third owner-present board session (2026-11-15, main `ab3642b`, pairing recor
   - a queued answer is dropped once the frame is proven received;
   - the test radio refuses offers while on air, as the board does, instead of skipping the coordinator.
   With 5% random loss, 2 of 10,000 simulated pairings were one-sided (I-059) and 39 failed on both boards; with no loss, all paired.
+- **Fourth independent review (Codex): request changes.** Two more one-sided cases:
+  - The board can start after the phone request was admitted (the radio hold), so the deadline the final exchange used could end after the original phone request, which the board enforces every tick. Fixed: the adapter now takes the original request's deadline (`PairingSessionAdapter(session, outer_deadline_ms)`, from `BoardPairingRuntime::start`), and `completion_remaining_ms()` uses the earliest of the three. Also, a control frame, first copy or resend, is offered to the radio only with 3 s left (`final_send_floor_ms`). New tests: an adapter group checks the bound, and the coordinator sweeps every B confirmation time with A's phone request admitted 20 s before A's board started, either role first.
+  - The responder sends its last control and then saves; if the save fails or its request is withdrawn after that frame reached the radio, the initiator pairs alone (I-062). Also, a frame already in the radio queue can launch in the same poll that picks up a received frame (I-063). Owner decision D-108: both are tracked for a proper design and do not block the fourth board session.
 
-Bench admission passes; link-test build 810,496 bytes, no warnings.
+Bench admission passes; link-test build 810,624 bytes, no warnings.
 
 ### OT-0005i Allow pairing retries and log why a start is refused (I-055)
 

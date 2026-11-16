@@ -141,6 +141,21 @@ int main() {
         CHECK(r.a == Outcome::failed && r.b == Outcome::failed);
         ++groups;
     }
+    {
+        // Review of I-057: time left is bounded by the original phone request the
+        // board still enforces, which can end before the session's own copy.
+        Board a(InvitationRole::initiator, 1, 100);
+        std::uint64_t plain = 0, bounded = 0;
+        CHECK(a.adapter->remaining_ms(0, plain));
+        PairingSessionAdapter outer(*a.session, 100 + 50000);
+        CHECK(outer.remaining_ms(0, bounded));
+        CHECK(bounded == 50000 && plain > bounded);
+        a.authority.value.now_ms = 100 + 60000;
+        CHECK(outer.remaining_ms(0, bounded) && bounded == 0);
+        std::uint64_t later = 0;
+        CHECK(a.adapter->remaining_ms(0, later) && later == plain - 60000);
+        ++groups;
+    }
     std::cout << "PASS " << groups << " pairing session adapter groups\n";
     return 0;
 }

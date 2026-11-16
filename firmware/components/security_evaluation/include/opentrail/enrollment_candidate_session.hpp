@@ -156,14 +156,19 @@ public:
     // With reason `generations`, the allocator check that refused (I-058).
     std::uint8_t generation_failure() const {return static_cast<std::uint8_t>(allocator_.failure());}
     // Time left before this session refuses (review of I-057): the phone request's
-    // deadline and, once this board's clock mark exists, its signed invitation
-    // window (expected_fields(): 60 s from the local mark). Session clock.
-    bool completion_remaining_ms(std::uint64_t& out) {
+    // deadline, an outer deadline the caller still enforces (0: none), and, once
+    // this board's clock mark exists, its signed invitation window
+    // (kInvitationWindowMs from the local mark). Session clock. Only for the
+    // attempt before commit; never an authorization check.
+    static constexpr std::uint64_t kInvitationWindowMs=60000;
+    bool completion_remaining_ms(std::uint64_t& out,std::uint64_t outer_deadline_ms=0) {
+        if(active_)return false;
         if(containing_ || busy_ || failed_)return false;
         companion::DeviceNameAuthority now{};
         if(!observe_clock(now))return false;
         std::uint64_t deadline=request_.deadline_ms;
-        if(local_mark_ && local_mark_->now_ms+60000<deadline)deadline=local_mark_->now_ms+60000;
+        if(outer_deadline_ms && outer_deadline_ms<deadline)deadline=outer_deadline_ms;
+        if(local_mark_ && local_mark_->now_ms+kInvitationWindowMs<deadline)deadline=local_mark_->now_ms+kInvitationWindowMs;
         out=now.now_ms>=deadline?0:deadline-now.now_ms;return true;
     }
     // Trusted LOCAL owner action only. Received records never call/select this.
@@ -752,7 +757,7 @@ private:
         IndependentInvitationFields f{};f.group=group_;f.epoch=epoch_;f.signer=initiator()?local_key_:peer_key_;
         f.peer_a=a.session_identity;f.peer_b=b.session_identity;f.boot_a=a.context.boot;f.boot_b=b.context.boot;
         f.issued_a_ms=(initiator()?*local_mark_:*peer_mark_).now_ms;
-        f.issued_b_ms=(initiator()?*peer_mark_:*local_mark_).now_ms;f.window_a_ms=60000;f.window_b_ms=60000;return f;
+        f.issued_b_ms=(initiator()?*peer_mark_:*local_mark_).now_ms;f.window_a_ms=kInvitationWindowMs;f.window_b_ms=kInvitationWindowMs;return f;
     }
     companion::SelectedEnrollmentRequestOwner& request_owner_;
     companion::DeviceNameAuthoritySource& authority_;EnrollmentSessionDevicePort& device_;

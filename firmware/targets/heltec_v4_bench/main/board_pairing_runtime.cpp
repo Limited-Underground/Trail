@@ -85,7 +85,9 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
                  static_cast<unsigned>(session_->generation_failure()));
         return false;
     }
-    adapter_.emplace(*session_);
+    // The original phone request governs every tick; its deadline bounds the
+    // final exchange too (review of I-057).
+    adapter_.emplace(*session_, phone.deadline_ms);
     coordinator_.emplace(*adapter_, initiator, phone.pairing_code);
     return coordinator_->begin(now_ms);
 }

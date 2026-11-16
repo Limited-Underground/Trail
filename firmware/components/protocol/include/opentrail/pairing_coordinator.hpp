@@ -140,6 +140,9 @@ struct Limits {
     // the responder commit after the initiator had expired).
     std::uint64_t final_reserve_ms{15000};
     std::uint64_t final_step_reserve_ms{10000};
+    // A control frame, first copy or resend, goes to the radio only with at least
+    // this much time left, so its answer can still arrive (review of I-057).
+    std::uint64_t final_send_floor_ms{3000};
     // Neither board transmits until this long after it last heard a frame from
     // the peer, so it never answers into the rest of the peer's burst (a simple
     // stand-in for listen-before-talk; review of I-057). 0 disables.
@@ -204,6 +207,7 @@ public:
             (now_ms < start_ms_ || now_ms - start_ms_ >= limits_.attempt_limit_ms)) {
             return fail(FailReason::expired);
         }
+        now_ms_ = now_ms;
         if (outcome_ == Outcome::running && !advance(now_ms)) return false;
         if (heard_) { heard_ = false; heard_ms_ = now_ms; heard_any_ = true; }
         if (heard_any_ && now_ms - heard_ms_ < limits_.quiet_after_rx_ms) return false;  // wait for quiet
@@ -452,6 +456,10 @@ private:
     // Offers a frame to the caller. It counts as a send only when the caller
     // reports that the radio accepted it (sent(true, ...)); D-087.
     bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
+        if (outcome_ == Outcome::running && sent_[k].type == FrameType::control) {
+            std::uint64_t left = 0;
+            if (!remaining(now_ms_, left) || left < limits_.final_send_floor_ms) return false;
+        }
         out = sent_[k].bytes;
         out_size = sent_[k].size;
         offered_ = k + 1;
@@ -480,6 +488,7 @@ private:
     std::size_t offered_{0};  // 1-based index of the frame last offered
     std::uint64_t start_ms_{0};
     bool heard_{false}, heard_any_{false};
+    std::uint64_t now_ms_{0};  // of the current service()
     std::uint64_t heard_ms_{0};
     bool begun_{false};
     Outcome outcome_{Outcome::running};

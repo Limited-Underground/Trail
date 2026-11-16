@@ -120,7 +120,12 @@ public:
 
     enum class Prompt : std::uint8_t { none, own_key, peer_key, transcript };
 
-    explicit PairingSessionAdapter(EnrollmentCandidateSession& session) : session_(session) {}
+    // outer_deadline_ms: the deadline of the original phone request this attempt
+    // started from, on the session's authority clock (review of I-057: the board
+    // can start after the phone request was admitted, so the session's own copy
+    // of the request ends later). 0: none beyond the session's.
+    explicit PairingSessionAdapter(EnrollmentCandidateSession& session, std::uint64_t outer_deadline_ms = 0)
+        : session_(session), outer_deadline_ms_(outer_deadline_ms) {}
     PairingSessionAdapter(const PairingSessionAdapter&) = delete;
     PairingSessionAdapter& operator=(const PairingSessionAdapter&) = delete;
 
@@ -229,7 +234,7 @@ public:
 
     // The session's own deadlines, on its clock; the coordinator's now is not used.
     bool remaining_ms(std::uint64_t /*now_ms*/, std::uint64_t& out) {
-        return session_.completion_remaining_ms(out);
+        return session_.completion_remaining_ms(out, outer_deadline_ms_);
     }
 
     // What the person is asked to look at and press, for the status line.
@@ -287,6 +292,7 @@ private:
     }
 
     EnrollmentCandidateSession& session_;
+    std::uint64_t outer_deadline_ms_{0};
     EvaluationEnrollmentOffer local_offer_{}, peer_offer_{};
     IndependentInvitation invitation_{};
     bool have_local_offer_{}, have_peer_offer_{}, have_payload_{}, have_signature_{};

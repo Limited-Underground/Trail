@@ -402,7 +402,7 @@ void test_review_confirm_timing_and_single_loss() {
                         Run r;
                         r.half_duplex = true;
                         r.limits.final_reserve_ms = reserve;
-                        if (!reserve) r.limits.final_step_reserve_ms = 0;
+                        if (!reserve) r.limits.final_step_reserve_ms = r.limits.final_send_floor_ms = 0;
                         (b_first ? r.a_start_ms : r.b_start_ms) = late;
                         r.a.confirm_ticks = ca;
                         r.b.confirm_ticks = cb;
@@ -439,6 +439,24 @@ void test_review_confirm_timing_and_single_loss() {
                     EXPECT(r.a.committed == r.b.committed);
                 }
             }
+        }
+    }
+    // Fourth review of I-057: the phone request was admitted before the board
+    // started (radio hold), so it expires before the board's own 120 s window.
+    // A's request at 0 s, A's board at 20 s, B at 61 s; every B confirmation time.
+    for (int cb = 10; cb <= 1100; cb += 10) {
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            Run r;
+            r.half_duplex = true;
+            auto& early = b_first ? r.b : r.a;
+            auto& late = b_first ? r.a : r.b;
+            (b_first ? r.b_start_ms : r.a_start_ms) = 20000;
+            early.deadline_ms = 120000;  // the original request's deadline
+            (b_first ? r.a_start_ms : r.b_start_ms) = 61000;
+            late.confirm_ticks = cb;
+            r.go(220000);
+            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+            EXPECT(r.a.committed == r.b.committed);
         }
     }
     // The exact trace: A at 0 s, B at 61 s, B's person confirms at about 118 s.
