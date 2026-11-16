@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-11-16
+
+### OT-0305 Reserve durable group message numbers on the host
+
+First storage increment of [step 3b](security/GROUP_PAIRWISE_V1.md#implementation-order). [Group message numbers](../firmware/components/delivery/include/opentrail/group_message_numbers.hpp) binds a sender's sequence to the full group name (admin fingerprint and group ID) and the full local sender fingerprint. The host candidate commits and reads back the high-water mark in batches of 32 before issuing a number. Reopening skips unused numbers, and the last batch ends at the 32-bit limit. A missing or invalid record refuses allocation. The [host test](../tests/host/group_message_number_tests.cpp) passed four C++17 scenario groups under warnings-as-errors, including failures before and after commit, failed read-back, reboot, group identity isolation and exhaustion.
+
+The KV layout is a candidate. It requires a serialized owner and atomic replacement of one committed record. Next: select the production per-pair index and group record lifecycle, link roster and pair updates in durable order, and persist the receive window. Group acknowledgements, reset coverage and the wear check remain open.
+
 ## 2026-11-15
 
 ### OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)
