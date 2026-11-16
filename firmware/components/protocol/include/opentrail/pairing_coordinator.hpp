@@ -140,9 +140,14 @@ struct Limits {
     // the responder commit after the initiator had expired).
     std::uint64_t final_reserve_ms{15000};
     std::uint64_t final_step_reserve_ms{10000};
-    // A control frame, first copy or resend, goes to the radio only with at least
-    // this much time left, so its answer can still arrive (review of I-057).
-    std::uint64_t final_send_floor_ms{3000};
+    // While running, a control frame goes to the radio only with time left for
+    // its answer: its first copy with final_first_send_floor_ms (room for that
+    // copy and one resend, resend_after_ms later), a resend with
+    // final_send_floor_ms (reviews of I-057). The radio may refuse offers for a
+    // while (a transmit hold), so the first copy can go out long after the frame
+    // was made.
+    std::uint64_t final_first_send_floor_ms{6500};
+    std::uint64_t final_send_floor_ms{2000};  // a lossless round trip takes about 1.4 s
     // Neither board transmits until this long after it last heard a frame from
     // the peer, so it never answers into the rest of the peer's burst (a simple
     // stand-in for listen-before-talk; review of I-057). 0 disables.
@@ -458,7 +463,9 @@ private:
     bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
         if (outcome_ == Outcome::running && sent_[k].type == FrameType::control) {
             std::uint64_t left = 0;
-            if (!remaining(now_ms_, left) || left < limits_.final_send_floor_ms) return false;
+            const auto floor = sent_[k].sends == 0 ? limits_.final_first_send_floor_ms
+                                                   : limits_.final_send_floor_ms;
+            if (!remaining(now_ms_, left) || left < floor) return false;
         }
         out = sent_[k].bytes;
         out_size = sent_[k].size;

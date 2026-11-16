@@ -25,8 +25,9 @@ The third owner-present board session (2026-11-15, main `ab3642b`, pairing recor
 - **Fourth independent review (Codex): request changes.** Two more one-sided cases:
   - The board can start after the phone request was admitted (the radio hold), so the deadline the final exchange used could end after the original phone request, which the board enforces every tick. Fixed: the adapter now takes the original request's deadline (`PairingSessionAdapter(session, outer_deadline_ms)`, from `BoardPairingRuntime::start`), and `completion_remaining_ms()` uses the earliest of the three. Also, a control frame, first copy or resend, is offered to the radio only with 3 s left (`final_send_floor_ms`). New tests: an adapter group checks the bound, and the coordinator sweeps every B confirmation time with A's phone request admitted 20 s before A's board started, either role first.
   - The responder sends its last control and then saves; if the save fails or its request is withdrawn after that frame reached the radio, the initiator pairs alone (I-062). Also, a frame already in the radio queue can launch in the same poll that picks up a received frame (I-063). Owner decision D-108: both are tracked for a proper design and do not block the fourth board session.
+- **Fifth independent review (Codex, narrow): request changes.** The original-deadline fix passed. The single 3 s floor could block the one resend that repairs a lost final reply: with A's radio holding its transmits until 5.8 s before A's deadline and B's final control lost, A's resend at 2.8 s left was suppressed and only B was paired. The first copy of a control now needs 6.5 s (that copy and one resend), a resend 2 s. New coordinator case: an 8.5 s transmit hold on A starting anywhere from 95 s to 119 s, with B's final control lost once; both boards or neither in every run (8 one-sided runs under the previous single 3 s floor).
 
-Bench admission passes; link-test build 810,624 bytes, no warnings.
+Bench admission passes; link-test build 810,672 bytes, no warnings.
 
 ### OT-0005i Allow pairing retries and log why a start is refused (I-055)
 

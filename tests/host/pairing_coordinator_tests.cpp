@@ -92,6 +92,11 @@ struct Run {
     // frames; frames whose airtimes overlap are both lost.
     bool half_duplex{false};
     bool trace{false};  // print each accepted frame (debugging only)
+    // A transmit hold on one board: its radio refuses every offer in [from, until).
+    bool hold_a{true};
+    std::uint64_t hold_from_ms{0}, hold_until_ms{0};
+    // Drop a frame by content (after the index-based drop above).
+    std::function<bool(const FrameBuffer&, bool)> drop_frame = [](const FrameBuffer&, bool) { return false; };
     int sent_a{0}, sent_b{0};      // frames the radio accepted
     int collisions{0};             // half-duplex: frames lost to overlapping airtime
     struct Air {
@@ -115,14 +120,15 @@ struct Run {
         std::size_t n = 0;
         if (!c.service(now, f, n) || !n) return;
         // Like the board: the coordinator runs, and a radio still on air refuses.
-        const bool accepted = !mine.n && !refuse(offered++, from_a);
+        const bool held = from_a == hold_a && now >= hold_from_ms && now < hold_until_ms;
+        const bool accepted = !mine.n && !held && !refuse(offered++, from_a);
         c.sent(accepted, now);
         if (!accepted) return;
         mine.bytes = f;
         mine.n = n;
         mine.start = now;
         mine.end = now + airtime_ms(n);
-        mine.lost = drop(sent, from_a);
+        mine.lost = drop(sent, from_a) || drop_frame(f, from_a);
         ++sent;
         if (other.n && other.start < mine.end && mine.start < other.end) {
             if (!mine.lost) ++collisions;
@@ -402,7 +408,10 @@ void test_review_confirm_timing_and_single_loss() {
                         Run r;
                         r.half_duplex = true;
                         r.limits.final_reserve_ms = reserve;
-                        if (!reserve) r.limits.final_step_reserve_ms = r.limits.final_send_floor_ms = 0;
+                        if (!reserve) {
+                            r.limits.final_step_reserve_ms = r.limits.final_send_floor_ms = 0;
+                            r.limits.final_first_send_floor_ms = 0;
+                        }
                         (b_first ? r.a_start_ms : r.b_start_ms) = late;
                         r.a.confirm_ticks = ca;
                         r.b.confirm_ticks = cb;
@@ -455,6 +464,27 @@ void test_review_confirm_timing_and_single_loss() {
             (b_first ? r.a_start_ms : r.b_start_ms) = 61000;
             late.confirm_ticks = cb;
             r.go(220000);
+            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+            EXPECT(r.a.committed == r.b.committed);
+        }
+    }
+    // Fifth review of I-057: A's radio holds its transmits for a while just as A's
+    // second control is due, and the first copy of B's final control is lost.
+    // Every hold start in the last 25 s of A's window: both boards or neither.
+    for (std::uint64_t hold = 95000; hold <= 119000; hold += 100) {
+        for (const int cb : {300, 500}) {
+            Run r;
+            r.half_duplex = true;
+            r.b_start_ms = 61000;
+            r.b.confirm_ticks = cb;
+            r.hold_a = true;
+            r.hold_from_ms = hold;
+            r.hold_until_ms = hold + 8500;
+            int b_controls = 0;
+            r.drop_frame = [&](const FrameBuffer& f, bool from_a) {
+                return !from_a && (f[2] & 0x0f) == static_cast<int>(FrameType::control) && ++b_controls == 2;
+            };
+            r.go(201000);
             EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
             EXPECT(r.a.committed == r.b.committed);
         }
