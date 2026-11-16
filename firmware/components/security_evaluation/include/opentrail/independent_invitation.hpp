@@ -67,6 +67,15 @@ inline IndependentInvitationFields decode(const IndependentInvitation& invitatio
 }
 } // namespace independent_invitation_detail
 
+// Evaluation commands that take an externally signed invitation directly (Pair Bench
+// OTPAIR1 INV, Enrolled Bench OTENROLL1 BEGIN) keep the 60 s issuance limit: they
+// refuse a longer window before anything claims the invitation (review of D-110).
+inline bool independent_invitation_within_default_window(const IndependentInvitation& invitation) {
+    const auto fields = independent_invitation_detail::decode(invitation);
+    return fields.window_a_ms <= kIndependentInvitationDefaultWindowMs &&
+           fields.window_b_ms <= kIndependentInvitationDefaultWindowMs;
+}
+
 // The trusted inviter signs the resulting exact payload separately. Invalid
 // fields leave the caller's entire destination, including signature, unchanged.
 inline bool encode_independent_invitation(const IndependentInvitationFields& fields,
