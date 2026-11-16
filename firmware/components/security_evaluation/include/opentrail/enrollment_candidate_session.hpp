@@ -155,6 +155,17 @@ public:
     StartRefusal start_refusal() const {return start_refusal_;}
     // With reason `generations`, the allocator check that refused (I-058).
     std::uint8_t generation_failure() const {return static_cast<std::uint8_t>(allocator_.failure());}
+    // Time left before this session refuses (review of I-057): the phone request's
+    // deadline and, once this board's clock mark exists, its signed invitation
+    // window (expected_fields(): 60 s from the local mark). Session clock.
+    bool completion_remaining_ms(std::uint64_t& out) {
+        if(containing_ || busy_ || failed_)return false;
+        companion::DeviceNameAuthority now{};
+        if(!observe_clock(now))return false;
+        std::uint64_t deadline=request_.deadline_ms;
+        if(local_mark_ && local_mark_->now_ms+60000<deadline)deadline=local_mark_->now_ms+60000;
+        out=now.now_ms>=deadline?0:deadline-now.now_ms;return true;
+    }
     // Trusted LOCAL owner action only. Received records never call/select this.
     bool start(InvitationRole role,std::uint64_t group) {
         return start_attempt(role,group,false);

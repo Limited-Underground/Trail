@@ -17,8 +17,13 @@ The third owner-present board session (2026-11-15, main `ab3642b`, pairing recor
   - the two boards echoed hello answers back and forth; hellos are no longer answered, and nor is any frame already proven received.
   Even so, with 2 sends per frame, 2.1% of 10,000 simulated pairings with random start offsets, review and confirmation times failed from collisions alone; with 4 sends none did, and with 5% random loss 0.4% failed and none was one-sided. Owner decision D-107 raises the limit to 4 sends. A new coordinator group covers different review times on each board, any single lost frame with the joiner 4.4 s late, and late joins (0-119 s in 0.5 s steps) with slow confirmations, which must pair both boards or neither. With the final reserve turned off, 21 of 7,648 of those runs paired one side only (the control). The previous coordinator fails 62 of the new checks. `pairing_coordinator_tests` grows to 15 groups. Also from the review: the key decoder applies the same generation-0-only rule for namespaces 7-10 as the writer, the capacity constant is shared by the storage and its test, and the allocator always reports a failure code when it refuses; the generation storage tests now check the codes.
   Known limit, recorded as I-059: if every copy of the responder's last control frame is lost, the responder is paired and the initiator is not.
+- **Third independent review (Codex): request changes.** The 15 s reserve checked only the board's own window, and only for its first control. With A confirming early and B (started 61 s later) confirming at 118 s, B passed its own check, A sent its second control at 119.6 s and expired at 120 s, and B committed at 120.6 s. Every control now needs time left (15 s for the first, 10 s for each later one), measured to the earlier of the board's window and its session's deadlines: the phone request, and the signed invitation's 60 s. `EnrollmentCandidateSession::completion_remaining_ms()` reports them through the adapter. In the new sweep (B confirming from 1 s to 110 s, four join offsets, either role first, and an earlier session deadline on either board), 5 of 2,640 runs were one-sided with only the first-control check and none with the new rule. Also:
+  - the board loop now hands received frames to pairing before asking it for a frame to send, so the 0.5 s quiet rule sees them on the same tick (the review showed a queued hello launched 100 ms after a receive);
+  - a queued answer is dropped once the frame is proven received;
+  - the test radio refuses offers while on air, as the board does, instead of skipping the coordinator.
+  With 5% random loss, 2 of 10,000 simulated pairings were one-sided (I-059) and 39 failed on both boards; with no loss, all paired.
 
-Bench admission passes; link-test build 810,192 bytes, no warnings.
+Bench admission passes; link-test build 810,496 bytes, no warnings.
 
 ### OT-0005i Allow pairing retries and log why a start is refused (I-055)
 

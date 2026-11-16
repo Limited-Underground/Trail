@@ -25,6 +25,9 @@
 //   bool produce(FrameType, std::uint8_t* out)          // exact payload size
 //   bool consume(FrameType, const std::uint8_t* in)     // exact payload size
 //   LocalResult local(LocalStep, std::uint64_t now_ms)  // review, confirm, commit
+//   bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out)
+//       // time left before the session itself refuses (its request and signed
+//       // invitation deadlines, on its own clock); false if it cannot tell
 
 #include <array>
 #include <cstddef>
@@ -112,7 +115,7 @@ struct Limits {
     std::uint64_t resend_after_ms{3000};
     // Half-duplex radios (review of I-057): after a shared step both boards are
     // ready to send in the same instant. The responder holds each new frame this
-    // long (more than one frame's airtime at the bench profile, SF7: under 0.3 s)
+    // long (more than one frame's airtime at the bench profile, SF7: up to 0.31 s for the 194-byte invitation)
     // and resends on a shorter interval, so neither the first copies nor the
     // resends collide.
     std::uint64_t responder_turn_delay_ms{600};
@@ -127,12 +130,16 @@ struct Limits {
     std::uint64_t hello_resend_after_ms{5000};            // initiator
     std::uint64_t hello_responder_resend_after_ms{4300};  // responder
     std::uint8_t hello_max_sends{30};
-    // A board starts the final exchange (its first control frame) only with at
-    // least this much of its own window left, so that both boards' commits fall
-    // inside both windows even with one lost copy of each final frame (review
-    // of I-057: a confirmation in the last seconds let the responder commit
-    // after the initiator had expired).
+    // The final exchange is A control 1, B control 1, A control 2, B control 2;
+    // B commits once its control 2 is accepted, A once it receives it. A board
+    // produces its first control only with final_reserve_ms left, and each later
+    // control only with final_step_reserve_ms left, measured to the earlier of
+    // its own window and the session's deadlines. So a board that sends a control
+    // can still receive the answer it needs, and a board that could not finish
+    // fails before the peer can commit (reviews of I-057: late confirmations let
+    // the responder commit after the initiator had expired).
     std::uint64_t final_reserve_ms{15000};
+    std::uint64_t final_step_reserve_ms{10000};
     // Neither board transmits until this long after it last heard a frame from
     // the peer, so it never answers into the rest of the peer's burst (a simple
     // stand-in for listen-before-talk; review of I-057). 0 disables.
@@ -313,8 +320,21 @@ private:
         const auto sent_at = position(peer_, StepKind::send, type, instance);
         for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
-            if (position(peer_, StepKind::receive, o.type, o.instance) < sent_at) o.received = true;
+            if (position(peer_, StepKind::receive, o.type, o.instance) < sent_at) {
+                o.received = true;
+                o.due = false;  // an answer queued before the proof is no longer needed
+            }
         }
+    }
+
+    // Time left before this board or its session refuses.
+    bool remaining(std::uint64_t now_ms, std::uint64_t& out) {
+        const auto used = now_ms - start_ms_;
+        out = used >= limits_.attempt_limit_ms ? 0 : limits_.attempt_limit_ms - used;
+        std::uint64_t session = 0;
+        if (!adapter_.remaining_ms(now_ms, session)) return false;
+        if (session < out) out = session;
+        return true;
     }
 
     bool sent_any(FrameType type) const {
@@ -336,9 +356,12 @@ private:
             const Step& st = own_[step_];
             if (st.kind == StepKind::send) {
                 if (sent_count_ == kSlots) return fail(FailReason::frame_store_full);
-                if (st.frame == FrameType::control && !sent_any(FrameType::control) &&
-                    now_ms - start_ms_ + limits_.final_reserve_ms > limits_.attempt_limit_ms) {
-                    return fail(FailReason::expired);  // too late to finish on both boards
+                if (st.frame == FrameType::control) {
+                    std::uint64_t left = 0;
+                    if (!remaining(now_ms, left)) return fail(FailReason::local_failed);
+                    const auto need = sent_any(FrameType::control) ? limits_.final_step_reserve_ms
+                                                                   : limits_.final_reserve_ms;
+                    if (left < need) return fail(FailReason::expired);  // too late for both boards
                 }
                 std::array<std::uint8_t, kMaxPayloadBytes> payload{};
                 if (!adapter_.produce(st.frame, payload.data())) {

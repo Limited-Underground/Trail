@@ -594,6 +594,34 @@ extern "C" void app_main() {
                          static_cast<unsigned long>(outgoing.heard_sequence),
                          static_cast<unsigned>(sent.accepted()));
             }
+            // Received frames reach pairing before it is asked for a frame to send, so
+            // its quiet-after-receive rule sees them on this tick (review of I-057).
+            std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
+            const auto got = g_lora.receive({rx.data(), rx.size()});
+            if (got.has_frame()) {
+                link_test::Beacon incoming{};
+                if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
+                    beaconer.heard(incoming)) {
+                    g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
+                    g_lora_activity_at_ms = elapsed_ms;
+                    const auto raw = g_lora.last_packet_status();
+                    ESP_LOGI(kLogTag, "lora_link pkt_status raw=%02x %02x %02x",
+                             raw[0], raw[1], raw[2]);
+                    ESP_LOGI(kLogTag,
+                             "lora_link rx from=%08lx seq=%lu they_heard=%08lx/%lu rssi=%d snr_q=%d heard_total=%lu",
+                             static_cast<unsigned long>(incoming.sender),
+                             static_cast<unsigned long>(incoming.sequence),
+                             static_cast<unsigned long>(incoming.heard_from),
+                             static_cast<unsigned long>(incoming.heard_sequence),
+                             static_cast<int>(got.metadata.rssi_dbm),
+                             static_cast<int>(got.metadata.snr_db_quarter),
+                             static_cast<unsigned long>(beaconer.heard_count()));
+                } else {
+                    g_board_pairing.on_receive(rx.data(), got.received_bytes);
+                    ESP_LOGI(kLogTag, "lora_link rx other bytes=%u",
+                             static_cast<unsigned>(got.received_bytes));
+                }
+            }
             opentrail::protocol::pairing::FrameBuffer pairing_out{};
             std::size_t pairing_size = 0;
             g_board_pairing.service(elapsed_ms, tx_allowed, pairing_out, pairing_size);
@@ -621,32 +649,6 @@ extern "C" void app_main() {
                     phase == PairingPhase::paired && recent ? PairingLine::paired_here :
                     phase == PairingPhase::failed && recent ? PairingLine::failed :
                     PairingLine::none);
-            }
-            std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
-            const auto got = g_lora.receive({rx.data(), rx.size()});
-            if (got.has_frame()) {
-                link_test::Beacon incoming{};
-                if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
-                    beaconer.heard(incoming)) {
-                    g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
-                    g_lora_activity_at_ms = elapsed_ms;
-                    const auto raw = g_lora.last_packet_status();
-                    ESP_LOGI(kLogTag, "lora_link pkt_status raw=%02x %02x %02x",
-                             raw[0], raw[1], raw[2]);
-                    ESP_LOGI(kLogTag,
-                             "lora_link rx from=%08lx seq=%lu they_heard=%08lx/%lu rssi=%d snr_q=%d heard_total=%lu",
-                             static_cast<unsigned long>(incoming.sender),
-                             static_cast<unsigned long>(incoming.sequence),
-                             static_cast<unsigned long>(incoming.heard_from),
-                             static_cast<unsigned long>(incoming.heard_sequence),
-                             static_cast<int>(got.metadata.rssi_dbm),
-                             static_cast<int>(got.metadata.snr_db_quarter),
-                             static_cast<unsigned long>(beaconer.heard_count()));
-                } else {
-                    g_board_pairing.on_receive(rx.data(), got.received_bytes);
-                    ESP_LOGI(kLogTag, "lora_link rx other bytes=%u",
-                             static_cast<unsigned>(got.received_bytes));
-                }
             }
         } else if (!lora_fault_logged) {
             g_board_pairing.radio_lost();

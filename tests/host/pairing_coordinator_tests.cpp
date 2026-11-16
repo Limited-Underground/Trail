@@ -41,6 +41,12 @@ struct FakeSession {
     std::vector<int> log;  // positive: produced type, negative: consumed type
     int review_waited{0}, confirm_waited{0};
     bool committed{false};
+    // The session's own deadline (request or signed invitation), on the test clock.
+    std::uint64_t deadline_ms{~std::uint64_t{0}};
+    bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out) const {
+        out = deadline_ms == ~std::uint64_t{0} ? deadline_ms : now_ms >= deadline_ms ? 0 : deadline_ms - now_ms;
+        return true;
+    }
 
     bool produce(FrameType t, std::uint8_t* out) {
         const int k = ++produced[static_cast<int>(t)];
@@ -105,13 +111,11 @@ struct Run {
     void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
                   int& offered, int& sent, bool from_a, std::uint64_t now) {
         if (!live) return;
-        if (mine.n) {  // still on air: the radio is not ready, nothing is offered
-            return;
-        }
         FrameBuffer f{};
         std::size_t n = 0;
         if (!c.service(now, f, n) || !n) return;
-        const bool accepted = !refuse(offered++, from_a);
+        // Like the board: the coordinator runs, and a radio still on air refuses.
+        const bool accepted = !mine.n && !refuse(offered++, from_a);
         c.sent(accepted, now);
         if (!accepted) return;
         mine.bytes = f;
@@ -398,6 +402,7 @@ void test_review_confirm_timing_and_single_loss() {
                         Run r;
                         r.half_duplex = true;
                         r.limits.final_reserve_ms = reserve;
+                        if (!reserve) r.limits.final_step_reserve_ms = 0;
                         (b_first ? r.a_start_ms : r.b_start_ms) = late;
                         r.a.confirm_ticks = ca;
                         r.b.confirm_ticks = cb;
@@ -412,6 +417,39 @@ void test_review_confirm_timing_and_single_loss() {
         }
         if (reserve) EXPECT(one_sided == 0);
         else EXPECT(one_sided > 0);
+    }
+    // Third review of I-057: A confirms early, B (started 61 s later) confirms in
+    // the last seconds of A's window. Every B confirmation time from 1 s to 110 s,
+    // either role first, and with the session's own deadline (signed invitation,
+    // 60 s) earlier than the 120 s window on either board: both or neither.
+    for (int b_first = 0; b_first < 2; ++b_first) {
+        for (const std::uint64_t late : {std::uint64_t{0}, std::uint64_t{30000}, std::uint64_t{61000},
+                                         std::uint64_t{90000}}) {
+            for (int cb = 10; cb <= 1100; cb += 10) {
+                for (int session_deadline = 0; session_deadline < 3; ++session_deadline) {
+                    Run r;
+                    r.half_duplex = true;
+                    (b_first ? r.a_start_ms : r.b_start_ms) = late;
+                    auto& slow = b_first ? r.a : r.b;
+                    slow.confirm_ticks = cb;
+                    if (session_deadline == 1) r.a.deadline_ms = (b_first ? late : 0) + 70000;
+                    if (session_deadline == 2) r.b.deadline_ms = (b_first ? 0 : late) + 70000;
+                    r.go(late + 140000);
+                    EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+                    EXPECT(r.a.committed == r.b.committed);
+                }
+            }
+        }
+    }
+    // The exact trace: A at 0 s, B at 61 s, B's person confirms at about 118 s.
+    {
+        Run r;
+        r.half_duplex = true;
+        r.b_start_ms = 61000;
+        r.b.confirm_ticks = 520;
+        r.go(201000);
+        EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+        EXPECT(r.a.committed == r.b.committed);
     }
 }
 

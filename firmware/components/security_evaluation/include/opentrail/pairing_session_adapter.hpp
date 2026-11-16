@@ -227,6 +227,11 @@ public:
         return session_.commit() && session_.ready() ? LocalResult::done : LocalResult::failed;
     }
 
+    // The session's own deadlines, on its clock; the coordinator's now is not used.
+    bool remaining_ms(std::uint64_t /*now_ms*/, std::uint64_t& out) {
+        return session_.completion_remaining_ms(out);
+    }
+
     // What the person is asked to look at and press, for the status line.
     Prompt prompt() const { return prompt_; }
 
