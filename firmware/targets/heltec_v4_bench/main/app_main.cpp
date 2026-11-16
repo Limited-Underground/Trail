@@ -100,13 +100,13 @@ opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
 #if OPENTRAIL_LORA_LINK_TEST
 namespace link_test = opentrail::target::heltec_v4_bench::lora_link_test;
-opentrail::target::heltec_v4_bench::HeltecV4Lora g_lora;
+HeltecV4SecureRandom g_board_pairing_random;
+opentrail::target::heltec_v4_bench::HeltecV4Lora g_lora{g_board_pairing_random};
 opentrail::ui::compact_status_footer::Direction g_lora_activity{
     opentrail::ui::compact_status_footer::Direction::none};
 std::uint64_t g_lora_activity_at_ms{0};
 constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
 // V1 F5 R2a: first board pairing over LoRa (D-085, D-086).
-HeltecV4SecureRandom g_board_pairing_random;
 opentrail::target::heltec_v4_bench::BoardPairingRuntime g_board_pairing{
     g_factory_reset_input, g_board_pairing_random};
 // Screen line: shown while pairing, and for a minute after it ends.
@@ -584,16 +584,6 @@ extern "C" void app_main() {
                          tx_allowed ? "allowed" : "held", static_cast<unsigned>(region_id));
                 lora_tx_allowed_logged = static_cast<int>(tx_allowed);
             }
-            link_test::Beacon outgoing{};
-            if (tx_allowed && !g_board_pairing.active() && beaconer.due(elapsed_ms, outgoing)) {
-                const auto frame = link_test::encode(outgoing);
-                const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
-                ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
-                         static_cast<unsigned long>(outgoing.sequence),
-                         static_cast<unsigned long>(outgoing.heard_from),
-                         static_cast<unsigned long>(outgoing.heard_sequence),
-                         static_cast<unsigned>(sent.accepted()));
-            }
             // Received frames reach pairing before it is asked for a frame to send, so
             // its quiet-after-receive rule sees them on this tick (review of I-057).
             std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
@@ -625,6 +615,9 @@ extern "C" void app_main() {
             opentrail::protocol::pairing::FrameBuffer pairing_out{};
             std::size_t pairing_size = 0;
             g_board_pairing.service(elapsed_ms, tx_allowed, pairing_out, pairing_size);
+            // Give any received frame the poll to itself. Launch previously
+            // queued work only after pairing has serviced the receive phase.
+            if (!got.has_frame()) g_lora.launch_queued(elapsed_ms);
             if (pairing_size != 0) {
                 // Only a frame the radio accepts counts as a send (D-087).
                 const bool accepted = tx_allowed &&
@@ -634,6 +627,18 @@ extern "C" void app_main() {
                          static_cast<unsigned>(pairing_out[2] & 0x0f),
                          static_cast<unsigned>(pairing_size),
                          static_cast<unsigned>(accepted));
+            }
+            if (pairing_size == 0 && tx_allowed && !g_board_pairing.active()) {
+                link_test::Beacon outgoing{};
+                if (beaconer.due(elapsed_ms, outgoing)) {
+                    const auto frame = link_test::encode(outgoing);
+                    const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
+                    ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
+                             static_cast<unsigned long>(outgoing.sequence),
+                             static_cast<unsigned long>(outgoing.heard_from),
+                             static_cast<unsigned long>(outgoing.heard_sequence),
+                             static_cast<unsigned>(sent.accepted()));
+                }
             }
             {
                 using PairingPhase = opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase;
@@ -720,14 +725,15 @@ extern "C" void app_main() {
                          static_cast<unsigned>(served.last_gnss),
                          static_cast<unsigned long>(served.last_revision));
                 const auto c = g_lora.counters();
-                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu",
+                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu cad_dropped=%lu",
                          static_cast<unsigned long>(c.tx_completed),
                          static_cast<unsigned long>(c.tx_attempts),
                          static_cast<unsigned long>(c.tx_refused),
                          static_cast<unsigned long>(c.rx_frames),
                          static_cast<unsigned long>(c.rx_errors),
                          static_cast<unsigned long>(c.rx_dropped),
-                         static_cast<unsigned long>(beaconer.heard_count()));
+                         static_cast<unsigned long>(beaconer.heard_count()),
+                         static_cast<unsigned long>(c.tx_busy_dropped));
             }
 #endif
             // Pinned ESP-IDF task.h defines this result in bytes, not words.
