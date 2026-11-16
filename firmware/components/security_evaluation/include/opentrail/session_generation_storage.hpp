@@ -49,6 +49,7 @@ public:
             if(!ledger_.read(m) || !valid(m)) {failure_=Failure::ledger_read;return false;}
             generation_=m.generation;failure_=Failure::none;return true;
         });
+        if(!ok && failure_==Failure::none) failure_=Failure::failed_state;  // wrapper refused
         return ok;
     }
     bool allocate(std::uint64_t& output) {
@@ -75,6 +76,7 @@ public:
             if(!exact()) {failure_=Failure::stale;return false;}
             failure_=Failure::none;return true;
         });
+        if(!ok && failure_==Failure::none) failure_=Failure::failed_state;  // wrapper refused
         if(ok) { allocated_=true; output=next; }
         return ok;
     }

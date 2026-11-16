@@ -50,9 +50,14 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
 1. Action 6 role and code, and the request carries them (done).
 2. LoRa pairing frame codec, `pairing_frame.hpp` (done; host tests).
 3. Pairing coordinator, `pairing_coordinator.hpp` (done; host tests). It runs each board's fixed script, buffers early frames, ignores other attempts and traffic, and recovers any single lost frame:
-   - a waiting board repeats its latest batch;
-   - a repeated frame from the peer identifies exactly which of our frames it still needs.
-   It stops resending after `max_sends` (2, D-078) but keeps listening until the 120 s window ends, because the other person may still be reviewing. Exception (D-106, I-057): the first frame, the candidate "hello", repeats for the whole window (up to 30 sends: every 5 s from the starter, every 4.3 s from the joiner), because the second phone's person is still typing the code when the first board starts; with 2 sends the boards could only pair if both started within about 2 s. The radios are half-duplex, so the two roles are kept out of step: besides the different hello intervals, the joiner holds each new frame 0.6 s (more than one frame's airtime at SF7) and resends other frames every 2.3 s instead of 3 s, and a hello answered because the peer repeated waits at least 1 s after the previous send.
+   - a board repeats each frame it sent until a later frame from the peer proves the peer received it (in the peer's script, that frame comes after the receive of ours); hearing the peer's copy of a frame exchanged at the same time is not proof, because the two copies may have collided;
+   - a repeated frame from the peer identifies exactly which of our frames it still needs (not for hellos, which repeat on their own timer, and not for a frame already proven received; otherwise the two boards echo repeats back and forth).
+   It stops resending after `max_sends` (4, D-107; 2 under D-087) but keeps listening until the 120 s window ends, because the other person may still be reviewing. Exception (D-106, I-057): the first frame, the candidate "hello", repeats for the whole window (up to 30 sends: every 5 s from the starter, every 4.3 s from the joiner), because the second phone's person is still typing the code when the first board starts; with 2 sends the boards could only pair if both started within about 2 s.
+   The radios are half-duplex and cannot hear each other while sending, so two frames that overlap on air are both lost (an offer, 115 bytes, is on air 195 ms at SF7; the largest frame, 194 bytes, 307 ms). The boards are kept out of step:
+   - different hello intervals for the two roles (above);
+   - the joiner holds each new frame 0.6 s and resends other frames every 2.3 s instead of 3 s;
+   - neither board transmits until 0.5 s after it last heard the peer, so it never answers into the rest of the peer's burst (a simple stand-in for listen-before-talk).
+   A board starts the final exchange (its first control frame) only with at least 15 s of its own window left, so that both commits fall inside both windows; a later confirmation fails both boards instead of leaving one paired. In practice the second phone should start within about 90 s of the first. Known limit: the responder commits once its last control frame is accepted by its radio, so if every copy of that frame is lost, the responder is paired and the initiator is not (I-059).
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
 5. Target composition in `heltec_v4_bench`, in steps:
    - 5a (done). `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.
@@ -124,7 +129,7 @@ The Codex review of PR #253/#254 (`REVIEW-R2A.md`) requested changes. What chang
   - After local commit the runtime keeps answering the peer for 15 s (`kLingerMs`), so the initiator's repeat recovers a lost final control (test `test_final_control_loss_needs_linger`).
   - Local "paired" means this board committed; it is not proof that the other board did.
 - **R2A-2, send accounting:**
-  - `service()` only offers a frame. The caller reports `sent(accepted)`, and only an accepted frame counts against the 2-send limit (D-087).
+  - `service()` only offers a frame. The caller reports `sent(accepted)`, and only an accepted frame counts against the send limit (4, D-107; 2 under D-087).
   - A new attempt starts only when the radio runs and transmit is permitted; a held transmit spends nothing.
   - Tests: `test_refused_offers_are_not_counted`, `test_held_transmit_spends_nothing`.
 - **R2A-3, cancellation:**

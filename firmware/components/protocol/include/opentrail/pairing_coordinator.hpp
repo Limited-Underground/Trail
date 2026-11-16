@@ -12,8 +12,11 @@
 // produced frame must be accepted before a local step (including commit) runs.
 //
 // Loss recovery, within Limits:
-// - While waiting to receive, a board repeats the frames it sent since its last
-//   receive, every resend_after_ms.
+// - A board repeats each frame it sent, every resend_after_ms, until a later
+//   frame from the peer proves the peer received it (in the peer's script, the
+//   frame was sent after the receive of ours). Hearing the peer's copy of a
+//   frame exchanged at the same time is not proof: on half-duplex radios our
+//   copy may have collided with it (review of I-057).
 // - A repeated frame from the peer means the peer missed something. Both scripts
 //   are fixed, so the repeat identifies exactly which of our frames the peer is
 //   waiting for; that frame is sent again.
@@ -114,7 +117,7 @@ struct Limits {
     // resends collide.
     std::uint64_t responder_turn_delay_ms{600};
     std::uint64_t responder_resend_after_ms{2300};
-    std::uint8_t max_sends{2};          // per frame (D-078 test limits)
+    std::uint8_t max_sends{4};          // per frame (D-107; was 2 under D-087)
     std::uint64_t attempt_limit_ms{120000};
     // D-106 (I-057): the first frame, the candidate "hello", repeats on a slow
     // interval for the whole window, so a board started while the other phone's
@@ -124,9 +127,16 @@ struct Limits {
     std::uint64_t hello_resend_after_ms{5000};            // initiator
     std::uint64_t hello_responder_resend_after_ms{4300};  // responder
     std::uint8_t hello_max_sends{30};
-    // A hello answered because the peer repeated its own waits at least this
-    // long after our previous send (paces and coalesces duplicate answers).
-    std::uint64_t hello_answer_gap_ms{1000};
+    // A board starts the final exchange (its first control frame) only with at
+    // least this much of its own window left, so that both boards' commits fall
+    // inside both windows even with one lost copy of each final frame (review
+    // of I-057: a confirmation in the last seconds let the responder commit
+    // after the initiator had expired).
+    std::uint64_t final_reserve_ms{15000};
+    // Neither board transmits until this long after it last heard a frame from
+    // the peer, so it never answers into the rest of the peer's burst (a simple
+    // stand-in for listen-before-talk; review of I-057). 0 disables.
+    std::uint64_t quiet_after_rx_ms{500};
 };
 
 enum class Outcome : std::uint8_t { running, paired, failed };
@@ -164,6 +174,7 @@ public:
         if (outcome_ == Outcome::failed || !begun_) return;
         Frame f{};
         if (decode(data, size, code_, f) != DecodeResult::ok) return;
+        heard_ = true;  // stamped with the time at the next service()
         for (std::size_t i = 0; i < consumed_count_; ++i) {
             if (same(consumed_[i], f)) {  // peer repeats: it missed our reply
                 answer_repeat(f.type, consumed_[i].instance);
@@ -187,6 +198,8 @@ public:
             return fail(FailReason::expired);
         }
         if (outcome_ == Outcome::running && !advance(now_ms)) return false;
+        if (heard_) { heard_ = false; heard_ms_ = now_ms; heard_any_ = true; }
+        if (heard_any_ && now_ms - heard_ms_ < limits_.quiet_after_rx_ms) return false;  // wait for quiet
         return transmit(now_ms, out, out_size);
     }
 
@@ -200,6 +213,7 @@ public:
         if (!accepted) return;
         ++o.sends;
         o.last_ms = now_ms;
+        o.wait_ms = interval(o);
         o.due = false;
     }
 
@@ -223,7 +237,9 @@ private:
         std::uint8_t sends{};
         std::uint64_t last_ms{};
         std::uint64_t created_ms{};
-        bool due{};               // resend requested by a peer repeat
+        bool due{};
+        bool received{};
+        std::uint64_t wait_ms{};  // until the next timed resend          // the peer's later frames prove it has this one               // resend requested by a peer repeat
     };
 
     // D-106: the candidate hello uses its own limits; every other frame keeps D-087.
@@ -269,12 +285,43 @@ private:
                 if (peer_[j].kind == StepKind::receive && peer_[j].frame == wanted) ++index;
             }
             for (std::size_t k = 0; k < sent_count_; ++k) {
+                // Hellos repeat on their own timer until proven received, and a
+                // frame the peer has proven it received needs no answer: both
+                // would only echo repeats back and forth (review of I-057).
+                if (sent_[k].type == FrameType::candidate || sent_[k].received) continue;
                 if (sent_[k].type == wanted && sent_[k].instance == index) {
                     sent_[k].due = true;
                 }
             }
             return;
         }
+    }
+
+    // Index in `script` of the instance-th step of `kind` for `type`, or kScriptSteps.
+    static std::size_t position(const Script& script, StepKind kind, FrameType type,
+                                std::uint8_t instance) {
+        std::uint8_t seen = 0;
+        for (std::size_t i = 0; i < kScriptSteps; ++i) {
+            if (script[i].kind == kind && script[i].frame == type && ++seen == instance) return i;
+        }
+        return kScriptSteps;
+    }
+
+    // We consumed the peer's instance-th frame of `type`. Every frame of ours the
+    // peer's script receives before sending that one has arrived.
+    void mark_received(FrameType type, std::uint8_t instance) {
+        const auto sent_at = position(peer_, StepKind::send, type, instance);
+        for (std::size_t k = 0; k < sent_count_; ++k) {
+            auto& o = sent_[k];
+            if (position(peer_, StepKind::receive, o.type, o.instance) < sent_at) o.received = true;
+        }
+    }
+
+    bool sent_any(FrameType type) const {
+        for (std::size_t k = 0; k < sent_count_; ++k) {
+            if (sent_[k].type == type) return true;
+        }
+        return false;
     }
 
     bool unsent_pending() const {
@@ -289,6 +336,10 @@ private:
             const Step& st = own_[step_];
             if (st.kind == StepKind::send) {
                 if (sent_count_ == kSlots) return fail(FailReason::frame_store_full);
+                if (st.frame == FrameType::control && !sent_any(FrameType::control) &&
+                    now_ms - start_ms_ + limits_.final_reserve_ms > limits_.attempt_limit_ms) {
+                    return fail(FailReason::expired);  // too late to finish on both boards
+                }
                 std::array<std::uint8_t, kMaxPayloadBytes> payload{};
                 if (!adapter_.produce(st.frame, payload.data())) {
                     return fail(FailReason::adapter_refused);
@@ -329,7 +380,7 @@ private:
                     if (consumed_[k].type == got.type) ++got.instance;
                 }
                 consumed_[consumed_count_++] = got;
-                batch_start_ = sent_count_;
+                mark_received(got.type, got.instance);
                 ++step_;
                 continue;
             }
@@ -358,21 +409,17 @@ private:
         for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
             if (!o.due) continue;
-            if (o.type == FrameType::candidate && o.sends != 0 &&
-                now_ms - o.last_ms < limits_.hello_answer_gap_ms) continue;  // stays due
             if (o.sends < cap(o)) return offer(k, out, out_size);
             o.due = false;
         }
         if (outcome_ != Outcome::running) return false;
-        const bool waiting = step_ < kScriptSteps && own_[step_].kind == StepKind::receive;
-        if (!waiting) return false;
-        // 3. While waiting, repeat this batch on the resend interval. Once
-        //    every send is used, keep listening: the peer's person may still be
+        // 3. Repeat every frame the peer has not proved it received, on the resend
+        //    interval. Once every send is used, keep listening: the peer's person may still be
         //    reviewing. The request window (attempt_limit_ms) ends the attempt.
-        for (std::size_t k = batch_start_; k < sent_count_; ++k) {
+        for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
-            if (o.sends >= cap(o)) continue;
-            if (now_ms - o.last_ms >= interval(o)) {
+            if (o.received || o.sends >= cap(o)) continue;
+            if (now_ms - o.last_ms >= o.wait_ms) {
                 return offer(k, out, out_size);
             }
         }
@@ -407,9 +454,10 @@ private:
     std::size_t consumed_count_{0};
     std::array<Outgoing, kSlots> sent_{};
     std::size_t sent_count_{0};
-    std::size_t batch_start_{0};
     std::size_t offered_{0};  // 1-based index of the frame last offered
     std::uint64_t start_ms_{0};
+    bool heard_{false}, heard_any_{false};
+    std::uint64_t heard_ms_{0};
     bool begun_{false};
     Outcome outcome_{Outcome::running};
     FailReason reason_{FailReason::none};

@@ -11,7 +11,7 @@ namespace key = opentrail::target::heltec_v4_bench::pairing_key;
 #define CHECK(x) do { if (!(x)) { std::printf("FAIL %s:%d %s\n", __FILE__, __LINE__, #x); std::exit(1); } } while (0)
 
 namespace {
-constexpr std::uint64_t kCapacity = 32;  // PairingNvsStorage::kCapacity
+constexpr std::uint64_t kCapacity = key::kCapacity;  // also PairingNvsStorage::kCapacity
 
 // Valid keys come from the formatter the storage uses (PairingNvsStorage::key_for).
 void make(std::uint64_t g, unsigned n, unsigned d, unsigned s, key::Key& out) {
@@ -79,6 +79,8 @@ int main() {
         raw(kCapacity + 1, 0, 0, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
         raw(1, 11, 0, 0, k);
+        CHECK(key::slot(k, kCapacity) == size);
+        raw(1, 7, 0, 0, k);  // namespaces 7-10: generation 0 only, as format() writes
         CHECK(key::slot(k, kCapacity) == size);
         raw(1, 0, 5, 0, k);
         CHECK(key::slot(k, kCapacity) == size);

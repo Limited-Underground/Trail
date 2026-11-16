@@ -32,7 +32,7 @@ public:
     // I-055: every pairing attempt, even a failed or interrupted one, permanently
     // consumes one session generation. Capacity 2 blocked both bench boards after
     // two attempts. 32 allows routine retries; a factory reset restores it.
-    static constexpr std::uint64_t kCapacity = 32;
+    static constexpr std::uint64_t kCapacity = pairing_key::kCapacity;
     static constexpr char kPartition[] = "ot_state";
     static constexpr char kNamespace[] = "ot_pair";
     static constexpr std::uint32_t kPartitionAddress = 0xf00000;

@@ -104,7 +104,9 @@ int main() {
         CHECK(!bank.get(EvaluationNamespace::boot)->read_slot(domain,0,{out.data(),out.size()}).read()); CHECK(out==before);++groups;
     }
     {
-        Backend b;GenerationLedgerStorage ledger(b);SessionGenerationAllocator a(ledger,b,0);CHECK(!a.initialize());std::uint64_t g=97;CHECK(!a.allocate(g)&&g==97);++groups;
+        Backend b;GenerationLedgerStorage ledger(b);SessionGenerationAllocator a(ledger,b,0);CHECK(!a.initialize());
+        CHECK(a.failure()==SessionGenerationAllocator::Failure::setup);  // I-058: the refusal names its check
+        std::uint64_t g=97;CHECK(!a.allocate(g)&&g==97);CHECK(a.failure()==SessionGenerationAllocator::Failure::failed_state);++groups;
     }
     // Every destination read fault consumes the committed generation; a fresh
     // allocator can only allocate the next one, never resume the failed attempt.
@@ -113,7 +115,7 @@ int main() {
         CHECK(a.initialize());
         const unsigned n=(nth-1)/10, local=(nth-1)%10+1;
         b.stores[1][n].arm(Fault::read_error,local);
-        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97);
+        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97); CHECK(a.failure()==SessionGenerationAllocator::Failure::destination_read);
         b.stores[1][n].inner.clear(); Allocation next(b); CHECK(next.generation==2); ++groups;
     }
     for(unsigned location=0;location<50;++location) {
@@ -121,7 +123,8 @@ int main() {
         const std::uint8_t byte=0;
         CHECK(b.stores[1][n].write_slot(static_cast<Domain>(d),slot,0,{&byte,1})==Error::none);
         GenerationLedgerStorage ledger(b); SessionGenerationAllocator a(ledger,b,4); CHECK(a.initialize());
-        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97); Allocation next(b); CHECK(next.generation==2); ++groups;
+        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97); CHECK(a.failure()==SessionGenerationAllocator::Failure::destination_not_blank);
+        Allocation next(b); CHECK(next.generation==2); ++groups;
     }
     // Damage in either durable slot must never authorize an existing generation.
     for(unsigned offset=0;offset<128;++offset) {
@@ -131,7 +134,8 @@ int main() {
         CHECK(memory.erase_slot(domain,offset/64)==Error::none);
         CHECK(memory.write_slot(domain,offset/64,0,{bytes.data(),bytes.size()})==Error::none);
         GenerationLedgerStorage ledger(b); SessionGenerationAllocator a(ledger,b,4);
-        CHECK(!a.initialize()); g=97; CHECK(!a.allocate(g) && g==97); ++groups;
+        CHECK(!a.initialize()); CHECK(a.failure()==SessionGenerationAllocator::Failure::ledger_init || a.failure()==SessionGenerationAllocator::Failure::ledger_read);
+        g=97; CHECK(!a.allocate(g) && g==97); CHECK(a.failure()==SessionGenerationAllocator::Failure::failed_state); ++groups;
     }
     for(auto fault:{Fault::read_error,Fault::short_read,Fault::corrupt_read,Fault::write_before,Fault::write_after,Fault::partial_write,Fault::sync_after}) {
         Backend reference; GenerationLedgerStorage rl(reference); SessionGenerationAllocator ra(rl,reference,4); CHECK(ra.initialize());
@@ -140,6 +144,7 @@ int main() {
         for(unsigned nth=1;nth<=ls.count(kind);++nth) {
             Backend b; GenerationLedgerStorage ledger(b); SessionGenerationAllocator a(ledger,b,4); CHECK(a.initialize());
             b.at(0,EvaluationNamespace::boot).arm(fault,nth); value=97; CHECK(!a.allocate(value) && value==97);
+            CHECK(a.failure()!=SessionGenerationAllocator::Failure::none);
             b.at(0,EvaluationNamespace::boot).inner.clear(); SessionGenerationAllocator next(ledger,b,4);
             if(next.initialize()) { CHECK(!next.current(1)); CHECK(next.allocate(value)); CHECK(value==1 || value==2); }
             ++groups;
@@ -153,6 +158,7 @@ int main() {
         for(unsigned nth=1;nth<=calls;++nth) {
             Backend b; Allocation first(b); b.at(0,EvaluationNamespace::boot).arm(fault,nth);
             value=97; CHECK(!first.allocator.allocate(value) && value==97);
+            CHECK(first.allocator.failure()!=SessionGenerationAllocator::Failure::none);
             b.at(0,EvaluationNamespace::boot).inner.clear();
             GenerationLedgerStorage ledger(b); SessionGenerationAllocator next(ledger,b,4);
             if(next.initialize()) { CHECK(!next.current(1) && !next.current(2)); CHECK(next.allocate(value)); CHECK(value>=2); }
@@ -162,7 +168,7 @@ int main() {
     {
         Backend b; GenerationLedgerStorage ledger(b); SessionGenerationAllocator a(ledger,b,4); CHECK(a.initialize());
         bool once=false; b.callback=[&]{ if(!once) { once=true; std::uint64_t value=8; CHECK(!a.allocate(value)); CHECK(value==8); } };
-        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97); ++groups;
+        std::uint64_t g=97; CHECK(!a.allocate(g) && g==97); CHECK(a.failure()!=SessionGenerationAllocator::Failure::none); ++groups;
     }
     {
         Backend ba,bb; SignedIndependentInvitation invitation;

@@ -81,11 +81,55 @@ struct Run {
     // ignores the radio.
     std::uint64_t a_start_ms{0};
     std::uint64_t b_start_ms{0};
-    // Half-duplex radios: frames both boards transmit in the same tick collide and
-    // neither arrives (review of I-057).
+    // Half-duplex radios (review of I-057): each accepted frame is on air for its
+    // SF7 airtime and arrives at the end of it; a radio still sending refuses new
+    // frames; frames whose airtimes overlap are both lost.
     bool half_duplex{false};
+    bool trace{false};  // print each accepted frame (debugging only)
     int sent_a{0}, sent_b{0};      // frames the radio accepted
-    int collisions{0};             // half-duplex: ticks where both transmitted
+    int collisions{0};             // half-duplex: frames lost to overlapping airtime
+    struct Air {
+        FrameBuffer bytes{};
+        std::size_t n{0};
+        std::uint64_t start{0}, end{0};
+        bool lost{false};
+    } air_a, air_b;
+
+    // LoRa airtime at the bench profile: 125 kHz, SF7, CR 4/5, explicit header,
+    // CRC, 8 preamble symbols (an offer, 115 bytes, is 194.816 ms).
+    static std::uint64_t airtime_ms(std::size_t bytes) {
+        const std::size_t symbols = 8 + ((8 * bytes + 16 + 27) / 28) * 5;
+        return static_cast<std::uint64_t>((12.25 + static_cast<double>(symbols)) * 1.024 + 0.999);
+    }
+
+    void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
+                  int& offered, int& sent, bool from_a, std::uint64_t now) {
+        if (!live) return;
+        if (mine.n) {  // still on air: the radio is not ready, nothing is offered
+            return;
+        }
+        FrameBuffer f{};
+        std::size_t n = 0;
+        if (!c.service(now, f, n) || !n) return;
+        const bool accepted = !refuse(offered++, from_a);
+        c.sent(accepted, now);
+        if (!accepted) return;
+        mine.bytes = f;
+        mine.n = n;
+        mine.start = now;
+        mine.end = now + airtime_ms(n);
+        mine.lost = drop(sent, from_a);
+        ++sent;
+        if (other.n && other.start < mine.end && mine.start < other.end) {
+            if (!mine.lost) ++collisions;
+            if (!other.lost) ++collisions;
+            mine.lost = other.lost = true;
+        }
+        if (trace) {
+            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
+                      << " step " << c.step() << (mine.lost ? " LOST" : "") << std::endl;
+        }
+    }
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
@@ -103,27 +147,16 @@ struct Run {
             if (!b_begun && now >= b_start_ms) { EXPECT(cb.begin(now)); b_begun = true; }
             if (inject) inject(tick, ca, cb);
             if (half_duplex) {
-                FrameBuffer fa{}, fb{};
-                std::size_t na = 0, nb = 0;
-                bool ta = false, tb = false;
-                if (a_live && ca.service(now, fa, na) && na) {
-                    ta = !refuse(offered_a++, true);
-                    ca.sent(ta, now);
+                for (auto* f : {&air_a, &air_b}) {
+                    if (f->n && now >= f->end) {
+                        auto& to = f == &air_a ? cb : ca;
+                        const bool live = f == &air_a ? b_live : a_live;
+                        if (!f->lost && live) to.on_receive(f->bytes.data(), f->n);
+                        f->n = 0;
+                    }
                 }
-                if (b_live && cb.service(now, fb, nb) && nb) {
-                    tb = !refuse(offered_b++, false);
-                    cb.sent(tb, now);
-                }
-                const bool collide = ta && tb;
-                if (ta) {
-                    if (collide) ++collisions;
-                    else if (!drop(sent_a, true) && b_live) cb.on_receive(fa.data(), na);
-                    ++sent_a;
-                }
-                if (tb) {
-                    if (!collide && !drop(sent_b, false) && a_live) ca.on_receive(fb.data(), nb);
-                    ++sent_b;
-                }
+                transmit(ca, a_live, air_a, air_b, offered_a, sent_a, true, now);
+                transmit(cb, b_live, air_b, air_a, offered_b, sent_b, false, now);
             } else {
             FrameBuffer buf{};
             std::size_t n = 0;
@@ -246,14 +279,23 @@ void test_silent_peer_stops_within_limits() {
 
 // I-057: the joining phone's person types the code long after the starter sent
 // its hello. With the hello repeating for the window (D-106), both still pair.
+// A join so late that the final exchange cannot start with final_reserve_ms left
+// pairs neither board.
 void test_late_joiner_still_pairs() {
-    for (std::uint64_t late : {std::uint64_t{30000}, std::uint64_t{100000}}) {
+    for (std::uint64_t late : {std::uint64_t{30000}, std::uint64_t{85000}}) {
         Run r;
         r.b_start_ms = late;
         r.go(140000);
         EXPECT(r.oa == Outcome::paired);
         EXPECT(r.ob == Outcome::paired);
         EXPECT(r.a.committed && r.b.committed);
+    }
+    {
+        Run r;
+        r.b_start_ms = 100000;
+        r.go(240000);
+        EXPECT(r.oa != Outcome::paired && r.ob != Outcome::paired);
+        EXPECT(!r.a.committed && !r.b.committed);
     }
     // Joining after the starter's window has ended cannot pair.
     Run r;
@@ -268,7 +310,7 @@ void test_late_joiner_still_pairs() {
 // start order and timing, and a join too late in the window is never one-sided.
 void test_half_duplex_start_orders() {
     struct Case { std::uint64_t a_start, b_start; };
-    const Case cases[] = {{0, 0}, {0, 30000}, {30000, 0}, {0, 61300}, {47100, 0}, {0, 95000}};
+    const Case cases[] = {{0, 0}, {0, 30000}, {30000, 0}, {0, 61300}, {47100, 0}, {0, 85000}};
     for (const auto& c : cases) {
         Run r;
         r.half_duplex = true;
@@ -278,7 +320,7 @@ void test_half_duplex_start_orders() {
         EXPECT(r.oa == Outcome::paired);
         EXPECT(r.ob == Outcome::paired);
         EXPECT(r.a.committed && r.b.committed);
-        EXPECT(r.sent_a <= 30 + 40 && r.sent_b <= 30 + 40);  // hellos plus the rest
+        EXPECT(r.sent_a <= 30 + 4 * 15 && r.sent_b <= 30 + 4 * 15);  // hellos plus the rest
     }
     // Every start offset in 0.1 s steps over the first 20 s, either board first.
     // Some hellos still collide; the repeats on different intervals recover them.
@@ -309,6 +351,67 @@ void test_half_duplex_start_orders() {
         r.b_start_ms = late;
         r.go(late + 140000);
         EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+    }
+}
+
+// Second review of I-057, on the airtime model:
+// - the two people finish reviewing at different times, so the boards' first
+//   offers can overlap on air; the copy each board lost must still be resent
+//   after it hears the peer's copy;
+// - any single lost frame after a hello collision is recovered (joiner 4.4 s late);
+// - a confirmation in the last seconds of either window never leaves one board
+//   paired and the other not (final_reserve_ms).
+void test_review_confirm_timing_and_single_loss() {
+    for (const std::uint64_t b_start : {std::uint64_t{0}, std::uint64_t{4400}}) {
+        for (int ra = 1; ra <= 60; ++ra) {
+            for (const int rb : {1, 5, 10, 20, 40, 60}) {
+                Run r;
+                r.half_duplex = true;
+                r.b_start_ms = b_start;
+                r.a.review_ticks = ra;
+                r.b.review_ticks = rb;
+                r.go(b_start + 140000);
+                EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+            }
+        }
+    }
+    // Responder offer (or any other single frame) lost, joiner 4.4 s late.
+    for (int side = 0; side < 2; ++side) {
+        for (int lost = 0; lost < 30; ++lost) {
+            Run r;
+            r.half_duplex = true;
+            r.b_start_ms = 4400;
+            r.drop = [&](int n, bool from_a) { return n == lost && from_a == (side == 0); };
+            r.go(144400);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Late joins (0-119 s in 0.5 s steps) and slow confirmations, either board
+    // first: both boards pair or neither does. Without the final reserve some do
+    // pair on one side only (the control).
+    for (const std::uint64_t reserve : {Limits{}.final_reserve_ms, std::uint64_t{0}}) {
+        int one_sided = 0;
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            for (std::uint64_t late = 0; late <= 119000; late += 500) {
+                for (const int ca : {2, 60, 150, 300}) {
+                    for (const int cb : {2, 60, 150, 300}) {
+                        Run r;
+                        r.half_duplex = true;
+                        r.limits.final_reserve_ms = reserve;
+                        (b_first ? r.a_start_ms : r.b_start_ms) = late;
+                        r.a.confirm_ticks = ca;
+                        r.b.confirm_ticks = cb;
+                        r.go(late + 140000);
+                        if ((r.oa == Outcome::paired) != (r.ob == Outcome::paired) ||
+                            r.a.committed != r.b.committed) {
+                            ++one_sided;
+                        }
+                    }
+                }
+            }
+        }
+        if (reserve) EXPECT(one_sided == 0);
+        else EXPECT(one_sided > 0);
     }
 }
 
@@ -395,6 +498,7 @@ int main() {
     test_silent_peer_stops_within_limits();
     test_late_joiner_still_pairs();
     test_half_duplex_start_orders();
+    test_review_confirm_timing_and_single_loss();
     test_attempt_window_expires();
     test_begin_refusals();
     test_final_control_loss_needs_linger();
@@ -405,6 +509,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 14 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 15 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }
