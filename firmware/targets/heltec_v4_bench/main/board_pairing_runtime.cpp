@@ -100,6 +100,12 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
 }
 
 void BoardPairingRuntime::end(Phase result) {
+    if (identity_) {
+        // I-068: identity reads served from RAM, and reads that went to NVS.
+        const auto s = identity_->read_stats();
+        ESP_LOGI(kTag, "identity reads this attempt: cache=%lu nvs=%lu",
+                 static_cast<unsigned long>(s.cache_hits), static_cast<unsigned long>(s.nvs_reads));
+    }
     if (storage_) {
         // I-066: how many slot reads the RAM cache served, and what reached NVS.
         const auto s = storage_->read_stats();
