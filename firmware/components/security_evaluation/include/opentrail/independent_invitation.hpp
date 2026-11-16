@@ -8,7 +8,9 @@
 
 namespace opentrail::security_evaluation {
 inline constexpr std::size_t kIndependentInvitationPayloadBytes = 188;
-inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = 60000;
+// D-110: after a board's clock mark the signed invitation must still cover the code
+// check by the person, the final messages and the save; 60 s was too short.
+inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = 180000;
 
 struct IndependentInvitation {
     std::array<std::uint8_t, kIndependentInvitationPayloadBytes> payload{};

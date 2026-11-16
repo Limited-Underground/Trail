@@ -19,12 +19,18 @@
 #include "esp_partition.h"
 #include "opentrail/session_generation_storage.hpp"
 
+#include "pairing_slot_cache.hpp"
 #include "pairing_storage_key.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
 class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend {
 public:
+    // I-066 diagnostics: slot reads served from RAM, and reads that reached NVS.
+    struct ReadStats { std::uint32_t cache_hits; std::uint32_t nvs_reads; std::uint32_t nvs_read_ms; };
+    ReadStats read_stats() const {
+        return {cache_.hits(), nvs_reads_, static_cast<std::uint32_t>(nvs_read_us_ / 1000)};
+    }
     using Namespace = security_evaluation::EvaluationNamespace;
     using Domain = persistence::StorageDomain;
     using Error = persistence::StorageError;
@@ -109,6 +115,10 @@ private:
 
     nvs_handle_t handle_{};
     bool good_{}, mounted_{}, pending_{}, pending_erased_{};
+    // I-066: recently read slots, so repeated ledger checks do not reach flash.
+    PairingSlotCache<16> cache_{};
+    std::uint32_t nvs_reads_{0};
+    std::uint64_t nvs_read_us_{0};
     std::array<char, 16> pending_key_{};
     Bytes pending_bytes_{};
     std::array<View, 4> views_;

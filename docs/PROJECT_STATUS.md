@@ -44,7 +44,7 @@ picked up by Android until the board is paired again.
 
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b waits.
 
-The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed.
+The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed. The fourth session got through the whole radio exchange, but ran out of the 2-minute window; the window is now 5 minutes (D-110) and the slow final save is fixed (I-066).
 
 The product is renamed Limited Underground MeshTrail (owner decision D-089). The Android app shows the name with the Linked Route home-screen artwork (D-091, D-092). On the board, the startup screen shows the Linked Route symbol and MeshTrail, and the reset question reads "ERASE MESHTRAIL DATA?". The application ID, signing, Bluetooth setup label and storage keys are unchanged.
 
@@ -151,7 +151,7 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-15 |
+| Reviewed | 2026-11-16 |
 | Task | [OT-0005i, Trail #232](https://github.com/Limited-Underground/Trail/issues/232) — Android start/join for first board pairing (V1 F5 R2b). |
 | Owner | Codex owns the isolated Android R2b code, host checks and closeout on feature/f5-r2b-app-pairing-start. |
 | Scope | Protected action 6 role and code, correlated admission/refusal, and the Device tab pairing flow. Board-local trust confirmation and final completion stay with firmware. |
@@ -161,7 +161,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
 | Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)](PROGRESS_LOG.md#ot-0005i-fix-pairing-retries-and-late-joining-found-on-the-boards-i-057-i-058). |
+| Latest record | [OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)](PROGRESS_LOG.md#ot-0005i-five-minute-pairing-window-and-a-faster-pairing-save-d-110-i-066). |
 | Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 

@@ -160,7 +160,7 @@ public:
     // this board's clock mark exists, its signed invitation window
     // (kInvitationWindowMs from the local mark). Session clock. Only for the
     // attempt before commit; never an authorization check.
-    static constexpr std::uint64_t kInvitationWindowMs=60000;
+    static constexpr std::uint64_t kInvitationWindowMs=kIndependentInvitationMaximumWindowMs;  // D-110: 180 s
     bool completion_remaining_ms(std::uint64_t& out,std::uint64_t outer_deadline_ms=0) {
         if(active_)return false;
         if(containing_ || busy_ || failed_)return false;
@@ -453,7 +453,7 @@ public:
         const auto peer=input;
         return operation([&] {
             if(!possession_accepted_ || peer_mark_ || peer.version!=1 || !(peer.context==peer_offer_.context) ||
-                peer.now_ms>std::numeric_limits<std::uint64_t>::max()-60000)return false;
+                peer.now_ms>std::numeric_limits<std::uint64_t>::max()-kInvitationWindowMs)return false;
             peer_mark_=peer;return true;
         });
     }

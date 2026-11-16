@@ -38,6 +38,14 @@ enum class SelectedEnrollmentRequestResult : std::uint8_t {
 class SelectedEnrollmentRequestOwner final {
 public:
     static constexpr std::uint64_t kPreparationLimitMs = 120000;
+    // D-110: board pairing over LoRa (heltec_v4_bench) gives people 5 minutes to
+    // check and press on both boards; other users keep kPreparationLimitMs.
+    static constexpr std::uint64_t kBoardPairingLimitMs = 300000;
+
+    SelectedEnrollmentRequestOwner() = default;
+    explicit SelectedEnrollmentRequestOwner(std::uint64_t limit_ms)
+        : limit_ms_(limit_ms == 0 ? kPreparationLimitMs : limit_ms) {}
+    std::uint64_t limit_ms() const { return limit_ms_; }
 
     SelectedEnrollmentRequestResult admit(const DeviceNameAuthority& current,
                                           std::uint16_t connection_handle,
@@ -56,12 +64,12 @@ public:
             delivery_token == 0 || exchange_id == 0 ||
             !pairing_fields_valid(role, pairing_code) ||
             current.now_ms > std::numeric_limits<std::uint64_t>::max() -
-                                 kPreparationLimitMs) {
+                                 limit_ms_) {
             return SelectedEnrollmentRequestResult::invalid;
         }
         request_ = {current.context, connection_handle, delivery_token,
                     exchange_id, current.now_ms,
-                    current.now_ms + kPreparationLimitMs,
+                    current.now_ms + limit_ms_,
                     role, pairing_code};
         last_observed_ms_ = current.now_ms;
         pending_ = true;
@@ -146,6 +154,7 @@ private:
     std::uint64_t last_observed_ms_{0};
     bool pending_{false};
     bool retired_{false};
+    std::uint64_t limit_ms_{kPreparationLimitMs};
 };
 
 }  // namespace opentrail::companion

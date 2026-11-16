@@ -104,7 +104,7 @@ struct FreshPair {
         CHECK(f.peer_a==a.offer.session_identity && f.peer_b==b.offer.session_identity);
         CHECK(f.boot_a==a.offer.context.boot && f.boot_b==b.offer.context.boot);
         CHECK(f.issued_a_ms==am.now_ms && f.issued_b_ms==bm.now_ms);
-        CHECK(f.window_a_ms==60000 && f.window_b_ms==60000);
+        CHECK(f.window_a_ms==EnrollmentCandidateSession::kInvitationWindowMs && f.window_b_ms==EnrollmentCandidateSession::kInvitationWindowMs);
         CHECK(f.epoch==epoch);
         return invitation;
     }
@@ -235,7 +235,7 @@ int main() {
     {
         FreshPair p;const auto original_deadline=p.a.request.request().deadline_ms;
         p.a.authority.value.now_ms+=70000;p.b.authority.value.now_ms+=70000;p.begin();
-        CHECK(p.a.authority.value.now_ms+60000>original_deadline);
+        CHECK(p.a.authority.value.now_ms+EnrollmentCandidateSession::kInvitationWindowMs>original_deadline);
         CHECK(p.a.request.request().deadline_ms==original_deadline);
         p.a.authority.value.now_ms=original_deadline;
         HandshakeFrame out{};out.step=83;CHECK(!p.a.owner->next_handshake(out));CHECK(out.step==83);++groups;
@@ -244,7 +244,7 @@ int main() {
         FreshPair p;p.confirmation();EvaluationRecord out{};out.group=99;
         if(variant==0)CHECK(p.a.request.cancel_exact(p.a.request.request()));
         if(variant==1)p.a.replace_request();
-        if(variant==2)p.a.authority.value.now_ms+=60000;
+        if(variant==2)p.a.authority.value.now_ms+=EnrollmentCandidateSession::kInvitationWindowMs;
         CHECK(!p.a.owner->next_control(out));CHECK(out.group==99);CHECK(p.a.owner->secrets_cleared());++groups;
     }
     // Reentry/cancellation in delegated hardware/storage callbacks must not publish.
@@ -476,7 +476,7 @@ int main() {
         if(variant==3)br=ar; // Reflected local response cannot prove peer possession.
         if(variant==4)p.a.authority.value.phase=DeviceNamePhase::disconnected;
         if(variant==5)p.a.replace_request();
-        if(variant==6)p.a.authority.value.now_ms+=60000;
+        if(variant==6)p.a.authority.value.now_ms+=EnrollmentCandidateSession::kInvitationWindowMs;
         EvaluationEnrollmentOffer out{};out.group=82;
         CHECK(!p.a.owner->finish_retained_comparison(br,out));CHECK(out.group==82);
         CHECK(p.a.owner->secrets_cleared());if(variant==5)CHECK(p.a.request.pending());++groups;
@@ -507,7 +507,7 @@ int main() {
     {
         FreshPair p(true);p.activate();p.restart_retained();
         const auto deadline=p.a.request.request().deadline_ms;p.a.authority.value.now_ms+=70000;p.b.authority.value.now_ms+=70000;
-        p.begin();CHECK(p.a.authority.value.now_ms+60000>deadline);p.a.authority.value.now_ms=deadline;
+        p.begin();CHECK(p.a.authority.value.now_ms+EnrollmentCandidateSession::kInvitationWindowMs>deadline);p.a.authority.value.now_ms=deadline;
         HandshakeFrame out{};out.step=93;CHECK(!p.a.owner->next_handshake(out));CHECK(out.step==93);++groups;
     }
     {
@@ -761,7 +761,7 @@ int main() {
         CHECK(state.confirmed && state.generation==generation && state.revision==revision);
         if(fault==0)++p.a.device.value.context.request;
         if(fault==1)++p.a.device.value.display_revision;
-        if(fault==2)p.a.authority.value.now_ms+=60000;
+        if(fault==2)p.a.authority.value.now_ms+=EnrollmentCandidateSession::kInvitationWindowMs;
         CHECK(!p.a.owner->review_poll(token,state));EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;
     }
     {FreshPair p;EnrollmentReviewToken token{};token.fill(0x44);EnrollmentReviewState state{};
@@ -797,7 +797,7 @@ int main() {
      const auto began=p.a.authority.value.now_ms;CHECK(p.a.owner->review_start(EnrollmentReviewPurpose::code,token,state));
      ++p.a.authority.value.now_ms;p.a.device.value.button_down=true;CHECK(p.a.owner->review_poll(token,state));
      p.a.authority.value.now_ms+=2000;p.a.device.value.button_down=false;unsigned samples=0;
-     p.a.device.callback=[&]{if(++samples==4)p.a.authority.value.now_ms=began+60000;};
+     p.a.device.callback=[&]{if(++samples==4)p.a.authority.value.now_ms=began+EnrollmentCandidateSession::kInvitationWindowMs;};
      CHECK(!p.a.owner->review_poll(token,state));CHECK(!state.confirmed);
      CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::expired);
      CHECK(p.a.owner->quiescent());EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;}

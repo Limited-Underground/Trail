@@ -2,6 +2,7 @@
 
 #include "companion_nimble_gatt.hpp"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "heltec_enrollment_identity_owner.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -93,6 +94,13 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
 }
 
 void BoardPairingRuntime::end(Phase result) {
+    if (storage_) {
+        // I-066: how many slot reads the RAM cache served, and what reached NVS.
+        const auto s = storage_->read_stats();
+        ESP_LOGI(kTag, "storage reads cache=%lu nvs=%lu nvs_ms=%lu",
+                 static_cast<unsigned long>(s.cache_hits), static_cast<unsigned long>(s.nvs_reads),
+                 static_cast<unsigned long>(s.nvs_read_ms));
+    }
     lingering_ = false;
     coordinator_.reset();
     adapter_.reset();
@@ -155,7 +163,13 @@ void BoardPairingRuntime::service(std::uint64_t now_ms, bool radio_ready,
             busy_ = false;
             return;
         }
+        const auto step_before = coordinator_->step();
+        const auto started_us = esp_timer_get_time();
         (void)coordinator_->service(now_ms, out, out_size);
+        const auto took_ms = static_cast<unsigned long>((esp_timer_get_time() - started_us) / 1000);
+        if (took_ms >= 200) {  // I-066: long blocking work on the main task
+            ESP_LOGW(kTag, "service took %lu ms at step %u", took_ms, static_cast<unsigned>(step_before));
+        }
         const auto outcome = coordinator_->outcome();
         if (outcome == protocol::pairing::Outcome::paired) {
             ESP_LOGI(kTag, "paired here; answering the peer for %llu ms",

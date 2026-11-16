@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-16
+
+### OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)
+
+The fourth owner-present board session (main `b0fd006`) got through the whole radio exchange for the first time, but both attempts ran out of the 2-minute window. The people steps took most of it, and the final save took 15+ s, with board B's watchdog firing twice (I-066). Owner decision D-110: a 5-minute window.
+
+- **Window.** The phone request for board pairing, the board attempt (`Limits::attempt_limit_ms`) and the app countdown (`BOARD_PAIRING_WINDOW_MILLIS`) are now 300 s. `SelectedEnrollmentRequestOwner` takes its limit as a setting: the bench target's GATT admission and the board's mirror use `kBoardPairingLimitMs` (300 s), and every other user keeps `kPreparationLimitMs` (120 s). The fingerprint review keeps its 120 s default, and accepts a request deadline up to 300 s (`maximum_review_window_ms`). The hello repeats up to 70 times, so it still covers the window (D-106). After a board's clock mark, the signed invitation is valid for up to 180 s (`kIndependentInvitationMaximumWindowMs`, shared with the session's `kInvitationWindowMs`), because it must cover the code check, the final messages and the save.
+- **Save (I-066).** A host count with real sessions found 66,608 storage reads in one pairing, against 52 writes. 47,148 of the final-phase reads were the same session-generation ledger slot, which the session re-checks before every storage operation. On the board each read is an NVS lookup in the 1 MB `ot_state` partition. `PairingNvsStorage` now keeps a 16-slot RAM copy of recently read slots (`pairing_slot_cache.hpp`). It is the only writer of the partition: it drops a slot when a write or erase of it starts, stores the verified bytes after sync, and clears the cache on any fault or retire. The checks are unchanged. The board logs `storage reads cache=… nvs=… nvs_ms=…` at the end of an attempt, and `service took … ms at step …` when one pairing service call blocks 200 ms or more, so the next session can confirm the gain.
+- **Tests.** New `pairing_slot_cache_tests` (4 groups). The coordinator scenario groups keep an explicit 120 s profile, since every rule is relative to the window, and a new group covers the 300 s defaults: joins at 0, 120 and 240 s, slow confirmations up to about 4 minutes (both boards or neither), and a silent peer. `pairing_coordinator_tests` grows to 16 groups. The invitation tests use the shared maximum, and the request-owner tests cover the 300 s board limit. The session, device-session and fingerprint-review tests use the shared invitation window and the 300 s review maximum, and the OT-0005i composition pins for `independent_invitation.hpp` and `enrollment_fingerprint_review.hpp` are updated (68 scenarios pass). Link-test build 811,632 bytes, no warnings. The app's countdown text and test now say 5:00, and the expired message no longer names a length.
+
 ## 2026-11-15
 
 ### OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)
