@@ -2,6 +2,15 @@
 
 ## 2026-11-15
 
+### OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)
+
+The third owner-present board session (2026-11-15, main `ab3642b`, pairing records cleared) found two faults. Both are fixed here.
+
+- **I-058, a regression from PR #268.** `PairingNvsStorage` tracked its keys in a table sized for generations 0-2 and indexed it with only the last generation digit. Raising the capacity to 32 meant the third attempt read past the table; the storage then faulted and the start was refused with reason 9 (board A after 2 attempts, board B after 2). The key mapping now lives in `pairing_storage_key.hpp`: all 8 generation digits, a table sized from `kCapacity`, and any malformed or out-of-range key maps to a guard slot and faults. New `pairing_storage_key_tests` (3 groups) covers every key for generations 0-32 and shows the old index overflowing at generation 3 and aliasing generation 16 to 0.
+- **I-057.** Each board sent its first frame (the candidate hello) at most twice, about 2 s apart, and could not answer the peer's repeats after that. The board started second (its person still typing the code) never received the first board's hello. The hello now repeats every 5 s for the whole 120 s window, up to 24 sends (owner decision D-106); every other frame keeps the D-087 limit of 2. New coordinator group: a joiner 30 s and 100 s late still pairs, and one after the window cannot; it fails 7 checks on the previous coordinator. `pairing_coordinator_tests` grows to 13 groups.
+
+Bench admission passes; link-test build 809,456 bytes, no warnings.
+
 ### OT-0005i Allow pairing retries and log why a start is refused (I-055)
 
 The second owner-present board session (2026-11-15, main `e6670f5`) stopped at the review step: both boards logged `pairing: start refused`. Every pairing attempt, even a failed or interrupted one, permanently consumes one session generation, and the bench pairing storage allowed only 2. Both boards had used theirs in earlier attempts that day.

@@ -19,6 +19,8 @@
 #include "esp_partition.h"
 #include "opentrail/session_generation_storage.hpp"
 
+#include "pairing_storage_key.hpp"
+
 namespace opentrail::target::heltec_v4_bench {
 
 class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend {
@@ -90,7 +92,9 @@ private:
 
     static const esp_partition_t* partition();
     static bool key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]);
-    static std::size_t index(const char* key);
+    // Table position of a validated key; any other key faults and maps to the
+    // guard slot at the end, never past the table (I-058).
+    std::size_t index(const char* key);
     static void wipe(Bytes& bytes);
     bool inventory();
     bool load(const char* key, Bytes& out);
@@ -108,7 +112,8 @@ private:
     std::array<char, 16> pending_key_{};
     Bytes pending_bytes_{};
     std::array<View, 4> views_;
-    std::array<bool, 3 * 11 * 5 * 2> known_{};
+    // One entry per possible key for generations 0..kCapacity, plus a guard slot.
+    std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
 };
 
 // Factory reset calls this before erasing `ot_state`. Safe when no pairing

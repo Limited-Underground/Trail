@@ -126,10 +126,16 @@ bool PairingNvsStorage::key_for(std::uint64_t g, unsigned n, Domain d, std::size
                          static_cast<unsigned>(d), static_cast<unsigned>(s)) == 15;
 }
 
+static_assert(persistence::kStorageDomainCount == pairing_key::kDomains);
+static_assert(persistence::kPersistentSlotCount == pairing_key::kSlots);
+
 std::size_t PairingNvsStorage::index(const char* key) {
-    const auto n = key[10] >= 'a' ? key[10] - 'a' + 10 : key[10] - '0';
-    return ((static_cast<unsigned>(key[8] - '0') * 11 + static_cast<unsigned>(n)) * 5 +
-            static_cast<unsigned>(key[12] - '0')) * 2 + static_cast<unsigned>(key[14] - '0');
+    const auto i = pairing_key::slot(key, kCapacity);
+    if (i >= pairing_key::table_size(kCapacity)) {
+        (void)fault();
+        return known_.size() - 1;  // guard slot
+    }
+    return i;
 }
 
 bool PairingNvsStorage::inventory() {

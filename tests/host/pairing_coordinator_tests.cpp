@@ -76,6 +76,8 @@ struct Run {
     // Like the product runtime: once a board leaves `running`, it keeps
     // servicing (answering repeats) only for linger_ms, then stops entirely.
     std::uint64_t linger_ms{~std::uint64_t{0}};
+    // B's phone sends its request this late (I-057); before that B ignores the radio.
+    std::uint64_t b_start_ms{0};
     int sent_a{0}, sent_b{0};      // frames the radio accepted
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
@@ -85,10 +87,12 @@ struct Run {
     void go(std::uint64_t limit_ms = 130000) {
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
         EXPECT(ca.begin(0));
-        EXPECT(cb.begin(0));
+        bool b_begun = false;
+        if (b_start_ms == 0) { EXPECT(cb.begin(0)); b_begun = true; }
         std::uint64_t now = 0, a_end = 0, b_end = 0;
         bool a_live = true, b_live = true;
         for (int tick = 0; now <= limit_ms; ++tick, now += 100) {
+            if (!b_begun && now >= b_start_ms) { EXPECT(cb.begin(now)); b_begun = true; }
             if (inject) inject(tick, ca, cb);
             FrameBuffer buf{};
             std::size_t n = 0;
@@ -203,7 +207,28 @@ void test_silent_peer_stops_within_limits() {
     r.go(130000);
     EXPECT(r.ob == Outcome::failed && r.rb == FailReason::expired);
     EXPECT(r.oa == Outcome::failed);
-    EXPECT(r.sent_b <= 2);  // B's candidate: at most max_sends
+    // B's candidate repeats for the window (D-106), never beyond hello_max_sends.
+    EXPECT(r.sent_b <= r.limits.hello_max_sends);
+    EXPECT(r.sent_b > 2);
+}
+
+// I-057: the joining phone's person types the code long after the starter sent
+// its hello. With the hello repeating for the window (D-106), both still pair.
+void test_late_joiner_still_pairs() {
+    for (std::uint64_t late : {std::uint64_t{30000}, std::uint64_t{100000}}) {
+        Run r;
+        r.b_start_ms = late;
+        r.go(140000);
+        EXPECT(r.oa == Outcome::paired);
+        EXPECT(r.ob == Outcome::paired);
+        EXPECT(r.a.committed && r.b.committed);
+    }
+    // Joining after the starter's window has ended cannot pair.
+    Run r;
+    r.b_start_ms = 125000;
+    r.go(260000);
+    EXPECT(r.oa == Outcome::failed && r.ra == FailReason::expired);
+    EXPECT(r.ob != Outcome::paired);
 }
 
 void test_attempt_window_expires() {
@@ -287,6 +312,7 @@ int main() {
     test_other_attempts_and_traffic_are_ignored();
     test_refused_payload_ends_attempt();
     test_silent_peer_stops_within_limits();
+    test_late_joiner_still_pairs();
     test_attempt_window_expires();
     test_begin_refusals();
     test_final_control_loss_needs_linger();
@@ -297,6 +323,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 13 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

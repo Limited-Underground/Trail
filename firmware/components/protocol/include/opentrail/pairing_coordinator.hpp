@@ -109,6 +109,11 @@ struct Limits {
     std::uint64_t resend_after_ms{3000};
     std::uint8_t max_sends{2};          // per frame (D-078 test limits)
     std::uint64_t attempt_limit_ms{120000};
+    // D-106 (I-057): the first frame, the candidate "hello", repeats on a slow
+    // interval for the whole window, so a board started while the other phone's
+    // person is still typing the code still receives it. 24 x 5 s covers 120 s.
+    std::uint64_t hello_resend_after_ms{5000};
+    std::uint8_t hello_max_sends{24};
 };
 
 enum class Outcome : std::uint8_t { running, paired, failed };
@@ -133,7 +138,7 @@ public:
 
     // The owner has already started the session for this request.
     bool begin(std::uint64_t now_ms) {
-        if (begun_ || !code_valid(code_) || limits_.max_sends == 0) {
+        if (begun_ || !code_valid(code_) || limits_.max_sends == 0 || limits_.hello_max_sends == 0) {
             return fail(FailReason::bad_state);
         }
         begun_ = true;
@@ -206,6 +211,14 @@ private:
         std::uint64_t last_ms{};
         bool due{};               // resend requested by a peer repeat
     };
+
+    // D-106: the candidate hello uses its own limits; every other frame keeps D-087.
+    std::uint8_t cap(const Outgoing& o) const {
+        return o.type == FrameType::candidate ? limits_.hello_max_sends : limits_.max_sends;
+    }
+    std::uint64_t interval(const Outgoing& o) const {
+        return o.type == FrameType::candidate ? limits_.hello_resend_after_ms : limits_.resend_after_ms;
+    }
 
     static bool same(const Stored& s, const Frame& f) {
         if (s.type != f.type || s.size != f.size) return false;
@@ -323,7 +336,7 @@ private:
         for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
             if (!o.due) continue;
-            if (o.sends < limits_.max_sends) return offer(k, out, out_size);
+            if (o.sends < cap(o)) return offer(k, out, out_size);
             o.due = false;
         }
         if (outcome_ != Outcome::running) return false;
@@ -334,8 +347,8 @@ private:
         //    reviewing. The request window (attempt_limit_ms) ends the attempt.
         for (std::size_t k = batch_start_; k < sent_count_; ++k) {
             auto& o = sent_[k];
-            if (o.sends >= limits_.max_sends) continue;
-            if (now_ms - o.last_ms >= limits_.resend_after_ms) {
+            if (o.sends >= cap(o)) continue;
+            if (now_ms - o.last_ms >= interval(o)) {
                 return offer(k, out, out_size);
             }
         }

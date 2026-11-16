@@ -52,7 +52,7 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
 3. Pairing coordinator, `pairing_coordinator.hpp` (done; host tests). It runs each board's fixed script, buffers early frames, ignores other attempts and traffic, and recovers any single lost frame:
    - a waiting board repeats its latest batch;
    - a repeated frame from the peer identifies exactly which of our frames it still needs.
-   It stops resending after `max_sends` (2, D-078) but keeps listening until the 120 s window ends, because the other person may still be reviewing.
+   It stops resending after `max_sends` (2, D-078) but keeps listening until the 120 s window ends, because the other person may still be reviewing. Exception (D-106, I-057): the first frame, the candidate "hello", repeats every 5 s for the whole window (up to 24 sends), because the second phone's person is still typing the code when the first board starts; with 2 sends the boards could only pair if both started within about 2 s.
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
 5. Target composition in `heltec_v4_bench`, in steps:
    - 5a (done). `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.
