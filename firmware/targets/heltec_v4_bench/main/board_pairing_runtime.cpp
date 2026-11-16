@@ -2,6 +2,7 @@
 
 #include "companion_nimble_gatt.hpp"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "heltec_enrollment_identity_owner.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -60,6 +61,7 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
         ESP_LOGW(kTag, "start refused: pairing storage not ready");
         return false;
     }
+    storage_->reset_read_stats();  // I-066: log this attempt's storage cost at its end
     // The session becomes the only owner of the board identity (ot_identity_v1).
     targets::heltec_v4_bench::retire_retained_enrollment_identity();
     identity_.emplace();
@@ -70,6 +72,11 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
                      storage_->external(PairingNvsStorage::Store::binding), *storage_,
                      PairingNvsStorage::kCapacity, kClockDomain,
                      &storage_->external(PairingNvsStorage::Store::boot));
+    // D-110: board pairing signs and expects the longer invitation window.
+    if (!session_->set_invitation_window(security_evaluation::kBoardPairingInvitationWindowMs)) {
+        ESP_LOGW(kTag, "start refused: invitation window");
+        return false;
+    }
     const bool initiator = phone.role == companion::CompanionEnrollmentRole::initiator;
     // First enrollment only. If retained records from an earlier attempt exist,
     // the session refuses; this owner never erases or retries them (review R2A-5).
@@ -93,6 +100,14 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
 }
 
 void BoardPairingRuntime::end(Phase result) {
+    if (storage_) {
+        // I-066: how many slot reads the RAM cache served, and what reached NVS.
+        const auto s = storage_->read_stats();
+        ESP_LOGI(kTag, "storage this attempt: reads cache=%lu nvs=%lu nvs_ms=%lu budget_checks=%lu budget_ms=%lu",
+                 static_cast<unsigned long>(s.cache_hits), static_cast<unsigned long>(s.nvs_reads),
+                 static_cast<unsigned long>(s.nvs_read_ms), static_cast<unsigned long>(s.budget_checks),
+                 static_cast<unsigned long>(s.budget_ms));
+    }
     lingering_ = false;
     coordinator_.reset();
     adapter_.reset();
@@ -155,7 +170,13 @@ void BoardPairingRuntime::service(std::uint64_t now_ms, bool radio_ready,
             busy_ = false;
             return;
         }
+        const auto step_before = coordinator_->step();
+        const auto started_us = esp_timer_get_time();
         (void)coordinator_->service(now_ms, out, out_size);
+        const auto took_ms = static_cast<unsigned long>((esp_timer_get_time() - started_us) / 1000);
+        if (took_ms >= 200) {  // I-066: long blocking work on the main task
+            ESP_LOGW(kTag, "service took %lu ms at step %u", took_ms, static_cast<unsigned>(step_before));
+        }
         const auto outcome = coordinator_->outcome();
         if (outcome == protocol::pairing::Outcome::paired) {
             ESP_LOGI(kTag, "paired here; answering the peer for %llu ms",

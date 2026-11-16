@@ -129,7 +129,7 @@ struct Pair {
     Identity id_a{}, id_b{};
     IndependentInvitationFields fields{};
     IndependentInvitation invitation{};
-    Pair() {
+    explicit Pair(std::uint64_t window = 60000) {
         id_a = initialize(a, 1, signer.fields.signer);
         id_b = initialize(b, 2, signer.fields.signer);
         CHECK(id_a.key != id_b.key && id_a.boot != id_b.boot && id_a.now != id_b.now);
@@ -143,8 +143,8 @@ struct Pair {
         fields.nonce.fill(0x37);
         fields.issued_a_ms = id_a.now;
         fields.issued_b_ms = id_b.now;
-        fields.window_a_ms = 60000;
-        fields.window_b_ms = 60000;
+        fields.window_a_ms = static_cast<std::uint32_t>(window);
+        fields.window_b_ms = static_cast<std::uint32_t>(window);
         CHECK(encode_independent_invitation(fields, invitation));
         CHECK(crypto_sign_detached(invitation.signature.data(), nullptr, invitation.payload.data(),
                                    invitation.payload.size(), signer.secret.data()) == 0);
@@ -404,6 +404,15 @@ unsigned run_tests() {
         retired(pair.a.rx);
         CHECK(pair.b.session.close());
         retired(pair.b.rx);
+        ++groups;
+    }
+    // Review of D-110: this command keeps the 60 s limit; a signed 180 s
+    // invitation (the board-pairing window) is refused before it is claimed.
+    {
+        Pair p(opentrail::security_evaluation::kBoardPairingInvitationWindowMs);
+        const auto before = p.a.role.mutations();
+        p.a.denied("OTPAIR1 INV " + hex(p.id_b.key.data(), 32) + " " + p.encoded());
+        CHECK(p.a.role.mutations() == before && p.a.traffic_mutations() == 0);
         ++groups;
     }
     return groups;

@@ -69,6 +69,21 @@ void test_stale_disconnect_cannot_cancel_new_request() {
     EXPECT(!owner.pending());
 }
 
+// D-110: the board-pairing owner gives the phone request 5 minutes; the default stays 2.
+void test_board_pairing_limit() {
+    SelectedEnrollmentRequestOwner board{SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};
+    SelectedEnrollmentRequestOwner other;
+    EXPECT(board.limit_ms() == 300000 && other.limit_ms() == 120000);
+    auto current = authority();
+    EXPECT(board.admit(current, 8, 9, 10) == SelectedEnrollmentRequestResult::admitted);
+    EXPECT(board.request().deadline_ms == current.now_ms + 300000);
+    current.now_ms += 299999;
+    EXPECT(board.observe(current, 8));
+    current.now_ms += 1;
+    EXPECT(!board.observe(current, 8));
+    EXPECT(!board.pending());
+}
+
 void test_current_authority_change_and_expiry() {
     SelectedEnrollmentRequestOwner owner;
     auto current = authority();
@@ -171,6 +186,7 @@ int main() {
     test_exact_admission_and_reentry();
     test_stale_disconnect_cannot_cancel_new_request();
     test_current_authority_change_and_expiry();
+    test_board_pairing_limit();
     test_invalid_and_terminal_containment();
     test_product_pairing_role_and_code();
     if (failures != 0) return EXIT_FAILURE;

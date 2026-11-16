@@ -163,7 +163,7 @@ struct Pair {
     Identity id_a{}, id_b{};
     IndependentInvitationFields fields{};
     IndependentInvitation invitation{};
-    explicit Pair(EnrolledSessionObserver* observer=nullptr):a(1,observer),b(2) {
+    explicit Pair(EnrolledSessionObserver* observer=nullptr, std::uint64_t window=60000):a(1,observer),b(2) {
         id_a = initialize(a, 1, signer.fields.signer);
         id_b = initialize(b, 2, signer.fields.signer);
         CHECK(id_a.key != id_b.key && id_a.boot != id_b.boot && id_a.now != id_b.now);
@@ -177,8 +177,8 @@ struct Pair {
         fields.nonce.fill(0x37);
         fields.issued_a_ms = id_a.now;
         fields.issued_b_ms = id_b.now;
-        fields.window_a_ms = 60000;
-        fields.window_b_ms = 60000;
+        fields.window_a_ms = static_cast<std::uint32_t>(window);
+        fields.window_b_ms = static_cast<std::uint32_t>(window);
         CHECK(encode_independent_invitation(fields, invitation));
         CHECK(crypto_sign_detached(invitation.signature.data(), nullptr, invitation.payload.data(),
                                    invitation.payload.size(), signer.secret.data()) == 0);
@@ -449,6 +449,14 @@ int main(int argc,char** argv) {
         if(fault==3)p.a.driver.on_rearm=[&]{p.a.source.value.now_ms=60100;};
         p.a.denied("OTENROLL1 RFFINISH");
         CHECK(p.a.driver.rearms==1 && p.a.driver.stopped && p.a.session.secrets_cleared());++groups;
+    }
+    // Review of D-110: OTENROLL1 BEGIN keeps the 60 s limit for signed invitations.
+    {
+        Pair p(nullptr, kBoardPairingInvitationWindowMs);
+        const auto before = p.a.role.mutations();
+        p.a.denied("OTENROLL1 BEGIN " + p.encoded());
+        CHECK(p.a.role.mutations() == before && p.a.traffic_mutations() == 0);
+        ++groups;
     }
     std::cout<<"PASS "<<groups<<" enrolled bench session groups\n";
 }

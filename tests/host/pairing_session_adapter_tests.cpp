@@ -94,7 +94,7 @@ Result run(int drop_a = -1, int drop_b = -1, std::uint32_t code_b = 123456) {
     CHECK(cb.begin(0));
     Result r;
     int sent_a = 0, sent_b = 0;
-    for (std::uint64_t t = 0; t <= 125000; t += 50) {
+    for (std::uint64_t t = 0; t <= limits.attempt_limit_ms + 5000; t += 50) {  // D-110: 300 s
         a.authority.value.now_ms = 100 + t;
         b.authority.value.now_ms = 50100 + t;
         a.person(t);
