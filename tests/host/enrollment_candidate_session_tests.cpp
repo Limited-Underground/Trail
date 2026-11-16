@@ -801,6 +801,21 @@ int main() {
      CHECK(!p.a.owner->review_poll(token,state));CHECK(!state.confirmed);
      CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::expired);
      CHECK(p.a.owner->quiescent());EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;}
+    // I-055: every attempt, even one abandoned right after start, consumes one session
+    // generation. Once the capacity is used, start refuses and names the reason, so a
+    // board log shows it instead of a bare "start refused".
+    {FreshNode node;using R=EnrollmentCandidateSession::StartRefusal;
+     CHECK(node.owner->start_refusal()==R::none);
+     CHECK(node.owner->start(node.role,17));CHECK(node.owner->start_refusal()==R::none);
+     CHECK(!node.owner->start(node.role,17));CHECK(node.owner->start_refusal()==R::repeated);
+     for(unsigned attempt=2;attempt<=4;++attempt) {    // fixture capacity is 4
+         node.restart(171+attempt);CHECK(node.owner->start(node.role,17));
+         CHECK(node.owner->start_refusal()==R::none);
+         CHECK(node.journal_state()==EnrollmentJournalState::empty);
+     }
+     node.restart(181);CHECK(!node.owner->start(node.role,17));
+     CHECK(node.owner->start_refusal()==R::generations);
+     CHECK(node.journal_state()==EnrollmentJournalState::empty);++groups;}
     std::cout<<"PASS "<<groups<<" enrollment candidate session groups\n";
 }
 #endif

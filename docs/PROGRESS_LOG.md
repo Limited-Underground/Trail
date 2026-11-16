@@ -2,6 +2,16 @@
 
 ## 2026-11-15
 
+### OT-0005i Allow pairing retries and log why a start is refused (I-055)
+
+The second owner-present board session (2026-11-15, main `e6670f5`) stopped at the review step: both boards logged `pairing: start refused`. Every pairing attempt, even a failed or interrupted one, permanently consumes one session generation, and the bench pairing storage allowed only 2. Both boards had used theirs in earlier attempts that day.
+
+- `PairingNvsStorage::kCapacity` is now 32. The worst-case pairing budget is 1,044 NVS entries, about 3% of `ot_state`; the formula is in the code and checked at compile time. A factory reset restores the capacity.
+- `EnrollmentCandidateSession::start_refusal()` names the exact check that refused a start: repeated, no request, invalid setup, retained preflight, journal not empty, retained records, stale request, identity, generations, or other. The board logs each refusal with its reason, so a refusal is never a bare "start refused" again.
+- A new session test group starts interrupted attempts until the capacity is used, then checks the `generations` reason; 168 session groups pass.
+
+Freeing the records of failed attempts, so retries can never run out, stays open under I-055; it needs its own design and review (R2A-5).
+
 ### OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)
 
 First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boards A and B): both boards started pairing from the phones, exchanged pairing frames over LoRa in both directions and showed the review pages. Board A then stopped with `A stack overflow in task main has been detected` and rebooted; board B's main task fell to 1,520 free bytes. Board pairing runs the Noise session on the 8,192-byte main task; the confirmation evaluation, which runs the same session crypto, already used 24,576.

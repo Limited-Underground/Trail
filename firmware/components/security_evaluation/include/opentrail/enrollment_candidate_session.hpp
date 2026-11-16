@@ -146,6 +146,13 @@ public:
     EnrollmentCandidateSession& operator=(const EnrollmentCandidateSession&)=delete;
     ~EnrollmentCandidateSession() { (void)close();if(reset_gate_)reset_gate_->session_destroyed(*this); }
 
+    // Why the last start()/start_rekey() returned false (I-055). Diagnostic only:
+    // it never changes what start accepts, and carries no secret material.
+    enum class StartRefusal : std::uint8_t {
+        none, repeated, no_request, invalid_setup, retained_preflight,
+        journal_not_empty, retained_records, stale_request, identity, generations, other
+    };
+    StartRefusal start_refusal() const {return start_refusal_;}
     // Trusted LOCAL owner action only. Received records never call/select this.
     bool start(InvitationRole role,std::uint64_t group) {
         return start_attempt(role,group,false);
@@ -221,25 +228,34 @@ public:
     }
 private:
     bool start_attempt(InvitationRole role,std::uint64_t group,bool retained) {
-        if (busy_ || attempted_) return cancel();
+        start_refusal_=StartRefusal::none;
+        if (busy_ || attempted_) {start_refusal_=StartRefusal::repeated;return cancel();}
         attempted_=true;
-        if (!request_owner_.pending()) return cancel();
+        if (!request_owner_.pending()) {start_refusal_=StartRefusal::no_request;return cancel();}
         request_=request_owner_.request();captured_=true;role_=role;group_=group;rekey_=retained;
+        start_refusal_=StartRefusal::other;
         return operation([&] {
             if (!clock_domain_ || !group_ ||
                 (role_!=InvitationRole::initiator && role_!=InvitationRole::responder) ||
                 &identity_storage_==&journal_storage_ || &identity_storage_==&binding_storage_ ||
                 &journal_storage_==&binding_storage_ ||
                 (durable_boot_ && (durable_boot_==&identity_storage_ || durable_boot_==&journal_storage_ ||
-                    durable_boot_==&binding_storage_))) return false;
+                    durable_boot_==&binding_storage_))) {start_refusal_=StartRefusal::invalid_setup;return false;}
             if(rekey_) {
-                if(!preflight_retained())return false;
+                if(!preflight_retained()){start_refusal_=StartRefusal::retained_preflight;return false;}
             } else {
                 EnrollmentCommitCoordinator prior(journal_storage_);
-                if(!prior.initialize() || prior.state()!=EnrollmentJournalState::empty ||
-                    !blank_retained() || !fresh() || !identity_.initialize() || !identity_.public_key(local_key_))return false;
+                if(!prior.initialize() || prior.state()!=EnrollmentJournalState::empty)
+                    {start_refusal_=StartRefusal::journal_not_empty;return false;}
+                if(!blank_retained()){start_refusal_=StartRefusal::retained_records;return false;}
+                if(!fresh()){start_refusal_=StartRefusal::stale_request;return false;}
+                if(!identity_.initialize() || !identity_.public_key(local_key_))
+                    {start_refusal_=StartRefusal::identity;return false;}
             }
-            if(!fresh() || !allocator_.initialize() || !allocator_.allocate(generation_))return false;
+            if(!fresh()){start_refusal_=StartRefusal::stale_request;return false;}
+            if(!allocator_.initialize() || !allocator_.allocate(generation_))
+                {start_refusal_=StartRefusal::generations;return false;}
+            start_refusal_=StartRefusal::none;
             generation_backend_.emplace(allocator_,backend_,generation_);
             bank_.emplace(*generation_backend_);started_=true;
             return !rekey_ || create_endpoint();
@@ -754,6 +770,7 @@ private:
     std::uint32_t epoch_{1};
     bool rekey_{},attempted_{},captured_{},started_{},context_bound_{},possession_accepted_{},binding_signed_{},active_{};
     bool busy_{},observing_{},failed_{},cleaned_{},cleanup_ok_{},cleared_{true};
+    StartRefusal start_refusal_{StartRefusal::none};
     companion::DeviceFactoryResetMarkerPort* containment_marker_{};std::uint64_t containment_receipt_{};
     bool containing_{},containment_reentered_{},containment_observing_{};
     EnrollmentSessionResetGate* const reset_gate_;const std::uint64_t reset_incarnation_;

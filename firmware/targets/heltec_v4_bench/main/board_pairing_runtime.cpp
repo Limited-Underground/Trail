@@ -38,18 +38,28 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
     phone_ = phone;
     have_phone_ = true;
     const auto authority = current();
-    if (authority.phase != companion::DeviceNamePhase::connected) return false;
+    if (authority.phase != companion::DeviceNamePhase::connected) {
+        ESP_LOGW(kTag, "start refused: phone not connected");
+        return false;
+    }
     // Mirror the exact phone request in this task's owner. Its window is never
     // longer in effect: every tick re-reads the phone's request.
     if (request_.admit(authority, phone.connection_handle, phone.delivery_token, phone.exchange_id,
                        phone.role, phone.pairing_code) != companion::SelectedEnrollmentRequestResult::admitted) {
+        ESP_LOGW(kTag, "start refused: phone request not admitted");
         return false;
     }
     if (!storage_) {
         storage_.emplace();
-        if (!storage_->ready() || !register_pairing_storage(&*storage_)) return false;
+        if (!storage_->ready() || !register_pairing_storage(&*storage_)) {
+            ESP_LOGW(kTag, "start refused: pairing storage not ready");
+            return false;
+        }
     }
-    if (!storage_->ready()) return false;
+    if (!storage_->ready()) {
+        ESP_LOGW(kTag, "start refused: pairing storage not ready");
+        return false;
+    }
     // The session becomes the only owner of the board identity (ot_identity_v1).
     targets::heltec_v4_bench::retire_retained_enrollment_identity();
     identity_.emplace();
@@ -65,6 +75,11 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
     // the session refuses; this owner never erases or retries them (review R2A-5).
     if (!session_->start(initiator ? InvitationRole::initiator : InvitationRole::responder,
                          phone.pairing_code)) {
+        // I-055: name the exact check. 1 repeated, 2 no_request, 3 invalid_setup,
+        // 4 retained_preflight, 5 journal_not_empty, 6 retained_records,
+        // 7 stale_request, 8 identity, 9 generations (attempt capacity used), 10 other.
+        ESP_LOGW(kTag, "start refused: session reason=%u",
+                 static_cast<unsigned>(session_->start_refusal()));
         return false;
     }
     adapter_.emplace(*session_);
