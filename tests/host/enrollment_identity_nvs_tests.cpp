@@ -71,8 +71,8 @@ int main(){
  reset();{EnrollmentIdentityNvsStorage s;assert(read(s,out)&&out[0]==0xff&&disk.empty());assert(stage(s)&&sets==0);assert(sync(s)&&sets==1);assert(read(s,out)&&out[0]==0xf0);EnrollmentIdentityNvsStorage resumed;assert(read(resumed,out)&&out[0]==0xf0);assert(!stage(s,0xff));assert(read(s,out));}++groups;
  for(int error:{ESP_FAIL,ESP_ERR_NVS_NOT_INITIALIZED}){reset();EnrollmentIdentityNvsStorage s;error_namespace=kEnrollmentIdentityStorageNamespace;open_error=error;out.fill(0x5a);assert(!read(s,out)&&out[0]==0x5a&&sets==0&&erases==0);open_error=0;assert(!stage(s));}++groups;
  for(int kind=0;kind<4;++kind){reset();Record bad{Bytes(kind==0?63:64,0xff),kind==1?99:NVS_TYPE_BLOB};disk[kEnrollmentIdentityStorageNamespace][kind==2?"unknown":kEnrollmentIdentityStorageKey]=bad;if(kind==3)iteration_error=ESP_FAIL;EnrollmentIdentityNvsStorage s;assert(!read(s,out)&&sets==0&&erases==0);}++groups;
- reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s));get_error=ESP_FAIL;error_namespace=kEnrollmentIdentityStorageNamespace;out.fill(9);assert(!read(s,out)&&out[0]==9);}++groups;
- reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s));short_read=true;assert(!read(s,out));}++groups;
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s));get_error=ESP_FAIL;error_namespace=kEnrollmentIdentityStorageNamespace;EnrollmentIdentityNvsStorage next;out.fill(9);assert(!read(next,out)&&out[0]==9);}++groups;
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s));short_read=true;EnrollmentIdentityNvsStorage next;assert(!read(next,out));}++groups;
  for(bool applied:{false,true}){reset();EnrollmentIdentityNvsStorage s;assert(stage(s));set_error=ESP_FAIL;set_failure_applies=applied;assert(!sync(s));set_error=0;assert(!sync(s)&&!stage(s));EnrollmentIdentityNvsStorage next;assert(read(next,out)&&out[0]==(applied?0xf0:0xff));}++groups;
  for(bool applied:{false,true}){reset();EnrollmentIdentityNvsStorage s;assert(stage(s));commit_error=ESP_FAIL;commit_applies=applied;assert(!sync(s));commit_error=0;assert(!sync(s)&&!stage(s));EnrollmentIdentityNvsStorage next;assert(read(next,out)&&out[0]==(applied?0xf0:0xff));}++groups;
  reset();{EnrollmentIdentityNvsStorage s;assert(stage(s));corrupt_commit=true;assert(!sync(s)&&!read(s,out));}++groups;
@@ -81,6 +81,24 @@ int main(){
  reset();{EnrollmentIdentityNvsStorage s;std::uint8_t b=1;assert(s.erase_slot(secret,0)==StorageError::invalid_argument);assert(s.write_slot(StorageDomain::configuration,0,0,{&b,1})==StorageError::invalid_argument);assert(s.write_slot(secret,0,64,{&b,1})==StorageError::invalid_argument);assert(s.read_slot(secret,2,{out.data(),64}).error==StorageError::invalid_argument);assert(sets==0&&erases==0);}++groups;
  // Actual target reset port: all exact domains and unexpected identity keys erased,
  // reset intent and unrelated calibration namespace survive; no old adapter revival.
+ // I-068: the owner keeps the bytes it last verified in NVS, so repeated reads do not
+ // reach NVS; a fresh owner still reads NVS and sees its errors.
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s));get_error=ESP_FAIL;error_namespace=kEnrollmentIdentityStorageNamespace;
+  for(int i=0;i<100;++i){out.fill(0);assert(read(s,out)&&out[0]==0xf0);}
+  EnrollmentIdentityNvsStorage fresh;assert(!read(fresh,out));}++groups;
+ // A write drops the copy: while pending, reads come from NVS (old bytes); after a
+ // verified sync the copy holds the new bytes.
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out)&&out[0]==0xf0);
+  assert(stage(s,0xe0));assert(read(s,out)&&out[0]==0xf0);assert(sync(s));
+  get_error=ESP_FAIL;error_namespace=kEnrollmentIdentityStorageNamespace;assert(read(s,out)&&out[0]==0xe0);}++groups;
+ // Writing the factory-reset marker ends the copy's reset generation first: the
+ // next read goes to NVS, finds the marker and refuses.
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out));
+  HeltecV4FactoryResetMarkerStorage marker;(void)marker.commit_intent_and_readback(0x1234);
+  out.fill(7);assert(!read(s,out)&&out[0]==7);}++groups;
+ // A factory reset ends the copy too, even before any marker exists.
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out));
+  invalidate_enrollment_identity_storage_for_reset();out.fill(7);assert(!read(s,out)&&out[0]==7);}++groups;
  reset();{EnrollmentIdentityNvsStorage old;assert(stage(old)&&sync(old));assert(stage(old,0xe0));disk[kEnrollmentIdentityStorageNamespace]["extra"]={Bytes(3,7)};disk["calibration"]["keep"]={Bytes(5,8)};disk[kHeltecV4FactoryResetMarkerNamespace]["record_v1"]={Bytes(16,0xa5)};HeltecV4FactoryResetUserDomainStorage reset_port;assert(!reset_port.inspect_absence().verified_absent);assert(reset_port.erase_all_and_verify_absent().verified_absent);assert(disk[kEnrollmentIdentityStorageNamespace].empty());assert(!disk[kHeltecV4FactoryResetMarkerNamespace].empty()&&!disk["calibration"].empty());disk[kHeltecV4FactoryResetMarkerNamespace].clear();const auto count=sets;assert(!sync(old)&&!read(old,out)&&sets==count);EnrollmentIdentityNvsStorage fresh;assert(read(fresh,out)&&out[0]==0xff);assert(stage(fresh)&&sync(fresh));}++groups;
  for(bool applied:{false,true}){reset();EnrollmentIdentityNvsStorage old;assert(stage(old)&&sync(old));assert(stage(old,0xe0));commit_error=ESP_FAIL;commit_applies=applied;error_namespace=kEnrollmentIdentityStorageNamespace;HeltecV4FactoryResetUserDomainStorage reset_port;assert(!reset_port.erase_all_and_verify_absent().verified_absent);commit_error=0;commit_applies=true;assert(!sync(old));assert(reset_port.erase_all_and_verify_absent().verified_absent);assert(disk[kEnrollmentIdentityStorageNamespace].empty());}++groups;
  reset();{EnrollmentIdentityNvsStorage old;assert(stage(old)&&sync(old));error_namespace=kEnrollmentIdentityStorageNamespace;erase_error=ESP_FAIL;HeltecV4FactoryResetUserDomainStorage reset_port;assert(!reset_port.erase_all_and_verify_absent().verified_absent);erase_error=0;assert(!read(old,out));assert(reset_port.erase_all_and_verify_absent().verified_absent);}++groups;

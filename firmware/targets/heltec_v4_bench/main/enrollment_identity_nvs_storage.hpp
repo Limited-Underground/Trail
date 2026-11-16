@@ -20,6 +20,11 @@ public:
     persistence::StorageError write_slot(persistence::StorageDomain, std::size_t,
         std::size_t, persistence::StorageByteView) override;
     persistence::StorageError sync_slot(persistence::StorageDomain, std::size_t) override;
+    // I-068 diagnostics: identity reads served from the RAM copy, and reads that
+    // went to NVS (each opens NVS and scans for the reset marker twice).
+    struct ReadStats { std::uint32_t cache_hits, nvs_reads; };
+    ReadStats read_stats() const { return {cache_hits_, nvs_reads_}; }
+    void reset_read_stats() { cache_hits_ = 0; nvs_reads_ = 0; }
 private:
     using Bytes = std::array<std::uint8_t, persistence::kPersistentSlotBytes>;
     bool guard();
@@ -27,6 +32,16 @@ private:
     std::uint64_t generation_;
     bool failed_{false}, pending_{false};
     Bytes before_{}, staged_{};
+    // I-068: one pairing reads this record about 11,000 times; on the board each
+    // NVS read took about 4 ms, so the final save blocked for 26 s. The copy is
+    // the bytes last verified in NVS under guard(). It is used only while no write
+    // is pending and the reset generation is unchanged (factory reset and the
+    // reset marker write both bump it); a write drops it, a verified sync
+    // refreshes it, and any fault wipes it.
+    Bytes cached_{};
+    bool cached_valid_{false};
+    std::uint32_t cache_hits_{0}, nvs_reads_{0};
+    void drop_cache();
 };
 // Called by the actual all-domain reset port before erasing any user domain.
 // Invalidates every existing adapter even if erase/commit subsequently fails.

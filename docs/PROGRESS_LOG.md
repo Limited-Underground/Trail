@@ -2,6 +2,27 @@
 
 ## 2026-11-16
 
+### OT-0005i Fast identity reads during board pairing (I-068, I-069)
+
+The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).
+
+- **Cause.** A host probe with real sessions timed every pairing service call and counted the expensive operations:
+  - the final save takes about 6 ms on the PC, with only 9 signature checks on the initiator and 18 on the responder (about 0.2-0.5 s on the ESP32-S3, at 22-27 ms per check from the recorded benchmarks);
+  - the board identity record, however, is read about 11,300 times per pairing per board, about 6,500 of them during the final exchange and save.
+
+  On the board, every `EnrollmentIdentityNvsStorage::read_slot` opens NVS, walks the namespace and runs the reset-marker check twice (`nvs_get_used_entry_count`, a partition scan). At about 4 ms per read, that matches the 26 s, and the hundreds of reads per confirm poll match the 1.1 s.
+- **Fix.** `EnrollmentIdentityNvsStorage` keeps the bytes it last verified in NVS under its guard.
+  - **When the copy is used:** only while no write is pending and the reset generation is unchanged.
+  - **When it changes:** a write drops it, a verified sync refreshes it, and any fault wipes it.
+  - **Reset safety:** the factory-reset marker write (`HeltecV4FactoryResetMarkerStorage::commit_intent_and_readback`) now bumps the reset generation before it touches NVS, so a reset in progress always forces the next read back to NVS and the marker check.
+  - **Logging:** the board logs each attempt's identity reads (cache and NVS).
+- **Tests.** `enrollment_identity_nvs_tests` grows to 18 groups:
+  - repeated reads are served without NVS while a fresh owner still sees NVS errors;
+  - a write drops the copy;
+  - the marker write and a factory reset each end it.
+
+  Two existing groups now check NVS read errors on a fresh owner, which is what every pairing attempt creates. The target reset composition (27 groups), public profile settings (37) and bench admission (20) suites pass.
+
 ### OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)
 
 The fourth owner-present board session (main `b0fd006`) got through the whole radio exchange for the first time, but both attempts ran out of the 2-minute window. The people steps took most of it, and the final save took 15+ s, with board B's watchdog firing twice (I-066). Owner decision D-110: a 5-minute window.

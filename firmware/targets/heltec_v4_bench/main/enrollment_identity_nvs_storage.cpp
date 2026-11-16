@@ -64,9 +64,10 @@ bool load(Bytes& output) {
 }
 EnrollmentIdentityNvsStorage::EnrollmentIdentityNvsStorage()
     : generation_(reset_generation.load(std::memory_order_acquire)) {}
-EnrollmentIdentityNvsStorage::~EnrollmentIdentityNvsStorage() { wipe(before_); wipe(staged_); }
+EnrollmentIdentityNvsStorage::~EnrollmentIdentityNvsStorage() { wipe(before_); wipe(staged_); wipe(cached_); }
+void EnrollmentIdentityNvsStorage::drop_cache() { cached_valid_ = false; wipe(cached_); }
 StorageError EnrollmentIdentityNvsStorage::fault() {
-    failed_ = true; pending_ = false; wipe(before_); wipe(staged_); return StorageError::io_failure;
+    failed_ = true; pending_ = false; wipe(before_); wipe(staged_); drop_cache(); return StorageError::io_failure;
 }
 bool EnrollmentIdentityNvsStorage::guard() {
     if(failed_ || generation_ == std::numeric_limits<std::uint64_t>::max() ||
@@ -79,7 +80,15 @@ StorageReadResult EnrollmentIdentityNvsStorage::read_slot(StorageDomain domain, 
     MutableStorageByteView output) {
     if(!valid_slot(domain,slot) || !output.data || output.size != kPersistentSlotBytes) return {StorageError::invalid_argument,0};
     Scratch bytes;
-    if(!guard() || !load(bytes.bytes) || !guard()) return {fault(),0};
+    if(cached_valid_ && !failed_ && !pending_ && generation_ != std::numeric_limits<std::uint64_t>::max() &&
+       generation_ == reset_generation.load(std::memory_order_acquire)) {
+        ++cache_hits_;  // I-068: verified bytes, same reset generation, no write since
+        bytes.bytes = cached_;
+    } else {
+        ++nvs_reads_;
+        if(!guard() || !load(bytes.bytes) || !guard()) return {fault(),0};
+        if(!pending_) { cached_ = bytes.bytes; cached_valid_ = true; }
+    }
     if(!identity_slot(domain,slot)) bytes.bytes.fill(0xff);
     std::copy(bytes.bytes.begin(),bytes.bytes.end(),output.data);
     return {StorageError::none,kPersistentSlotBytes};
@@ -93,6 +102,7 @@ StorageError EnrollmentIdentityNvsStorage::write_slot(StorageDomain domain, std:
     if(!identity_slot(domain,slot) || !input.data || input.size == 0 || offset > kPersistentSlotBytes ||
        input.size > kPersistentSlotBytes-offset) return StorageError::invalid_argument;
     if(!guard()) return StorageError::io_failure;
+    drop_cache();  // NVS is about to change
     if(pending_ || !load(before_) || !guard()) return fault();
     staged_ = before_;
     for(std::size_t i=0;i<input.size;++i)
@@ -115,7 +125,9 @@ StorageError EnrollmentIdentityNvsStorage::sync_slot(StorageDomain domain, std::
            nvs_commit(handle.value) != ESP_OK) return fault();
     }
     if(!load(observed.bytes) || observed.bytes != staged_ || !guard()) return fault();
-    pending_ = false; wipe(before_); wipe(staged_); return StorageError::none;
+    pending_ = false; wipe(before_); wipe(staged_);
+    cached_ = observed.bytes; cached_valid_ = true;  // just verified in NVS
+    return StorageError::none;
 }
 void invalidate_enrollment_identity_storage_for_reset() {
     const auto current = reset_generation.load(std::memory_order_acquire);

@@ -367,6 +367,9 @@ HeltecV4FactoryResetMarkerStorage::load() {
 DeviceFactoryResetMarkerSnapshot
 HeltecV4FactoryResetMarkerStorage::commit_intent_and_readback(
     std::uint64_t reset_receipt) {
+    // I-068: the identity storage keeps a RAM copy that is valid only within one
+    // reset generation; a reset marker about to exist ends it before NVS changes.
+    invalidate_enrollment_identity_storage_for_reset();
     const auto before = read_marker(handle_);
     if (before.error != DeviceFactoryResetPortError::none) {
         return before;
