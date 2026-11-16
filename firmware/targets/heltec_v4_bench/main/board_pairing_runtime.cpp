@@ -145,6 +145,16 @@ void BoardPairingRuntime::service(std::uint64_t now_ms, bool radio_ready,
             busy_ = false;
             return;
         }
+        // A running attempt never waits out a transmit hold (the saved region no
+        // longer allows transmit): near the end of the window, a held final
+        // exchange can leave one board paired (reviews of I-057; I-059).
+        if (!radio_ready) {
+            ESP_LOGW(kTag, "transmit no longer allowed at step=%u; attempt ended",
+                     static_cast<unsigned>(coordinator_->step()));
+            end(Phase::failed);
+            busy_ = false;
+            return;
+        }
         (void)coordinator_->service(now_ms, out, out_size);
         const auto outcome = coordinator_->outcome();
         if (outcome == protocol::pairing::Outcome::paired) {

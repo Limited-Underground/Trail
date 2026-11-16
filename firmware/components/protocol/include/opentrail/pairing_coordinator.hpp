@@ -143,11 +143,13 @@ struct Limits {
     // While running, a control frame goes to the radio only with time left for
     // its answer: its first copy with final_first_send_floor_ms (room for that
     // copy and one resend, resend_after_ms later), a resend with
-    // final_send_floor_ms (reviews of I-057). The radio may refuse offers for a
+    // final_send_floor_ms (reviews of I-057; a lossless round trip is about 1.4 s). The radio may refuse offers for a
     // while (a transmit hold), so the first copy can go out long after the frame
     // was made.
     std::uint64_t final_first_send_floor_ms{6500};
-    std::uint64_t final_send_floor_ms{2000};  // a lossless round trip takes about 1.4 s
+    // 3 s, not less: a later resend can collide with the peer's held final reply
+    // and spend the last send (sixth review of I-057).
+    std::uint64_t final_send_floor_ms{3000};
     // Neither board transmits until this long after it last heard a frame from
     // the peer, so it never answers into the rest of the peer's burst (a simple
     // stand-in for listen-before-talk; review of I-057). 0 disables.

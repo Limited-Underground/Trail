@@ -468,27 +468,45 @@ void test_review_confirm_timing_and_single_loss() {
             EXPECT(r.a.committed == r.b.committed);
         }
     }
-    // Fifth review of I-057: A's radio holds its transmits for a while just as A's
-    // second control is due, and the first copy of B's final control is lost.
-    // Every hold start in the last 25 s of A's window: both boards or neither.
-    for (std::uint64_t hold = 95000; hold <= 119000; hold += 100) {
-        for (const int cb : {300, 500}) {
-            Run r;
-            r.half_duplex = true;
-            r.b_start_ms = 61000;
-            r.b.confirm_ticks = cb;
-            r.hold_a = true;
-            r.hold_from_ms = hold;
-            r.hold_until_ms = hold + 8500;
-            int b_controls = 0;
-            r.drop_frame = [&](const FrameBuffer& f, bool from_a) {
-                return !from_a && (f[2] & 0x0f) == static_cast<int>(FrameType::control) && ++b_controls == 2;
-            };
-            r.go(201000);
-            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
-            EXPECT(r.a.committed == r.b.committed);
+    // Fifth and sixth reviews of I-057: a radio that refuses offers for a while
+    // (a transmit hold) near the end of A's window. On the board a hold ends the
+    // attempt (BoardPairingRuntime), because no send floor makes a long hold plus a
+    // lost final reply safe (I-059): host sweeps found one-sided runs with every
+    // floor setting tried. Here: holds on A with no loss, and the first copy of B's
+    // final control (its second, distinct control frame) lost with no hold; both
+    // boards or neither.
+    int final_drops = 0;
+    for (int held_a = 0; held_a < 2; ++held_a) {
+        for (int lose = 0; lose < 2; ++lose) {
+            if (lose == held_a) continue;  // (A held, no loss) and (no hold, B's reply lost)
+            for (std::uint64_t hold = 95000; hold <= 119000; hold += 100) {
+                for (const int cb : {300, 500}) {
+                    Run r;
+                    r.half_duplex = true;
+                    r.b_start_ms = 61000;
+                    r.b.confirm_ticks = cb;
+                    r.hold_a = true;
+                    r.hold_from_ms = held_a ? hold : 0;
+                    r.hold_until_ms = held_a ? hold + 8500 : 0;
+                    if (!held_a) r.b_start_ms = (hold - 95000) * 2;  // joins 0-48 s late
+                    FrameBuffer first{};
+                    bool have_first = false, dropped = false;
+                    r.drop_frame = [&](const FrameBuffer& f, bool from_a) {
+                        if (from_a || (f[2] & 0x0f) != static_cast<int>(FrameType::control)) return false;
+                        if (!have_first) { first = f; have_first = true; return false; }
+                        if (f == first || dropped || !lose) return false;  // a resend of control 1
+                        dropped = true;
+                        return true;
+                    };
+                    r.go(201000);
+                    if (dropped) ++final_drops;
+                    EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+                    EXPECT(r.a.committed == r.b.committed);
+                }
+            }
         }
     }
+    EXPECT(final_drops > 400);  // the final reply really was lost in the loss runs
     // The exact trace: A at 0 s, B at 61 s, B's person confirms at about 118 s.
     {
         Run r;
