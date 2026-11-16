@@ -27,9 +27,22 @@ namespace opentrail::target::heltec_v4_bench {
 class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend {
 public:
     // I-066 diagnostics: slot reads served from RAM, and reads that reached NVS.
-    struct ReadStats { std::uint32_t cache_hits; std::uint32_t nvs_reads; std::uint32_t nvs_read_ms; };
+    // Counted since the last reset_read_stats() (each pairing attempt): slot reads
+    // served from RAM, slot reads that reached NVS, and the budget checks
+    // (nvs_get_stats plus nvs_get_used_entry_count, which scan the partition).
+    struct ReadStats {
+        std::uint32_t cache_hits, nvs_reads, nvs_read_ms, budget_checks, budget_ms;
+    };
     ReadStats read_stats() const {
-        return {cache_.hits(), nvs_reads_, static_cast<std::uint32_t>(nvs_read_us_ / 1000)};
+        return {cache_.hits() - hits_at_reset_, nvs_reads_, static_cast<std::uint32_t>(nvs_read_us_ / 1000),
+                budget_checks_, static_cast<std::uint32_t>(budget_us_ / 1000)};
+    }
+    void reset_read_stats() {
+        hits_at_reset_ = cache_.hits();
+        nvs_reads_ = 0;
+        nvs_read_us_ = 0;
+        budget_checks_ = 0;
+        budget_us_ = 0;
     }
     using Namespace = security_evaluation::EvaluationNamespace;
     using Domain = persistence::StorageDomain;
@@ -117,8 +130,8 @@ private:
     bool good_{}, mounted_{}, pending_{}, pending_erased_{};
     // I-066: recently read slots, so repeated ledger checks do not reach flash.
     PairingSlotCache<16> cache_{};
-    std::uint32_t nvs_reads_{0};
-    std::uint64_t nvs_read_us_{0};
+    std::uint32_t nvs_reads_{0}, hits_at_reset_{0}, budget_checks_{0};
+    std::uint64_t nvs_read_us_{0}, budget_us_{0};
     std::array<char, 16> pending_key_{};
     Bytes pending_bytes_{};
     std::array<View, 4> views_;

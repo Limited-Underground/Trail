@@ -85,8 +85,12 @@ bool PairingNvsStorage::budget_ok() {
     if (!good_) return false;
     nvs_stats_t stats{};
     std::size_t own = 0;
-    if (nvs_get_stats(kPartition, &stats) != ESP_OK ||
-        nvs_get_used_entry_count(handle_, &own) != ESP_OK ||
+    const auto started_us = esp_timer_get_time();
+    const bool read_ok = nvs_get_stats(kPartition, &stats) == ESP_OK &&
+                         nvs_get_used_entry_count(handle_, &own) == ESP_OK;
+    ++budget_checks_;
+    budget_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
+    if (!read_ok ||
         stats.total_entries != kTotalEntries || stats.namespace_count != 1 ||
         own > kPairingEntries || own > stats.used_entries) {
         (void)fault();

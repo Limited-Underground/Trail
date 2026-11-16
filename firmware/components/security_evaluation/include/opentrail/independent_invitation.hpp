@@ -8,9 +8,18 @@
 
 namespace opentrail::security_evaluation {
 inline constexpr std::size_t kIndependentInvitationPayloadBytes = 188;
-// D-110: after a board's clock mark the signed invitation must still cover the code
-// check by the person, the final messages and the save; 60 s was too short.
-inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = 180000;
+// Issuance policy: every path issues kIndependentInvitationDefaultWindowMs (60 s),
+// including enrollment evaluation and rekey. Only board pairing over LoRa issues
+// kBoardPairingInvitationWindowMs (D-110): after a board's clock mark the signed
+// invitation must still cover the person's code check, the final messages and
+// the save, and 60 s was too short (fourth board session).
+inline constexpr std::uint64_t kIndependentInvitationDefaultWindowMs = 60000;
+inline constexpr std::uint64_t kBoardPairingInvitationWindowMs = 180000;
+// Format ceiling for decoding and re-verifying a signed invitation. It must admit
+// board-pairing invitations, because their retained records are re-verified later
+// (identity binding, rekey, recovery). Every session still accepts only the exact
+// fields it expects, which carry the window it issues itself.
+inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = kBoardPairingInvitationWindowMs;
 
 struct IndependentInvitation {
     std::array<std::uint8_t, kIndependentInvitationPayloadBytes> payload{};

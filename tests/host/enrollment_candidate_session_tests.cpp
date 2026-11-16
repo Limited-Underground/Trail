@@ -104,7 +104,7 @@ struct FreshPair {
         CHECK(f.peer_a==a.offer.session_identity && f.peer_b==b.offer.session_identity);
         CHECK(f.boot_a==a.offer.context.boot && f.boot_b==b.offer.context.boot);
         CHECK(f.issued_a_ms==am.now_ms && f.issued_b_ms==bm.now_ms);
-        CHECK(f.window_a_ms==EnrollmentCandidateSession::kInvitationWindowMs && f.window_b_ms==EnrollmentCandidateSession::kInvitationWindowMs);
+        CHECK(f.window_a_ms==a.owner->invitation_window_ms() && f.window_b_ms==a.owner->invitation_window_ms());
         CHECK(f.epoch==epoch);
         return invitation;
     }
@@ -801,6 +801,26 @@ int main() {
      CHECK(!p.a.owner->review_poll(token,state));CHECK(!state.confirmed);
      CHECK(p.a.owner->review_refusal()==EnrollmentReviewRefusal::expired);
      CHECK(p.a.owner->quiescent());EvaluationRecord output{};CHECK(!p.a.owner->next_control(output));++groups;}
+    // D-110: board pairing opts into the 180 s signed invitation before start;
+    // every other session signs and expects the 60 s default.
+    {FreshPair p(false,false);
+     CHECK(p.a.owner->invitation_window_ms()==kIndependentInvitationDefaultWindowMs);
+     CHECK(!p.a.owner->set_invitation_window(0));
+     CHECK(!p.a.owner->set_invitation_window(kIndependentInvitationMaximumWindowMs+1));
+     CHECK(p.a.owner->set_invitation_window(kBoardPairingInvitationWindowMs));
+     CHECK(p.b.owner->set_invitation_window(kBoardPairingInvitationWindowMs));
+     p.a.start();p.b.start();CHECK(p.a.owner->receive_candidate(p.b.candidate));CHECK(p.b.owner->receive_candidate(p.a.candidate));
+     CHECK(!p.a.owner->set_invitation_window(kIndependentInvitationDefaultWindowMs));  // only before start
+     p.begin();  // invite() checks both signed windows equal A's 180 s; both boards accept
+     CHECK(p.a.owner->invitation_window_ms()==kBoardPairingInvitationWindowMs);
+     ++groups;}
+    // A board that expects 60 s refuses a 180 s invitation, and the reverse.
+    for(int longer_a=0;longer_a<2;++longer_a) {
+     FreshPair p(false,false);
+     CHECK((longer_a?p.a:p.b).owner->set_invitation_window(kBoardPairingInvitationWindowMs));
+     p.a.start();p.b.start();CHECK(p.a.owner->receive_candidate(p.b.candidate));CHECK(p.b.owner->receive_candidate(p.a.candidate));
+     const auto invitation=p.invite();std::array<std::uint8_t,64> bs{};
+     CHECK(!p.b.owner->sign_invitation(invitation,bs));++groups;}
     // I-055: every attempt, even one abandoned right after start, consumes one session
     // generation. Once the capacity is used, start refuses and names the reason, so a
     // board log shows it instead of a bare "start refused".

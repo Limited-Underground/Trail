@@ -61,6 +61,7 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
         ESP_LOGW(kTag, "start refused: pairing storage not ready");
         return false;
     }
+    storage_->reset_read_stats();  // I-066: log this attempt's storage cost at its end
     // The session becomes the only owner of the board identity (ot_identity_v1).
     targets::heltec_v4_bench::retire_retained_enrollment_identity();
     identity_.emplace();
@@ -71,6 +72,11 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
                      storage_->external(PairingNvsStorage::Store::binding), *storage_,
                      PairingNvsStorage::kCapacity, kClockDomain,
                      &storage_->external(PairingNvsStorage::Store::boot));
+    // D-110: board pairing signs and expects the longer invitation window.
+    if (!session_->set_invitation_window(security_evaluation::kBoardPairingInvitationWindowMs)) {
+        ESP_LOGW(kTag, "start refused: invitation window");
+        return false;
+    }
     const bool initiator = phone.role == companion::CompanionEnrollmentRole::initiator;
     // First enrollment only. If retained records from an earlier attempt exist,
     // the session refuses; this owner never erases or retries them (review R2A-5).
@@ -97,9 +103,10 @@ void BoardPairingRuntime::end(Phase result) {
     if (storage_) {
         // I-066: how many slot reads the RAM cache served, and what reached NVS.
         const auto s = storage_->read_stats();
-        ESP_LOGI(kTag, "storage reads cache=%lu nvs=%lu nvs_ms=%lu",
+        ESP_LOGI(kTag, "storage this attempt: reads cache=%lu nvs=%lu nvs_ms=%lu budget_checks=%lu budget_ms=%lu",
                  static_cast<unsigned long>(s.cache_hits), static_cast<unsigned long>(s.nvs_reads),
-                 static_cast<unsigned long>(s.nvs_read_ms));
+                 static_cast<unsigned long>(s.nvs_read_ms), static_cast<unsigned long>(s.budget_checks),
+                 static_cast<unsigned long>(s.budget_ms));
     }
     lingering_ = false;
     coordinator_.reset();

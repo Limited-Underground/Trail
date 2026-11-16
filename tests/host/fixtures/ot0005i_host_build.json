@@ -4142,7 +4142,7 @@
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_confirmation_owner.hpp": "b9c51399b7f30c0634ea6faf85dfaa3e75ea3ae0f5958662a11eedbc0b7d2379",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_authorized_policy_session.hpp": "b4d20215354a6238110916652deb56eccd2bb7a1a94b33378ca301e635dde337",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_invitation_authority.hpp": "f08424bd54abdf4dd8da58b7f69850d426761e32e1d0bcd9d404647503a13d44",
-    "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp": "515a69c23f374e8aa74bf0735219a0d1ec451ca4ee8bf3d522b819700c0e4792",
+    "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_invitation.hpp": "7fcc3bb859352bca5244ee5d875b6391ae5a4e28ff911971a30b37da6b1b036c",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/independent_policy_session.hpp": "61cc2007401322a30867cb44a67083f593c4cf9e72b90ce623fa15e4bca4f485",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/enrolled_session_observer.hpp": "1b74fc770ffed9dd3292e1e1bb4d9c1d467ac56bea63a6a5110c6c8bff7e5488",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/peer_activation_store.hpp": "47d9d424dc05d7beb923c34abfe524ad7bb5b27e5ac2c433de3c5939c6f371ea",

@@ -160,7 +160,14 @@ public:
     // this board's clock mark exists, its signed invitation window
     // (kInvitationWindowMs from the local mark). Session clock. Only for the
     // attempt before commit; never an authorization check.
-    static constexpr std::uint64_t kInvitationWindowMs=kIndependentInvitationMaximumWindowMs;  // D-110: 180 s
+    // The window this session signs and expects in its invitation: 60 s by default;
+    // board pairing sets kBoardPairingInvitationWindowMs before start() (D-110).
+    static constexpr std::uint64_t kInvitationWindowMs=kIndependentInvitationDefaultWindowMs;
+    bool set_invitation_window(std::uint64_t window_ms) {
+        if(started_ || busy_ || window_ms==0 || window_ms>kIndependentInvitationMaximumWindowMs)return false;
+        invitation_window_ms_=window_ms;return true;
+    }
+    std::uint64_t invitation_window_ms() const {return invitation_window_ms_;}
     bool completion_remaining_ms(std::uint64_t& out,std::uint64_t outer_deadline_ms=0) {
         if(active_)return false;
         if(containing_ || busy_ || failed_)return false;
@@ -168,7 +175,7 @@ public:
         if(!observe_clock(now))return false;
         std::uint64_t deadline=request_.deadline_ms;
         if(outer_deadline_ms && outer_deadline_ms<deadline)deadline=outer_deadline_ms;
-        if(local_mark_ && local_mark_->now_ms+kInvitationWindowMs<deadline)deadline=local_mark_->now_ms+kInvitationWindowMs;
+        if(local_mark_ && local_mark_->now_ms+invitation_window_ms_<deadline)deadline=local_mark_->now_ms+invitation_window_ms_;
         out=now.now_ms>=deadline?0:deadline-now.now_ms;return true;
     }
     // Trusted LOCAL owner action only. Received records never call/select this.
@@ -453,7 +460,7 @@ public:
         const auto peer=input;
         return operation([&] {
             if(!possession_accepted_ || peer_mark_ || peer.version!=1 || !(peer.context==peer_offer_.context) ||
-                peer.now_ms>std::numeric_limits<std::uint64_t>::max()-kInvitationWindowMs)return false;
+                peer.now_ms>std::numeric_limits<std::uint64_t>::max()-invitation_window_ms_)return false;
             peer_mark_=peer;return true;
         });
     }
@@ -757,13 +764,14 @@ private:
         IndependentInvitationFields f{};f.group=group_;f.epoch=epoch_;f.signer=initiator()?local_key_:peer_key_;
         f.peer_a=a.session_identity;f.peer_b=b.session_identity;f.boot_a=a.context.boot;f.boot_b=b.context.boot;
         f.issued_a_ms=(initiator()?*local_mark_:*peer_mark_).now_ms;
-        f.issued_b_ms=(initiator()?*peer_mark_:*local_mark_).now_ms;f.window_a_ms=kInvitationWindowMs;f.window_b_ms=kInvitationWindowMs;return f;
+        f.issued_b_ms=(initiator()?*peer_mark_:*local_mark_).now_ms;f.window_a_ms=static_cast<std::uint32_t>(invitation_window_ms_);f.window_b_ms=static_cast<std::uint32_t>(invitation_window_ms_);return f;
     }
     companion::SelectedEnrollmentRequestOwner& request_owner_;
     companion::DeviceNameAuthoritySource& authority_;EnrollmentSessionDevicePort& device_;
     security::SecureRandomSource& random_;
     persistence::PersistentStorage& identity_storage_;persistence::PersistentStorage& journal_storage_;persistence::PersistentStorage& binding_storage_;
     EvaluationGenerationBackend& backend_;persistence::PersistentStorage* const durable_boot_;const std::uint64_t clock_domain_;
+    std::uint64_t invitation_window_ms_{kInvitationWindowMs};
     EnrollmentIdentityStore identity_;GenerationLedgerStorage ledger_;SessionGenerationAllocator allocator_;
     std::optional<GenerationEvaluationBackend> generation_backend_;std::optional<EvaluationStorageBank> bank_;
     LocalAuthority local_authority_;Clock clock_;
