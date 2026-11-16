@@ -127,7 +127,7 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                     enabled=!state.busy && regionChoice!=null && state.regionRevision!=null && state.regionRevision!=ULong.MAX_VALUE) {
                     Text("Apply region choice")
                 }
-                Text("Choose where you will use the device. Saving a choice does not configure the radio or authorize transmission. Radio TX remains disabled.",style=MaterialTheme.typography.bodySmall)
+                Text("Choose the region where you use your MeshTrail board.",style=MaterialTheme.typography.bodySmall)
             }
             if(onboarding && stage==V1SetupStage.CONFIRM_RADIO_REGION && !state.regionAvailable) {
                 Text("This firmware cannot read back a saved radio region. Setup is paused until compatible device support is available.")
@@ -154,7 +154,7 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                     Text(if(stage==V1SetupStage.COMPLETE) "Setup preferences are verified on this device. Saving them does not start public discovery."
                         else "Saving these preferences does not start public discovery. Setup resumes after protected readback.")
                 } else Text("This firmware cannot read back public name and visibility. Setup remains paused; saved phone choices are drafts.")
-                Text("A saved region does not configure the radio or authorize transmission. Radio TX remains disabled.")
+                Text("Your MeshTrail board uses the radio rules for its saved region.")
             }
             Text("The clock syncs automatically on connection and when your phone's time changes, using its local time and 12/24-hour preference. You can also sync it here.",style=MaterialTheme.typography.bodySmall)
         }

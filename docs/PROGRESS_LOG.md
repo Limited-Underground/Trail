@@ -1,5 +1,13 @@
 # OpenTrail Progress Log
 
+## 2026-11-16
+
+### OT-0170a Clarify Android radio status and scroll App settings
+
+I-044 and the owner's Device layout report. The Limited Underground MeshTrail Android app reports saved region results without inferring radio activity. A board that sends unavailable radio telemetry now appears as “radio status not reported.” App settings is at the end of the Device scroll in both connected and first-use views. The first-use heading uses MeshTrail (D-100). Pairing and Bluetooth connection code retain their existing behavior.
+
+Host validation and the read-only usability review are in the local task report. Phone acceptance remains pending.
+
 ## 2026-11-15
 
 ### OT-0005i Allow pairing retries and log why a start is refused (I-055)
