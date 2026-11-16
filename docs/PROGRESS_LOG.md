@@ -21,7 +21,7 @@ The fifth owner-present board session (main `b72f372`) paired both boards for th
   - a write drops the copy;
   - the marker write and a factory reset each end it.
 
-  Two existing groups now check NVS read errors on a fresh owner, which is what every pairing attempt creates. The target reset composition (27 groups), public profile settings (37) and bench admission (20) suites pass.
+  Two existing groups now check NVS read errors on a fresh owner, which is what every pairing attempt creates. Codex review: the record holds the private seed, so retiring the identity owner (pairing handoff, reset containment) now wipes and permanently disables the storage copy (`retire_cache`); the owner test checks that no seed copy remains after retire and after a verified reset erase, and identity NVS grows to 19 groups. `OT-0238b-IDENTITY-NVS` describes the cached read. The target reset composition (27 groups), public profile settings (37) and bench admission (20) suites pass.
 
 ### OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)
 

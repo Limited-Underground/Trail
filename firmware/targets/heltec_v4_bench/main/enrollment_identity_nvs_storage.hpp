@@ -25,6 +25,10 @@ public:
     struct ReadStats { std::uint32_t cache_hits, nvs_reads; };
     ReadStats read_stats() const { return {cache_hits_, nvs_reads_}; }
     void reset_read_stats() { cache_hits_ = 0; nvs_reads_ = 0; }
+    // Terminal for the RAM copy: wipes it (the record holds the private seed) and
+    // never fills it again. Called when the owning identity is retired, including
+    // reset containment (review of I-068).
+    void retire_cache();
 private:
     using Bytes = std::array<std::uint8_t, persistence::kPersistentSlotBytes>;
     bool guard();
@@ -39,7 +43,7 @@ private:
     // reset marker write both bump it); a write drops it, a verified sync
     // refreshes it, and any fault wipes it.
     Bytes cached_{};
-    bool cached_valid_{false};
+    bool cached_valid_{false}, cache_retired_{false};
     std::uint32_t cache_hits_{0}, nvs_reads_{0};
     void drop_cache();
 };

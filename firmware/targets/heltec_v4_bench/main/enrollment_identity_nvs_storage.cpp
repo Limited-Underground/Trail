@@ -66,6 +66,7 @@ EnrollmentIdentityNvsStorage::EnrollmentIdentityNvsStorage()
     : generation_(reset_generation.load(std::memory_order_acquire)) {}
 EnrollmentIdentityNvsStorage::~EnrollmentIdentityNvsStorage() { wipe(before_); wipe(staged_); wipe(cached_); }
 void EnrollmentIdentityNvsStorage::drop_cache() { cached_valid_ = false; wipe(cached_); }
+void EnrollmentIdentityNvsStorage::retire_cache() { cache_retired_ = true; drop_cache(); }
 StorageError EnrollmentIdentityNvsStorage::fault() {
     failed_ = true; pending_ = false; wipe(before_); wipe(staged_); drop_cache(); return StorageError::io_failure;
 }
@@ -87,7 +88,7 @@ StorageReadResult EnrollmentIdentityNvsStorage::read_slot(StorageDomain domain, 
     } else {
         ++nvs_reads_;
         if(!guard() || !load(bytes.bytes) || !guard()) return {fault(),0};
-        if(!pending_) { cached_ = bytes.bytes; cached_valid_ = true; }
+        if(!pending_ && !cache_retired_) { cached_ = bytes.bytes; cached_valid_ = true; }
     }
     if(!identity_slot(domain,slot)) bytes.bytes.fill(0xff);
     std::copy(bytes.bytes.begin(),bytes.bytes.end(),output.data);
@@ -126,7 +127,7 @@ StorageError EnrollmentIdentityNvsStorage::sync_slot(StorageDomain domain, std::
     }
     if(!load(observed.bytes) || observed.bytes != staged_ || !guard()) return fault();
     pending_ = false; wipe(before_); wipe(staged_);
-    cached_ = observed.bytes; cached_valid_ = true;  // just verified in NVS
+    if(!cache_retired_) { cached_ = observed.bytes; cached_valid_ = true; }  // just verified in NVS
     return StorageError::none;
 }
 void invalidate_enrollment_identity_storage_for_reset() {

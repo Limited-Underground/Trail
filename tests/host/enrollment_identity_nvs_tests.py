@@ -16,6 +16,6 @@ def run():
         subprocess.run(command,check=True,timeout=90)
         result=subprocess.run([str(exe)],text=True,capture_output=True,timeout=30)
         if result.returncode: raise RuntimeError(result.stderr or str(result.returncode))
-        assert result.stdout.strip()=='PASS 18 actual identity NVS and factory-reset groups',result.stdout
+        assert result.stdout.strip()=='PASS 19 actual identity NVS and factory-reset groups',result.stdout
         print(result.stdout.strip())
 if __name__=='__main__':run()

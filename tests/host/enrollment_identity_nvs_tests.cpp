@@ -94,8 +94,12 @@ int main(){
  // Writing the factory-reset marker ends the copy's reset generation first: the
  // next read goes to NVS, finds the marker and refuses.
  reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out));
-  HeltecV4FactoryResetMarkerStorage marker;(void)marker.commit_intent_and_readback(0x1234);
-  out.fill(7);assert(!read(s,out)&&out[0]==7);}++groups;
+  HeltecV4FactoryResetMarkerStorage marker;assert(marker.commit_intent_and_readback(0x1234).error==companion::DeviceFactoryResetPortError::none);
+  out.fill(7);assert(!read(s,out)&&out[0]==7);
+  EnrollmentIdentityNvsStorage fresh;assert(!read(fresh,out));}++groups;
+ // Retiring the copy wipes it for good: later reads go to NVS every time.
+ reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out));s.retire_cache();
+  assert(read(s,out)&&out[0]==0xf0);get_error=ESP_FAIL;error_namespace=kEnrollmentIdentityStorageNamespace;assert(!read(s,out));}++groups;
  // A factory reset ends the copy too, even before any marker exists.
  reset();{EnrollmentIdentityNvsStorage s;assert(stage(s)&&sync(s)&&read(s,out));
   invalidate_enrollment_identity_storage_for_reset();out.fill(7);assert(!read(s,out)&&out[0]==7);}++groups;
