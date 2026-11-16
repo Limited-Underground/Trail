@@ -815,6 +815,8 @@ int main() {
      }
      node.restart(181);CHECK(!node.owner->start(node.role,17));
      CHECK(node.owner->start_refusal()==R::generations);
+     // I-058: the board log also names the allocator check; here, capacity (4).
+     CHECK(node.owner->generation_failure()==4);
      CHECK(node.journal_state()==EnrollmentJournalState::empty);++groups;}
     std::cout<<"PASS "<<groups<<" enrollment candidate session groups\n";
 }

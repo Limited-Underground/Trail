@@ -153,6 +153,8 @@ public:
         journal_not_empty, retained_records, stale_request, identity, generations, other
     };
     StartRefusal start_refusal() const {return start_refusal_;}
+    // With reason `generations`, the allocator check that refused (I-058).
+    std::uint8_t generation_failure() const {return static_cast<std::uint8_t>(allocator_.failure());}
     // Trusted LOCAL owner action only. Received records never call/select this.
     bool start(InvitationRole role,std::uint64_t group) {
         return start_attempt(role,group,false);

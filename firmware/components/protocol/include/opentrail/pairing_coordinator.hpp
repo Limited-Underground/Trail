@@ -107,13 +107,26 @@ static_assert(scripts_mirror(kInitiatorScript, kResponderScript),
 
 struct Limits {
     std::uint64_t resend_after_ms{3000};
+    // Half-duplex radios (review of I-057): after a shared step both boards are
+    // ready to send in the same instant. The responder holds each new frame this
+    // long (more than one frame's airtime at the bench profile, SF7: under 0.3 s)
+    // and resends on a shorter interval, so neither the first copies nor the
+    // resends collide.
+    std::uint64_t responder_turn_delay_ms{600};
+    std::uint64_t responder_resend_after_ms{2300};
     std::uint8_t max_sends{2};          // per frame (D-078 test limits)
     std::uint64_t attempt_limit_ms{120000};
     // D-106 (I-057): the first frame, the candidate "hello", repeats on a slow
     // interval for the whole window, so a board started while the other phone's
-    // person is still typing the code still receives it. 24 x 5 s covers 120 s.
-    std::uint64_t hello_resend_after_ms{5000};
-    std::uint8_t hello_max_sends{24};
+    // person is still typing the code still receives it. The two roles use
+    // different intervals so half-duplex boards never stay in lockstep and
+    // collide on every repeat (review of I-057). 30 sends cover 120 s at 4.3 s.
+    std::uint64_t hello_resend_after_ms{5000};            // initiator
+    std::uint64_t hello_responder_resend_after_ms{4300};  // responder
+    std::uint8_t hello_max_sends{30};
+    // A hello answered because the peer repeated its own waits at least this
+    // long after our previous send (paces and coalesces duplicate answers).
+    std::uint64_t hello_answer_gap_ms{1000};
 };
 
 enum class Outcome : std::uint8_t { running, paired, failed };
@@ -129,7 +142,7 @@ public:
 
     PairingCoordinator(Adapter& adapter, bool initiator, std::uint32_t code,
                        Limits limits = {})
-        : adapter_(adapter),
+        : adapter_(adapter), initiator_(initiator),
           own_(initiator ? kInitiatorScript : kResponderScript),
           peer_(initiator ? kResponderScript : kInitiatorScript),
           code_(code), limits_(limits) {}
@@ -209,6 +222,7 @@ private:
         std::size_t size{};
         std::uint8_t sends{};
         std::uint64_t last_ms{};
+        std::uint64_t created_ms{};
         bool due{};               // resend requested by a peer repeat
     };
 
@@ -217,7 +231,10 @@ private:
         return o.type == FrameType::candidate ? limits_.hello_max_sends : limits_.max_sends;
     }
     std::uint64_t interval(const Outgoing& o) const {
-        return o.type == FrameType::candidate ? limits_.hello_resend_after_ms : limits_.resend_after_ms;
+        if (o.type != FrameType::candidate) {
+            return initiator_ ? limits_.resend_after_ms : limits_.responder_resend_after_ms;
+        }
+        return initiator_ ? limits_.hello_resend_after_ms : limits_.hello_responder_resend_after_ms;
     }
 
     static bool same(const Stored& s, const Frame& f) {
@@ -279,6 +296,7 @@ private:
                 auto& o = sent_[sent_count_];
                 o = {};
                 o.type = st.frame;
+                o.created_ms = now_ms;
                 for (std::size_t k = 0; k < sent_count_; ++k) {
                     if (sent_[k].type == st.frame) ++o.instance;
                 }
@@ -330,12 +348,18 @@ private:
     bool transmit(std::uint64_t now_ms, FrameBuffer& out, std::size_t& out_size) {
         // 1. First sends, in order.
         for (std::size_t k = 0; k < sent_count_; ++k) {
-            if (sent_[k].sends == 0) return offer(k, out, out_size);
+            if (sent_[k].sends != 0) continue;
+            if (!initiator_ && now_ms - sent_[k].created_ms < limits_.responder_turn_delay_ms) {
+                return false;  // the responder's turn has not come yet
+            }
+            return offer(k, out, out_size);
         }
         // 2. Frames the peer asked for by repeating.
         for (std::size_t k = 0; k < sent_count_; ++k) {
             auto& o = sent_[k];
             if (!o.due) continue;
+            if (o.type == FrameType::candidate && o.sends != 0 &&
+                now_ms - o.last_ms < limits_.hello_answer_gap_ms) continue;  // stays due
             if (o.sends < cap(o)) return offer(k, out, out_size);
             o.due = false;
         }
@@ -371,6 +395,7 @@ private:
     }
 
     Adapter& adapter_;
+    bool initiator_;
     const Script& own_;
     const Script& peer_;
     std::uint32_t code_;

@@ -77,9 +77,12 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
                          phone.pairing_code)) {
         // I-055: name the exact check. 1 repeated, 2 no_request, 3 invalid_setup,
         // 4 retained_preflight, 5 journal_not_empty, 6 retained_records,
-        // 7 stale_request, 8 identity, 9 generations (attempt capacity used), 10 other.
-        ESP_LOGW(kTag, "start refused: session reason=%u",
-                 static_cast<unsigned>(session_->start_refusal()));
+        // 7 stale_request, 8 identity, 9 generations, 10 other. For 9, allocator=
+        // 1 setup, 2 ledger_init, 3 ledger_read, 4 capacity, 5 stale, 6 ledger_write,
+        // 7 destination_read, 8 destination_not_blank, 9 failed_state (I-058).
+        ESP_LOGW(kTag, "start refused: session reason=%u allocator=%u",
+                 static_cast<unsigned>(session_->start_refusal()),
+                 static_cast<unsigned>(session_->generation_failure()));
         return false;
     }
     adapter_.emplace(*session_);

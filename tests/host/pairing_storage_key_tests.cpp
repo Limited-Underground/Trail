@@ -13,7 +13,12 @@ namespace key = opentrail::target::heltec_v4_bench::pairing_key;
 namespace {
 constexpr std::uint64_t kCapacity = 32;  // PairingNvsStorage::kCapacity
 
-void make(std::uint64_t g, unsigned n, unsigned d, unsigned s, char (&out)[16]) {
+// Valid keys come from the formatter the storage uses (PairingNvsStorage::key_for).
+void make(std::uint64_t g, unsigned n, unsigned d, unsigned s, key::Key& out) {
+    CHECK(key::format(g, n, d, s, kCapacity, out));
+}
+// Keys the formatter refuses to write, built by hand to test slot().
+void raw(std::uint64_t g, unsigned n, unsigned d, unsigned s, key::Key& out) {
     CHECK(std::snprintf(out, sizeof(out), "g%08xn%xd%xs%x", static_cast<unsigned>(g), n, d, s) == 15);
 }
 
@@ -29,20 +34,21 @@ int main() {
     unsigned groups = 0;
     const auto size = key::table_size(kCapacity);
     CHECK(size == 33u * 11u * 5u * 2u);
-    // Every valid key maps to its own slot inside the table.
+    // Every key the storage can write maps to its own slot inside the table.
     {
         std::set<std::size_t> seen;
         for (std::uint64_t g = 0; g <= kCapacity; ++g)
             for (unsigned n = 0; n < key::kNamespaces; ++n)
                 for (unsigned d = 0; d < key::kDomains; ++d)
                     for (unsigned s = 0; s < key::kSlots; ++s) {
+                        if (n >= 7 && g) continue;  // generation 0 only
                         char k[16]{};
                         make(g, n, d, s, k);
                         const auto i = key::slot(k, kCapacity);
                         CHECK(i < size);
                         CHECK(seen.insert(i).second);
                     }
-        CHECK(seen.size() == size);
+        CHECK(seen.size() == size - kCapacity * 4u * key::kDomains * key::kSlots);
         ++groups;
     }
     // The old index ran past its 330-entry table from generation 3 and collided at 10+.
@@ -63,13 +69,20 @@ int main() {
     // Out of range or malformed keys never index the table.
     {
         char k[16]{};
-        make(kCapacity + 1, 0, 0, 0, k);
+        char f[16]{};
+        CHECK(!key::format(kCapacity + 1, 0, 0, 0, kCapacity, f));
+        CHECK(!key::format(1, 11, 0, 0, kCapacity, f));
+        CHECK(!key::format(1, 7, 0, 0, kCapacity, f));  // namespaces 7-10: generation 0 only
+        CHECK(!key::format(1, 0, 5, 0, kCapacity, f));
+        CHECK(!key::format(1, 0, 0, 2, kCapacity, f));
+        CHECK(key::format(0, 10, 4, 1, kCapacity, f));
+        raw(kCapacity + 1, 0, 0, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
-        make(1, 11, 0, 0, k);
+        raw(1, 11, 0, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
-        make(1, 0, 5, 0, k);
+        raw(1, 0, 5, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
-        make(1, 0, 0, 2, k);
+        raw(1, 0, 0, 2, k);
         CHECK(key::slot(k, kCapacity) == size);
         const char* bad[] = {"x0000001n0d0s0", "g0000001n0d0s0x", "g000000Gn0d0s0", "g00000001d0s0s0", ""};
         for (const char* b : bad) {
@@ -77,7 +90,6 @@ int main() {
             for (int i = 0; i < 15 && b[i]; ++i) buf[i] = b[i];
             CHECK(key::slot(buf, kCapacity) == size);
         }
-        CHECK(key::slot(nullptr, kCapacity) == size);
         ++groups;
     }
     std::printf("PASS: %u pairing storage key groups\n", groups);

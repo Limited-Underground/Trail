@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "opentrail/pairing_coordinator.hpp"
@@ -76,9 +77,15 @@ struct Run {
     // Like the product runtime: once a board leaves `running`, it keeps
     // servicing (answering repeats) only for linger_ms, then stops entirely.
     std::uint64_t linger_ms{~std::uint64_t{0}};
-    // B's phone sends its request this late (I-057); before that B ignores the radio.
+    // A's or B's phone sends its request this late (I-057); before that the board
+    // ignores the radio.
+    std::uint64_t a_start_ms{0};
     std::uint64_t b_start_ms{0};
+    // Half-duplex radios: frames both boards transmit in the same tick collide and
+    // neither arrives (review of I-057).
+    bool half_duplex{false};
     int sent_a{0}, sent_b{0};      // frames the radio accepted
+    int collisions{0};             // half-duplex: ticks where both transmitted
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
@@ -86,14 +93,38 @@ struct Run {
 
     void go(std::uint64_t limit_ms = 130000) {
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
-        EXPECT(ca.begin(0));
-        bool b_begun = false;
+        bool a_begun = false, b_begun = false;
+        if (a_start_ms == 0) { EXPECT(ca.begin(0)); a_begun = true; }
         if (b_start_ms == 0) { EXPECT(cb.begin(0)); b_begun = true; }
         std::uint64_t now = 0, a_end = 0, b_end = 0;
         bool a_live = true, b_live = true;
         for (int tick = 0; now <= limit_ms; ++tick, now += 100) {
+            if (!a_begun && now >= a_start_ms) { EXPECT(ca.begin(now)); a_begun = true; }
             if (!b_begun && now >= b_start_ms) { EXPECT(cb.begin(now)); b_begun = true; }
             if (inject) inject(tick, ca, cb);
+            if (half_duplex) {
+                FrameBuffer fa{}, fb{};
+                std::size_t na = 0, nb = 0;
+                bool ta = false, tb = false;
+                if (a_live && ca.service(now, fa, na) && na) {
+                    ta = !refuse(offered_a++, true);
+                    ca.sent(ta, now);
+                }
+                if (b_live && cb.service(now, fb, nb) && nb) {
+                    tb = !refuse(offered_b++, false);
+                    cb.sent(tb, now);
+                }
+                const bool collide = ta && tb;
+                if (ta) {
+                    if (collide) ++collisions;
+                    else if (!drop(sent_a, true) && b_live) cb.on_receive(fa.data(), na);
+                    ++sent_a;
+                }
+                if (tb) {
+                    if (!collide && !drop(sent_b, false) && a_live) ca.on_receive(fb.data(), nb);
+                    ++sent_b;
+                }
+            } else {
             FrameBuffer buf{};
             std::size_t n = 0;
             if (a_live && ca.service(now, buf, n) && n) {
@@ -111,6 +142,7 @@ struct Run {
                     if (!drop(sent_b, false) && a_live) ca.on_receive(buf.data(), n);
                     ++sent_b;
                 }
+            }
             }
             if (ca.outcome() != Outcome::running && a_end == 0) a_end = now + 1;
             if (cb.outcome() != Outcome::running && b_end == 0) b_end = now + 1;
@@ -231,6 +263,55 @@ void test_late_joiner_still_pairs() {
     EXPECT(r.ob != Outcome::paired);
 }
 
+// Review of I-057: half-duplex boards repeating on the same schedule collide on
+// every hello. With the roles on different intervals they pair whatever the
+// start order and timing, and a join too late in the window is never one-sided.
+void test_half_duplex_start_orders() {
+    struct Case { std::uint64_t a_start, b_start; };
+    const Case cases[] = {{0, 0}, {0, 30000}, {30000, 0}, {0, 61300}, {47100, 0}, {0, 95000}};
+    for (const auto& c : cases) {
+        Run r;
+        r.half_duplex = true;
+        r.a_start_ms = c.a_start;
+        r.b_start_ms = c.b_start;
+        r.go(c.a_start + c.b_start + 140000);
+        EXPECT(r.oa == Outcome::paired);
+        EXPECT(r.ob == Outcome::paired);
+        EXPECT(r.a.committed && r.b.committed);
+        EXPECT(r.sent_a <= 30 + 40 && r.sent_b <= 30 + 40);  // hellos plus the rest
+    }
+    // Every start offset in 0.1 s steps over the first 20 s, either board first.
+    // Some hellos still collide; the repeats on different intervals recover them.
+    for (std::uint64_t d = 0; d <= 20000; d += 100) {
+        for (int first_a = 0; first_a < 2; ++first_a) {
+            Run r;
+            r.half_duplex = true;
+            (first_a ? r.b_start_ms : r.a_start_ms) = d;
+            r.go(d + 140000);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Without the role offsets the boards stay in lockstep and never pair.
+    {
+        Run r;
+        r.half_duplex = true;
+        r.limits.hello_responder_resend_after_ms = r.limits.hello_resend_after_ms;
+        r.limits.responder_resend_after_ms = r.limits.resend_after_ms;
+        r.limits.responder_turn_delay_ms = 0;
+        r.go(140000);
+        EXPECT(r.oa != Outcome::paired && r.ob != Outcome::paired);
+        EXPECT(r.collisions > 20);
+    }
+    // A join in the last seconds of the starter's window: never paired on one side only.
+    for (std::uint64_t late : {std::uint64_t{110000}, std::uint64_t{115100}, std::uint64_t{119000}}) {
+        Run r;
+        r.half_duplex = true;
+        r.b_start_ms = late;
+        r.go(late + 140000);
+        EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+    }
+}
+
 void test_attempt_window_expires() {
     Run r;
     r.a.review_ticks = 2000;  // 200 s: longer than the 120 s request window
@@ -313,6 +394,7 @@ int main() {
     test_refused_payload_ends_attempt();
     test_silent_peer_stops_within_limits();
     test_late_joiner_still_pairs();
+    test_half_duplex_start_orders();
     test_attempt_window_expires();
     test_begin_refusals();
     test_final_control_loss_needs_linger();
@@ -323,6 +405,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 13 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 14 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

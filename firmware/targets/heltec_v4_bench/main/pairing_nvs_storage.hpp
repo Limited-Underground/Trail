@@ -94,11 +94,11 @@ private:
     static bool key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]);
     // Table position of a validated key; any other key faults and maps to the
     // guard slot at the end, never past the table (I-058).
-    std::size_t index(const char* key);
+    std::size_t index(const pairing_key::Key& key);
     static void wipe(Bytes& bytes);
     bool inventory();
-    bool load(const char* key, Bytes& out);
-    bool start_mutation(const char* key);
+    bool load(const pairing_key::Key& key, Bytes& out);
+    bool start_mutation(const pairing_key::Key& key);
     persistence::StorageReadResult read_tuple(std::uint64_t, unsigned, Domain, std::size_t,
                                               persistence::MutableStorageByteView);
     Error erase_tuple(std::uint64_t, unsigned, Domain, std::size_t);
