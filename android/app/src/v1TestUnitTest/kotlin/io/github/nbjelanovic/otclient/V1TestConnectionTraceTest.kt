@@ -15,6 +15,24 @@ import kotlin.test.assertTrue
 
 class V1TestConnectionTraceTest {
     @Test
+    fun everyRuntimeBlockRoundTripsAsItsExactTraceReason() {
+        for (block in BleRuntimeBlock.entries) {
+            val machine = V1TestConnectionTraceMachine()
+            val emission = machine.observe(GENERATION, 0, state(BleRuntimeState.Blocked(block))).single()
+            assertEquals(block.name, emission.reason.name)
+            val storage = Storage()
+            val log = V1TestConnectionLog(storage)
+            assertTrue(log.startSession())
+            assertTrue(log.recordTrace(0, emission))
+            val reloaded = V1TestConnectionLog(storage)
+            assertEquals(log.snapshot(), reloaded.snapshot())
+            val restored = reloaded.snapshot().single().event as V1TestConnectionLogEvent.Trace
+            assertEquals(emission, restored.emission)
+            assertTrue(reloaded.exportText().contains("${block.name}\tUNAVAILABLE\n"))
+        }
+    }
+
+    @Test
     fun everyRuntimeFailureRoundTripsAsAnAllowlistedReasonWithoutDeviceLabels() {
         for (failure in BleRuntimeFailure.entries) {
             val machine = V1TestConnectionTraceMachine()

@@ -19,6 +19,10 @@ bind, retries the owned board after a link failure, and keeps the initiator's co
 visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
 The correction still needs phone verification.
 
+I-053 restores V1-Test compilation by recording a denied Bluetooth state read
+as its own trace reason. The host workflow checks V1-Test compilation and the
+variant's JVM tests cover log write, reload, and export.
+
 ## Heltec V4 factory reset fixes
 
 On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
