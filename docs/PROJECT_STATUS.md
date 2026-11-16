@@ -44,7 +44,7 @@ picked up by Android until the board is paired again.
 
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b waits.
 
-The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055).
+The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed.
 
 The product is renamed Limited Underground MeshTrail (owner decision D-089). The Android app shows the name with the Linked Route home-screen artwork (D-091, D-092). On the board, the startup screen shows the Linked Route symbol and MeshTrail, and the reset question reads "ERASE MESHTRAIL DATA?". The application ID, signing, Bluetooth setup label and storage keys are unchanged.
 
@@ -161,7 +161,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
 | Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Allow pairing retries and log why a start is refused (I-055)](PROGRESS_LOG.md#ot-0005i-allow-pairing-retries-and-log-why-a-start-is-refused-i-055). |
+| Latest record | [OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)](PROGRESS_LOG.md#ot-0005i-fix-pairing-retries-and-late-joining-found-on-the-boards-i-057-i-058). |
 | Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 

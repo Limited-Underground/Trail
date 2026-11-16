@@ -32,23 +32,36 @@ public:
         : ledger_(ledger),backend_(backend),capacity_(capacity) {}
     SessionGenerationAllocator(const SessionGenerationAllocator&)=delete;
     SessionGenerationAllocator& operator=(const SessionGenerationAllocator&)=delete;
+    // Which check refused the last initialize()/allocate() (I-058 diagnostics only).
+    enum class Failure : std::uint8_t {
+        none, setup, ledger_init, ledger_read, capacity, stale, ledger_write,
+        destination_read, destination_not_blank, failed_state
+    };
+    Failure failure() const { return failure_; }
     bool initialize() {
-        return operation([&] {
-            if(initialized_ || !capacity_ || !ledger_.initialize()) return false;
+        failure_=Failure::failed_state;
+        const bool ok=operation([&] {
+            if(initialized_ || !capacity_) {failure_=Failure::setup;return false;}
+            if(!ledger_.initialize()) {failure_=Failure::ledger_init;return false;}
             initialized_=true;
-            if(ledger_.empty()) return true;
+            if(ledger_.empty()) {failure_=Failure::none;return true;}
             PeerMembership m{};
-            if(!ledger_.read(m) || !valid(m)) return false;
-            generation_=m.generation; return true;
+            if(!ledger_.read(m) || !valid(m)) {failure_=Failure::ledger_read;return false;}
+            generation_=m.generation;failure_=Failure::none;return true;
         });
+        if(!ok && failure_==Failure::none) failure_=Failure::failed_state;  // wrapper refused
+        return ok;
     }
     bool allocate(std::uint64_t& output) {
         std::uint64_t next=0;
+        failure_=Failure::failed_state;
         const bool ok=operation([&] {
-            if(!initialized_ || generation_>=capacity_ || !exact()) return false;
+            if(!initialized_) {failure_=Failure::setup;return false;}
+            if(generation_>=capacity_) {failure_=Failure::capacity;return false;}
+            if(!exact()) {failure_=Failure::stale;return false;}
             next=generation_+1;
             const auto binding=token(next);
-            if(!(generation_ ? ledger_.rekey(binding) : ledger_.enroll(binding))) return false;
+            if(!(generation_ ? ledger_.rekey(binding) : ledger_.enroll(binding))) {failure_=Failure::ledger_write;return false;}
             generation_=next;
             // Commit before inspecting destination: even an interrupted/failed
             // validation consumes this generation; reconstruction allocates newer.
@@ -57,11 +70,13 @@ public:
                     authority_detail::Bytes bytes{};
                     if(reentered_) return false;
                     const auto r=backend_.read(next,static_cast<EvaluationNamespace>(n),static_cast<persistence::StorageDomain>(d),s,{bytes.data(),bytes.size()});
-                    if(reentered_ || !r.read() || r.bytes_read!=bytes.size()) return false;
-                    for(auto byte:bytes) if(byte!=0xff) return false;
+                    if(reentered_ || !r.read() || r.bytes_read!=bytes.size()) {failure_=Failure::destination_read;return false;}
+                    for(auto byte:bytes) if(byte!=0xff) {failure_=Failure::destination_not_blank;return false;}
                 }
-            return exact();
+            if(!exact()) {failure_=Failure::stale;return false;}
+            failure_=Failure::none;return true;
         });
+        if(!ok && failure_==Failure::none) failure_=Failure::failed_state;  // wrapper refused
         if(ok) { allocated_=true; output=next; }
         return ok;
     }
@@ -95,6 +110,7 @@ private:
     const std::uint64_t capacity_;
     std::uint64_t generation_{0};
     bool initialized_{false},allocated_{false},busy_{false},failed_{false},reentered_{false};
+    Failure failure_{Failure::none};
 };
 // This adapter pins all views to one allocated generation. A new allocation
 // invalidates even retained namespace views belonging to the old endpoint.

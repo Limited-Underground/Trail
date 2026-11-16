@@ -700,6 +700,13 @@ $builds = @(
         )
     },
     @{
+        Name = 'Pairing storage key slots (I-058)'
+        Output = Join-Path $buildDirectory 'pairing_storage_key_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_storage_key_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 startup display state owner'
         Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
         Sources = @(

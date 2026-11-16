@@ -117,19 +117,21 @@ void PairingNvsStorage::wipe(Bytes& bytes) {
 }
 
 bool PairingNvsStorage::key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]) {
-    if (g > kCapacity || n > 10 || (n >= 7 && g) ||
-        static_cast<unsigned>(d) >= persistence::kStorageDomainCount ||
-        s >= persistence::kPersistentSlotCount) {
-        return false;
-    }
-    return std::snprintf(key, sizeof(key), "g%08xn%xd%xs%x", static_cast<unsigned>(g), n,
-                         static_cast<unsigned>(d), static_cast<unsigned>(s)) == 15;
+    if (s >= pairing_key::kSlots) return false;
+    return pairing_key::format(g, n, static_cast<unsigned>(d), static_cast<unsigned>(s), kCapacity, key);
 }
 
-std::size_t PairingNvsStorage::index(const char* key) {
-    const auto n = key[10] >= 'a' ? key[10] - 'a' + 10 : key[10] - '0';
-    return ((static_cast<unsigned>(key[8] - '0') * 11 + static_cast<unsigned>(n)) * 5 +
-            static_cast<unsigned>(key[12] - '0')) * 2 + static_cast<unsigned>(key[14] - '0');
+static_assert(persistence::kStorageDomainCount == pairing_key::kDomains);
+static_assert(persistence::kPersistentSlotCount == pairing_key::kSlots);
+static_assert(sizeof(nvs_entry_info_t{}.key) == pairing_key::kKeyBytes);
+
+std::size_t PairingNvsStorage::index(const pairing_key::Key& key) {
+    const auto i = pairing_key::slot(key, kCapacity);
+    if (i >= pairing_key::table_size(kCapacity)) {
+        (void)fault();
+        return known_.size() - 1;  // guard slot
+    }
+    return i;
 }
 
 bool PairingNvsStorage::inventory() {
@@ -163,7 +165,7 @@ bool PairingNvsStorage::inventory() {
     return status == ESP_ERR_NVS_NOT_FOUND;
 }
 
-bool PairingNvsStorage::load(const char* key, Bytes& out) {
+bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {
     if (!good_) return false;
     if (pending_ && std::strcmp(key, pending_key_.data()) == 0) { out = pending_bytes_; return true; }
     std::size_t size = 0;
@@ -194,7 +196,7 @@ persistence::StorageReadResult PairingNvsStorage::read_tuple(std::uint64_t g, un
     return {ok ? Error::none : Error::io_failure, ok ? 64U : 0U};
 }
 
-bool PairingNvsStorage::start_mutation(const char* key) {
+bool PairingNvsStorage::start_mutation(const pairing_key::Key& key) {
     if (!good_ || !budget_ok()) return false;
     if (pending_ && std::strcmp(key, pending_key_.data()) != 0) { (void)fault(); return false; }
     return true;
