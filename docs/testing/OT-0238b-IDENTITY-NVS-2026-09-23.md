@@ -60,8 +60,9 @@ signing, but complete live owner/reset/signing composition is not claimed here.
 Update 2026-11-16 (I-068): a storage adapter now serves repeated reads from the
 bytes it last verified under its guard, only while no write is pending and the
 reset generation is unchanged (reset intent and user-domain erase both bump it),
-with one serialized writer. NVS is read directly on the first read, while a write
-is pending, and after any generation change. Retiring the identity owner wipes and
+with one serialized writer. NVS is read directly on the first read and while a
+write is pending. After a generation change the old adapter refuses before any NVS
+read; only a fresh adapter reads NVS and checks the reset marker. Retiring the identity owner wipes and
 permanently disables that copy, so no seed copy survives retirement or reset.
 
 ## Preflight and lifecycle review
