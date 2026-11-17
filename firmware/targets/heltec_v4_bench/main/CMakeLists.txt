@@ -28,13 +28,17 @@ if(OPENTRAIL_LORA_LINK_TEST)
     # supporting sources as the confirmation evaluation (never both; see below).
     set(OPENTRAIL_PAIRING_NOISE_ADAPTER "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_security_eval/main/noise_adapter")
     list(APPEND OPENTRAIL_LORA_SOURCES "heltec_v4_lora.cpp" "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"
-        "pairing_nvs_storage.cpp" "board_pairing_runtime.cpp"
+        "pairing_nvs_storage.cpp" "board_pairing_runtime.cpp" "board_messaging_runtime.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp"
         "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp")
-    list(APPEND OPENTRAIL_LORA_INCLUDES "${OPENTRAIL_RADIOLIB_HAL}" "${OPENTRAIL_PAIRING_NOISE_ADAPTER}")
+    list(APPEND OPENTRAIL_LORA_INCLUDES "${OPENTRAIL_RADIOLIB_HAL}" "${OPENTRAIL_PAIRING_NOISE_ADAPTER}"
+        "${OPENTRAIL_COMPONENT_ROOT}/delivery/include")
     list(APPEND OPENTRAIL_LORA_REQUIRES jgromes__radiolib esp_driver_spi)
 endif()
 if(OPENTRAIL_LORA_LINK_TEST AND OPENTRAIL_CONFIRMATION_EVALUATION)
