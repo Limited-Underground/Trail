@@ -2,6 +2,30 @@
 
 ## 2026-11-17
 
+### OT-0238c Speed up capture runner verification (I-027, I-048)
+
+The MeshTrail host capture runner now checks each Windows path component with
+one file attribute lookup. It refuses every reparse tag, checks ancestors again
+on each request, and retains the file type, containment, size and hash checks.
+The regression accepts a request, replaces its parent with a junction to the same
+bytes, and then verifies refusal. On other hosts it tests a directory symlink.
+The full suite still exceeds 300 seconds under profiling on the local PC, so
+the security matrix runs all capture tests in two separately timed groups.
+That complete run exposed the later pre-device resume suite at its existing
+90-second limit; its 58 tests passed standalone in 109 seconds. The same
+discovery splits that suite into two groups, preserving 90 seconds for each.
+The full offline security matrix passed 83 suite results with no timeouts.
+Capture groups passed 15/14 tests in 98.766/111.362 seconds; pre-device
+resume groups passed 29/29 in 48.081/48.885 seconds. The operator tests
+(17), runtime capsule tests (16), and documentation tests (48) also passed.
+The standalone capture profiles passed all 29 tests before (267.936 seconds)
+and after (312.405 seconds); full-suite wall time did not improve in those
+two samples. Alternating path-only runs measured a 27 percent helper saving.
+The matrix used all 733 files verified from the prescribed existing managed
+component tree; official ZIP admission was not repeated under the no-download
+rule. The local task report contains timings, CI evidence and the input limit.
+This is host tooling evidence only.
+
 ### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
 
 - Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.

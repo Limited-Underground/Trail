@@ -27,6 +27,38 @@ class Tests(unittest.TestCase):
         m={"schema":"OT212-DEADLINE-RUNTIME-1","root":str(capsule),"worktree":str(worktree),"files":files,"versions":{"python":"3.14.6","esptool":"5.3.1","pyserial":"3.5"},"powershell":{"path":str(host),"bytes":host.stat().st_size,"sha256":worker.digest(host.read_bytes())}}
         path,h=self.write("manifest.json",encoded(m))
         return m,path,h
+    def test_replaced_parent_refused_after_successful_request(self):
+        request, digest = self.write('parent/nested/request.json', b'{}')
+        self.assertEqual({}, worker.load_request(request, digest))
+        parent = self.root / 'parent'
+        parked = parent.rename(self.root / 'parked')
+        if os.name == 'nt':
+            shell = Path(os.environ['SystemRoot']) / 'System32/cmd.exe'
+            subprocess.run([str(shell), '/d', '/c', 'mklink', '/J', str(parent), str(parked)],
+                           check=True, capture_output=True, timeout=10,
+                           creationflags=subprocess.CREATE_NO_WINDOW)
+            self.assertTrue(parent.is_junction())
+        else:
+            parent.symlink_to(parked, target_is_directory=True)
+            self.assertTrue(parent.is_symlink())
+        # The original path is still readable and its hash is unchanged.
+        self.assertEqual(b'{}', request.read_bytes())
+        with self.assertRaises(worker.OperatorError):
+            worker.load_request(request, digest)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows file attributes')
+    def test_non_junction_reparse_attribute_refused(self):
+        request, _ = self.write('parent/request.json', b'{}')
+        get_attributes = worker._get_attributes
+
+        def mark_reparse(path):
+            return get_attributes(path) | (0x400 if path == str(request.parent) else 0)
+
+        # The raw reparse flag is sufficient even without a symlink/junction tag.
+        with patch.object(worker, '_get_attributes', side_effect=mark_reparse):
+            with self.assertRaises(worker.OperatorError):
+                worker.regular(request)
+
     def test_valid_manifest(self):
         m,p,h=self.manifest_fixture();self.assertEqual(m,worker.verify_manifest(p,h))
     def test_factory_selects_successor_without_mutating_frozen_endpoint(self):

@@ -63,6 +63,15 @@ Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-ord
 
 The first step 3b storage increment is a local host candidate. It reserves the sender's group message numbers durably against the full group and sender identities, and resumes above the last reserved range after a restart. See [OT-0305 Reserve durable group message numbers on the host](PROGRESS_LOG.md#ot-0305-reserve-durable-group-message-numbers-on-the-host). The [per-pair storage index](PROGRESS_LOG.md#ot-0305-index-durable-group-pair-storage-on-the-host) maps qualified peers to durable slots after the roster commits. The host candidate retains roster watermarks and issues a fresh incarnation when a pair slot is reused. The [durable receive window](PROGRESS_LOG.md#ot-0305-persist-the-group-receive-window-on-the-host) suppresses duplicates across host reopen and refuses delivery on uncertain storage. Remaining step 3 boundaries include durable roster and pair-record composition, group ACK and authenticated routing, retention/reset policy and write-wear validation. The Heltec target and Android path remain open.
 
+## Capture runner host verification
+
+The I-027/I-048 change reduces path verification work by reading Windows file
+attributes once per component. The security matrix gives each of two capture test
+groups its own 300-second limit. Every request still rechecks its ancestors,
+and a parent replaced by a junction is refused even when it leads to the same
+file. See the [capture runner progress entry](PROGRESS_LOG.md#ot-0238c-speed-up-capture-runner-verification-i-027-i-048).
+This change does not add device evidence.
+
 ## Development rules
 
 On 2026-11-11 the owner ended the November 2 product freeze and its November 3
