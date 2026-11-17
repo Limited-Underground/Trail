@@ -226,12 +226,14 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
             additionalDeviceTools = { if (landscape) additionalTools() },
-        ) { onSetupComplete ->
+        ) { onSetupComplete, onSetUpLater ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
                     "Connect below to read your device name and radio-region settings."),
-                onAction = {},
+                onAction = { action ->
+                    if (action == V1OnboardingUiAction.Back) onSetUpLater()
+                },
                 footer = appSettings,
                 connectionContent = {
                     Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {

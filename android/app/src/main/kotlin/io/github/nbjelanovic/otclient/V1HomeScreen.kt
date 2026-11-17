@@ -39,7 +39,7 @@ internal fun V1HomeScreen(
     additionalDeviceTools: @Composable () -> Unit = {},
     onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
-    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
+    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit, onSetUpLater: () -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
         save={ it.save() },restore={ V1HomeLaunchState.restore(it) }) }
@@ -133,9 +133,12 @@ internal fun V1HomeScreen(
                         TextButton(onClick = { support = true }) { Text("Help & support") }
                         additionalDeviceTools()
                     }
-                    Box(Modifier.weight(1f)) { deviceContent { scope ->
-                        navigation = navigation.finish(scope,currentRuntime)
-                    } }
+                    Box(Modifier.weight(1f)) {
+                        deviceContent(
+                            { scope -> navigation = navigation.finish(scope, currentRuntime) },
+                            { navigation = navigation.select(V1AppDestination.MESSAGES) },
+                        )
+                    }
                     TextButton(onClick = { setupDraft = true }) { Text("Prepare setup choices") }
                 }
             }
