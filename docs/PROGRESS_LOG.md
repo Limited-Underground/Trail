@@ -1,5 +1,24 @@
 # Limited Underground MeshTrail progress log
 
+## 2026-11-17
+
+### OT-0266b Limited Underground MeshTrail Repeater RadioLib bounds review (I-011)
+
+- Traced all seven RadioLib command-header warning sites against the pinned
+  SX1262 receive call graph. The private driver keeps CMD8/ADDR16/STATUS8:
+  three header bytes fit cmd[6], and one opcode fits cmdBuf[2].
+- Added source-bound host checks for that invariant and exercised the seven
+  actual unmodified Module methods through their used payload bounds.
+  The possible nine-byte GFSK packet-setting response path is included.
+- The fresh offline P1-Pro build reproduced the archived ELF and HEX,
+  103,764 flash bytes, 14,892 static RAM bytes and the same 91 diagnostics.
+  The 20-suite Repeater baseline passed 163 groups. Independent bounds review
+  found no blocker. Recommend closing I-011 for this exact candidate.
+  Future backend, vendor or allocation-mode changes require a renewed review.
+- Focused check uses tests/host/p1pro_radiolib_buffer_tests.py with explicit
+  --radiolib-root, --compiler and fresh --output-dir paths. Current physical
+  submission stays refused. TASK-3 evidence is retained on D:.
+
 ## 2026-11-16
 
 ### OT-0266b Limited Underground MeshTrail Repeater US915 follow-up (I-012)
