@@ -29,16 +29,16 @@ def pin(path):
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
-def custody_suite(commands, path, env):
-    # Preserve real durable I/O while bounding cumulative work per CI child.
+def unittest_groups(path, count, kind):
+    # Preserve all real test work while bounding cumulative work per CI child.
     spec = importlib.util.spec_from_file_location(path.stem, path)
-    need(spec is not None and spec.loader is not None, "custody_test_module_missing")
+    need(spec is not None and spec.loader is not None, f"{kind}_test_module_missing")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     loader = unittest.TestLoader()
     tests = loader.loadTestsFromModule(module)
-    need(not loader.errors, "custody_test_discovery_failed")
+    need(not loader.errors, f"{kind}_test_discovery_failed")
 
     def test_ids(suite):
         for test in suite:
@@ -49,13 +49,18 @@ def custody_suite(commands, path, env):
 
     ids = list(test_ids(tests))
     prefix = module.__name__ + "."
-    need(len(ids) == tests.countTestCases() and len(ids) >= 4 and
+    need(len(ids) == tests.countTestCases() and len(ids) >= count and
          len(ids) == len(set(ids)) and all(test.startswith(prefix) for test in ids),
-         "custody_test_discovery_incomplete")
+         f"{kind}_test_discovery_incomplete")
     selectors = [test[len(prefix):] for test in ids]
-    groups = [selectors[index::4] for index in range(4)]
+    groups = [selectors[index::count] for index in range(count)]
     need(all(groups) and sorted(test for group in groups for test in group) == sorted(selectors),
-         "custody_test_group_coverage_incomplete")
+         f"{kind}_test_group_coverage_incomplete")
+    return groups
+
+
+def custody_suite(commands, path, env):
+    groups = unittest_groups(path, 4, "custody")
     records = []
     for index, group in enumerate(groups, 1):
         completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *group],
@@ -63,7 +68,7 @@ def custody_suite(commands, path, env):
         records.append({"group": index, "tests": group,
                         "output": (completed.stdout + completed.stderr).strip(), "result": "passed"})
     return {"output": "\n".join(record["output"] for record in records),
-            "result": "passed", "test_count": len(selectors), "groups": records}
+            "result": "passed", "test_count": sum(map(len, groups)), "groups": records}
 
 
 def run(output, cached_component=None):
@@ -425,11 +430,23 @@ def run(output, cached_component=None):
             if name == "enrollment_candidate_custody_tests":
                 need(not extra, "custody_test_extra_arguments_refused")
                 result["suites"][name] = custody_suite(commands, path, env)
+            elif name in ("enrollment_candidate_capture_runner_tests",
+                          "enrollment_candidate_predevice_resume_tests"):
+                need(not extra, "grouped_test_extra_arguments_refused")
+                timeout = 300 if name == "enrollment_candidate_capture_runner_tests" else 90
+                for index, selectors in enumerate(unittest_groups(path, 2, name), 1):
+                    sibling = f"{name}_part{index}"
+                    completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *selectors],
+                                             env=env, check=True, timeout=timeout)
+                    result["suites"][sibling] = {
+                        "output": (completed.stdout + completed.stderr).strip(),
+                        "result": "passed", "tests": selectors, "timeout_seconds": timeout}
+                    print(sibling + " passed", flush=True)
+                continue
             else:
                 completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *extra],
                     env=env, check=True, timeout={"enrollment_candidate_budget_adoption_tests": 600,
-                             "enrollment_candidate_runner_tests": 600,
-                             "enrollment_candidate_capture_runner_tests": 300}.get(name, 90))
+                             "enrollment_candidate_runner_tests": 600}.get(name, 90))
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}
             print(name + " passed", flush=True)
