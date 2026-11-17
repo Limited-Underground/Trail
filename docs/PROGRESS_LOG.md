@@ -1,6 +1,27 @@
 # OpenTrail Progress Log
 
+## 2026-11-17
+
+### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
+
+- Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.
+- No code change. Retry of dropped copies is described in the 2026-11-16 entry below.
+
+### OT-0005i Board screen shows the real radio state (I-044)
+
+The owner's photos from the sixth board session showed the Heltec home screen saying "REGION US915 TX OFF" and "RADIO --" while the link-test boards were transmitting on US915 (D-079).
+- **Link-test builds:** with US915 saved and the radio running, the screen now shows `REGION US915 TX ON`, and `RADIO TX`, `RADIO RX` or `RADIO IDLE` for recent activity.
+- **Normal builds:** these do not transmit, and show `TX OFF` and `RADIO OFF`.
+
+Tests: the OLED port and presentation host tests and bench admission (20 groups) pass; the link-test build is 812,496 bytes, with no warnings (Codex).
+
 ## 2026-11-16
+
+### OT-0005i Retry pairing copies dropped before radio launch (I-061)
+
+The MeshTrail bench radio reports confirmed pre-launch discards to the pairing coordinator. A discarded pairing copy returns its send slot and is eligible for re-offer under the current request window, reserves and send floors. The app resolves the drop before accepting a new offer and discards pending pairing bytes when their runtime ends. It preserves receive-before-launch ordering and the three-backoff CAD limit.
+
+The queued-radio regression replayed the responder handshake and final-control drops across eight seeds each. Both boards paired in every replay with feedback. Before feedback, the handshake case paired neither board and the final-control case paired only the responder, with the same three-backoff limit. Validation and exact image provenance belong to the local task report. Board validation remains pending, and I-059 and I-062 still track completion under RF loss and asymmetric commitment.
 
 ### OT-0305 Persist the group receive window on the host
 
@@ -48,6 +69,14 @@ The fourth owner-present board session (main `b0fd006`) got through the whole ra
 I-044 and the owner's Device layout report. The Limited Underground MeshTrail Android app reports saved region results without inferring radio activity. A board that sends unavailable radio telemetry now appears as “radio status not reported.” App settings is at the end of the Device scroll in both connected and first-use views. The first-use heading uses MeshTrail (D-100). Pairing and Bluetooth connection code retain their existing behavior.
 
 Host validation and the read-only usability review are in the local task report. Phone acceptance remains pending.
+
+### OT-0170a Restore V1-Test compilation (I-053)
+
+V1-Test failed to compile on `b0fd0063` because the connection trace did not
+classify `BLUETOOTH_STATE_READ_DENIED`. It now records the exact reason using
+the existing log record format. The variant's checked-in JVM tests are wired
+into Gradle and exercise every runtime block through log write, reload, and
+export. The host workflow requires the Android V1-Test compilation job.
 
 ### OT-0305 Reserve durable group message numbers on the host
 

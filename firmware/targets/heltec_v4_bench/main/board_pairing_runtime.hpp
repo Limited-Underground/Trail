@@ -55,6 +55,7 @@ public:
                  std::size_t& out_size);
     // Whether the radio accepted the frame the last service() offered.
     void sent(bool accepted, std::uint64_t now_ms);
+    void unsent();
     // Received LoRa bytes. Non-pairing traffic is ignored by the coordinator.
     void on_receive(const std::uint8_t* data, std::size_t size);
     // The radio stopped: an attempt in progress ends.

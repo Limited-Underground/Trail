@@ -10,6 +10,8 @@
 // Sends: service() only offers a frame; the caller reports sent(accepted). Only
 // frames the radio accepted count against max_sends (D-087), and every
 // produced frame must be accepted before a local step (including commit) runs.
+// A caller with a transmit queue reports a confirmed pre-launch discard with
+// unsent() before accepting another frame.
 //
 // Loss recovery, within Limits:
 // - A board repeats each frame it sent, every resend_after_ms, until a later
@@ -226,13 +228,32 @@ public:
     // held frame is offered again on a later service().
     void sent(bool accepted, std::uint64_t now_ms) {
         if (offered_ == 0) return;
-        auto& o = sent_[offered_ - 1];
+        const auto offered = offered_;
         offered_ = 0;
         if (!accepted) return;
+        auto& o = sent_[offered - 1];
+        last_accepted_ = {offered, o.last_ms, o.wait_ms};
         ++o.sends;
         o.last_ms = now_ms;
         o.wait_ms = interval(o);
         o.due = false;
+        o.retry_unsent = false;
+    }
+
+    // Take back the most recently accepted copy once, when the caller knows it
+    // was discarded before transmission. A refused offer leaves that copy alone.
+    // Any offer made before the correction must be recomputed on the next service.
+    bool unsent() {
+        if (last_accepted_.index == 0 || outcome_ == Outcome::failed) return false;
+        auto& o = sent_[last_accepted_.index - 1];
+        --o.sends;
+        o.last_ms = last_accepted_.previous_ms;
+        o.wait_ms = last_accepted_.previous_wait_ms;
+        o.due = !o.received;
+        o.retry_unsent = o.due;
+        last_accepted_ = {};
+        offered_ = 0;
+        return true;
     }
 
     Outcome outcome() const { return outcome_; }
@@ -257,7 +278,14 @@ private:
         std::uint64_t created_ms{};
         bool due{};
         bool received{};
+        bool retry_unsent{};
         std::uint64_t wait_ms{};  // until the next timed resend          // the peer's later frames prove it has this one               // resend requested by a peer repeat
+    };
+
+    struct AcceptedSend {
+        std::size_t index{};
+        std::uint64_t previous_ms{};
+        std::uint64_t previous_wait_ms{};
     };
 
     // D-106: the candidate hello uses its own limits; every other frame keeps D-087.
@@ -334,6 +362,7 @@ private:
             if (position(peer_, StepKind::receive, o.type, o.instance) < sent_at) {
                 o.received = true;
                 o.due = false;  // an answer queued before the proof is no longer needed
+                o.retry_unsent = false;
             }
         }
     }
@@ -463,14 +492,27 @@ private:
     // Offers a frame to the caller. It counts as a send only when the caller
     // reports that the radio accepted it (sent(true, ...)); D-087.
     bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
-        if (outcome_ == Outcome::running && sent_[k].type == FrameType::control) {
-            std::uint64_t left = 0;
-            const auto floor = sent_[k].sends == 0 ? limits_.final_first_send_floor_ms
-                                                   : limits_.final_send_floor_ms;
-            if (!remaining(now_ms_, left) || left < floor) return false;
+        const auto& o = sent_[k];
+        if (o.type == FrameType::control) {
+            const auto floor = o.sends == 0 ? limits_.final_first_send_floor_ms
+                                            : limits_.final_send_floor_ms;
+            if (outcome_ == Outcome::running) {
+                std::uint64_t left = 0;
+                if (!remaining(now_ms_, left) || left < floor) return false;
+                final_budget_checked_ms_ = now_ms_;
+                final_budget_left_ms_ = left;
+            } else if (o.retry_unsent) {
+                // After local commit the adapter no longer supplies a completion
+                // budget. Age the last live window for this refunded control.
+                if (now_ms_ < final_budget_checked_ms_) return false;
+                const auto used = now_ms_ - final_budget_checked_ms_;
+                if (used > final_budget_left_ms_ || final_budget_left_ms_ - used < floor) {
+                    return false;
+                }
+            }
         }
-        out = sent_[k].bytes;
-        out_size = sent_[k].size;
+        out = o.bytes;
+        out_size = o.size;
         offered_ = k + 1;
         return true;
     }
@@ -495,6 +537,9 @@ private:
     std::array<Outgoing, kSlots> sent_{};
     std::size_t sent_count_{0};
     std::size_t offered_{0};  // 1-based index of the frame last offered
+    AcceptedSend last_accepted_{};
+    std::uint64_t final_budget_checked_ms_{0};
+    std::uint64_t final_budget_left_ms_{0};
     std::uint64_t start_ms_{0};
     bool heard_{false}, heard_any_{false};
     std::uint64_t now_ms_{0};  // of the current service()

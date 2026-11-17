@@ -71,6 +71,7 @@ android {
 
     // Exercise the exact formatter used above, rather than a second implementation.
     sourceSets.getByName("test").java.srcDir(rootProject.file("buildSrc/src/main/java"))
+    sourceSets.maybeCreate("testV1Test").java.srcDir("src/v1TestUnitTest/kotlin")
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

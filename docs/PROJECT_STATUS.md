@@ -26,6 +26,10 @@ bind, retries the owned board after a link failure, and keeps the initiator's co
 visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
 The correction still needs phone verification.
 
+I-053 restores V1-Test compilation by recording a denied Bluetooth state read
+as its own trace reason. The host workflow checks V1-Test compilation and the
+variant's JVM tests cover log write, reload, and export.
+
 ## Heltec V4 factory reset fixes
 
 On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
@@ -160,18 +164,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-16 |
-| Task | [OT-0005i, Trail #232](https://github.com/Limited-Underground/Trail/issues/232) — Android start/join for first board pairing (V1 F5 R2b). |
-| Owner | Codex owns the isolated Android R2b code, host checks and closeout on feature/f5-r2b-app-pairing-start. |
-| Scope | Protected action 6 role and code, correlated admission/refusal, and the Device tab pairing flow. Board-local trust confirmation and final completion stay with firmware. |
-| State | Host validation passed on the local feature branch. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
-| Source | R2b worktree in D:/LimitedUnderground/Build/worktrees/trl-r2b-app. Integrated origin/main 39996607ae140271b59d75a950b3d1cd646c4e32 (PR #255). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | Offline protocol tests 114 of 114, Android debug unit tests 622 of 622, and Android operational-release admission 23 of 23. |
-| Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
-| Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
+| Reviewed | 2026-11-17 |
+| Task | OT-0005i — MeshTrail bench pairing radio drop feedback (V1 F5 R2a, I-061). |
+| Owner | Codex owns the pre-launch drop feedback, focused host checks and local closeout on feat/i061-listen-before-talk-v2. |
+| Scope | Route a confirmed drop from the bench radio queue to the pairing coordinator and re-offer within the same request and send floors. |
+| State | Local host candidate for review. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Source | Local v2 worktree in D:/LimitedUnderground/Build/worktrees/trl-lbt-v2. Base b4c843bb (PR #271) and queued comparison 007f002. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | Coordinator and seeded queue replay passed 23 groups, the LoRa driver passed 10 groups, and bench admission passed 20 groups. See the local task report for link-test build evidence. |
+| Blocker | Physical radio and pairing validation waits for a separately authorized owner-present two-board session. |
+| Next action | Review the local v2 change and link-test image evidence. Use a separately authorized board session for radio behavior and two-sided completion. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Fast identity reads during board pairing (I-068, I-069)](PROGRESS_LOG.md#ot-0005i-fast-identity-reads-during-board-pairing-i-068-i-069). |
-| Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
+| Latest record | [OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)](PROGRESS_LOG.md#ot-0005i-listen-before-talk-updated-to-current-main-i-061-i-063-i-064). |
+| Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-4.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

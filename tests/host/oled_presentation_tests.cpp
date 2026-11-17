@@ -72,9 +72,11 @@ void region_and_unknown_authority() {
 }
 void metric_and_activity_edges() {
     auto s=normal();s.battery={true,100,100};s.satellites={true,99,100};
-    s.gps_fix=GpsFix::fix;s.gps_sampled_at_ms=100;s.tx={true,100};s.rx={true,100};
+    s.gps_fix=GpsFix::fix;s.gps_sampled_at_ms=100;
+    s.radio_running = true;
+    s.tx={true,100};s.rx={true,100};
     CHECK(has(render(s,100),"100%"));CHECK(has(render(s,100),"99"));
-    CHECK(has(render(s,1099),"RADIO TX RX"));CHECK(has(render(s,1100),"RADIO --"));
+    CHECK(has(render(s,1099),"RADIO TX RX"));CHECK(has(render(s,1100),"RADIO IDLE"));
     CHECK(!has(render(s,99),"100%"));CHECK(!has(render(s,99),"RADIO TX"));
     CHECK(has(render(s,30099),"100%"));CHECK(!has(render(s,30100),"100%"));
     CHECK(!has(render(s,30100),"GPS FIX"));

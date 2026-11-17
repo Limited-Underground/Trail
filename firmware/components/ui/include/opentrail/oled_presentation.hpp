@@ -60,12 +60,14 @@ struct Snapshot {
     bool region_configured{false};
     std::string_view region_label{};
     bool tx_available{false};
+    bool radio_running{false};
     Metric battery{};
     Metric satellites{};
     GpsFix gps_fix{GpsFix::unknown};
     std::uint64_t gps_sampled_at_ms{0};
     Pulse tx{};
     Pulse rx{};
+    std::uint64_t activity_visible_for_ms{kActivityPulseMs};
     // Caller obtains clock.observe(now_ms) for this coherent snapshot. The renderer
     // checks its numeric/text structure but cannot establish age from a reading.
     opentrail::time::OledClockReading clock{};
@@ -80,7 +82,7 @@ struct Frame {
 };
 
 // Normal rows: name, phone, group/location (or board pairing), region/TX, battery/satellites,
-// GPS fix, radio pulses, clock. Exclusive surfaces leave unused rows blank.
+// GPS fix, radio status, clock. Exclusive surfaces leave unused rows blank.
 // Each call creates an independent frame; caller owns its lifetime and display I/O.
 // Pure renderer requires an independently checked nondecreasing time source;
 // normal consumers use PresentationOwner to contain rollback across calls.

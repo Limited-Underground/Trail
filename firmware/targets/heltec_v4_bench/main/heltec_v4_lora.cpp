@@ -4,6 +4,8 @@
 #include <cmath>
 
 #include "driver/gpio.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 #include "lora_packet_status.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -21,6 +23,10 @@ constexpr int kDio1Pin = 14;
 // A 255-byte frame at SF7/125 kHz is about 0.4 s on air; anything past 2 s
 // means the chip did not report TX done.
 constexpr std::uint64_t kMaximumTransmitMs = 2000;
+// The default SF7/125 kHz CAD takes a few milliseconds. Bound the DIO1 wait
+// in case the chip never signals completion.
+constexpr std::int64_t kCadTimeoutUs = 30'000;
+constexpr unsigned kMaximumBackoffs = 3;
 
 }  // namespace
 
@@ -30,6 +36,12 @@ void HeltecV4Lora::fem_off() {
     }
 }
 
+void HeltecV4Lora::discard_queued() {
+    if (tx_bytes_ == 0) return;
+    tx_bytes_ = 0;
+    ++counters_.tx_prelaunch_dropped;
+}
+
 void HeltecV4Lora::fault() {
     // After a failed SPI command no further command is issued; the front end
     // is powered down directly and the transport stays off until restart.
@@ -37,7 +49,8 @@ void HeltecV4Lora::fault() {
     faulted_ = true;
     last_error_ = radio::RadioError::io_failure;
     fem_off();
-    tx_bytes_ = rx_bytes_ = 0;
+    discard_queued();
+    rx_bytes_ = 0;
 }
 
 bool HeltecV4Lora::ok(std::int16_t result) {
@@ -88,7 +101,8 @@ void HeltecV4Lora::stop() {
     if (running_) (void)radio_.standby();
     running_ = transmitting_ = receiving_ = false;
     fem_off();
-    tx_bytes_ = rx_bytes_ = 0;
+    discard_queued();
+    rx_bytes_ = 0;
 }
 
 radio::TransportStatus HeltecV4Lora::status() const {
@@ -118,6 +132,8 @@ radio::SendResult HeltecV4Lora::send(radio::ByteView frame, std::uint64_t) {
     if (tx_bytes_ != 0 || transmitting_) return {radio::RadioError::queue_full, 0};
     std::copy_n(frame.data, frame.size, tx_.begin());
     tx_bytes_ = frame.size;
+    retry_at_ms_ = 0;
+    backoffs_ = 0;
     return {radio::RadioError::none, frame.size};
 }
 
@@ -229,36 +245,99 @@ void HeltecV4Lora::service(std::uint64_t now_ms) {
         if (!read_irq(irq)) return;
         if (!take_received_frame(irq, now_ms)) return;
         if (!ok(radio_.finishReceive())) return;
-        receiving_ = false;
+        (void)arm_receive();
+    }
+}
+
+bool HeltecV4Lora::transmit_permitted() const {
+    return permission_ != nullptr && permission_(permission_context_);
+}
+
+std::int16_t HeltecV4Lora::detect_channel_activity() {
+    // Use the same default CAD parameters as scanChannel(), with a bounded
+    // wait for DIO1 in place of RadioLib's indefinite wait.
+    const auto result = radio_.startChannelScan();
+    if (result != RADIOLIB_ERR_NONE) return result;
+    const auto started_us = esp_timer_get_time();
+    while (gpio_get_level(static_cast<gpio_num_t>(kDio1Pin)) == 0) {
+        if (esp_timer_get_time() - started_us >= kCadTimeoutUs) {
+            return RADIOLIB_ERR_RX_TIMEOUT;
+        }
+        hal_.yield();
+    }
+    return radio_.getChannelScanResult();
+}
+
+void HeltecV4Lora::back_off(std::uint64_t now_ms) {
+    std::uint32_t random = 0;
+    if (backoffs_ == kMaximumBackoffs ||
+        !random_.fill(reinterpret_cast<std::uint8_t*>(&random), sizeof(random)).ok()) {
+        ++counters_.tx_busy_dropped;
+        discard_queued();
+        return;
     }
 
-    // 3. A queued frame: check the transmit grant at the moment of launch
-    //    (review F4), then stop receiving and collect anything that completed
-    //    up to that instant before TX staging clears the IRQs and the FIFO
-    //    (review F2). Standby ends reception, so no frame can complete during
-    //    staging.
-    if (tx_bytes_ != 0) {
-        if (permission_ == nullptr || !permission_(permission_context_)) {
-            tx_bytes_ = 0;
-            ++counters_.tx_refused;
-        } else {
-            if (receiving_) {
-                if (!ok(radio_.standby())) return;
-                receiving_ = false;
-                std::uint16_t irq = 0;
-                if (!read_irq(irq)) return;
-                if (receive_completed(irq) && !take_received_frame(irq, now_ms)) return;
-            }
-            ++counters_.tx_attempts;
-            tx_started_ms_ = now_ms;
-            if (!ok(radio_.startTransmit(tx_.data(), tx_bytes_))) return;
-            tx_bytes_ = 0;
-            transmitting_ = true;
+    const auto airtime_us = radio_.getTimeOnAir(tx_bytes_);
+    const auto slots = 1U + random % 3U;
+    const auto delay_ms = (static_cast<std::uint64_t>(airtime_us) * slots + 999U) / 1000U;
+    retry_at_ms_ = now_ms + delay_ms;
+    ++backoffs_;
+    ESP_LOGI("lora_link", "CAD busy: backoff=%lu ms airtime=%lu us slots=%u retry=%u/%u",
+             static_cast<unsigned long>(delay_ms), static_cast<unsigned long>(airtime_us),
+             static_cast<unsigned>(slots), backoffs_, kMaximumBackoffs);
+}
+
+void HeltecV4Lora::launch_queued(std::uint64_t now_ms) {
+    if (!running_ || transmitting_ || tx_bytes_ == 0 || rx_bytes_ != 0) return;
+    if (!transmit_permitted()) {
+        ++counters_.tx_refused;
+        discard_queued();
+        return;
+    }
+    if (now_ms < retry_at_ms_) return;
+
+    // Standby ends RX without clearing the IRQs. Preserve a frame that
+    // completed after service() but before standby. CAD would clear it.
+    const auto started_us = esp_timer_get_time();
+    if (!ok(radio_.standby())) return;
+    receiving_ = false;
+    std::uint16_t irq = 0;
+    if (!read_irq(irq)) return;
+    if (receive_completed(irq)) {
+        if (!take_received_frame(irq, now_ms)) return;
+        if (rx_bytes_ != 0) {
+            (void)arm_receive();
             return;
         }
     }
 
-    if (!receiving_) (void)arm_receive();
+    const auto activity = detect_channel_activity();
+    if (activity == RADIOLIB_LORA_DETECTED) {
+        const auto elapsed_us = static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
+        back_off(now_ms + (elapsed_us + 999U) / 1000U);
+        (void)arm_receive();
+        return;
+    }
+    if (activity != RADIOLIB_CHANNEL_FREE) {
+        fault();
+        return;
+    }
+
+    // The region may change during CAD. Ask again immediately before TX.
+    if (!transmit_permitted()) {
+        ++counters_.tx_refused;
+        discard_queued();
+        (void)arm_receive();
+        return;
+    }
+    ++counters_.tx_attempts;
+    tx_started_ms_ = now_ms;
+    const auto queued_bytes = tx_bytes_;
+    tx_bytes_ = 0;
+    // A failure returned by the TX operation can leave launch uncertain.
+    // The pre-launch drop counter covers only a provably unlaunched queue entry.
+    if (!ok(radio_.startTransmit(tx_.data(), queued_bytes))) return;
+    transmitting_ = true;
 }
 
 }  // namespace opentrail::target::heltec_v4_bench

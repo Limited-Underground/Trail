@@ -4,10 +4,12 @@
 // can drop chosen frames. The fake session authenticates by checking that each
 // payload is exactly what the peer produced for that type and instance.
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -35,6 +37,7 @@ struct FakeSession {
     int peer_role{};
     int review_ticks{3};
     int confirm_ticks{2};
+    std::uint64_t review_at_ms{0}, confirm_at_ms{0};  // optional absolute times for phased polls
     bool refuse_consume{false};
     int produced[11]{};
     int consumed[11]{};
@@ -43,7 +46,9 @@ struct FakeSession {
     bool committed{false};
     // The session's own deadline (request or signed invitation), on the test clock.
     std::uint64_t deadline_ms{~std::uint64_t{0}};
+    bool refuse_remaining_after_commit{false};
     bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out) const {
+        if (committed && refuse_remaining_after_commit) return false;
         out = deadline_ms == ~std::uint64_t{0} ? deadline_ms : now_ms >= deadline_ms ? 0 : deadline_ms - now_ms;
         return true;
     }
@@ -63,9 +68,15 @@ struct FakeSession {
         log.push_back(-static_cast<int>(t));
         return true;
     }
-    LocalResult local(LocalStep s, std::uint64_t) {
-        if (s == LocalStep::review) return ++review_waited >= review_ticks ? LocalResult::done : LocalResult::pending;
-        if (s == LocalStep::confirm) return ++confirm_waited >= confirm_ticks ? LocalResult::done : LocalResult::pending;
+    LocalResult local(LocalStep s, std::uint64_t now) {
+        if (s == LocalStep::review) {
+            const bool ready = review_at_ms ? now >= review_at_ms : ++review_waited >= review_ticks;
+            return ready ? LocalResult::done : LocalResult::pending;
+        }
+        if (s == LocalStep::confirm) {
+            const bool ready = confirm_at_ms ? now >= confirm_at_ms : ++confirm_waited >= confirm_ticks;
+            return ready ? LocalResult::done : LocalResult::pending;
+        }
         committed = true;
         return LocalResult::done;
     }
@@ -80,6 +91,8 @@ Limits window_120s() {
     l.hello_max_sends = 30;
     return l;
 }
+
+enum class QueuedRadioMode { baseline, receive_first, listen_before_talk };
 
 struct Run {
     FakeSession a{1, 2}, b{2, 1};
@@ -101,6 +114,9 @@ struct Run {
     // SF7 airtime and arrives at the end of it; a radio still sending refuses new
     // frames; frames whose airtimes overlap are both lost.
     bool half_duplex{false};
+    bool queued_radio{false};
+    QueuedRadioMode queued_mode{QueuedRadioMode::baseline};
+    std::uint64_t b_poll_phase_ms{0};  // A polls at phase zero, both periods are 100 ms
     bool trace{false};  // print each accepted frame (debugging only)
     // A transmit hold on one board: its radio refuses every offer in [from, until).
     bool hold_a{true};
@@ -109,53 +125,235 @@ struct Run {
     std::function<bool(const FrameBuffer&, bool)> drop_frame = [](const FrameBuffer&, bool) { return false; };
     int sent_a{0}, sent_b{0};      // frames the radio accepted
     int collisions{0};             // half-duplex: frames lost to overlapping airtime
+    int receive_rearm_losses{0};   // peer waited for TX_DONE when a new frame began
     struct Air {
         FrameBuffer bytes{};
         std::size_t n{0};
         std::uint64_t start{0}, end{0};
         bool lost{false};
+        bool last_allowed_copy{false};
     } air_a, air_b;
+    struct AcceptedCopies {
+        FrameBuffer bytes{};
+        unsigned count{0};
+    };
+    struct Radio {
+        Air queued{}, air{}, received{};
+        bool transmitting{false};  // true until the TX_DONE poll re-arms RX
+        std::uint64_t receive_blocked_until_ms{0};
+        std::uint64_t retry_at_ms{0};
+        unsigned backoffs{0};
+        std::mt19937 random{};
+        std::vector<AcceptedCopies> accepted;
+    };
+
+    std::uint32_t cad_seed{1};
+    bool report_prelaunch_drops{true};
+    int cad_checks{0}, cad_backoffs{0}, cad_drops{0}, cad_last_copy_drops{0};
+    int cad_interrupted_rx{0};
+    int prelaunch_refunds{0};
+    // Optional interference, in addition to actual modeled peer airtime.
+    std::function<bool(const Air&, bool, unsigned)> force_cad_busy;
+
+    static FrameType frame_type(const FrameBuffer& frame) {
+        return static_cast<FrameType>(frame[2] & 0x0f);
+    }
 
     // LoRa airtime at the bench profile: 125 kHz, SF7, CR 4/5, explicit header,
     // CRC, 8 preamble symbols (an offer, 115 bytes, is 194.816 ms).
-    static std::uint64_t airtime_ms(std::size_t bytes) {
+    static std::uint64_t airtime_us(std::size_t bytes) {
         const std::size_t symbols = 8 + ((8 * bytes + 16 + 27) / 28) * 5;
-        return static_cast<std::uint64_t>((12.25 + static_cast<double>(symbols)) * 1.024 + 0.999);
+        return 12544 + symbols * 1024;  // 12.25 preamble symbols plus data
+    }
+
+    static std::uint64_t airtime_ms(std::size_t bytes) {
+        return (airtime_us(bytes) + 999) / 1000;
     }
 
     void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
-                  int& offered, int& sent, bool from_a, std::uint64_t now) {
-        if (!live) return;
+                  int& offered, int& sent, bool from_a, std::uint64_t now,
+                  Radio* radio = nullptr, Radio* peer_radio = nullptr, bool received = false) {
         FrameBuffer f{};
         std::size_t n = 0;
-        if (!c.service(now, f, n) || !n) return;
+        const bool has_offer = live && c.service(now, f, n) && n;
+        // The v2 app hands off RX, runs pairing service, then launches any old
+        // queue entry on a poll with no RX. A pre-launch drop invalidates an
+        // offer based on the earlier send count, so recompute it on a later poll.
+        if (radio && queued_mode != QueuedRadioMode::baseline && !received &&
+            launch_queued(*radio, *peer_radio, from_a, now) && report_prelaunch_drops) {
+            const bool refunded = c.unsent();
+            EXPECT(refunded);
+            if (refunded) {
+                auto copy = accepted_copy(*radio);
+                EXPECT(copy != radio->accepted.end() && copy->count != 0);
+                if (copy != radio->accepted.end() && copy->count != 0) --copy->count;
+                ++prelaunch_refunds;
+            }
+            if (has_offer) c.sent(false, now);
+            return;
+        }
+        if (!has_offer) return;
         // Like the board: the coordinator runs, and a radio still on air refuses.
         const bool held = from_a == hold_a && now >= hold_from_ms && now < hold_until_ms;
-        const bool accepted = !mine.n && !held && !refuse(offered++, from_a);
+        const bool busy = radio ? radio->transmitting || radio->queued.n != 0 : mine.n != 0;
+        const bool accepted = !busy && !held && !refuse(offered++, from_a);
         c.sent(accepted, now);
         if (!accepted) return;
-        mine.bytes = f;
-        mine.n = n;
-        mine.start = now;
-        mine.end = now + airtime_ms(n);
-        mine.lost = drop(sent, from_a) || drop_frame(f, from_a);
+        auto& frame = radio ? radio->queued : mine;
+        frame = {f, n, 0, 0, drop(sent, from_a) || drop_frame(f, from_a)};
         ++sent;
+        if (radio && queued_mode == QueuedRadioMode::listen_before_talk) {
+            radio->retry_at_ms = 0;
+            radio->backoffs = 0;
+            track_accepted_copy(*radio);
+        }
+        if (!radio) launch(mine, other, false, now);
+        if (trace) {
+            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
+                      << " step " << c.step() << (frame.lost ? " LOST" : "") << std::endl;
+        }
+    }
+
+    void launch(Air& mine, Air& other, bool peer_transmitting, std::uint64_t now) {
+        mine.start = now;
+        mine.end = now + airtime_ms(mine.n);
         if (other.n && other.start < mine.end && mine.start < other.end) {
             if (!mine.lost) ++collisions;
             if (!other.lost) ++collisions;
             mine.lost = other.lost = true;
         }
-        if (trace) {
-            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
-                      << " step " << c.step() << (mine.lost ? " LOST" : "") << std::endl;
-        }
+        // An on-air packet also misses a receiver that has yet to service TX_DONE.
+        if (peer_transmitting && !other.n && !mine.lost) ++receive_rearm_losses;
+        mine.lost = mine.lost || peer_transmitting;
     }
+    static std::vector<AcceptedCopies>::iterator accepted_copy(Radio& radio) {
+        return std::find_if(radio.accepted.begin(), radio.accepted.end(),
+                            [&](const AcceptedCopies& item) { return item.bytes == radio.queued.bytes; });
+    }
+
+    void track_accepted_copy(Radio& radio) {
+        auto copy = accepted_copy(radio);
+        if (copy == radio.accepted.end()) {
+            radio.accepted.push_back({radio.queued.bytes, 0});
+            copy = radio.accepted.end() - 1;
+        }
+        const auto cap = frame_type(radio.queued.bytes) == FrameType::candidate ?
+            limits.hello_max_sends : limits.max_sends;
+        radio.queued.last_allowed_copy = ++copy->count == cap;
+    }
+
+    // True when an accepted queue entry was dropped before launch.
+    bool launch_queued(Radio& mine, Radio& peer, bool from_a, std::uint64_t now) {
+        if (mine.transmitting || !mine.queued.n || now < mine.retry_at_ms) return false;
+        if (queued_mode == QueuedRadioMode::listen_before_talk) {
+            // Approximate four 1.024 ms CAD symbols and command overhead using
+            // a 5 ms scan. Sample at its start, so simultaneous scans can both
+            // see clear and then collide. Physical detection and capture vary.
+            constexpr std::uint64_t kCadMs = 5;
+            const bool peer_on_air = peer.air.n && peer.air.start <= now;
+            const bool forced_busy = force_cad_busy &&
+                force_cad_busy(mine.queued, from_a, mine.backoffs);
+            ++cad_checks;
+            now += kCadMs;
+            mine.receive_blocked_until_ms = now;
+            // Standby before CAD interrupts a packet already being received.
+            if (peer_on_air && !peer.air.lost) {
+                peer.air.lost = true;
+                ++cad_interrupted_rx;
+            }
+            if (peer_on_air || forced_busy) {
+                if (mine.backoffs == 3) {
+                    ++cad_drops;
+                    if (mine.queued.last_allowed_copy) ++cad_last_copy_drops;
+                    mine.queued.n = 0;  // retain bytes for the app's budget accounting
+                    return true;
+                }
+                const auto slots = 1U + mine.random() % 3U;
+                const auto delay_ms = (airtime_us(mine.queued.n) * slots + 999) / 1000;
+                mine.retry_at_ms = now + delay_ms;
+                ++mine.backoffs;
+                ++cad_backoffs;
+                return false;
+            }
+        }
+
+        mine.air = mine.queued;
+        mine.queued = {};
+        launch(mine.air, peer.air, peer.transmitting || now < peer.receive_blocked_until_ms, now);
+        mine.transmitting = true;
+        return false;
+    }
+
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
     std::uint64_t end_ms{};
+    std::uint64_t a_end_ms{}, b_end_ms{};
+    std::size_t a_step{}, b_step{};
+
+    void go_queued(std::uint64_t limit_ms) {
+        PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
+        PairingCoordinator<FakeSession>* coordinator[] = {&ca, &cb};
+        const std::uint64_t start[] = {a_start_ms, b_start_ms};
+        const std::uint64_t phase[] = {0, b_poll_phase_ms};
+        int* const offered[] = {&offered_a, &offered_b};
+        int* const sent[] = {&sent_a, &sent_b};
+        bool begun[] = {false, false};
+        Radio radio[2]{};
+        radio[0].random.seed(cad_seed);
+        radio[1].random.seed(cad_seed ^ 0x9e3779b9U);
+        for (std::uint64_t now = 0; now <= limit_ms; ++now) {
+            for (int side : {0, 1}) {
+                auto& mine = radio[side];
+                auto& peer = radio[1 - side];
+                if (mine.air.n && now == mine.air.end) {
+                    if (!mine.air.lost) peer.received = mine.air;
+                    mine.air = {};
+                }
+            }
+            // Driver polls happen before the app picks up RX or queues a new send.
+            for (int side : {0, 1}) {
+                if (now % 100 != phase[side]) continue;
+                auto& mine = radio[side];
+                auto& peer = radio[1 - side];
+                if (mine.transmitting) {
+                    if (!mine.air.n) mine.transmitting = false;
+                } else if (queued_mode == QueuedRadioMode::baseline) {
+                    launch_queued(mine, peer, side == 0, now);
+                }
+            }
+            for (int side : {0, 1}) {
+                if (now % 100 != phase[side]) continue;
+                auto& c = *coordinator[side];
+                auto& mine = radio[side];
+                const bool received = mine.received.n != 0;
+                const auto ended = side == 0 ? a_end_ms : b_end_ms;
+                const bool active = ended == 0 ||
+                    (c.outcome() == Outcome::paired && now - ended < linger_ms);
+                if (received && begun[side] && active) {
+                    c.on_receive(mine.received.bytes.data(), mine.received.n);
+                }
+                mine.received = {};
+                if (!begun[side] && now >= start[side]) {
+                    EXPECT(c.begin(now));
+                    begun[side] = true;
+                }
+                transmit(c, begun[side] && active, mine.air, radio[1 - side].air,
+                         *offered[side], *sent[side], side == 0, now, &mine, &radio[1 - side], received);
+            }
+            if (a_end_ms == 0 && ca.outcome() != Outcome::running) a_end_ms = now;
+            if (b_end_ms == 0 && cb.outcome() != Outcome::running) b_end_ms = now;
+            if (a_end_ms != 0 && b_end_ms != 0) break;
+        }
+        oa = ca.outcome(); ob = cb.outcome(); ra = ca.reason(); rb = cb.reason();
+        a_step = ca.step(); b_step = cb.step();
+    }
 
     void go(std::uint64_t limit_ms = 130000) {
+        if (queued_radio) {
+            go_queued(limit_ms);
+            return;
+        }
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
         bool a_begun = false, b_begun = false;
         if (a_start_ms == 0) { EXPECT(ca.begin(0)); a_begun = true; }
@@ -569,6 +767,318 @@ void test_default_window_d110() {
     }
 }
 
+struct QueuedSchedule {
+    const char* name;
+    std::uint64_t late_ms;
+    bool b_first;
+};
+
+// Keep both order labels for the identical simultaneous-start input, as in
+// the original 24-schedule sweep.
+constexpr QueuedSchedule kI064Schedules[] = {
+    {"A first, 0 s", 0, false},
+    {"B first, 0 s", 0, true},
+    {"A first, 15 s", 15000, false},
+    {"B first, 15 s", 15000, true},
+    {"A first, 30 s", 30000, false},
+    {"B first, 30 s", 30000, true},
+};
+
+void run_queued_schedule(Run& r, const QueuedSchedule& schedule, std::uint64_t phase_ms) {
+    r.limits = Limits{};  // D-110 window and current final-send floors.
+    r.linger_ms = 15000;  // BoardPairingRuntime's paired reply window.
+    r.queued_radio = true;
+    r.b_poll_phase_ms = phase_ms;
+    (schedule.b_first ? r.a_start_ms : r.b_start_ms) = schedule.late_ms;
+    r.a.review_at_ms = r.b.review_at_ms = schedule.late_ms + 25000;
+    r.a.confirm_at_ms = r.b.confirm_at_ms = schedule.late_ms + 50000;
+    r.go(schedule.late_ms + r.limits.attempt_limit_ms + 100);
+}
+
+bool both_paired(const Run& r) {
+    return r.oa == Outcome::paired && r.ob == Outcome::paired && r.a.committed && r.b.committed;
+}
+
+// I-064: independent service phases with a one-slot queue and delayed RX re-arm.
+void test_normal_timing_with_queued_radio() {
+    for (const std::uint64_t phase : {0, 25, 50}) {
+        for (const auto& schedule : kI064Schedules) {
+            Run r;
+            run_queued_schedule(r, schedule, phase);
+            if (!both_paired(r)) std::cerr << "I-064 " << schedule.name << " phase=" << phase << " ms\n";
+            EXPECT(both_paired(r));
+        }
+    }
+
+    for (const auto& schedule : kI064Schedules) {
+        Run r;
+        run_queued_schedule(r, schedule, 75);
+        std::cout << "I-064 " << schedule.name << ", phase=75 ms: "
+                  << (both_paired(r) ? "both paired" : "incomplete")
+                  << ", end A/B=" << r.a_end_ms << '/' << r.b_end_ms << " ms"
+                  << ", steps A/B=" << r.a_step << '/' << r.b_step
+                  << ", accepted A/B=" << r.sent_a << '/' << r.sent_b
+                  << ", overlap losses=" << r.collisions
+                  << ", RX re-arm losses=" << r.receive_rearm_losses << '\n';
+        // Expected failures on main: the responder spends all handshake
+        // replies on overlapping airtime or during A's TX_DONE-to-RX gap.
+        // Both expire before final controls. A recovery must update these checks.
+        EXPECT(r.oa == Outcome::failed && r.ob == Outcome::failed);
+        EXPECT(r.ra == FailReason::expired && r.rb == FailReason::expired);
+        EXPECT(!r.a.committed && !r.b.committed);
+        EXPECT(r.a_step == 14 && r.b_step == 15);
+        EXPECT(r.collisions != 0 && r.receive_rearm_losses != 0);
+    }
+}
+
+void test_listen_before_talk_with_queued_radio() {
+    constexpr std::uint32_t kSeeds = 8;
+    unsigned count_receive_first = 0;
+    unsigned count_paired = 0;
+    int drops = 0;
+    int last_copy_drops = 0;
+    for (const std::uint64_t phase : {0, 25, 50, 75}) {
+        for (const auto& schedule : kI064Schedules) {
+            Run split;
+            split.queued_mode = QueuedRadioMode::receive_first;
+            run_queued_schedule(split, schedule, phase);
+            count_receive_first += both_paired(split);
+
+            unsigned paired = 0;
+            int checks = 0, backoffs = 0, discarded = 0, last = 0, interrupted = 0;
+            for (std::uint32_t seed = 1; seed <= kSeeds; ++seed) {
+                Run r;
+                r.queued_mode = QueuedRadioMode::listen_before_talk;
+                r.cad_seed = seed;
+                run_queued_schedule(r, schedule, phase);
+                paired += both_paired(r);
+                checks += r.cad_checks;
+                backoffs += r.cad_backoffs;
+                discarded += r.cad_drops;
+                last += r.cad_last_copy_drops;
+                interrupted += r.cad_interrupted_rx;
+            }
+            EXPECT(checks > 0);
+            EXPECT(both_paired(split));
+            EXPECT(paired == kSeeds);
+            EXPECT(discarded == 0 && last == 0);
+            count_paired += paired;
+            drops += discarded;
+            last_copy_drops += last;
+            std::cout << "I-064 compare " << schedule.name << ", phase=" << phase
+                      << " ms: receive-first=" << both_paired(split) << ", LBT=" << paired << '/' << kSeeds
+                      << ", checks=" << checks << ", backoffs=" << backoffs << ", drops=" << discarded
+                      << ", last-copy drops=" << last << ", RX interruptions=" << interrupted << '\n';
+        }
+    }
+    std::cout << "I-064 comparison total: receive-first=" << count_receive_first
+              << "/24, LBT=" << count_paired << '/' << (24 * kSeeds) << ", drops=" << drops
+              << ", last-copy drops=" << last_copy_drops << '\n';
+}
+
+void test_unsent_refunds_the_last_acceptance_once() {
+    FakeSession adapter{1, 2};
+    Limits limits{};
+    limits.hello_max_sends = 2;
+    PairingCoordinator<FakeSession> c(adapter, true, 123456, limits);
+    FrameBuffer first{}, out{};
+    std::size_t first_size = 0;
+    std::size_t size = 0;
+    EXPECT(c.begin(0));
+    EXPECT(c.service(0, first, first_size));
+    c.sent(false, 0);
+    EXPECT(!c.unsent());
+
+    EXPECT(c.service(1, out, size) && size == first_size && out == first);
+    c.sent(true, 1);
+    const auto next_copy = 1 + limits.hello_resend_after_ms;
+    EXPECT(c.service(next_copy, out, size));
+    c.sent(false, next_copy);  // a refusal preserves the earlier acceptance
+    EXPECT(c.unsent());
+    EXPECT(!c.unsent());
+    EXPECT(c.service(next_copy + 100, out, size) && size == first_size && out == first);
+    c.sent(true, next_copy + 100);
+
+    const auto last_copy = next_copy + 100 + limits.hello_resend_after_ms;
+    EXPECT(c.service(last_copy, out, size) && size == first_size && out == first);
+    c.sent(true, last_copy);
+    EXPECT(!c.service(last_copy + limits.hello_resend_after_ms, out, size));
+    EXPECT(c.unsent());  // the other acceptance still counts toward the limit
+    EXPECT(c.service(last_copy + limits.hello_resend_after_ms, out, size));
+    EXPECT(size == first_size && out == first);
+    c.sent(true, last_copy + limits.hello_resend_after_ms);
+    EXPECT(!c.service(last_copy + 2 * limits.hello_resend_after_ms, out, size));
+    EXPECT(adapter.produced[static_cast<int>(FrameType::candidate)] == 1);
+}
+
+void test_unsent_invalidates_an_offer_made_before_the_drop() {
+    FakeSession adapter{1, 2};
+    PairingCoordinator<FakeSession> c(adapter, true, 123456);
+    FrameBuffer first{}, out{};
+    std::size_t first_size = 0;
+    std::size_t size = 0;
+    EXPECT(c.begin(0));
+    EXPECT(c.service(0, first, first_size));
+    c.sent(true, 0);
+    EXPECT(c.service(5000, out, size));
+    EXPECT(c.unsent());
+    c.sent(true, 5000);  // this stale offer cannot create an acceptance
+    EXPECT(!c.unsent());
+    EXPECT(c.service(5100, out, size) && size == first_size && out == first);
+}
+
+void test_refunded_control_obeys_the_running_send_floor() {
+    for (const bool resend : {false, true}) {
+        for (const bool enough : {false, true}) {
+            FakeSession a{1, 2}, b{2, 1};
+            Limits limits{};
+            PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+            PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+            EXPECT(ca.begin(0) && cb.begin(0));
+            unsigned accepted_controls = 0;
+            bool checked = false;
+            for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+                FrameBuffer out{};
+                std::size_t size = 0;
+                if (ca.service(now, out, size)) {
+                    ca.sent(true, now);
+                    if (Run::frame_type(out) != FrameType::control) {
+                        cb.on_receive(out.data(), size);
+                    } else if (++accepted_controls == (resend ? 2U : 1U)) {
+                        const auto floor = resend ? limits.final_send_floor_ms : limits.final_first_send_floor_ms;
+                        const auto retry_at = now + 100;
+                        a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                        EXPECT(ca.unsent());
+                        FrameBuffer retry{};
+                        std::size_t retry_size = 0;
+                        EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                        EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                        checked = true;
+                    }
+                    // Lose the earlier physical control copy to make a resend eligible.
+                }
+                if (!checked && cb.service(now, out, size)) {
+                    cb.sent(true, now);
+                    ca.on_receive(out.data(), size);
+                }
+            }
+            EXPECT(checked);
+        }
+    }
+}
+
+void test_refunded_control_obeys_the_paired_send_floor() {
+    for (const bool enough : {false, true}) {
+        FakeSession a{1, 2}, b{2, 1};
+        Limits limits{};
+        b.refuse_remaining_after_commit = true;
+        PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+        PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+        EXPECT(ca.begin(0) && cb.begin(0));
+        bool checked = false;
+        for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+            FrameBuffer out{};
+            std::size_t size = 0;
+            if (ca.service(now, out, size)) {
+                ca.sent(true, now);
+                if (Run::frame_type(out) == FrameType::control &&
+                    out[kHeaderBytes] == fill(1, FrameType::control, 2, 0)) {
+                    b.deadline_ms = now + 12000;
+                }
+                cb.on_receive(out.data(), size);
+            }
+            if (cb.service(now, out, size)) {
+                cb.sent(true, now);
+                if (Run::frame_type(out) == FrameType::control &&
+                    out[kHeaderBytes] == fill(2, FrameType::control, 2, 0)) {
+                    FrameBuffer retry{};
+                    std::size_t retry_size = 0;
+                    (void)cb.service(now + 100, retry, retry_size);
+                    EXPECT(cb.outcome() == Outcome::paired && b.committed);
+                    EXPECT(cb.unsent());
+                    const auto retry_at = b.deadline_ms - limits.final_first_send_floor_ms + (enough ? 0 : 1);
+                    EXPECT(cb.service(retry_at, retry, retry_size) == enough);
+                    EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                    EXPECT(cb.outcome() == Outcome::paired && b.committed);
+                    checked = true;
+                } else {
+                    ca.on_receive(out.data(), size);
+                }
+            }
+        }
+        EXPECT(checked);
+    }
+}
+
+void test_cad_drop_can_spend_the_last_pairing_copy() {
+    struct Target {
+        const char* name;
+        FrameType type;
+        int instance;
+        Outcome responder_at_drop;
+    };
+    const Target targets[] = {
+        {"responder handshake 1", FrameType::handshake, 1, Outcome::failed},
+        {"responder control 2", FrameType::control, 2, Outcome::paired},
+    };
+    constexpr std::uint32_t kSeeds = 8;
+    for (const auto& target : targets) {
+        for (const bool feedback : {false, true}) {
+            unsigned paired = 0, neither = 0, responder_only = 0;
+            int drops = 0, refunds = 0;
+            for (std::uint32_t seed = 1; seed <= kSeeds; ++seed) {
+                Run r;
+                r.queued_mode = QueuedRadioMode::listen_before_talk;
+                r.report_prelaunch_drops = feedback;
+                r.cad_seed = seed;
+                r.b.refuse_remaining_after_commit = true;
+                unsigned accepted = 0, busy_scans = 0;
+                const auto is_target = [&](const FrameBuffer& frame, bool from_a) {
+                    return !from_a && Run::frame_type(frame) == target.type &&
+                        frame[kHeaderBytes] == fill(2, target.type, target.instance, 0);
+                };
+                // Lose the earlier copies on air, then force four busy scans
+                // on the last allowed copy. That interference clears once,
+                // even if the same protocol copy is queued again.
+                r.drop_frame = [&](const FrameBuffer& frame, bool from_a) {
+                    return is_target(frame, from_a) && ++accepted < r.limits.max_sends;
+                };
+                r.force_cad_busy = [&](const Run::Air& frame, bool from_a, unsigned) {
+                    if (busy_scans == 4 || !frame.last_allowed_copy || !is_target(frame.bytes, from_a)) {
+                        return false;
+                    }
+                    ++busy_scans;
+                    return true;
+                };
+                run_queued_schedule(r, {target.name, 0, false}, 25);
+                paired += both_paired(r);
+                neither += r.oa == Outcome::failed && r.ob == Outcome::failed;
+                responder_only += r.oa == Outcome::failed && r.ob == Outcome::paired;
+                drops += r.cad_drops;
+                refunds += r.prelaunch_refunds;
+                if (feedback ? !both_paired(r)
+                             : r.oa != Outcome::failed || r.ob != target.responder_at_drop) {
+                    std::cerr << target.name << ", feedback=" << feedback << ", seed=" << seed
+                              << ", steps A/B=" << r.a_step << '/' << r.b_step << '\n';
+                }
+                EXPECT(busy_scans == 4);
+                EXPECT(r.cad_drops == 1 && r.cad_last_copy_drops == 1);
+                EXPECT(r.prelaunch_refunds == static_cast<int>(feedback));
+                EXPECT(accepted == r.limits.max_sends + static_cast<unsigned>(feedback));
+                if (feedback) {
+                    EXPECT(both_paired(r));
+                } else {
+                    EXPECT(r.oa == Outcome::failed && r.ob == target.responder_at_drop);
+                }
+            }
+            std::cout << "I-064 forced busy, " << target.name << ", feedback=" << feedback
+                      << ": both=" << paired << '/' << kSeeds << ", neither=" << neither
+                      << ", responder only=" << responder_only << ", CAD drops=" << drops
+                      << ", refunded=" << refunds << '\n';
+        }
+    }
+}
+
 void test_attempt_window_expires() {
     Run r;
     r.a.review_ticks = 2000;  // 200 s: longer than the 120 s request window
@@ -652,6 +1162,13 @@ int main() {
     test_silent_peer_stops_within_limits();
     test_late_joiner_still_pairs();
     test_half_duplex_start_orders();
+    test_normal_timing_with_queued_radio();
+    test_listen_before_talk_with_queued_radio();
+    test_unsent_refunds_the_last_acceptance_once();
+    test_unsent_invalidates_an_offer_made_before_the_drop();
+    test_refunded_control_obeys_the_running_send_floor();
+    test_refunded_control_obeys_the_paired_send_floor();
+    test_cad_drop_can_spend_the_last_pairing_copy();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
     test_attempt_window_expires();
@@ -664,6 +1181,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 16 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 23 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }
