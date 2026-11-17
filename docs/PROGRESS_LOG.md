@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Refuse same-epoch rollback of live group lanes
+
+The live pair storage owner retains the last verified image of each DATA and ACK transmit and receive lane. Every subsequent lane read must match that image. An external older image faults the binding, and the owner advances the image only after a successful write, commit and exact readback.
+
+The four-lane regression reproduced the review finding with zero refusals before the change and four afterward. The [pair suite](../tests/host/group_pair_records_tests.cpp) passed six groups, including 48 write interruption cases. The additional sixteen faults interrupt active counter or replay updates in all four lanes, and leave both existing and newly requested lane access unavailable. This guard has the live binding's lifetime. Whole-flash rollback protection remains outside the design.
+
 ### OT-0305 Acknowledge durable group board receipt
 
 The [group ACK](../firmware/components/delivery/include/opentrail/group_ack.hpp) uses the reviewed 16-byte payload and D-120 board-receipt contract. An authenticated, current group route can produce a reply only after the group receive window accepts the message durably, or when a duplicate is verified against that retained admission. The sender matches the reverse route, session, message ID and original DATA counter. Phone presentation has its own event.

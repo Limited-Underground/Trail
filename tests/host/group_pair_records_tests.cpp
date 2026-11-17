@@ -435,6 +435,93 @@ void required_records() {
     CHECK(missing.prepare(proof) == Error::missing);
 }
 
+
+void same_epoch_rollback() {
+    unsigned rejected = 0;
+    for (const auto lane : {GroupPairLane::data_tx, GroupPairLane::ack_tx}) {
+        Fixture f;
+        CHECK(f.owner.records.provision() == Error::none);
+        const auto proof = f.bind();
+        CHECK(f.owner.records.prepare(proof) == Error::none);
+        f.activate(f.owner.records, proof);
+        auto* storage = f.owner.records.storage(lane);
+        CHECK(storage);
+        OutboundCounterLeaseStore counter(*storage);
+        const auto context = value<16>(9);
+        CHECK(counter.reserve({context, 1, 4}).first_counter == 1);
+        const auto key = "ot_group_pair/p00l" + std::to_string(static_cast<unsigned>(lane));
+        const auto older = f.disk.at(key);
+        CHECK(counter.reserve({context, 1, 4}).first_counter == 5);
+        f.disk[key] = older;
+        if (!counter.reserve({context, 1, 4}).reserved()) {
+            no_traffic(f.owner.records);
+            ++rejected;
+        }
+    }
+    for (const auto lane : {GroupPairLane::data_rx, GroupPairLane::ack_rx}) {
+        Fixture f;
+        CHECK(f.owner.records.provision() == Error::none);
+        const auto proof = f.bind();
+        CHECK(f.owner.records.prepare(proof) == Error::none);
+        f.activate(f.owner.records, proof);
+        auto* storage = f.owner.records.storage(lane);
+        CHECK(storage);
+        using namespace opentrail::security_eval;
+        const auto context = value<std::tuple_size_v<EvaluationReplayStore::Context>>(17);
+        EvaluationReplayStore first(*storage);
+        CHECK(first.start(context, true) == ReplayError::none);
+        CHECK(first.accept_authenticated(4) == ReplayError::none);
+        const auto key = "ot_group_pair/p00l" + std::to_string(static_cast<unsigned>(lane));
+        const auto older = f.disk.at(key);
+        CHECK(first.accept_authenticated(8) == ReplayError::none);
+        f.disk[key] = older;
+        EvaluationReplayStore replacement(*storage);
+        if (replacement.start(context, false) != ReplayError::none) {
+            no_traffic(f.owner.records);
+            ++rejected;
+        }
+    }
+    std::cout << "same-epoch rollback refusals: " << rejected << "/4\n";
+    CHECK(rejected == 4);
+}
+
+void active_lane_failures() {
+    for (const auto lane : {GroupPairLane::data_tx, GroupPairLane::ack_tx,
+                           GroupPairLane::data_rx, GroupPairLane::ack_rx}) {
+        for (const auto fault : {Fault::write, Fault::unapplied, Fault::applied, Fault::readback}) {
+            Fixture f;
+            CHECK(f.owner.records.provision() == Error::none);
+            const auto proof = f.bind();
+            CHECK(f.owner.records.prepare(proof) == Error::none);
+            f.activate(f.owner.records, proof);
+            auto* storage = f.owner.records.storage(lane);
+            CHECK(storage);
+            const auto lane_id = static_cast<unsigned>(lane);
+            if (lane_id < 2) {
+                OutboundCounterLeaseStore counter(*storage);
+                CHECK(counter.reserve({value<16>(9), 1, 4}).reserved());
+                f.owner.pair_kv.cut = f.owner.pair_kv.writes + 1;
+                f.owner.pair_kv.fault = fault;
+                CHECK(!counter.reserve({value<16>(9), 1, 4}).reserved());
+            } else {
+                using namespace opentrail::security_eval;
+                EvaluationReplayStore replay(*storage);
+                CHECK(replay.start(value<std::tuple_size_v<EvaluationReplayStore::Context>>(17), true) ==
+                      ReplayError::none);
+                CHECK(replay.accept_authenticated(4) == ReplayError::none);
+                f.owner.pair_kv.cut = f.owner.pair_kv.writes + 1;
+                f.owner.pair_kv.fault = fault;
+                CHECK(replay.accept_authenticated(8) != ReplayError::none);
+            }
+            CHECK(f.owner.pair_kv.writes == f.owner.pair_kv.cut);
+            no_traffic(f.owner.records);
+            std::array<std::uint8_t, kPersistentSlotBytes> record{};
+            CHECK(!storage->read_slot(domain, 0, {record.data(), record.size()}).read());
+        }
+    }
+}
+
+
 }  // namespace
 
 int main() {
@@ -442,5 +529,7 @@ int main() {
     roster_change_and_reuse();
     interruptions();
     required_records();
-    std::cout << "PASS 4 group pair records groups incl 32 pair-write interruptions\n";
+    same_epoch_rollback();
+    active_lane_failures();
+    std::cout << "PASS 6 group pair records groups incl 48 pair-write interruptions\n";
 }

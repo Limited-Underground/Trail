@@ -102,6 +102,9 @@ private:
     std::uint64_t binding_id_{0};
     std::uint32_t epoch_{0};
     bool faulted_{false};
+    // One authoritative image per lane for this live binding. Only verified
+    // owner writes advance it. Retiring the binding discards all four floors.
+    std::array<std::optional<Image>, 4> lane_floors_{};
     std::array<LaneStorage, 4> lanes_;
 };
 

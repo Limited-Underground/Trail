@@ -217,6 +217,11 @@ Error GroupPairRecords::load_lane(const Scope& scope, std::uint32_t epoch, Group
     if (reader.number<std::uint32_t>() != epoch) return Error::bad_epoch;
     if (reader.number<std::uint8_t>() != static_cast<std::uint8_t>(lane)) return Error::malformed;
     reader.bytes(output);
+    const auto& floor = lane_floors_[static_cast<std::size_t>(lane)];
+    if (floor && output != *floor) {
+        faulted_ = true;
+        return Error::storage_failure;
+    }
     return Error::none;
 }
 
@@ -231,7 +236,11 @@ Error GroupPairRecords::store_lane(const Scope& scope, std::uint32_t epoch, Grou
     writer.bytes(input);
     writer.number(configuration_crc32({blob.data(), blob.size() - 4}));
     const auto key = lane_key(scope.location.slot, lane);
-    return write_verified(key.data(), blob.data(), blob.size(), readback.data()) ? Error::none : Error::storage_failure;
+    if (!write_verified(key.data(), blob.data(), blob.size(), readback.data())) {
+        return Error::storage_failure;
+    }
+    lane_floors_[static_cast<std::size_t>(lane)] = input;
+    return Error::none;
 }
 
 bool GroupPairRecords::write_verified(const char* key, const std::uint8_t* bytes, std::size_t size,
