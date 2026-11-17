@@ -599,11 +599,11 @@ extern "C" void app_main() {
             std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
             const auto got = g_lora.receive({rx.data(), rx.size()});
             if (got.has_frame()) {
+                g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
+                g_lora_activity_at_ms = got.metadata.received_at_ms;
                 link_test::Beacon incoming{};
                 if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
                     beaconer.heard(incoming)) {
-                    g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
-                    g_lora_activity_at_ms = elapsed_ms;
                     const auto raw = g_lora.last_packet_status();
                     ESP_LOGI(kLogTag, "lora_link pkt_status raw=%02x %02x %02x",
                              raw[0], raw[1], raw[2]);

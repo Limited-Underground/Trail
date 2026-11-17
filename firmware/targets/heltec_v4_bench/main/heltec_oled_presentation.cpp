@@ -1,4 +1,5 @@
 #include "heltec_oled_presentation.hpp"
+#include "lora_link_test.hpp"
 #include "opentrail/companion_region_catalog.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -12,6 +13,7 @@ ui::oled_presentation::Frame HeltecOledPresentation::present(
     snapshot.device_name = name;
     snapshot.clock = clock;
     snapshot.board_pairing = board_pairing;
+    using ui::compact_status_footer::Direction;
     using ui::compact_status_footer::GpsFixCode;
     using ui::compact_status_footer::ObservationState;
     const auto& battery = view.battery_percent;
@@ -44,8 +46,12 @@ ui::oled_presentation::Frame HeltecOledPresentation::present(
     const auto* label = companion::region_selection_label(region_selection);
     snapshot.region_configured = label != nullptr;
     snapshot.region_label = label == nullptr ? "" : label;
-    // A stored selection is not a radio profile or transmit admission.
-    snapshot.tx_available = false;
+    // The link-test radio authorizes its fixed profile from this same selection.
+    snapshot.radio_running = view.activity_supported;
+    snapshot.tx_available = snapshot.radio_running && lora_link_test::transmit_allowed(region_selection);
+    snapshot.tx = {view.activity == Direction::tx, view.activity_at_ms};
+    snapshot.rx = {view.activity == Direction::rx, view.activity_at_ms};
+    snapshot.activity_visible_for_ms = view.activity_visible_for_ms;
     // The typed Ready observation comes from exact current protected Snapshot
     // delivery. Footer pixels and a raw BLE connection cannot grant Ready.
     switch (view.frame) {

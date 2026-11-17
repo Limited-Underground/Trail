@@ -85,6 +85,47 @@ void normal_panel_renders_live_and_stale_gnss() {
     EXPECT(stub::state.frames.back() == frame.pixels);
 }
 
+void normal_panel_distinguishes_radio_grant_and_activity() {
+    using opentrail::ui::compact_status_footer::Direction;
+    namespace presentation = opentrail::ui::oled_presentation;
+    stub::reset();
+    HeltecV4Oled port;
+    StartupDisplayOwner owner{port};
+    EXPECT(owner.start());
+    CompactStatusSnapshot status{};
+    const auto expect_rows = [&](std::uint64_t now_ms, std::uint16_t region,
+                                 std::string_view region_row, std::string_view radio_row) {
+        stub::state.now_us = static_cast<std::int64_t>(now_ms * 1'000);
+        status.render_now_ms = now_ms;
+        port.set_configuration("Bench", {}, region);
+        EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected, status));
+        auto expected = stub::state.frames.back();
+        presentation::draw_text_row(expected, 3, region_row);
+        presentation::draw_text_row(expected, 6, radio_row);
+        EXPECT(stub::state.frames.back() == expected);
+    };
+
+    // A saved US915 selection alone cannot enable TX in a normal build.
+    expect_rows(1'000, 1, "REGION US915 TX OFF", "RADIO OFF");
+    status.activity_supported = true;
+    status.activity_visible_for_ms = 1'500;
+    expect_rows(1'001, 1, "REGION US915 TX ON", "RADIO IDLE");
+    status.activity = Direction::tx;
+    status.activity_at_ms = 1'002;
+    expect_rows(1'002, 1, "REGION US915 TX ON", "RADIO TX");
+    expect_rows(2'501, 1, "REGION US915 TX ON", "RADIO TX");
+    expect_rows(2'502, 1, "REGION US915 TX ON", "RADIO IDLE");
+
+    status.activity = Direction::rx;
+    status.activity_at_ms = 2'504;
+    expect_rows(2'503, 1, "REGION US915 TX ON", "RADIO IDLE");
+    expect_rows(2'504, 1, "REGION US915 TX ON", "RADIO RX");
+    expect_rows(2'505, 2, "REGION EU868 TX OFF", "RADIO RX");
+    expect_rows(2'506, 0, "BENCH", "");
+    status.activity_supported = false;
+    expect_rows(2'507, 1, "REGION US915 TX OFF", "RADIO OFF");
+}
+
 void draw_failure_conceals_and_latches_port() {
     stub::reset(); HeltecV4Oled port; EXPECT(port.initialize());
     stub::state.draw_failures = 1;
@@ -360,6 +401,7 @@ int main() {
     review_driver_rejects_clipping_and_conceals_failures();
     review_reset_uses_actual_driver_and_rejects_stale_release();
     normal_panel_renders_live_and_stale_gnss();
+    normal_panel_distinguishes_radio_grant_and_activity();
     unowned_setup_label_remains_after_pairing_timeout();
     metadata_redraw_and_overlays_preserve_latest_clock();
     clock_minute_redraw_survives_unchanged_transport_footer();
@@ -372,6 +414,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 15 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 16 groups\n";
     return 0;
 }

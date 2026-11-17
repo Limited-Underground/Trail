@@ -43,6 +43,10 @@ bool StartupDisplayOwner::show_compact_status(
     view.gps_satellites = snapshot.gps_satellites;
     view.gps_fix = snapshot.gps_fix;
     view.gps_fresh_for_ms = snapshot.freshness.gps_fresh_for_ms;
+    view.activity_supported = snapshot.activity_supported;
+    view.activity = snapshot.activity;
+    view.activity_at_ms = snapshot.activity_at_ms;
+    view.activity_visible_for_ms = snapshot.activity_visible_for_ms;
     if (!startup_display_compact_footer_page(frame, snapshot, view.footer)) {
         return false;
     }
@@ -209,6 +213,10 @@ bool StartupDisplayOwner::show_view(const StartupDisplayView& view) {
         view_.gps_satellites.sampled_at_ms == view.gps_satellites.sampled_at_ms &&
         view_.gps_fix == view.gps_fix &&
         view_.gps_fresh_for_ms == view.gps_fresh_for_ms &&
+        view_.activity_supported == view.activity_supported &&
+        view_.activity == view.activity &&
+        view_.activity_at_ms == view.activity_at_ms &&
+        view_.activity_visible_for_ms == view.activity_visible_for_ms &&
         view_.has_footer == view.has_footer &&
         (!view.has_footer || view_.footer.columns == view.footer.columns)) {
         return true;

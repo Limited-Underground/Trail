@@ -60,6 +60,10 @@ struct StartupDisplayView {
     ui::compact_status_footer::GpsFixCode gps_fix{
         ui::compact_status_footer::GpsFixCode::unavailable};
     std::uint64_t gps_fresh_for_ms{0};
+    bool activity_supported{false};
+    ui::compact_status_footer::Direction activity{ui::compact_status_footer::Direction::none};
+    std::uint64_t activity_at_ms{0};
+    std::uint64_t activity_visible_for_ms{0};
 };
 
 // Ephemeral render-only view. The owner never retains this object or exposes
