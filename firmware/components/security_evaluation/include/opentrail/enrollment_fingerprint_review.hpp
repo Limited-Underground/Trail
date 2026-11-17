@@ -92,10 +92,10 @@ private:
         const auto sample = port_.sample();
         if (spent_ || sample.context.generation == 0 || sample.context.request == 0 ||
             !invitation_detail::nonzero(sample.context.boot) ||
-            sample.now_ms > std::numeric_limits<std::uint64_t>::max() - review_window_ms) return stop();
+            sample.now_ms > std::numeric_limits<std::uint64_t>::max() - maximum_review_window_ms) return stop();
         context_ = sample.context; last_ = sample.now_ms;
         deadline_ = inherited_deadline.value_or(last_ + review_window_ms);
-        if (deadline_ <= last_ || deadline_ - last_ > review_window_ms) return stop();
+        if (deadline_ <= last_ || deadline_ - last_ > maximum_review_window_ms) return stop();
         begun_ = true;
         return render(false); // Own identity must be inspectable before peer review.
     }
@@ -222,6 +222,9 @@ private:
         return observe(sample) || stop();
     }
     static constexpr std::uint64_t review_window_ms=120000, hold_ms=1000, maximum_hold_ms=3000;
+    // D-110: a request's own deadline may give the review up to 5 minutes
+    // (board pairing, SelectedEnrollmentRequestOwner::kBoardPairingLimitMs).
+    static constexpr std::uint64_t maximum_review_window_ms=300000;
     FingerprintReviewPort& port_;
     const InvitationKey local_; const InvitationRole role_; const std::uint64_t group_;
     InvitationKey peer_{}; FingerprintReviewContext context_{};

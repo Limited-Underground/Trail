@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "opentrail/pairing_coordinator.hpp"
@@ -40,6 +41,12 @@ struct FakeSession {
     std::vector<int> log;  // positive: produced type, negative: consumed type
     int review_waited{0}, confirm_waited{0};
     bool committed{false};
+    // The session's own deadline (request or signed invitation), on the test clock.
+    std::uint64_t deadline_ms{~std::uint64_t{0}};
+    bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out) const {
+        out = deadline_ms == ~std::uint64_t{0} ? deadline_ms : now_ms >= deadline_ms ? 0 : deadline_ms - now_ms;
+        return true;
+    }
 
     bool produce(FrameType t, std::uint8_t* out) {
         const int k = ++produced[static_cast<int>(t)];
@@ -64,9 +71,19 @@ struct FakeSession {
     }
 };
 
+// The scenario groups below were written for a 120 s window (D-087); they keep
+// that profile, since every rule is relative to the window. The real defaults
+// (D-110: 300 s, 70 hellos) have their own group, test_default_window_d110.
+Limits window_120s() {
+    Limits l{};
+    l.attempt_limit_ms = 120000;
+    l.hello_max_sends = 30;
+    return l;
+}
+
 struct Run {
     FakeSession a{1, 2}, b{2, 1};
-    Limits limits{};
+    Limits limits = window_120s();
     std::uint32_t code{123456};
     // drop(n, from_a): drop the n-th frame transmitted by that side (0-based).
     std::function<bool(int, bool)> drop = [](int, bool) { return false; };
@@ -76,7 +93,63 @@ struct Run {
     // Like the product runtime: once a board leaves `running`, it keeps
     // servicing (answering repeats) only for linger_ms, then stops entirely.
     std::uint64_t linger_ms{~std::uint64_t{0}};
+    // A's or B's phone sends its request this late (I-057); before that the board
+    // ignores the radio.
+    std::uint64_t a_start_ms{0};
+    std::uint64_t b_start_ms{0};
+    // Half-duplex radios (review of I-057): each accepted frame is on air for its
+    // SF7 airtime and arrives at the end of it; a radio still sending refuses new
+    // frames; frames whose airtimes overlap are both lost.
+    bool half_duplex{false};
+    bool trace{false};  // print each accepted frame (debugging only)
+    // A transmit hold on one board: its radio refuses every offer in [from, until).
+    bool hold_a{true};
+    std::uint64_t hold_from_ms{0}, hold_until_ms{0};
+    // Drop a frame by content (after the index-based drop above).
+    std::function<bool(const FrameBuffer&, bool)> drop_frame = [](const FrameBuffer&, bool) { return false; };
     int sent_a{0}, sent_b{0};      // frames the radio accepted
+    int collisions{0};             // half-duplex: frames lost to overlapping airtime
+    struct Air {
+        FrameBuffer bytes{};
+        std::size_t n{0};
+        std::uint64_t start{0}, end{0};
+        bool lost{false};
+    } air_a, air_b;
+
+    // LoRa airtime at the bench profile: 125 kHz, SF7, CR 4/5, explicit header,
+    // CRC, 8 preamble symbols (an offer, 115 bytes, is 194.816 ms).
+    static std::uint64_t airtime_ms(std::size_t bytes) {
+        const std::size_t symbols = 8 + ((8 * bytes + 16 + 27) / 28) * 5;
+        return static_cast<std::uint64_t>((12.25 + static_cast<double>(symbols)) * 1.024 + 0.999);
+    }
+
+    void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
+                  int& offered, int& sent, bool from_a, std::uint64_t now) {
+        if (!live) return;
+        FrameBuffer f{};
+        std::size_t n = 0;
+        if (!c.service(now, f, n) || !n) return;
+        // Like the board: the coordinator runs, and a radio still on air refuses.
+        const bool held = from_a == hold_a && now >= hold_from_ms && now < hold_until_ms;
+        const bool accepted = !mine.n && !held && !refuse(offered++, from_a);
+        c.sent(accepted, now);
+        if (!accepted) return;
+        mine.bytes = f;
+        mine.n = n;
+        mine.start = now;
+        mine.end = now + airtime_ms(n);
+        mine.lost = drop(sent, from_a) || drop_frame(f, from_a);
+        ++sent;
+        if (other.n && other.start < mine.end && mine.start < other.end) {
+            if (!mine.lost) ++collisions;
+            if (!other.lost) ++collisions;
+            mine.lost = other.lost = true;
+        }
+        if (trace) {
+            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
+                      << " step " << c.step() << (mine.lost ? " LOST" : "") << std::endl;
+        }
+    }
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
@@ -84,12 +157,27 @@ struct Run {
 
     void go(std::uint64_t limit_ms = 130000) {
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
-        EXPECT(ca.begin(0));
-        EXPECT(cb.begin(0));
+        bool a_begun = false, b_begun = false;
+        if (a_start_ms == 0) { EXPECT(ca.begin(0)); a_begun = true; }
+        if (b_start_ms == 0) { EXPECT(cb.begin(0)); b_begun = true; }
         std::uint64_t now = 0, a_end = 0, b_end = 0;
         bool a_live = true, b_live = true;
         for (int tick = 0; now <= limit_ms; ++tick, now += 100) {
+            if (!a_begun && now >= a_start_ms) { EXPECT(ca.begin(now)); a_begun = true; }
+            if (!b_begun && now >= b_start_ms) { EXPECT(cb.begin(now)); b_begun = true; }
             if (inject) inject(tick, ca, cb);
+            if (half_duplex) {
+                for (auto* f : {&air_a, &air_b}) {
+                    if (f->n && now >= f->end) {
+                        auto& to = f == &air_a ? cb : ca;
+                        const bool live = f == &air_a ? b_live : a_live;
+                        if (!f->lost && live) to.on_receive(f->bytes.data(), f->n);
+                        f->n = 0;
+                    }
+                }
+                transmit(ca, a_live, air_a, air_b, offered_a, sent_a, true, now);
+                transmit(cb, b_live, air_b, air_a, offered_b, sent_b, false, now);
+            } else {
             FrameBuffer buf{};
             std::size_t n = 0;
             if (a_live && ca.service(now, buf, n) && n) {
@@ -107,6 +195,7 @@ struct Run {
                     if (!drop(sent_b, false) && a_live) ca.on_receive(buf.data(), n);
                     ++sent_b;
                 }
+            }
             }
             if (ca.outcome() != Outcome::running && a_end == 0) a_end = now + 1;
             if (cb.outcome() != Outcome::running && b_end == 0) b_end = now + 1;
@@ -203,7 +292,281 @@ void test_silent_peer_stops_within_limits() {
     r.go(130000);
     EXPECT(r.ob == Outcome::failed && r.rb == FailReason::expired);
     EXPECT(r.oa == Outcome::failed);
-    EXPECT(r.sent_b <= 2);  // B's candidate: at most max_sends
+    // B's candidate repeats for the window (D-106), never beyond hello_max_sends.
+    EXPECT(r.sent_b <= r.limits.hello_max_sends);
+    EXPECT(r.sent_b > 2);
+}
+
+// I-057: the joining phone's person types the code long after the starter sent
+// its hello. With the hello repeating for the window (D-106), both still pair.
+// A join so late that the final exchange cannot start with final_reserve_ms left
+// pairs neither board.
+void test_late_joiner_still_pairs() {
+    for (std::uint64_t late : {std::uint64_t{30000}, std::uint64_t{85000}}) {
+        Run r;
+        r.b_start_ms = late;
+        r.go(140000);
+        EXPECT(r.oa == Outcome::paired);
+        EXPECT(r.ob == Outcome::paired);
+        EXPECT(r.a.committed && r.b.committed);
+    }
+    {
+        Run r;
+        r.b_start_ms = 100000;
+        r.go(240000);
+        EXPECT(r.oa != Outcome::paired && r.ob != Outcome::paired);
+        EXPECT(!r.a.committed && !r.b.committed);
+    }
+    // Joining after the starter's window has ended cannot pair.
+    Run r;
+    r.b_start_ms = 125000;
+    r.go(260000);
+    EXPECT(r.oa == Outcome::failed && r.ra == FailReason::expired);
+    EXPECT(r.ob != Outcome::paired);
+}
+
+// Review of I-057: half-duplex boards repeating on the same schedule collide on
+// every hello. With the roles on different intervals they pair whatever the
+// start order and timing, and a join too late in the window is never one-sided.
+void test_half_duplex_start_orders() {
+    struct Case { std::uint64_t a_start, b_start; };
+    const Case cases[] = {{0, 0}, {0, 30000}, {30000, 0}, {0, 61300}, {47100, 0}, {0, 85000}};
+    for (const auto& c : cases) {
+        Run r;
+        r.half_duplex = true;
+        r.a_start_ms = c.a_start;
+        r.b_start_ms = c.b_start;
+        r.go(c.a_start + c.b_start + 140000);
+        EXPECT(r.oa == Outcome::paired);
+        EXPECT(r.ob == Outcome::paired);
+        EXPECT(r.a.committed && r.b.committed);
+        EXPECT(r.sent_a <= 30 + 4 * 15 && r.sent_b <= 30 + 4 * 15);  // hellos plus the rest
+    }
+    // Every start offset in 0.1 s steps over the first 20 s, either board first.
+    // Some hellos still collide; the repeats on different intervals recover them.
+    for (std::uint64_t d = 0; d <= 20000; d += 100) {
+        for (int first_a = 0; first_a < 2; ++first_a) {
+            Run r;
+            r.half_duplex = true;
+            (first_a ? r.b_start_ms : r.a_start_ms) = d;
+            r.go(d + 140000);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Without the role offsets the boards stay in lockstep and never pair.
+    {
+        Run r;
+        r.half_duplex = true;
+        r.limits.hello_responder_resend_after_ms = r.limits.hello_resend_after_ms;
+        r.limits.responder_resend_after_ms = r.limits.resend_after_ms;
+        r.limits.responder_turn_delay_ms = 0;
+        r.go(140000);
+        EXPECT(r.oa != Outcome::paired && r.ob != Outcome::paired);
+        EXPECT(r.collisions > 20);
+    }
+    // A join in the last seconds of the starter's window: never paired on one side only.
+    for (std::uint64_t late : {std::uint64_t{110000}, std::uint64_t{115100}, std::uint64_t{119000}}) {
+        Run r;
+        r.half_duplex = true;
+        r.b_start_ms = late;
+        r.go(late + 140000);
+        EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+    }
+}
+
+// Second review of I-057, on the airtime model:
+// - the two people finish reviewing at different times, so the boards' first
+//   offers can overlap on air; the copy each board lost must still be resent
+//   after it hears the peer's copy;
+// - any single lost frame after a hello collision is recovered (joiner 4.4 s late);
+// - a confirmation in the last seconds of either window never leaves one board
+//   paired and the other not (final_reserve_ms).
+void test_review_confirm_timing_and_single_loss() {
+    for (const std::uint64_t b_start : {std::uint64_t{0}, std::uint64_t{4400}}) {
+        for (int ra = 1; ra <= 60; ++ra) {
+            for (const int rb : {1, 5, 10, 20, 40, 60}) {
+                Run r;
+                r.half_duplex = true;
+                r.b_start_ms = b_start;
+                r.a.review_ticks = ra;
+                r.b.review_ticks = rb;
+                r.go(b_start + 140000);
+                EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+            }
+        }
+    }
+    // Responder offer (or any other single frame) lost, joiner 4.4 s late.
+    for (int side = 0; side < 2; ++side) {
+        for (int lost = 0; lost < 30; ++lost) {
+            Run r;
+            r.half_duplex = true;
+            r.b_start_ms = 4400;
+            r.drop = [&](int n, bool from_a) { return n == lost && from_a == (side == 0); };
+            r.go(144400);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Late joins (0-119 s in 0.5 s steps) and slow confirmations, either board
+    // first: both boards pair or neither does. Without the final reserve some do
+    // pair on one side only (the control).
+    for (const std::uint64_t reserve : {Limits{}.final_reserve_ms, std::uint64_t{0}}) {
+        int one_sided = 0;
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            for (std::uint64_t late = 0; late <= 119000; late += 500) {
+                for (const int ca : {2, 60, 150, 300}) {
+                    for (const int cb : {2, 60, 150, 300}) {
+                        Run r;
+                        r.half_duplex = true;
+                        r.limits.final_reserve_ms = reserve;
+                        if (!reserve) {
+                            r.limits.final_step_reserve_ms = r.limits.final_send_floor_ms = 0;
+                            r.limits.final_first_send_floor_ms = 0;
+                        }
+                        (b_first ? r.a_start_ms : r.b_start_ms) = late;
+                        r.a.confirm_ticks = ca;
+                        r.b.confirm_ticks = cb;
+                        r.go(late + 140000);
+                        if ((r.oa == Outcome::paired) != (r.ob == Outcome::paired) ||
+                            r.a.committed != r.b.committed) {
+                            ++one_sided;
+                        }
+                    }
+                }
+            }
+        }
+        if (reserve) EXPECT(one_sided == 0);
+        else EXPECT(one_sided > 0);
+    }
+    // Third review of I-057: A confirms early, B (started 61 s later) confirms in
+    // the last seconds of A's window. Every B confirmation time from 1 s to 110 s,
+    // either role first, and with the session's own deadline (signed invitation,
+    // 60 s) earlier than the 120 s window on either board: both or neither.
+    for (int b_first = 0; b_first < 2; ++b_first) {
+        for (const std::uint64_t late : {std::uint64_t{0}, std::uint64_t{30000}, std::uint64_t{61000},
+                                         std::uint64_t{90000}}) {
+            for (int cb = 10; cb <= 1100; cb += 10) {
+                for (int session_deadline = 0; session_deadline < 3; ++session_deadline) {
+                    Run r;
+                    r.half_duplex = true;
+                    (b_first ? r.a_start_ms : r.b_start_ms) = late;
+                    auto& slow = b_first ? r.a : r.b;
+                    slow.confirm_ticks = cb;
+                    if (session_deadline == 1) r.a.deadline_ms = (b_first ? late : 0) + 70000;
+                    if (session_deadline == 2) r.b.deadline_ms = (b_first ? 0 : late) + 70000;
+                    r.go(late + 140000);
+                    EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+                    EXPECT(r.a.committed == r.b.committed);
+                }
+            }
+        }
+    }
+    // Fourth review of I-057: the phone request was admitted before the board
+    // started (radio hold), so it expires before the board's own 120 s window.
+    // A's request at 0 s, A's board at 20 s, B at 61 s; every B confirmation time.
+    for (int cb = 10; cb <= 1100; cb += 10) {
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            Run r;
+            r.half_duplex = true;
+            auto& early = b_first ? r.b : r.a;
+            auto& late = b_first ? r.a : r.b;
+            (b_first ? r.b_start_ms : r.a_start_ms) = 20000;
+            early.deadline_ms = 120000;  // the original request's deadline
+            (b_first ? r.a_start_ms : r.b_start_ms) = 61000;
+            late.confirm_ticks = cb;
+            r.go(220000);
+            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+            EXPECT(r.a.committed == r.b.committed);
+        }
+    }
+    // Fifth and sixth reviews of I-057: a radio that refuses offers for a while
+    // (a transmit hold) near the end of A's window. On the board a hold ends the
+    // attempt (BoardPairingRuntime), because no send floor makes a long hold plus a
+    // lost final reply safe (I-059): host sweeps found one-sided runs with every
+    // floor setting tried. Here: holds on A with no loss, and the first copy of B's
+    // final control (its second, distinct control frame) lost with no hold; both
+    // boards or neither.
+    int final_drops = 0;
+    for (int held_a = 0; held_a < 2; ++held_a) {
+        for (int lose = 0; lose < 2; ++lose) {
+            if (lose == held_a) continue;  // (A held, no loss) and (no hold, B's reply lost)
+            for (std::uint64_t hold = 95000; hold <= 119000; hold += 100) {
+                for (const int cb : {300, 500}) {
+                    Run r;
+                    r.half_duplex = true;
+                    r.b_start_ms = 61000;
+                    r.b.confirm_ticks = cb;
+                    r.hold_a = true;
+                    r.hold_from_ms = held_a ? hold : 0;
+                    r.hold_until_ms = held_a ? hold + 8500 : 0;
+                    if (!held_a) r.b_start_ms = (hold - 95000) * 2;  // joins 0-48 s late
+                    FrameBuffer first{};
+                    bool have_first = false, dropped = false;
+                    r.drop_frame = [&](const FrameBuffer& f, bool from_a) {
+                        if (from_a || (f[2] & 0x0f) != static_cast<int>(FrameType::control)) return false;
+                        if (!have_first) { first = f; have_first = true; return false; }
+                        if (f == first || dropped || !lose) return false;  // a resend of control 1
+                        dropped = true;
+                        return true;
+                    };
+                    r.go(201000);
+                    if (dropped) ++final_drops;
+                    EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+                    EXPECT(r.a.committed == r.b.committed);
+                }
+            }
+        }
+    }
+    EXPECT(final_drops > 400);  // the final reply really was lost in the loss runs
+    // The exact trace: A at 0 s, B at 61 s, B's person confirms at about 118 s.
+    {
+        Run r;
+        r.half_duplex = true;
+        r.b_start_ms = 61000;
+        r.b.confirm_ticks = 520;
+        r.go(201000);
+        EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+        EXPECT(r.a.committed == r.b.committed);
+    }
+}
+
+// D-110: the real defaults, a 5-minute window and up to 70 hellos.
+void test_default_window_d110() {
+    const Limits d{};
+    EXPECT(d.attempt_limit_ms == 300000 && d.hello_max_sends == 70);
+    EXPECT(d.hello_max_sends * d.hello_responder_resend_after_ms >= d.attempt_limit_ms);
+    for (const std::uint64_t late : {std::uint64_t{0}, std::uint64_t{120000}, std::uint64_t{240000}}) {
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            Run r;
+            r.limits = d;
+            r.half_duplex = true;
+            (b_first ? r.a_start_ms : r.b_start_ms) = late;
+            r.go(late + 320000);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Slow people: confirmations up to about 4 minutes after the join, either
+    // board first, every 10 s: both boards pair or neither.
+    for (int b_first = 0; b_first < 2; ++b_first) {
+        for (int cb = 10; cb <= 2400; cb += 100) {
+            Run r;
+            r.limits = d;
+            r.half_duplex = true;
+            (b_first ? r.a_start_ms : r.b_start_ms) = 30000;
+            (b_first ? r.a : r.b).confirm_ticks = cb;
+            r.go(360000);
+            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+            EXPECT(r.a.committed == r.b.committed);
+        }
+    }
+    // A silent peer: the hello stops at 70 sends, and the attempt ends at 300 s.
+    {
+        Run r;
+        r.limits = d;
+        r.drop = [](int, bool from_a) { return from_a; };
+        r.go(320000);
+        EXPECT(r.sent_b <= 70 && r.sent_b > 30);
+        EXPECT(r.ob == Outcome::failed && r.rb == FailReason::expired);
+    }
 }
 
 void test_attempt_window_expires() {
@@ -287,6 +650,10 @@ int main() {
     test_other_attempts_and_traffic_are_ignored();
     test_refused_payload_ends_attempt();
     test_silent_peer_stops_within_limits();
+    test_late_joiner_still_pairs();
+    test_half_duplex_start_orders();
+    test_review_confirm_timing_and_single_loss();
+    test_default_window_d110();
     test_attempt_window_expires();
     test_begin_refusals();
     test_final_control_loss_needs_linger();
@@ -297,6 +664,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 12 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 16 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

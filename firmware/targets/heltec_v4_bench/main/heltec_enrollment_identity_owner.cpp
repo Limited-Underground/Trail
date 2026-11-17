@@ -9,6 +9,7 @@ HeltecEnrollmentIdentityOwner::State HeltecEnrollmentIdentityOwner::load() {
 }
 void HeltecEnrollmentIdentityOwner::retire() {
     identity_.retire();
+    storage_.retire_cache();  // I-068: the storage's RAM copy holds the seed too
     state_=State::retired;
 }
 namespace { HeltecEnrollmentIdentityOwner* owner=nullptr; bool retired=false; }

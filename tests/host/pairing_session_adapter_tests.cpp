@@ -94,7 +94,7 @@ Result run(int drop_a = -1, int drop_b = -1, std::uint32_t code_b = 123456) {
     CHECK(cb.begin(0));
     Result r;
     int sent_a = 0, sent_b = 0;
-    for (std::uint64_t t = 0; t <= 125000; t += 50) {
+    for (std::uint64_t t = 0; t <= limits.attempt_limit_ms + 5000; t += 50) {  // D-110: 300 s
         a.authority.value.now_ms = 100 + t;
         b.authority.value.now_ms = 50100 + t;
         a.person(t);
@@ -139,6 +139,21 @@ int main() {
         // A board with a different code never hears the other: no pairing.
         const auto r = run(-1, -1, 654321);
         CHECK(r.a == Outcome::failed && r.b == Outcome::failed);
+        ++groups;
+    }
+    {
+        // Review of I-057: time left is bounded by the original phone request the
+        // board still enforces, which can end before the session's own copy.
+        Board a(InvitationRole::initiator, 1, 100);
+        std::uint64_t plain = 0, bounded = 0;
+        CHECK(a.adapter->remaining_ms(0, plain));
+        PairingSessionAdapter outer(*a.session, 100 + 50000);
+        CHECK(outer.remaining_ms(0, bounded));
+        CHECK(bounded == 50000 && plain > bounded);
+        a.authority.value.now_ms = 100 + 60000;
+        CHECK(outer.remaining_ms(0, bounded) && bounded == 0);
+        std::uint64_t later = 0;
+        CHECK(a.adapter->remaining_ms(0, later) && later == plain - 60000);
         ++groups;
     }
     std::cout << "PASS " << groups << " pairing session adapter groups\n";

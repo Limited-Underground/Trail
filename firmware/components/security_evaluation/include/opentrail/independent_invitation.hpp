@@ -8,7 +8,18 @@
 
 namespace opentrail::security_evaluation {
 inline constexpr std::size_t kIndependentInvitationPayloadBytes = 188;
-inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = 60000;
+// Issuance policy: every path issues kIndependentInvitationDefaultWindowMs (60 s),
+// including enrollment evaluation and rekey. Only board pairing over LoRa issues
+// kBoardPairingInvitationWindowMs (D-110): after a board's clock mark the signed
+// invitation must still cover the person's code check, the final messages and
+// the save, and 60 s was too short (fourth board session).
+inline constexpr std::uint64_t kIndependentInvitationDefaultWindowMs = 60000;
+inline constexpr std::uint64_t kBoardPairingInvitationWindowMs = 180000;
+// Format ceiling for decoding and re-verifying a signed invitation. It must admit
+// board-pairing invitations, because their retained records are re-verified later
+// (identity binding, rekey, recovery). Every session still accepts only the exact
+// fields it expects, which carry the window it issues itself.
+inline constexpr std::uint64_t kIndependentInvitationMaximumWindowMs = kBoardPairingInvitationWindowMs;
 
 struct IndependentInvitation {
     std::array<std::uint8_t, kIndependentInvitationPayloadBytes> payload{};
@@ -55,6 +66,15 @@ inline IndependentInvitationFields decode(const IndependentInvitation& invitatio
     return fields;
 }
 } // namespace independent_invitation_detail
+
+// Evaluation commands that take an externally signed invitation directly (Pair Bench
+// OTPAIR1 INV, Enrolled Bench OTENROLL1 BEGIN) keep the 60 s issuance limit: they
+// refuse a longer window before anything claims the invitation (review of D-110).
+inline bool independent_invitation_within_default_window(const IndependentInvitation& invitation) {
+    const auto fields = independent_invitation_detail::decode(invitation);
+    return fields.window_a_ms <= kIndependentInvitationDefaultWindowMs &&
+           fields.window_b_ms <= kIndependentInvitationDefaultWindowMs;
+}
 
 // The trusted inviter signs the resulting exact payload separately. Invalid
 // fields leave the caller's entire destination, including signature, unchanged.

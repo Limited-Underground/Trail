@@ -338,6 +338,8 @@ def test_contract() -> None:
         # V1 F5 step R2a: board pairing storage (D-086).
         "main/pairing_nvs_storage.cpp",
         "main/pairing_nvs_storage.hpp",
+        "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested
+        "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
         "main/board_pairing_runtime.cpp",
         "main/board_pairing_runtime.hpp",
         "main/idf_component.yml",

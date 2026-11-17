@@ -19,10 +19,31 @@
 #include "esp_partition.h"
 #include "opentrail/session_generation_storage.hpp"
 
+#include "pairing_slot_cache.hpp"
+#include "pairing_storage_key.hpp"
+
 namespace opentrail::target::heltec_v4_bench {
 
 class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend {
 public:
+    // I-066 diagnostics: slot reads served from RAM, and reads that reached NVS.
+    // Counted since the last reset_read_stats() (each pairing attempt): slot reads
+    // served from RAM, slot reads that reached NVS, and the budget checks
+    // (nvs_get_stats plus nvs_get_used_entry_count, which scan the partition).
+    struct ReadStats {
+        std::uint32_t cache_hits, nvs_reads, nvs_read_ms, budget_checks, budget_ms;
+    };
+    ReadStats read_stats() const {
+        return {cache_.hits() - hits_at_reset_, nvs_reads_, static_cast<std::uint32_t>(nvs_read_us_ / 1000),
+                budget_checks_, static_cast<std::uint32_t>(budget_us_ / 1000)};
+    }
+    void reset_read_stats() {
+        hits_at_reset_ = cache_.hits();
+        nvs_reads_ = 0;
+        nvs_read_us_ = 0;
+        budget_checks_ = 0;
+        budget_us_ = 0;
+    }
     using Namespace = security_evaluation::EvaluationNamespace;
     using Domain = persistence::StorageDomain;
     using Error = persistence::StorageError;
@@ -30,7 +51,7 @@ public:
     // I-055: every pairing attempt, even a failed or interrupted one, permanently
     // consumes one session generation. Capacity 2 blocked both bench boards after
     // two attempts. 32 allows routine retries; a factory reset restores it.
-    static constexpr std::uint64_t kCapacity = 32;
+    static constexpr std::uint64_t kCapacity = pairing_key::kCapacity;
     static constexpr char kPartition[] = "ot_state";
     static constexpr char kNamespace[] = "ot_pair";
     static constexpr std::uint32_t kPartitionAddress = 0xf00000;
@@ -90,11 +111,13 @@ private:
 
     static const esp_partition_t* partition();
     static bool key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]);
-    static std::size_t index(const char* key);
+    // Table position of a validated key; any other key faults and maps to the
+    // guard slot at the end, never past the table (I-058).
+    std::size_t index(const pairing_key::Key& key);
     static void wipe(Bytes& bytes);
     bool inventory();
-    bool load(const char* key, Bytes& out);
-    bool start_mutation(const char* key);
+    bool load(const pairing_key::Key& key, Bytes& out);
+    bool start_mutation(const pairing_key::Key& key);
     persistence::StorageReadResult read_tuple(std::uint64_t, unsigned, Domain, std::size_t,
                                               persistence::MutableStorageByteView);
     Error erase_tuple(std::uint64_t, unsigned, Domain, std::size_t);
@@ -105,10 +128,15 @@ private:
 
     nvs_handle_t handle_{};
     bool good_{}, mounted_{}, pending_{}, pending_erased_{};
+    // I-066: recently read slots, so repeated ledger checks do not reach flash.
+    PairingSlotCache<16> cache_{};
+    std::uint32_t nvs_reads_{0}, hits_at_reset_{0}, budget_checks_{0};
+    std::uint64_t nvs_read_us_{0}, budget_us_{0};
     std::array<char, 16> pending_key_{};
     Bytes pending_bytes_{};
     std::array<View, 4> views_;
-    std::array<bool, 3 * 11 * 5 * 2> known_{};
+    // One entry per possible key for generations 0..kCapacity, plus a guard slot.
+    std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
 };
 
 // Factory reset calls this before erasing `ot_state`. Safe when no pairing
