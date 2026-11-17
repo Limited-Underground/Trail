@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Acknowledge durable group board receipt
+
+The [group ACK](../firmware/components/delivery/include/opentrail/group_ack.hpp) uses the reviewed 16-byte payload and D-120 board-receipt contract. An authenticated, current group route can produce a reply only after the group receive window accepts the message durably, or when a duplicate is verified against that retained admission. The sender matches the reverse route, session, message ID and original DATA counter. Phone presentation has its own event.
+
+Four [host scenario groups](../tests/host/group_ack_tests.cpp) passed, including a cut before commit, uncertain applied writes, durable duplicate replies, and mismatched operation and identity fields. Packet-v1 group routing and ACK transmission still need target composition.
+
 ### OT-0305 Bind group pair records to the current roster
 
 The [indexed pair owner](../firmware/components/persistence/include/opentrail/group_pair_records.hpp) persists the verified binding, used and committed epochs, and activation stage for the exact durable roster location and membership incarnation. Per-epoch DATA and ACK counter/replay stores are disjoint. A new binding must commit and read back its prepared state, lanes and activation before any live scope can open traffic storage. Reopen returns public recovery history only. Restart retires the volatile group binding while preserving its epoch history.

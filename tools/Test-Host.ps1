@@ -932,6 +932,18 @@ $builds = @(
         )
     },
     @{
+        Name = 'durable group board receipt ACK (V1 pairwise groups, D-120)'
+        Output = Join-Path $buildDirectory 'group_ack_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_ack.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_receive_state.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_inbox.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_ack_tests.cpp')
+        )
+    },
+    @{
         Name = 'product LoRa driver (V1 F5, R1 review F2 to F5)'
         Output = Join-Path $buildDirectory 'heltec_v4_lora_driver_tests.exe'
         Arguments = @('-I', (Join-Path $projectRoot 'tests\host\heltec_v4_lora_stubs'))
