@@ -198,7 +198,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
       androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
       Surface(modifier = Modifier.fillMaxSize()) {
         if (bluetooth?.factoryResetConfirmationVisible == true) {
-            FactoryResetConfirmationScreen(controller)
+            FactoryResetConfirmationScreen(readySession, controller)
             return@Surface
         }
         if (settingsSession != null) {
@@ -795,10 +795,6 @@ internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
         "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
         "the window closes."
 
-internal const val APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT =
-    "This permanently erases the paired phone, device name, settings, groups, messages, saved locations, and offline maps. " +
-        "Firmware and factory hardware data remain. This cannot be undone."
-
 internal data class AndroidSystemPairingInstructions(
     val beforeActionTitle: String,
     val beforeActionBody: String,
@@ -923,13 +919,13 @@ private fun DeviceSettingsScreen(
 }
 
 @Composable
-private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
+private fun FactoryResetConfirmationScreen(session: BleActiveSession?, controller: TrailUiController) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Erase all MeshTrail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Erase ${factoryResetBoardName(session)}?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
                 "Keep the device nearby",
@@ -937,8 +933,8 @@ private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = { controller.confirmFactoryReset() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Erase all MeshTrail data")
+            Button(onClick = { controller.confirmFactoryReset() }, enabled = session != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Erase this board")
             }
             OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")
