@@ -2,6 +2,7 @@
 
 The official archive is admitted against its byte pin and the already accepted
 731-file checksums plus the tracked 733-file managed-component manifest.
+An explicit cached component is admitted against the same expanded file pins.
 """
 from pathlib import Path,PurePosixPath
 import hashlib
@@ -52,7 +53,39 @@ def members(archive):
         need(total<=32*1024*1024)
     return rows
 
-def acquire(destination,fetch=download):
+
+def cached_files(source, destination, expected):
+    source = Path(source).absolute()
+    need('..' not in source.parts and source.is_dir())
+    for path in (source, *source.parents):
+        need(not path.is_symlink() and not getattr(path, 'is_junction', lambda: False)())
+    need(not destination.is_relative_to(source))
+    files = {}
+    directories = {parent.as_posix() for name in expected
+                   for parent in PurePosixPath(name).parents if str(parent) != '.'}
+    for path in source.rglob('*'):
+        need(not path.is_symlink() and not getattr(path, 'is_junction', lambda: False)())
+        name = path.relative_to(source).as_posix()
+        if path.is_dir():
+            need(name in directories)
+            continue
+        need(path.is_file() and name in expected)
+        need(path.stat().st_size == expected[name][0])
+        raw = path.read_bytes()
+        need((len(raw), sha(raw)) == expected[name])
+        files[name] = raw
+    need(set(files) == set(expected))
+    checksums = files['CHECKSUMS.json']
+    need(sha(checksums) == CHECKSUM_SHA)
+    inventory = json.loads(checksums)['files']
+    need(len(inventory) == 731)
+    listed = {row['path']: (row['size'], row['hash']) for row in inventory}
+    need(len(listed) == 731 and set(listed) == set(expected) - {'CHECKSUMS.json', '.component_hash'})
+    need(all(expected[name] == record for name, record in listed.items()))
+    need(files['.component_hash'] == COMPONENT_HASH.encode())
+    return files
+
+def acquire(destination,fetch=download,cached_component=None):
     destination=Path(destination).resolve();need(not destination.exists())
     manifest=(ROOT/'tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/source-manifest.sha256').read_bytes()
     need(sha(manifest)==MANIFEST_SHA)
@@ -60,19 +93,22 @@ def acquire(destination,fetch=download):
     for line in manifest.decode('utf-8').splitlines():
         name,size,digest=line.split('\t');need(name not in expected);expected[name]=(int(size),digest)
     need(len(expected)==733)
-    archive_raw=fetch(ARCHIVE_URL,3*1024*1024)
-    need(len(archive_raw)==2545109 and sha(archive_raw)==ARCHIVE_SHA)
-    checksums=fetch(BASE+'CHECKSUMS.json',128*1024)
-    need(len(checksums)==107508 and sha(checksums)==CHECKSUM_SHA)
-    inventory=json.loads(checksums)['files'];need(len(inventory)==731)
-    listed={x['path']:(x['size'],x['hash']) for x in inventory};need(len(listed)==731)
-    files={}
-    with zipfile.ZipFile(io.BytesIO(archive_raw)) as archive:
-        for row in members(archive):
-            raw=archive.read(row);need((len(raw),sha(raw))==listed.get(row.filename)==expected.get(row.filename))
-            files[row.filename]=raw
-    need(set(files)==set(listed))
-    files['CHECKSUMS.json']=checksums;files['.component_hash']=COMPONENT_HASH.encode()
+    if cached_component is None:
+        archive_raw=fetch(ARCHIVE_URL,3*1024*1024)
+        need(len(archive_raw)==2545109 and sha(archive_raw)==ARCHIVE_SHA)
+        checksums=fetch(BASE+'CHECKSUMS.json',128*1024)
+        need(len(checksums)==107508 and sha(checksums)==CHECKSUM_SHA)
+        inventory=json.loads(checksums)['files'];need(len(inventory)==731)
+        listed={x['path']:(x['size'],x['hash']) for x in inventory};need(len(listed)==731)
+        files={}
+        with zipfile.ZipFile(io.BytesIO(archive_raw)) as archive:
+            for row in members(archive):
+                raw=archive.read(row);need((len(raw),sha(raw))==listed.get(row.filename)==expected.get(row.filename))
+                files[row.filename]=raw
+        need(set(files)==set(listed))
+        files['CHECKSUMS.json']=checksums;files['.component_hash']=COMPONENT_HASH.encode()
+    else:
+        files = cached_files(cached_component, destination, expected)
     need(set(files)==set(expected) and all((len(raw),sha(raw))==expected[name] for name,raw in files.items()))
     # All paths and bytes are admitted before creating any dependency file.
     destination.mkdir(parents=True)

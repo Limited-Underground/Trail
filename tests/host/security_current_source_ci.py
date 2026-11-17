@@ -66,7 +66,7 @@ def custody_suite(commands, path, env):
             "result": "passed", "test_count": len(selectors), "groups": records}
 
 
-def run(output):
+def run(output, cached_component=None):
     need(sys.dont_write_bytecode and sys.flags.utf8_mode and not sys.flags.optimize,
          "use_python_-X_utf8_-B_without_optimization")
     need(output.is_absolute() and ".." not in output.parts and
@@ -77,7 +77,7 @@ def run(output):
              "indirect_output_refused")
     output.mkdir(parents=True, exist_ok=False)
     result = {"schema": "OT220-CURRENT-SOURCE-CI-1", "result": "failed",
-              "hardware": False, "network": True, "historical_proof_replay": False,
+              "hardware": False, "network": cached_component is None, "historical_proof_replay": False,
               "suites": {}, "limits": ["SDK, entropy and storage seams simulated"]}
     commands = frozen.Commands(output)
     try:
@@ -131,11 +131,13 @@ def run(output):
             'security_policy_input_readback.py',
         ))
         before = {str(p): pin(p) for p in inputs}
-        component = dependencies.acquire(output / "managed-component")
+        component = dependencies.acquire(output / "managed-component", cached_component=cached_component)
         result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
                                 "checksum_sha256": dependencies.CHECKSUM_SHA,
                                 "manifest_sha256": dependencies.MANIFEST_SHA,
-                                "verified_files": 733}
+                                "verified_files": 733,
+                                "mode": "archive" if cached_component is None else "cached_component",
+                                "archive_verified": cached_component is None}
         spec = importlib.util.spec_from_file_location("current_ci_crypto", helper)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -468,5 +470,7 @@ def run(output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--cached-component", type=Path,
+                        help="Use an existing expanded component after exact 733-file verification, without network I/O")
     args = parser.parse_args()
-    run(args.output_root)
+    run(args.output_root, args.cached_component)

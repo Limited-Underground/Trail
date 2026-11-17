@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Admit the pinned local dependency through the stock security runner
+
+The stock current-source security runner accepts an explicit `--cached-component` directory. It verifies the exact 733-file manifest, lengths, hashes, checksums metadata and component marker before creating the fresh admitted output. Missing, changed, extra or indirect files are refused. The default archive admission continues to check the pinned archive bytes.
+
+Eighteen [dependency tests](../tests/host/security_policy_lifecycle/dependency_tests.py) passed, including six cache tests, and a real local-cache admission and readback matched every pin. The cache route records its source mode and archive-verification limit in the result. This supports the authorized no-download host gate through the stock entry point.
+
 ### OT-0305 Bound the group roster transaction workspace
 
 The roster and pair-index owners now retain one bounded transaction workspace each. Staged state, decoded catalog and serialization/readback buffers stay with the serialized owner, and nested backend callbacks are refused before those buffers can be reused. The catalog format is unchanged in this increment.
