@@ -4169,7 +4169,7 @@
     "${ROOT}/firmware/components/companion/include/opentrail/companion_packet_owner_channel.hpp": "f216dd80731e05d2abe863c18c4768f725ad3887e1ac7f3b7de4b122bee657d2",
     "${ROOT}/firmware/components/companion/include/opentrail/companion_packet_service.hpp": "eb30ed4a5bd7bca1d584e021196ad3d018d763563f8b99daee0fbfe214167f27",
     "${ROOT}/firmware/components/companion/include/opentrail/committed_packet_session.hpp": "951f5ad122453c3525e8a33cadfa331ae1ed44a837f936dafaf159560f296e1b",
-    "${ROOT}/firmware/components/companion/include/opentrail/packet_v1_selected_core.hpp": "9cfc7ac5c2eacbb4dcccf03e8aa9d8094398744707ca902375646f1842279a2d",
+    "${ROOT}/firmware/components/companion/include/opentrail/packet_v1_selected_core.hpp": "67a106137011d07f64398d88885a1dc6632ec7a8bd5b6aa349a928e55c68d66d",
     "${ROOT}/firmware/components/protocol/include/opentrail/packet_v1.hpp": "138037bdf7ddd23d1781bc7102befb8acf6984620169c2f5ac9be681126f42dd",
     "${ROOT}/firmware/components/delivery/include/opentrail/delivery_controller.hpp": "e50ae8ec59ec6c9b995351d652721a43b9533ca7721f4893b177ef0e310ded10",
     "${ROOT}/firmware/components/radio/include/opentrail/radio_transport.hpp": "0695a39f60889f68e53942ac1d21e80f3ed580cc4aaa8348b6e1d85aa87ed4c4",
