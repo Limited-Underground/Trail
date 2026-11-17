@@ -886,6 +886,16 @@ $builds = @(
         )
     },
     @{
+        Name = 'indexed group pair storage (V1 pairwise groups, step 3b)'
+        Output = Join-Path $buildDirectory 'group_pair_index_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_pair_index_tests.cpp')
+        )
+    },
+    @{
         Name = 'product LoRa driver (V1 F5, R1 review F2 to F5)'
         Output = Join-Path $buildDirectory 'heltec_v4_lora_driver_tests.exe'
         Arguments = @('-I', (Join-Path $projectRoot 'tests\host\heltec_v4_lora_stubs'))

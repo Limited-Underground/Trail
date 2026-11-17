@@ -2,6 +2,12 @@
 
 ## 2026-11-16
 
+### OT-0305 Index durable group pair storage on the host
+
+The [group pair index](../firmware/components/persistence/include/opentrail/group_pair_index.hpp) maps the full group name and peer fingerprint to a bounded slot under `ot_state`. It checks the local fingerprint, both membership versions and the roster watermark. New mappings are published only after their catalog update commits and reads back exactly. A later roster removes obsolete mappings before those slots can be reused under fresh incarnations. Older or conflicting views cannot recover a retired mapping.
+
+The caller must supply the current accepted roster and complete its durable update first. Pair data, counters and keys have separate owners. The [host suite](../tests/host/group_pair_index_tests.cpp) passed five scenario groups, including scope separation, removal and re-addition, stale and conflicting rosters, capacity, restart and uncertain storage writes. The KV catalog and capacity are host-tested candidates for target review.
+
 ### OT-0005i Fast identity reads during board pairing (I-068, I-069)
 
 The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).
