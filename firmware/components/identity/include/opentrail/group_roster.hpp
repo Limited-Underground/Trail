@@ -244,6 +244,7 @@ public:
 private:
     friend class PairRecord;  // reads the live roster at every pair step
     friend class GroupState;
+    friend class DurableGroupRoster;
     struct Known {
         std::uint32_t version{0};
         Digest digest{};

@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Persist signed group rosters and apply pair changes after commit
+
+The [durable roster owner](../firmware/components/identity/include/opentrail/durable_group_roster.hpp) keeps the signed roster, bounded conflict history, dismissed forks and local member acceptances. Opening rechecks the signed roster and replays the index transition. New roster bytes commit and read back before the index advances its watermark and prunes obsolete mappings in one catalog update. A missing or interrupted record blocks the live owner until successful reopen. Removed peers lose their mapping, and fresh mappings require current membership and its own incarnation.
+
+Six [host scenario groups](../tests/host/durable_group_roster_tests.cpp) passed. They cover cuts at write, commit and readback in both namespaces, reopened conflict state, removal and re-add, and refusal when a required record is missing. A normal removal uses two KV commits and replaces 978 bytes of roster state and 2,193 bytes of catalog state in the host model. The shared reset inventory now names the group namespaces used by these host components.
+
 ### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
 
 - Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.

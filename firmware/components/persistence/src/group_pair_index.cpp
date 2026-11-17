@@ -240,6 +240,13 @@ GroupPairIndexError GroupPairIndex::initialize() {
     return loaded == Error::missing ? save(catalog) : loaded;
 }
 
+GroupPairIndexError GroupPairIndex::group_status(const roster::GroupName& group) {
+    Catalog catalog;
+    const auto loaded = load(catalog);
+    if (loaded != Error::none) return loaded;
+    return catalog.group_for(group) ? Error::none : Error::not_indexed;
+}
+
 GroupPairIndexResult GroupPairIndex::find(const roster::RosterState& state,
                                           const roster::Fingerprint& peer) {
     return find_or_reserve(state, peer, false);
@@ -304,16 +311,25 @@ GroupPairIndexResult GroupPairIndex::find_or_reserve(const roster::RosterState& 
 }
 
 GroupPairIndexError GroupPairIndex::prune(const roster::RosterState& state) {
-    if (state.state() != roster::State::active) return Error::roster_inactive;
+    const bool left = state.state() == roster::State::left;
+    if (state.state() != roster::State::active && !left) return Error::roster_inactive;
     const RosterSnapshot current(state);
     const auto local_added = current.added_in(local_);
-    if (local_added == 0) return Error::invalid_scope;
+    if ((local_added == 0) != left) return Error::invalid_scope;
 
     Catalog catalog;
     const auto loaded = load(catalog);
     if (loaded != Error::none) return loaded;
     auto* group = catalog.group_for(current.group);
-    if (!group) return Error::none;
+    if (!group) {
+        if (left) return Error::not_indexed;
+        const auto vacant = std::find_if(catalog.groups.begin(), catalog.groups.end(), [](const auto& slot) {
+            return slot.version == 0;
+        });
+        if (vacant == catalog.groups.end()) return Error::capacity;
+        *vacant = {current.group, current.version, current.digest};
+        return save(catalog);
+    }
     if (!group->current(current)) return Error::stale_roster;
     bool changed = current.version > group->version;
     for (auto& entry : catalog.entries) {

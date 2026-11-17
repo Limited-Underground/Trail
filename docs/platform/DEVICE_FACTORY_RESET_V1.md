@@ -176,6 +176,10 @@ Trail record, including:
 - direct and group contacts, messages, quick statuses, alerts, receipts,
   pending transfers, retry/outbox/queue state, acknowledgements, replay and
   duplicate checkpoints, and user-associated counters;
+- the group namespaces in the `ot_state` partition, including `ot_group_rost`
+  (signed roster, conflict and acceptance history), `ot_group_idx` (pair index and
+  roster watermarks), `ot_group_num` (sender number reservations), and
+  `ot_group_rx` (receive history);
 - saved positions, breadcrumbs, archives, routes, location history, and
   location-bearing diagnostic or audit records;
 - user-selected or user-transferred offline map packages, selectors, indexes,
