@@ -162,7 +162,7 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-16 |
+| Reviewed | 2026-11-17 |
 | Task | [OT-0005i, Trail #232](https://github.com/Limited-Underground/Trail/issues/232) — Android start/join for first board pairing (V1 F5 R2b). |
 | Owner | Codex owns the isolated Android R2b code, host checks and closeout on feature/f5-r2b-app-pairing-start. |
 | Scope | Protected action 6 role and code, correlated admission/refusal, and the Device tab pairing flow. Board-local trust confirmation and final completion stay with firmware. |
@@ -172,7 +172,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical R2b acceptance waits for an owner-present two-board session with matched firmware and Android builds. |
 | Next action | Review the local R2b change. Schedule the separately authorized two-board session after the candidate builds are selected. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Fast identity reads during board pairing (I-068, I-069)](PROGRESS_LOG.md#ot-0005i-fast-identity-reads-during-board-pairing-i-068-i-069). |
+| Latest record | [OT-0005i Board screen shows the real radio state (I-044)](PROGRESS_LOG.md#ot-0005i-board-screen-shows-the-real-radio-state-i-044). |
 | Evidence access | Source and tests are clone-visible. Detailed local Gradle and admission results are in the R2b task report. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 

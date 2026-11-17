@@ -1,5 +1,15 @@
 # OpenTrail Progress Log
 
+## 2026-11-17
+
+### OT-0005i Board screen shows the real radio state (I-044)
+
+The owner's photos from the sixth board session showed the Heltec home screen saying "REGION US915 TX OFF" and "RADIO --" while the link-test boards were transmitting on US915 (D-079).
+- **Link-test builds:** with US915 saved and the radio running, the screen now shows `REGION US915 TX ON`, and `RADIO TX`, `RADIO RX` or `RADIO IDLE` for recent activity.
+- **Normal builds:** these do not transmit, and show `TX OFF` and `RADIO OFF`.
+
+Tests: the OLED port and presentation host tests and bench admission (20 groups) pass; the link-test build is 812,496 bytes, with no warnings (Codex).
+
 ## 2026-11-16
 
 ### OT-0005i Fast identity reads during board pairing (I-068, I-069)
