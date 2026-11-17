@@ -1,4 +1,23 @@
-# OpenTrail Progress Log
+# Limited Underground MeshTrail progress log
+
+## 2026-11-16
+
+### OT-0266b Limited Underground MeshTrail Repeater US915 follow-up (I-012)
+
+- Updated the US915 proposal to retain the 915.000 MHz / 125 kHz receive
+  reference and record 907.800 MHz DTS for joint review. Physical transmit and
+  relay admission remain disabled. The settings checklist records what to
+  verify, measure or decide before transmit.
+- Added the receive-only power-session kit for D-028 and D-098. The offline
+  logger analyzer and synthetic fixture cover timestamp, gap, state and
+  energy handling. The 30/120 forwards-per-hour model gives 9,000/9,200 mAh
+  nominal planning estimates for three sunless days with GNSS on.
+- Rebuilt and ran the affected Repeater baseline. All 20 executables passed,
+  covering 163 scenario groups. The offline parser and battery model passed
+  all 10 host tests. Receive characterization needs the approved observable
+  receive path and an owner-present session.
+  [Session kit](testing/REPEATER-RECEIVE-ONLY-POWER-SESSION.md) ·
+  [US915 proposal](testing/REPEATER-US915-SETTINGS-PROPOSAL.md)
 
 ## 2026-10-31
 

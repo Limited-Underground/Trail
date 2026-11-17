@@ -1,60 +1,86 @@
 # I-012 · Limited Underground MeshTrail Repeater US915 settings proposal
 
-November 15, 2026. **Engineering review proposal only.** D-028 selects the US
-and US915 for development; it does not select an authorized transmitter
-configuration. Leave P1-Pro TX refused. The existing port requires explicit
-receive settings and its physical submit path still refuses; this doc changes
-no defaults, firmware, endpoint settings, or stage of acceptance.
+Updated 2026-11-16 after the I-012 technical review. **Keep physical transmit
+disabled.** Use 915.000 MHz / 125 kHz as the receive reference. Investigate
+907.800 MHz DTS with both Heltec endpoints and the Repeater as one review.
+D-028 sets the US/US915 development region and an accessible 10–15 ft
+installation. D-098 sets the three-sunless-day battery planning target.
 
-| Setting | Candidate for later review | Reason and unresolved check |
+## Why the two profiles stay separate
+
+The fixed Heltec close-bench profile used 915.000 MHz, BW125, SF7, CR 4/5,
+sync 0x12, eight preamble symbols, explicit header, CRC on, LDRO off and a
++2 dBm driver setpoint. Decisions 0051–0053 establish the direct-radio
+evidence scope. The command setpoint and historical deliveries do not
+establish measured RF power or regulatory acceptance. Match effective IQ
+and the packet options when verifying receive on the P1-Pro. [Heltec
+source at the reviewed revision][heltec] · [Direct-radio evidence][d53]
+
+Neither reviewed Wio-SX1262 grant covers 915.000 MHz. The reported ranges
+are 902.3–914.9 MHz for DSS and 903.0–914.2 MHz for DTS, at 0.092 W conducted.
+The agency rule requires actual synchronized hopping for FHSS or at least
+500 kHz measured at 6 dB for DTS. The tested 907.800 MHz DTS center uses
+LoRa, but the public exhibit omits enough driver settings to reproduce it.
+Annex A.2 prints `0.645020` under a kHz heading against a 500 kHz minimum.
+Confirm the units, original trace and full settings with the grantee or
+its lab. A nominal 500 kHz command does not show compliance. The current
+fixed BW125 endpoint profile cannot interoperate with a different center
+and wider waveform. [Module grants][grant] · [DTS exhibit, pp. 6 and 27][dts] ·
+[47 CFR §15.247(a), (b), (e)][r247]
+
+A hopping design would need measured channel width, a compliant hopset,
+synchronized receivers, and per-transmitter, per-frequency dwell evidence.
+For US915 the FHSS rule limits occupancy to 400 ms per frequency in a
+20 s window for widths below 250 kHz at 20 dB and in a 10 s window for
+widths of 250–500 kHz. The reference PHY's nominal 255-byte airtime is
+399.616 ms. Both F5 invitation frames total 435.712 ms when emitted by
+the same transmitter on one frequency. Include bursts, retries and
+uncertain attempts in any later accounting. F5 stays direct. Treat
+§15.249 as a separate qualification option if DTS cannot be established.
+[§15.247(a)(1), (f)–(g)][r247] · [§15.249][r249] · [Semtech airtime calculator][airtime]
+
+## Settings checklist
+
+| Setting | Disposition | Recommendation |
 | --- | --- | --- |
-| Endpoint reference | 915.000 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 8 preamble symbols, explicit header and CRC. | [Current Limited Underground MeshTrail close-bench profile](https://github.com/Limited-Underground/Trail/blob/c486a42aed97852eac0d7d3826b1dd97340d01c5/firmware/targets/heltec_v4_bench/main/heltec_v4_lora.hpp). Use as a receive-only interoperability reference under separate authority. Existing endpoint evidence is not authorization for Repeater TX. |
-| Channel and mode | Investigate **907.800 MHz** in the exact documented Wio-SX1262 digital transmission system (DTS) mode. | A center evaluated in the DTS exhibit and inside that grant range. Review the precise firmware modulation and measured 6 dB bandwidth rather than copying the fixed 125 kHz profile or assuming a nominal 500 kHz setting qualifies. Changing the endpoints to match would be separate shared scope. |
-| Power | Start conducted engineering review at **+2 dBm** (about 1.6 mW); measured value, not an assumed chip setting or maximum. | Matches the level of the reference close-bench profile and avoids overdriving a short link. With a verified 2 dBi transmit antenna and negligible feedline loss, nominal EIRP would be about +4 dBm; that arithmetic does not prove compliance. The +22 dBm data-sheet scenario in the battery worksheet was for current estimation only. |
-| Antenna | Prefer the supplied Seeed 868–915 MHz 2 dBi rubber rod and original harness, **only if confirmed authorized for the exact module/configuration**. No amplifier or substitute antenna proposed. | Confirm the received unit, antenna part/type, gain, cable, installation and grant conditions. Being stock, within the band, or lower gain is not sufficient by itself. |
+| US region and deployment | Accept existing scope | Use US/US915 (D-028). Keep the power bench on an accessible surface. |
+| Receive profile | Accept as reference | Use the exact 915.000 MHz / BW125 reference above, with normal IQ, for a separately authorized receive-only verification. |
+| Physical transmit and relay admission | Keep disabled | Preserve the existing refusal. Use a separate authorized session for any deliberate RF test or relay admission. [§2.805][r805] |
+| Common transmit mode and channel | Review candidate | Start the joint DTS review at 907.800 MHz. Match both endpoints and the Repeater only after the exact mode and each unit's authorization are established. [Module grants][grant] |
+| Bandwidth, frequency error and emissions | Measure first | Obtain the source trace and verify 6 dB BW ≥500 kHz for DTS, PSD ≤8 dBm/3 kHz, frequency accuracy, band edges and spurious emissions on the intended setup. [§15.247(a)(2), (d)–(e)][r247] |
+| SF, coding, preamble, sync, header, CRC, IQ and LDRO | Verify before use | Capture effective settings on all nodes for each candidate. Recompute airtime and verify the required wire lengths and rearm behavior. |
+| TX power and PA path | Measure first | Review +2 dBm conducted (about 1.6 mW) in a qualified fixture as an initial measurement target. Verify the PA variant, output at the connector, uncertainty and link margin per board. [§15.247(b)][r247] · [Heltec variants][heltec-spec] |
+| Antenna type, gain, polarization and mounting | Verify first | Identify the supplied 868–915 MHz rod and verify its 2 dBi nominal gain, patterns and equivalence to an authorized antenna type. The grant exhibits describe other antenna types. [Seeed specs][seeed] · [DTS exhibit][dts] · [§15.204(c)][r204] |
+| Harness and cable loss | Measure first | Measure the original harness loss in dB at the candidate center and across the intended band. From power measured before that harness, estimate EIRP as conducted dBm plus gain in dBi minus loss in dB. |
+| Host integration, separation and other radios | Verify first | Bind the FCC ID and host labels, OEM requirements, 20 cm grant separation, antenna routing and BLE/co-location conditions to the actual unit and custom firmware. The host declaration covers Subpart B. [Module grants][grant] · [Host declaration][sdoc] · [§15.212][r212] · [§2.1043][r1043] |
+| Air occupancy, duty and error cleanup | Measure before choosing limits | Verify airtime per transmitter and channel in the selected mode. Include burst load, refusal, completion and rearm. Keep uncertain attempts from adding traffic. [§15.247(a), (f)–(g)][r247] |
+| Continuous listening, GNSS and battery | Measure first | Use the receive-only session kit. Compare measured loads against the 30 and 120 forwards/hour planning cases for three sunless days. |
 
-The [Wio-SX1262 equipment grant](https://files.seeedstudio.com/Seeed_Certificate/documents_certificate/113010003-FCC.pdf)
-for FCC ID Z4T-WIO-SX1262 lists 903.0–914.2 MHz and 0.092 W conducted in DTS
-mode; the [companion grant and exhibits](https://fccid.io/Z4T-WIO-SX1262)
-list 902.3–914.9 MHz for the distinct DSS (hopping) mode. Neither shown range
-includes 915.000 MHz. The [DTS laboratory exhibit](https://fccid.io/Z4T-WIO-SX1262/Test-Report/Test-Report-DTS-7738781)
-and [DSS laboratory exhibit](https://fccid.io/m/2b173efa2de97987cdf3f2a5dd432222adefcd55bb9513f094fb4a4692e86672.pdf)
-describe separate test configurations; do not combine their evidence.
-The [P1/P1-Pro declaration](https://files.seeedstudio.com/Seeed_Certificate/documents_certificate/114993643-FCC.pdf)
-covers Subpart B, not the intentional transmit mode. Seeed's
-[board specification](https://wiki.seeedstudio.com/meshtastic_solar_node/)
-describes the stock radio and antenna; it does not establish that Trail's
-firmware profile meets the exact product's applicable grant.
+## Open owner questions
 
-[47 CFR 15.247(a)](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.247)
-distinguishes hopping from digital modulation; for the latter the measured
-6 dB bandwidth must meet the 500 kHz minimum. A single fixed narrow channel
-does not become a compliant hopping system at low power or with sparse traffic.
-For context only, the Trail 125 kHz reference airtime calculation gives
-399.616 ms for 255 bytes and 307.456 + 128.256 = 435.712 ms for the separate
-F5 194-byte and 70-byte invitation parts. Cumulative occupancy, retries and
-bursts by each transmitter must be checked on the eventual applicable profile;
-these nominal values are **not** a permission, regulatory allowance, or prediction
-for the proposed DTS mode. See the
-[Semtech airtime tool](https://www.semtech.com/design-support/lora-calculator)
-and [47 CFR 15.204(c)](https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.204)
-for the antenna constraint.
+1. Authorize an owner-present receive-only bench after the exact nonemitting
+   image or probe invocation, observable receive state and restore route
+   are identified. Start with the P1-Pro and battery logger.
+2. Confirm the logger and pack fixture, representative cold temperature,
+   usable reserve and workload. Use 30 forwards/hour as the model baseline
+   and 120/hour as sensitivity. Measure GNSS states when supported.
+3. Authorize a joint engineering review with the endpoint owner and the
+   grantee or TCB for the 907.800 MHz DTS candidate. Request the exact source
+   recipe, corrected units, antenna and host conditions first.
 
-Before asking for separate permission to transmit:
+[Receive-only power-session kit](REPEATER-RECEIVE-ONLY-POWER-SESSION.md)
 
-1. Bind the exact received P1-Pro and endpoint revisions, module identifiers,
-   OEM integration/exposure conditions (the cited grant specifies 20 cm
-   separation and restrictions on co-location), antenna part and harness to
-   applicable authorization or a qualified compliance review. Stop if uncertain.
-2. Have the responsible RF engineer identify an authorized mode on all nodes
-   and record the agreed config, including measured conducted power, bandwidth,
-   PSD, band-edge and spurious emissions and, if applicable, hopping occupancy.
-3. In a separately authorized session, confirm direct endpoint operation,
-   then qualify a single-relay path only after protected relay admission,
-   driver reconciliation and the required recovery evidence exist. Measure
-   actual RX/TX and GNSS power to confirm the three-sunless-day battery planning target (D-098).
-
-**Owner recommendation:** approve an RF engineering review of the conditional
-907.800 MHz DTS / +2 dBm / verified stock-antenna candidate; retain TX refusal
-and the direct reference until a joint profile is accepted. If no applicable
-configuration is established, choose receive-only qualification first.
+[heltec]: https://github.com/Limited-Underground/Trail/blob/c486a42aed97852eac0d7d3826b1dd97340d01c5/firmware/targets/heltec_v4_bench/main/heltec_v4_lora.hpp
+[heltec-spec]: https://wiki.heltec.org/docs/devices/open-source-hardware/esp32-series/lora-32/wifi-lora-32-v4/
+[d53]: ../decisions/0053-admit-us915-direct-radio-profile-evidence-v1.md
+[grant]: https://files.seeedstudio.com/Seeed_Certificate/documents_certificate/113010003-FCC.pdf
+[dts]: https://device.report/m/8011a204c8c323a9783c49171b438f8e04d723a7ac3b3ab630357121d91e9ff3.pdf
+[sdoc]: https://files.seeedstudio.com/Seeed_Certificate/documents_certificate/114993643-FCC.pdf
+[seeed]: https://wiki.seeedstudio.com/meshtastic_solar_node/#specification
+[r247]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/subject-group-ECFR2f2e5828339709e/section-15.247
+[r249]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.249
+[r204]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.204
+[r212]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-15/subpart-C/section-15.212
+[r1043]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-2/subpart-J/section-2.1043
+[r805]: https://www.ecfr.gov/current/title-47/chapter-I/subchapter-A/part-2/subpart-I/section-2.805
+[airtime]: https://www.semtech.com/design-support/lora-calculator
