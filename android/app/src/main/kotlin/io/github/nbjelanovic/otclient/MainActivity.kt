@@ -54,6 +54,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
+import io.github.nbjelanovic.otprotocol.CompanionRadioState
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 import java.util.Locale
@@ -209,6 +210,13 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             return@Surface
         }
         homeStateHolder.SaveableStateProvider("home") {
+        val appSettings: @Composable () -> Unit = {
+            AppDisplaySettings(showBuildLabel, { show ->
+                val saved = displayPreferences.setShowBuildLabel(show)
+                displaySettingSaveFailed = !saved
+                if (saved) showBuildLabel = show
+            }, displaySettingSaveFailed)
+        }
         V1HomeScreen(
             state = state,
             liveRuntime = { (controller.state as? TrailAppUiState.BluetoothDevice)?.runtimeState },
@@ -218,19 +226,13 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
             additionalDeviceTools = { if (landscape) additionalTools() },
-            appSettings = {
-                AppDisplaySettings(showBuildLabel, { show ->
-                    val saved = displayPreferences.setShowBuildLabel(show)
-                    displaySettingSaveFailed = !saved
-                    if (saved) showBuildLabel = show
-                }, displaySettingSaveFailed)
-            },
         ) { onSetupComplete ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
                     "Connect below to read your device name and radio-region settings."),
                 onAction = {},
+                footer = appSettings,
                 connectionContent = {
                     Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Find device")
@@ -268,6 +270,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     },
                 )
             }
+            appSettings()
           }
           }
         }
@@ -978,7 +981,7 @@ private fun CandidateList(candidates: List<Pair<String, String>>, connect: (Stri
 @Composable
 private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
     Text(
-        "$title · radio ${snapshot.radio.publicLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
+        "$title · ${snapshot.radio.deviceStatusLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
             "power ${snapshot.power.publicLabel()} · position ${snapshot.positionSharing.publicLabel()} · " +
             "queued ${snapshot.queuedActionCount}",
         style = MaterialTheme.typography.bodyMedium,
@@ -1209,6 +1212,13 @@ private fun BleNegotiationPhase.publicText(): String = when (this) {
     BleNegotiationPhase.AUTHORIZATION_CLAIM -> "Waiting for an exact device authorization result."
     BleNegotiationPhase.INITIAL_SNAPSHOT -> "Waiting for the initial authoritative device status."
 }
+
+internal fun CompanionRadioState.deviceStatusLabel(): String =
+    when (this) {
+        CompanionRadioState.UNAVAILABLE -> "radio status not reported"
+        CompanionRadioState.UNKNOWN -> "radio status unknown"
+        else -> "radio ${publicLabel()}"
+    }
 
 private fun Enum<*>.publicLabel(): String = name.lowercase().replace('_', ' ')
 
