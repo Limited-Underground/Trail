@@ -121,7 +121,7 @@ struct Limits {
     std::uint64_t responder_turn_delay_ms{600};
     std::uint64_t responder_resend_after_ms{2300};
     std::uint8_t max_sends{4};          // per frame (D-107; was 2 under D-087)
-    std::uint64_t attempt_limit_ms{120000};
+    std::uint64_t attempt_limit_ms{300000};  // D-110 (was 120 s, D-087)
     // D-106 (I-057): the first frame, the candidate "hello", repeats on a slow
     // interval for the whole window, so a board started while the other phone's
     // person is still typing the code still receives it. The two roles use
@@ -129,7 +129,7 @@ struct Limits {
     // collide on every repeat (review of I-057). 30 sends cover 120 s at 4.3 s.
     std::uint64_t hello_resend_after_ms{5000};            // initiator
     std::uint64_t hello_responder_resend_after_ms{4300};  // responder
-    std::uint8_t hello_max_sends{30};
+    std::uint8_t hello_max_sends{70};  // 70 x 4.3 s covers the 300 s window (D-110)
     // The final exchange is A control 1, B control 1, A control 2, B control 2;
     // B commits once its control 2 is accepted, A once it receives it. A board
     // produces its first control only with final_reserve_ms left, and each later

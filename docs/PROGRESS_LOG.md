@@ -2,6 +2,35 @@
 
 ## 2026-11-16
 
+### OT-0005i Fast identity reads during board pairing (I-068, I-069)
+
+The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).
+
+- **Cause.** A host probe with real sessions timed every pairing service call and counted the expensive operations:
+  - the final save takes about 6 ms on the PC, with only 9 signature checks on the initiator and 18 on the responder (about 0.2-0.5 s on the ESP32-S3, at 22-27 ms per check from the recorded benchmarks);
+  - the board identity record, however, is read about 11,300 times per pairing per board, about 6,500 of them during the final exchange and save.
+
+  On the board, every `EnrollmentIdentityNvsStorage::read_slot` opens NVS, walks the namespace and runs the reset-marker check twice (`nvs_get_used_entry_count`, a partition scan). At about 4 ms per read, that matches the 26 s, and the hundreds of reads per confirm poll match the 1.1 s.
+- **Fix.** `EnrollmentIdentityNvsStorage` keeps the bytes it last verified in NVS under its guard.
+  - **When the copy is used:** only while no write is pending and the reset generation is unchanged.
+  - **When it changes:** a write drops it, a verified sync refreshes it, and any fault wipes it.
+  - **Reset safety:** the factory-reset marker write (`HeltecV4FactoryResetMarkerStorage::commit_intent_and_readback`) now bumps the reset generation before it touches NVS, so a reset in progress always forces the next read back to NVS and the marker check.
+  - **Logging:** the board logs each attempt's identity reads (cache and NVS).
+- **Tests.** `enrollment_identity_nvs_tests` grows to 18 groups:
+  - repeated reads are served without NVS while a fresh owner still sees NVS errors;
+  - a write drops the copy;
+  - the marker write and a factory reset each end it.
+
+  Two existing groups now check NVS read errors on a fresh owner, which is what every pairing attempt creates. Codex review: the record holds the private seed, so retiring the identity owner (pairing handoff, reset containment) now wipes and permanently disables the storage copy (`retire_cache`); the owner test checks that no seed copy remains after retire and after a verified reset erase, and identity NVS grows to 19 groups. `OT-0238b-IDENTITY-NVS` describes the cached read. The target reset composition (27 groups), public profile settings (37) and bench admission (20) suites pass.
+
+### OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)
+
+The fourth owner-present board session (main `b0fd006`) got through the whole radio exchange for the first time, but both attempts ran out of the 2-minute window. The people steps took most of it, and the final save took 15+ s, with board B's watchdog firing twice (I-066). Owner decision D-110: a 5-minute window.
+
+- **Window.** The phone request for board pairing, the board attempt (`Limits::attempt_limit_ms`) and the app countdown (`BOARD_PAIRING_WINDOW_MILLIS`) are now 300 s. `SelectedEnrollmentRequestOwner` takes its limit as a setting: the bench target's GATT admission and the board's mirror use `kBoardPairingLimitMs` (300 s), and every other user keeps `kPreparationLimitMs` (120 s). The fingerprint review keeps its 120 s default, and accepts a request deadline up to 300 s (`maximum_review_window_ms`). The hello repeats up to 70 times, so it still covers the window (D-106). After a board's clock mark, the signed invitation is valid for up to 180 s, because it must cover the code check, the final messages and the save. Only board pairing issues and expects it (`kBoardPairingInvitationWindowMs`, set with `EnrollmentCandidateSession::set_invitation_window` before start); every other session, including enrollment evaluation and rekey, keeps the 60 s default (`kIndependentInvitationDefaultWindowMs`). The decoding ceiling `kIndependentInvitationMaximumWindowMs` is 180 s so that retained board-paired records still re-verify later (Codex review). New session groups: board pairing with 180 s on both sides, and a 60 s board refusing a 180 s invitation in either direction. The two evaluation commands that take an externally signed invitation directly (Pair Bench `OTPAIR1 INV`, Enrolled Bench `OTENROLL1 BEGIN`) refuse a window over 60 s before anything claims the invitation (`independent_invitation_within_default_window`); a new group in each bench test checks the refusal.
+- **Save (I-066).** A host count with real sessions found 66,608 storage reads in one pairing, against 52 writes. 47,148 of the final-phase reads were the same session-generation ledger slot, which the session re-checks before every storage operation. On the board each read is an NVS lookup in the 1 MB `ot_state` partition. `PairingNvsStorage` now keeps a 16-slot RAM copy of recently read slots (`pairing_slot_cache.hpp`). It is the only writer of the partition: it drops a slot when a write or erase of it starts, stores the verified bytes after sync, and clears the cache on any fault or retire. The checks are unchanged. At the end of each attempt the board logs that attempt's storage cost: cache hits, NVS reads and their time, and the budget checks (`nvs_get_stats` plus `nvs_get_used_entry_count`, which scan the partition) and their time, and `service took … ms at step …` when one pairing service call blocks 200 ms or more, so the next session can confirm the gain.
+- **Tests.** New `pairing_slot_cache_tests` (4 groups). The coordinator scenario groups keep an explicit 120 s profile, since every rule is relative to the window, and a new group covers the 300 s defaults: joins at 0, 120 and 240 s, slow confirmations up to about 4 minutes (both boards or neither), and a silent peer. `pairing_coordinator_tests` grows to 16 groups. The invitation tests use the shared maximum, and the request-owner tests cover the 300 s board limit. The session, device-session and fingerprint-review tests use the shared invitation window and the 300 s review maximum, and the OT-0005i composition pins for `independent_invitation.hpp` and `enrollment_fingerprint_review.hpp` are updated (68 scenarios pass). Link-test build 811,632 bytes, no warnings. The app's countdown text and test now say 5:00, and the expired message no longer names a length.
+
 ### OT-0170a Restore V1-Test compilation (I-053)
 
 V1-Test failed to compile on `b0fd0063` because the connection trace did not

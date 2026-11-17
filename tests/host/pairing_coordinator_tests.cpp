@@ -71,9 +71,19 @@ struct FakeSession {
     }
 };
 
+// The scenario groups below were written for a 120 s window (D-087); they keep
+// that profile, since every rule is relative to the window. The real defaults
+// (D-110: 300 s, 70 hellos) have their own group, test_default_window_d110.
+Limits window_120s() {
+    Limits l{};
+    l.attempt_limit_ms = 120000;
+    l.hello_max_sends = 30;
+    return l;
+}
+
 struct Run {
     FakeSession a{1, 2}, b{2, 1};
-    Limits limits{};
+    Limits limits = window_120s();
     std::uint32_t code{123456};
     // drop(n, from_a): drop the n-th frame transmitted by that side (0-based).
     std::function<bool(int, bool)> drop = [](int, bool) { return false; };
@@ -519,6 +529,46 @@ void test_review_confirm_timing_and_single_loss() {
     }
 }
 
+// D-110: the real defaults, a 5-minute window and up to 70 hellos.
+void test_default_window_d110() {
+    const Limits d{};
+    EXPECT(d.attempt_limit_ms == 300000 && d.hello_max_sends == 70);
+    EXPECT(d.hello_max_sends * d.hello_responder_resend_after_ms >= d.attempt_limit_ms);
+    for (const std::uint64_t late : {std::uint64_t{0}, std::uint64_t{120000}, std::uint64_t{240000}}) {
+        for (int b_first = 0; b_first < 2; ++b_first) {
+            Run r;
+            r.limits = d;
+            r.half_duplex = true;
+            (b_first ? r.a_start_ms : r.b_start_ms) = late;
+            r.go(late + 320000);
+            EXPECT(r.oa == Outcome::paired && r.ob == Outcome::paired);
+        }
+    }
+    // Slow people: confirmations up to about 4 minutes after the join, either
+    // board first, every 10 s: both boards pair or neither.
+    for (int b_first = 0; b_first < 2; ++b_first) {
+        for (int cb = 10; cb <= 2400; cb += 100) {
+            Run r;
+            r.limits = d;
+            r.half_duplex = true;
+            (b_first ? r.a_start_ms : r.b_start_ms) = 30000;
+            (b_first ? r.a : r.b).confirm_ticks = cb;
+            r.go(360000);
+            EXPECT((r.oa == Outcome::paired) == (r.ob == Outcome::paired));
+            EXPECT(r.a.committed == r.b.committed);
+        }
+    }
+    // A silent peer: the hello stops at 70 sends, and the attempt ends at 300 s.
+    {
+        Run r;
+        r.limits = d;
+        r.drop = [](int, bool from_a) { return from_a; };
+        r.go(320000);
+        EXPECT(r.sent_b <= 70 && r.sent_b > 30);
+        EXPECT(r.ob == Outcome::failed && r.rb == FailReason::expired);
+    }
+}
+
 void test_attempt_window_expires() {
     Run r;
     r.a.review_ticks = 2000;  // 200 s: longer than the 120 s request window
@@ -603,6 +653,7 @@ int main() {
     test_late_joiner_still_pairs();
     test_half_duplex_start_orders();
     test_review_confirm_timing_and_single_loss();
+    test_default_window_d110();
     test_attempt_window_expires();
     test_begin_refusals();
     test_final_control_loss_needs_linger();
@@ -613,6 +664,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 15 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 16 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

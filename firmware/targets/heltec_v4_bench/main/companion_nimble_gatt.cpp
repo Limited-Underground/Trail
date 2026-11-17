@@ -145,7 +145,8 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
-SelectedEnrollmentRequestOwner g_selected_enrollment_requests;
+// D-110: the phone's board pairing request lasts 5 minutes.
+SelectedEnrollmentRequestOwner g_selected_enrollment_requests{SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};
 ConfigurationPhoneStatus g_phone_status;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);

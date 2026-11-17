@@ -85,7 +85,7 @@ static unsigned gate_tests() {
         auto* p=s.invitation.payload.data();
         const auto issued=b?176:148;
         const auto window=b?184:156;
-        if(fault==0)invitation_detail::put(p+window,60001,4);
+        if(fault==0)invitation_detail::put(p+window,kIndependentInvitationMaximumWindowMs+1,4);
         if(fault==1)invitation_detail::put(p+window,0,4);
         if(fault==2)invitation_detail::put(p+issued,UINT64_MAX,8);
         s.raw_sign();
@@ -129,8 +129,8 @@ static unsigned gate_tests() {
         };
         if(k==9)s.f.window_a_ms=0;
         if(k==10)s.f.window_b_ms=0;
-        if(k==11)s.f.window_a_ms=60001;
-        if(k==12)s.f.window_b_ms=60001;
+        if(k==11)s.f.window_a_ms=kIndependentInvitationMaximumWindowMs+1;
+        if(k==12)s.f.window_b_ms=kIndependentInvitationMaximumWindowMs+1;
         if(k==13)s.f.issued_a_ms=UINT64_MAX;
         if(k==14)s.f.issued_b_ms=UINT64_MAX;
         if(k==15) {
