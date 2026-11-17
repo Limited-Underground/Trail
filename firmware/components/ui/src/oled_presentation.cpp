@@ -87,8 +87,8 @@ bool metric(const Metric& value, std::uint16_t maximum, std::uint64_t now) {
     return value.valid && value.value <= maximum && fresh(value.sampled_at_ms, now);
 }
 
-bool pulse(const Pulse& value, std::uint64_t now) {
-    return value.valid && value.at_ms <= now && now - value.at_ms < kActivityPulseMs;
+bool pulse(const Pulse& value, std::uint64_t now, std::uint64_t visible_for_ms) {
+    return value.valid && value.at_ms <= now && now - value.at_ms < visible_for_ms;
 }
 
 bool pairing(const PairingWindow& value, std::uint64_t now) {
@@ -243,9 +243,13 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
             else if (snapshot.gps_fix == GpsFix::no_fix) gps = "GPS NO FIX";
         }
         row(frame, 5, gps);
-        const bool tx = pulse(snapshot.tx, now_ms);
-        const bool rx = pulse(snapshot.rx, now_ms);
-        row(frame, 6, tx ? (rx ? "RADIO TX RX" : "RADIO TX") : (rx ? "RADIO RX" : "RADIO --"));
+        if (snapshot.radio_running) {
+            const bool tx = pulse(snapshot.tx, now_ms, snapshot.activity_visible_for_ms);
+            const bool rx = pulse(snapshot.rx, now_ms, snapshot.activity_visible_for_ms);
+            row(frame, 6, tx ? (rx ? "RADIO TX RX" : "RADIO TX") : (rx ? "RADIO RX" : "RADIO IDLE"));
+        } else {
+            row(frame, 6, "RADIO OFF");
+        }
         const auto clock = clock_text(snapshot.clock);
         std::snprintf(line.data(), line.size(), "TIME %s", clock.data());
         row(frame, 7, line.data());
