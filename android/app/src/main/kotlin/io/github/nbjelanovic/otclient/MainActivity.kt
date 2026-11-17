@@ -587,6 +587,14 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Blocked -> {
             StatusCard("Bluetooth unavailable", state.reason.publicText())
+            if (state.reason == BleRuntimeBlock.BLUETOOTH_DISABLED) {
+                Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open Bluetooth settings")
+                }
+                OutlinedButton(onClick = controller::retryBluetoothDiscovery, modifier = Modifier.fillMaxWidth()) {
+                    Text("Try again")
+                }
+            }
             if (
                 state.reason == BleRuntimeBlock.SCAN_PERMISSION_MISSING ||
                 state.reason == BleRuntimeBlock.CONNECT_PERMISSION_MISSING

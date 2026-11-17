@@ -267,6 +267,18 @@ class TrailAppController(
         }
     }
 
+    override fun retryBluetoothDiscovery() {
+        requireOwnerThread()
+        if (
+            mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            canMutate() &&
+            !permissionRequestInFlight &&
+            permissionState == NearbyDevicesPermissionState.GRANTED
+        ) {
+            bluetoothRuntime.retryDiscovery()
+        }
+    }
+
     override fun selectBluetoothDevice(endpointToken: String) {
         requireOwnerThread()
         beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
