@@ -545,6 +545,7 @@ PairRecord* GroupState::record(const PublicKey& peer, bool create) {
         r->peer_key_ = peer;
         r->self_added_ = held.members[si].added_in;
         r->peer_added_ = held.members[pi].added_in;
+        r->hydrated_ = history_mode_ == PairHistoryMode::volatile_only;
         return &*r;
     }
     return nullptr;
@@ -559,13 +560,15 @@ PairOutcome GroupState::pair_start(const PublicKey& peer_in, const Ephemeral& ep
     const Ephemeral eph = eph_in;
     const BootToken boot = boot_in;
     if (roster_.state() != State::active) return PairOutcome::roster_not_active;
-    PairRecord* r = record(peer, true);
+    PairRecord* r = record(peer, history_mode_ == PairHistoryMode::volatile_only);
+    if (!pair_ready(r)) return PairOutcome::wrong_state;
     return r == nullptr ? PairOutcome::no_pair : r->start(roster_, eph, boot, now_ms, signer, rng, out);
 }
 
 PairOutcome GroupState::pair_on_start(const PairStart& start_in, const Ephemeral& eph_in, const BootToken& boot_in,
                                       std::uint64_t now_ms, const RosterCrypto& crypto, const RosterSigner& signer,
                                       RandomSource& rng, PairReply& out) {
+    if (history_mode_ == PairHistoryMode::durable) return PairOutcome::wrong_state;
     if (busy_) return PairOutcome::busy;
     Busy guard(busy_);
     const PairStart start = start_in;
@@ -585,6 +588,7 @@ PairOutcome GroupState::pair_on_reply(const PublicKey& peer_in, const PairReply&
     const PublicKey peer = peer_in;
     const PairReply reply = reply_in;
     verified.reset();
+    if (history_mode_ == PairHistoryMode::durable) return PairOutcome::wrong_state;
     if (busy_) return PairOutcome::busy;
     Busy guard(busy_);
     PairRecord* r = record(peer, false);
@@ -597,6 +601,7 @@ PairOutcome GroupState::pair_on_confirm(const PublicKey& peer_in, const PairConf
     const PublicKey peer = peer_in;
     const PairConfirm confirm = confirm_in;
     verified.reset();
+    if (history_mode_ == PairHistoryMode::durable) return PairOutcome::wrong_state;
     if (busy_) return PairOutcome::busy;
     Busy guard(busy_);
     PairRecord* r = record(peer, false);
@@ -607,12 +612,14 @@ PairOutcome GroupState::pair_on_confirm(const PublicKey& peer_in, const PairConf
 PairOutcome GroupState::pair_activation_possible(const PublicKey& peer, std::uint64_t binding_id) {
     if (busy_) return PairOutcome::busy;
     PairRecord* r = record(peer, false);
+    if (!pair_ready(r)) return PairOutcome::wrong_state;
     return r == nullptr ? PairOutcome::no_pair : r->activation_possible(roster_, binding_id);
 }
 
 PairOutcome GroupState::pair_commit(const PublicKey& peer, std::uint64_t binding_id) {
     if (busy_) return PairOutcome::busy;
     PairRecord* r = record(peer, false);
+    if (!pair_ready(r)) return PairOutcome::wrong_state;
     return r == nullptr ? PairOutcome::no_pair : r->commit(roster_, binding_id);
 }
 
@@ -625,13 +632,131 @@ void GroupState::pair_cancel(const PublicKey& peer) {
 void GroupState::restart() {
     if (busy_) return;
     for (std::optional<PairRecord>& r : pairs_) {
-        if (r) r->restart();
+        if (r) {
+            r->restart();
+            if (history_mode_ == PairHistoryMode::durable) r->hydrated_ = false;
+        }
     }
 }
 
 std::optional<PairStatus> GroupState::pair_status(const PublicKey& peer) const {
     const PairRecord* r = find(peer);
     return r == nullptr ? std::nullopt : std::optional<PairStatus>(r->status());
+}
+
+
+bool GroupState::pair_ready(const PairRecord* pair) const {
+    return history_mode_ == PairHistoryMode::volatile_only || (pair && pair->hydrated_);
+}
+
+bool GroupState::hydrate_roster(const RosterState& source) {
+    if (busy_ || history_mode_ != PairHistoryMode::durable || source.state() != State::active ||
+        roster_.state() == State::uninitialized || roster_.admin_ != source.admin_ ||
+        roster_.own_ != source.own_ || roster_.group_id_ != source.group_id_ ||
+        roster_.minimum_version_ != source.minimum_version_) return false;
+    if (std::any_of(pairs_.begin(), pairs_.end(), [](const auto& pair) { return pair.has_value(); })) return false;
+    roster_ = source;
+    return true;
+}
+
+bool GroupState::hydrate_pair(const PublicKey& peer, const GroupName& group, const Fingerprint& local,
+                              const Fingerprint& peer_fingerprint, std::uint32_t local_added,
+                              std::uint32_t peer_added, std::uint32_t used, std::uint32_t committed, bool history) {
+    if (busy_ || history_mode_ != PairHistoryMode::durable || committed > used ||
+        (!history && (used || committed))) return false;
+    Busy guard(busy_);
+    PairRecord* pair = record(peer, true);
+    if (!pair || pair->hydrated_) return false;
+    PairRecord::Live live{};
+    if (pair->live(roster_, live) != PairOutcome::ok || !same_group(group, pair->group_) ||
+        local != live.self_fp || peer_fingerprint != live.peer_fp ||
+        local_added != pair->self_added_ || peer_added != pair->peer_added_ ||
+        pair->used_ > used || pair->committed_ > committed || (pair->history_ && !history)) return false;
+    pair->restart();
+    pair->used_ = used;
+    pair->committed_ = committed;
+    pair->history_ = history;
+    pair->hydrated_ = true;
+    return true;
+}
+
+bool GroupState::begin_durable_step(const PublicKey& peer) {
+    PairRecord* pair = record(peer, false);
+    if (busy_ || history_mode_ != PairHistoryMode::durable || !pair || !pair->hydrated_ ||
+        step_generation_ == std::numeric_limits<std::uint64_t>::max()) return false;
+    ++step_generation_;
+    step_peer_ = peer;
+    busy_ = true;
+    durable_step_ = true;
+    return true;
+}
+
+void GroupState::end_durable_step(bool success) {
+    if (!durable_step_) return;
+    if (!success) {
+        if (auto* pair = record(step_peer_, false)) {
+            pair->restart();
+            pair->hydrated_ = false;
+        }
+    }
+    durable_step_ = false;
+    step_peer_ = {};
+    busy_ = false;
+}
+
+PairOutcome GroupState::stage_start(const PairStart& input, const Ephemeral& eph, const BootToken& boot,
+                                    std::uint64_t now, const RosterCrypto& crypto, const RosterSigner& signer,
+                                    RandomSource& rng, PairReply& reply, std::optional<VerifiedPairStart>& proof) {
+    proof.reset();
+    PublicKey peer{};
+    const PairStart start = input;
+    if (!roster_.key_for(start.initiator, peer) || !begin_durable_step(peer)) return PairOutcome::wrong_state;
+    PairRecord* pair = record(peer, false);
+    const auto result = pair->on_start(roster_, start, eph, boot, now, crypto, signer, rng, reply);
+    if (result != PairOutcome::ok && result != PairOutcome::resent_reply) {
+        // A rejected input has published nothing and does not invalidate history.
+        end_durable_step(true);
+        return result;
+    }
+    proof = VerifiedPairStart(*this, step_generation_, peer, start, reply.signature,
+                              pair->used_, pair->self_added_, pair->peer_added_);
+    return result;
+}
+
+bool GroupState::current_start(const VerifiedPairStart& proof) const {
+    const PairRecord* pair = find(proof.peer_);
+    if (!busy_ || !durable_step_ || proof.owner_ != this || proof.generation_ != step_generation_ ||
+        proof.peer_ != step_peer_ || !pair || !pair->hydrated_ || pair->used_ != proof.used_ ||
+        pair->self_added_ != proof.local_added_ || pair->peer_added_ != proof.peer_added_ ||
+        !on_roster(roster_, proof.start_.roster_version, proof.start_.roster_digest)) return false;
+    for (const auto& pending : pair->pending_) {
+        if (pending.live && same_start(pending.start, proof.start_) &&
+            pending.reply.signature == proof.reply_) return true;
+    }
+    return false;
+}
+
+PairOutcome GroupState::stage_reply(const PublicKey& peer, const PairReply& input, std::uint64_t now,
+                                    const RosterCrypto& crypto, const RosterSigner& signer,
+                                    PairConfirm& confirm, std::optional<VerifiedPairBinding>& proof) {
+    const PairReply reply = input;
+    proof.reset();
+    if (!begin_durable_step(peer)) return PairOutcome::wrong_state;
+    PairRecord* pair = record(peer, false);
+    const auto result = pair->on_reply(roster_, reply, now, crypto, signer, issue_binding_id(), confirm, proof);
+    if (result != PairOutcome::ok) end_durable_step(true);
+    return result;
+}
+
+PairOutcome GroupState::stage_confirm(const PublicKey& peer, const PairConfirm& input, std::uint64_t now,
+                                      const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& proof) {
+    const PairConfirm confirm = input;
+    proof.reset();
+    if (!begin_durable_step(peer)) return PairOutcome::wrong_state;
+    PairRecord* pair = record(peer, false);
+    const auto result = pair->on_confirm(roster_, confirm, now, crypto, issue_binding_id(), proof);
+    if (result != PairOutcome::ok) end_durable_step(true);
+    return result;
 }
 
 }  // namespace opentrail::identity::roster

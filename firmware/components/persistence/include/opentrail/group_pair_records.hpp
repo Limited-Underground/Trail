@@ -16,13 +16,14 @@ enum class GroupPairRecordsError : std::uint8_t {
     wrong_binding, wrong_state, bad_epoch,
 };
 
-enum class GroupPairPhase : std::uint8_t { empty, prepared, activation_possible, committed };
+enum class GroupPairPhase : std::uint8_t { empty, prepared, activation_possible, committed, observed };
 enum class GroupPairLane : std::uint8_t { data_tx, ack_tx, data_rx, ack_rx };
 
 struct GroupPairHistory {
     GroupPairPhase phase{GroupPairPhase::empty};
     std::uint32_t used_epoch{0};
     std::uint32_t committed_epoch{0};
+    bool history{false};
 };
 
 // One serialized owner of a peer's public records and one live session. The
@@ -44,6 +45,24 @@ public:
     // Public recovery facts only, including interrupted intent and its used
     // epoch. Reopening never reauthorizes the saved activation or counters.
     [[nodiscard]] GroupPairRecordsError history(GroupPairHistory& output);
+
+    // A new durable GroupState cannot run this peer before this exact-scope
+    // import. Saved intent is retired, and only monotonic public facts survive.
+    [[nodiscard]] GroupPairRecordsError hydrate(const identity::roster::RosterCrypto& crypto);
+    // Durable mode publishes replies/confirms only after their public history
+    // commits and reads back. The raw GroupState output APIs refuse this mode.
+    [[nodiscard]] GroupPairRecordsError answer(const identity::roster::PairStart& start,
+        const identity::roster::Ephemeral& ephemeral, const identity::roster::BootToken& boot,
+        std::uint64_t now_ms, const identity::roster::RosterCrypto& crypto,
+        const identity::roster::RosterSigner& signer, identity::roster::RandomSource& random,
+        identity::roster::PairReply& output);
+    [[nodiscard]] GroupPairRecordsError finish_reply(const identity::roster::PairReply& reply,
+        std::uint64_t now_ms, const identity::roster::RosterCrypto& crypto,
+        const identity::roster::RosterSigner& signer, identity::roster::PairConfirm& output,
+        std::optional<identity::roster::VerifiedPairBinding>& proof);
+    [[nodiscard]] GroupPairRecordsError finish_confirm(const identity::roster::PairConfirm& confirm,
+        std::uint64_t now_ms, const identity::roster::RosterCrypto& crypto,
+        std::optional<identity::roster::VerifiedPairBinding>& proof);
 
     [[nodiscard]] GroupPairRecordsError prepare(const identity::roster::VerifiedPairBinding& proof);
     [[nodiscard]] GroupPairRecordsError mark_activation_possible();
@@ -82,6 +101,7 @@ private:
     std::optional<Scope> current_scope();
     bool current_binding(const Scope& scope, identity::roster::PairStep step) const;
     Error load_record(std::size_t slot, Record& output);
+    Error persist_start(const identity::roster::VerifiedPairStart& proof);
     Error store_record(const Scope& scope, Record& record);
     Error load_lane(const Scope& scope, std::uint32_t epoch, GroupPairLane lane, Image& output);
     Error store_lane(const Scope& scope, std::uint32_t epoch, GroupPairLane lane, const Image& input);

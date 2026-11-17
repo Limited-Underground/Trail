@@ -59,6 +59,8 @@
 
 #include "opentrail/group_roster.hpp"
 
+namespace opentrail::persistence { class GroupPairRecords; }
+
 namespace opentrail::identity::roster {
 
 inline constexpr std::size_t kEphemeralBytes = 32;
@@ -116,6 +118,30 @@ struct PairConfirm {
 
 // Proof that both identities signed the complete binding with this board's own fresh
 // challenge in it, for the pair and roster GroupState checked at that moment.
+class GroupState;
+
+// A verified responder start at one exact staged reply. Only the durable
+// friend can consume it while its GroupState remains locked in that step.
+class VerifiedPairStart {
+public:
+    const PairStart& start() const { return start_; }
+    std::uint32_t used_epoch() const { return used_; }
+private:
+    friend class GroupState;
+    friend class opentrail::persistence::GroupPairRecords;
+    VerifiedPairStart(const GroupState& owner, std::uint64_t generation, const PublicKey& peer,
+                      const PairStart& start, const Signature& reply, std::uint32_t used,
+                      std::uint32_t local_added, std::uint32_t peer_added)
+        : owner_(&owner), generation_(generation), peer_(peer), start_(start), reply_(reply),
+          used_(used), local_added_(local_added), peer_added_(peer_added) {}
+    const GroupState* owner_;
+    std::uint64_t generation_;
+    PublicKey peer_;
+    PairStart start_;
+    Signature reply_;
+    std::uint32_t used_, local_added_, peer_added_;
+};
+
 class VerifiedPairBinding {
 public:
     [[nodiscard]] PairPurpose purpose() const { return start_.purpose; }
@@ -167,6 +193,8 @@ enum class PairOutcome : std::uint8_t {
     busy,                 // a pair step is already running (no nested calls from providers)
     crypto_failure,
 };
+
+enum class PairHistoryMode : std::uint8_t { volatile_only, durable };
 
 enum class PairStep : std::uint8_t { none = 0, awaiting_reply, awaiting_confirm, bound, activation_possible, committed };
 
@@ -234,6 +262,7 @@ private:
     std::uint32_t used_{0};
     std::uint32_t committed_{0};
     bool history_{false};
+    bool hydrated_{false};
 
     // Binding stage: none, bound, activation_possible, committed (activation intent durable in step 3).
     PairStep stage_{PairStep::none};
@@ -265,7 +294,7 @@ private:
 // has no effect on what is verified, signed or issued.
 class GroupState {
 public:
-    GroupState() = default;
+    explicit GroupState(PairHistoryMode mode = PairHistoryMode::volatile_only) : history_mode_(mode) {}
     GroupState(const GroupState&) = delete;
     GroupState& operator=(const GroupState&) = delete;
     GroupState(GroupState&&) = delete;
@@ -304,12 +333,35 @@ public:
     [[nodiscard]] std::optional<PairStatus> pair_status(const PublicKey& peer) const;
 
 private:
+    friend class opentrail::persistence::GroupPairRecords;
+    friend class DurableGroupRoster;
+    bool hydrate_roster(const RosterState& roster);
+    bool hydrate_pair(const PublicKey& peer, const GroupName& group, const Fingerprint& local,
+                      const Fingerprint& peer_fingerprint, std::uint32_t local_added,
+                      std::uint32_t peer_added, std::uint32_t used, std::uint32_t committed, bool history);
+    PairOutcome stage_start(const PairStart& start, const Ephemeral& eph, const BootToken& boot,
+                            std::uint64_t now_ms, const RosterCrypto& crypto, const RosterSigner& signer,
+                            RandomSource& rng, PairReply& reply, std::optional<VerifiedPairStart>& proof);
+    PairOutcome stage_reply(const PublicKey& peer, const PairReply& reply, std::uint64_t now_ms,
+                            const RosterCrypto& crypto, const RosterSigner& signer, PairConfirm& confirm,
+                            std::optional<VerifiedPairBinding>& proof);
+    PairOutcome stage_confirm(const PublicKey& peer, const PairConfirm& confirm, std::uint64_t now_ms,
+                              const RosterCrypto& crypto, std::optional<VerifiedPairBinding>& proof);
+    bool current_start(const VerifiedPairStart& proof) const;
+    bool begin_durable_step(const PublicKey& peer);
+    void end_durable_step(bool success);
+    bool pair_ready(const PairRecord* pair) const;
+
     PairRecord* record(const PublicKey& peer, bool create);
     const PairRecord* find(const PublicKey& peer) const;
     void apply_roster();
 
     RosterState roster_{};
     std::array<std::optional<PairRecord>, kMaximumPeers> pairs_{};
+    const PairHistoryMode history_mode_;
+    std::uint64_t step_generation_{0};
+    PublicKey step_peer_{};
+    bool durable_step_{false};
     bool busy_{false};
 };
 

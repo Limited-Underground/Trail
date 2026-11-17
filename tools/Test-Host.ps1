@@ -911,6 +911,7 @@ $builds = @(
         Output = Join-Path $buildDirectory 'durable_group_roster_tests.exe'
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
             (Join-Path $projectRoot 'firmware\components\identity\src\durable_group_roster.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),

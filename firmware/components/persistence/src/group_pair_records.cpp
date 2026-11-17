@@ -18,7 +18,7 @@ constexpr std::size_t kScopeBytes = 1 + 8 + 32 + 8 + 32 + 32 + 4 + 4;
 constexpr std::size_t kProofBytes = roster::kBindingBytes + 2 * roster::kSignatureBytes;
 constexpr std::size_t kRecordBytes = 4 + kScopeBytes + 1 + 4 + 4 + kProofBytes + 4;
 constexpr std::size_t kLaneBytes = 4 + kScopeBytes + 4 + 1 + std::tuple_size_v<Bytes> + 4;
-constexpr std::array<std::uint8_t, 4> kPairMagic{'O', 'T', 'P', 1}, kLaneMagic{'O', 'T', 'L', 1};
+constexpr std::array<std::uint8_t, 4> kPairMagic{'O', 'T', 'P', 2}, kLaneMagic{'O', 'T', 'L', 1};
 
 struct Writer {
     std::uint8_t* at;
@@ -111,6 +111,60 @@ Error read_blob(PersistentKvBackend& backend, const char* key, std::array<std::u
     return actual == blob.size() ? Error::none : Error::malformed;
 }
 
+
+// The evidence union stores either the existing full binding and signatures,
+// or one verified signed start. Its size and all lane sizes stay unchanged.
+bool read_common(Reader& reader, const Scope& scope, roster::PairStart& start) {
+    start.purpose = static_cast<roster::PairPurpose>(reader.number<std::uint8_t>());
+    reader.bytes(start.group.admin);
+    start.group.group_id = reader.number<std::uint64_t>();
+    start.roster_version = reader.number<std::uint32_t>();
+    reader.bytes(start.roster_digest);
+    start.epoch = reader.number<std::uint32_t>();
+    reader.bytes(start.initiator);
+    reader.bytes(start.responder);
+    start.lifetime_ms = reader.number<std::uint32_t>();
+    return (start.purpose == roster::PairPurpose::introduce || start.purpose == roster::PairPurpose::rekey) &&
+           same_group(start.group, scope.group) && start.roster_version >= scope.local_added &&
+           start.roster_version >= scope.peer_added && !zero(start.roster_digest) && start.epoch &&
+           start.lifetime_ms && start.lifetime_ms <= roster::kPairLifetimeMs &&
+           ((start.initiator == scope.local && start.responder == scope.peer) ||
+            (start.initiator == scope.peer && start.responder == scope.local));
+}
+
+bool evidence_epoch(const std::array<std::uint8_t, kProofBytes>& proof, const Scope& scope,
+                    bool observed, std::uint32_t& epoch, roster::PairStart* decoded = nullptr) {
+    const auto label = observed ? roster::kStartDomain : roster::kBindingDomain;
+    if (!std::equal(label.begin(), label.end(), proof.begin())) return false;
+    Reader reader{proof.data() + label.size()};
+    roster::PairStart start{};
+    if (!read_common(reader, scope, start)) return false;
+    roster::Ephemeral initiator{}, responder{};
+    roster::Challenge first_challenge{}, second_challenge{};
+    roster::BootToken first_boot{}, second_boot{};
+    reader.bytes(initiator);
+    if (!observed) reader.bytes(responder);
+    reader.bytes(first_challenge);
+    if (!observed) reader.bytes(second_challenge);
+    reader.bytes(first_boot);
+    if (!observed) reader.bytes(second_boot);
+    if (zero(initiator) || zero(first_challenge) || zero(first_boot)) return false;
+    roster::Signature first_signature{}, second_signature{};
+    reader.bytes(first_signature);
+    if (zero(first_signature)) return false;
+    if (observed) {
+        if (start.initiator != scope.peer ||
+            !std::all_of(reader.at, proof.data() + proof.size(), [](auto byte) { return byte == 0; })) return false;
+    } else {
+        reader.bytes(second_signature);
+        if (zero(responder) || zero(second_challenge) || zero(second_boot) || zero(second_signature) ||
+            initiator == responder || first_challenge == second_challenge) return false;
+    }
+    epoch = start.epoch;
+    if (decoded) *decoded = start;
+    return true;
+}
+
 using PairKey = std::array<char, 8>;
 
 PairKey pair_key(std::size_t slot) {
@@ -132,6 +186,7 @@ struct GroupPairRecords::Record {
     Scope scope{};
     GroupPairHistory history{};
     std::array<std::uint8_t, kProofBytes> proof{};
+    bool start_evidence{false};
 };
 
 GroupPairRecords::GroupPairRecords(PersistentKvBackend& backend, roster::DurableGroupRoster& owner,
@@ -168,7 +223,9 @@ Error GroupPairRecords::load_record(std::size_t slot, Record& output) {
 
     Reader reader{blob.data() + kPairMagic.size()};
     output.scope = get_scope(reader);
-    output.history.phase = static_cast<GroupPairPhase>(reader.number<std::uint8_t>());
+    const auto phase = reader.number<std::uint8_t>();
+    output.start_evidence = (phase & 0x80) != 0;
+    output.history.phase = static_cast<GroupPairPhase>(phase & 0x7f);
     output.history.used_epoch = reader.number<std::uint32_t>();
     output.history.committed_epoch = reader.number<std::uint32_t>();
     reader.bytes(output.proof);
@@ -176,15 +233,25 @@ Error GroupPairRecords::load_record(std::size_t slot, Record& output) {
 
     const auto& h = output.history;
     if (h.phase == GroupPairPhase::empty) {
-        return h.used_epoch == 0 && h.committed_epoch == 0 && zero(output.proof) ? Error::none : Error::malformed;
+        return !output.start_evidence && h.used_epoch == 0 && h.committed_epoch == 0 && zero(output.proof) ? Error::none : Error::malformed;
     }
-    if (zero(output.proof) || !h.used_epoch) return Error::malformed;
+    std::uint32_t bound_epoch{};
+    const bool observed = output.start_evidence;
+    if (!evidence_epoch(output.proof, output.scope, observed, bound_epoch)) return Error::malformed;
+    output.history.history = true;
+    if (observed) {
+        const bool known_phase = h.phase == GroupPairPhase::observed || h.phase == GroupPairPhase::prepared ||
+                                 h.phase == GroupPairPhase::activation_possible || h.phase == GroupPairPhase::committed;
+        return known_phase && h.committed_epoch <= h.used_epoch && h.used_epoch == bound_epoch - 1 &&
+               (h.phase != GroupPairPhase::observed || h.committed_epoch == 0) ? Error::none : Error::malformed;
+    }
+    if (h.used_epoch != bound_epoch) return Error::malformed;
     switch (h.phase) {
         case GroupPairPhase::prepared:
         case GroupPairPhase::activation_possible:
-            return h.committed_epoch < h.used_epoch ? Error::none : Error::malformed;
+            return h.committed_epoch < bound_epoch ? Error::none : Error::malformed;
         case GroupPairPhase::committed:
-            return h.committed_epoch == h.used_epoch ? Error::none : Error::malformed;
+            return h.committed_epoch == bound_epoch ? Error::none : Error::malformed;
         default:
             return Error::malformed;
     }
@@ -197,7 +264,8 @@ Error GroupPairRecords::store_record(const Scope& scope, Record& record) {
     Writer writer{blob.data()};
     writer.bytes(kPairMagic);
     put_scope(writer, scope);
-    writer.number(static_cast<std::uint8_t>(record.history.phase));
+    writer.number(static_cast<std::uint8_t>(static_cast<std::uint8_t>(record.history.phase) |
+                                            (record.start_evidence ? 0x80 : 0)));
     writer.number(record.history.used_epoch);
     writer.number(record.history.committed_epoch);
     writer.bytes(record.proof);
@@ -269,7 +337,9 @@ Error GroupPairRecords::provision() {
         return Error::wrong_incarnation;
     }
     Record record{};
-    return store_record(*scope, record);
+    const auto stored = store_record(*scope, record);
+    if (stored != Error::none) return stored;
+    return Error::none;
 }
 
 Error GroupPairRecords::history(GroupPairHistory& output) {
@@ -306,6 +376,7 @@ Error GroupPairRecords::prepare(const roster::VerifiedPairBinding& proof) {
         scope_.reset();
         return Error::wrong_binding;
     }
+    record.start_evidence = false;
     if (roster::binding_bytes(start, proof.reply(), record.proof.data(), roster::kBindingBytes) !=
         roster::kBindingBytes) return Error::wrong_binding;
     auto next = std::copy(proof.reply().signature.begin(), proof.reply().signature.end(),
@@ -449,6 +520,154 @@ StorageError GroupPairRecords::LaneStorage::sync_slot(StorageDomain domain, std:
     if (!owner_.save(lane_, image)) return StorageError::io_failure;
     working.dirty = false;
     return StorageError::none;
+}
+
+
+Error GroupPairRecords::hydrate(const roster::RosterCrypto& crypto) {
+    if (scope_ || faulted_) return Error::unavailable;
+    const auto scope = current_scope();
+    if (!scope) return Error::unavailable;
+    Record record{};
+    const auto result = load_record(scope->location.slot, record);
+    if (result != Error::none) return result;
+    if (!same_incarnation(*scope, record.scope)) return Error::wrong_incarnation;
+    const auto& live = live_group_.roster();
+    if (live.state() != roster::State::active || live.roster().version != scope->roster_version ||
+        live.digest() != scope->roster_digest) return Error::unavailable;
+    const auto& history = record.history;
+    if (history.history) {
+        const bool observed = record.start_evidence;
+        roster::PairStart start{};
+        std::uint32_t epoch{};
+        if (!evidence_epoch(record.proof, record.scope, observed, epoch, &start)) return Error::malformed;
+        roster::PublicKey initiator{}, responder{};
+        if (!live.key_for(start.initiator, initiator) || !live.key_for(start.responder, responder)) {
+            return Error::wrong_binding;
+        }
+        const auto size = observed ? roster::kStartBytes : roster::kBindingBytes;
+        roster::Signature signature{};
+        std::copy_n(record.proof.data() + size, signature.size(), signature.begin());
+        if (!crypto.verify(signature, record.proof.data(), size, observed ? initiator : responder)) {
+            return Error::wrong_binding;
+        }
+        if (!observed) {
+            std::copy_n(record.proof.data() + size + signature.size(), signature.size(), signature.begin());
+            if (!crypto.verify(signature, record.proof.data(), size, initiator)) return Error::wrong_binding;
+        }
+    }
+    const auto current = current_scope();
+    if (!current || !same_incarnation(*scope, *current) ||
+        current->roster_version != scope->roster_version || current->roster_digest != scope->roster_digest ||
+        live.roster().version != scope->roster_version || live.digest() != scope->roster_digest) {
+        return Error::wrong_binding;
+    }
+    return live_group_.hydrate_pair(peer_key_, scope->group, scope->local, scope->peer,
+                                    scope->local_added, scope->peer_added, history.used_epoch,
+                                    history.committed_epoch, history.history) ? Error::none : Error::wrong_state;
+}
+
+Error GroupPairRecords::persist_start(const roster::VerifiedPairStart& proof) {
+    const auto scope = current_scope();
+    if (!scope || !live_group_.current_start(proof) || proof.peer_ != peer_key_ ||
+        proof.start_.responder != scope->local || proof.start_.initiator != scope->peer ||
+        !same_group(proof.start_.group, scope->group) ||
+        proof.start_.roster_version != scope->roster_version ||
+        proof.start_.roster_digest != scope->roster_digest ||
+        proof.local_added_ != scope->local_added || proof.peer_added_ != scope->peer_added) return Error::wrong_binding;
+    Record record{};
+    const auto loaded = load_record(scope->location.slot, record);
+    if (loaded != Error::none) return loaded;
+    if (!same_incarnation(*scope, record.scope)) return Error::wrong_incarnation;
+    const auto previous = std::uint64_t{record.history.used_epoch};
+    const auto incoming = std::uint64_t{proof.start_.epoch};
+    if ((incoming != previous + 1 && incoming != previous + 2) ||
+        proof.used_ != incoming - 1) return Error::bad_epoch;
+    if (record.history.phase == GroupPairPhase::empty || record.start_evidence || proof.used_ > previous) {
+        record.proof = {};
+        if (roster::start_bytes(proof.start_, record.proof.data(), record.proof.size()) != roster::kStartBytes) {
+            return Error::wrong_binding;
+        }
+        std::copy(proof.start_.signature.begin(), proof.start_.signature.end(),
+                  record.proof.begin() + roster::kStartBytes);
+        record.start_evidence = true;
+        if (record.history.phase == GroupPairPhase::empty) record.history.phase = GroupPairPhase::observed;
+    } else if (proof.used_ == previous) {
+        return live_group_.current_start(proof) ? Error::none : Error::wrong_binding;
+    }
+    record.history.used_epoch = proof.used_;
+    record.history.history = true;
+    const auto stored = store_record(*scope, record);
+    if (stored != Error::none) return stored;
+    const auto current = current_scope();
+    return current && same_incarnation(*scope, *current) &&
+           current->roster_version == scope->roster_version && current->roster_digest == scope->roster_digest &&
+           live_group_.current_start(proof) ? Error::none : Error::wrong_binding;
+}
+
+Error GroupPairRecords::answer(const roster::PairStart& start, const roster::Ephemeral& ephemeral,
+                               const roster::BootToken& boot, std::uint64_t now,
+                               const roster::RosterCrypto& crypto, const roster::RosterSigner& signer,
+                               roster::RandomSource& random, roster::PairReply& output) {
+    if (faulted_) return Error::unavailable;
+    if (start.initiator != peer_) return Error::wrong_binding;
+    roster::PairReply staged{};
+    std::optional<roster::VerifiedPairStart> proof;
+    const auto result = live_group_.stage_start(start, ephemeral, boot, now, crypto, signer, random, staged, proof);
+    if ((result != roster::PairOutcome::ok && result != roster::PairOutcome::resent_reply) || !proof) {
+        return Error::wrong_binding;
+    }
+    const auto stored = persist_start(*proof);
+    const bool success = stored == Error::none && live_group_.current_start(*proof);
+    live_group_.end_durable_step(success);
+    if (success) {
+        output = staged;
+        return Error::none;
+    }
+    return stored == Error::none ? Error::wrong_binding : stored;
+}
+
+
+Error GroupPairRecords::finish_reply(const roster::PairReply& input, std::uint64_t now,
+                                     const roster::RosterCrypto& crypto, const roster::RosterSigner& signer,
+                                     roster::PairConfirm& output,
+                                     std::optional<roster::VerifiedPairBinding>& proof) {
+    const roster::PairReply reply = input;
+    proof.reset();
+    if (faulted_) return Error::unavailable;
+    roster::PairConfirm staged{};
+    std::optional<roster::VerifiedPairBinding> verified;
+    const auto result = live_group_.stage_reply(peer_key_, reply, now, crypto, signer, staged, verified);
+    if (result != roster::PairOutcome::ok || !verified) return Error::wrong_binding;
+    auto stored = prepare(*verified);
+    const auto scope = current_scope();
+    if (stored == Error::none && (!scope || !current_binding(*scope, roster::PairStep::bound))) {
+        stored = Error::wrong_binding;
+    }
+    live_group_.end_durable_step(stored == Error::none);
+    if (stored == Error::none) {
+        output = staged;
+        proof = *verified;
+    }
+    return stored;
+}
+
+Error GroupPairRecords::finish_confirm(const roster::PairConfirm& input, std::uint64_t now,
+                                       const roster::RosterCrypto& crypto,
+                                       std::optional<roster::VerifiedPairBinding>& proof) {
+    const roster::PairConfirm confirm = input;
+    proof.reset();
+    if (faulted_) return Error::unavailable;
+    std::optional<roster::VerifiedPairBinding> verified;
+    const auto result = live_group_.stage_confirm(peer_key_, confirm, now, crypto, verified);
+    if (result != roster::PairOutcome::ok || !verified) return Error::wrong_binding;
+    auto stored = prepare(*verified);
+    const auto scope = current_scope();
+    if (stored == Error::none && (!scope || !current_binding(*scope, roster::PairStep::bound))) {
+        stored = Error::wrong_binding;
+    }
+    live_group_.end_durable_step(stored == Error::none);
+    if (stored == Error::none) proof = *verified;
+    return stored;
 }
 
 }  // namespace opentrail::persistence

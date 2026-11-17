@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <functional>
+#include <limits>
+#include <type_traits>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -10,6 +13,7 @@
 
 #include "opentrail/evaluation_replay_store.hpp"
 #include "opentrail/outbound_counter_lease_store.hpp"
+#include "opentrail/configuration_store.hpp"
 
 namespace {
 
@@ -64,6 +68,7 @@ public:
     KvError commit(const char* partition, const char* space) override {
         CHECK(std::string(partition) == "ot_state");
         CHECK(!pending_.empty() && pending_key_.find(std::string(space) + "/") == 0);
+        if (before_commit) before_commit();
         const auto outcome = writes == cut ? fault : Fault::none;
         if (outcome == Fault::unapplied) return KvError::io_failure;
         disk_[pending_key_] = std::move(pending_);
@@ -74,6 +79,7 @@ public:
 
     std::size_t writes{0}, cut{0};
     Fault fault{Fault::none};
+    std::function<void()> before_commit;
 
 private:
     static std::string path(const char* space, const char* key) { return std::string(space) + "/" + key; }
@@ -203,7 +209,7 @@ struct Fixture {
     Random random;
     std::uint8_t next_marker{8};
 
-    Fixture() {
+    explicit Fixture(PairHistoryMode mode = PairHistoryMode::volatile_only) : first(mode) {
         CHECK(first.initialize(admin, group, local));
         CHECK(second->initialize(admin, group, peer));
         CHECK(owner.index.initialize() == GroupPairIndexError::none);
@@ -522,14 +528,334 @@ void active_lane_failures() {
 }
 
 
+
+
+void initialize_live(GroupState& group_state) {
+    CHECK(group_state.initialize(admin, group, local));
+}
+
+void lost_confirm_catchup() {
+    Fixture f(PairHistoryMode::durable);
+    CHECK(f.owner.records.provision() == Error::none);
+    CHECK(f.owner.roster.hydrate_group(f.first) == DurableRosterError::none);
+    CHECK(f.owner.records.hydrate(crypto) == Error::none);
+    PairStart start{};
+    PairReply reply{};
+    PairConfirm lost{};
+    std::optional<VerifiedPairBinding> sender, receiver;
+    CHECK(f.second->pair_start(local, value<32>(31), value<16>(32), 10,
+                                Signer(peer), f.random, start) == PairOutcome::ok);
+    CHECK(f.first.pair_on_start(start, value<32>(33), value<16>(34), 11,
+                               crypto, Signer(local), f.random, reply) == PairOutcome::wrong_state);
+    CHECK(f.owner.records.answer(start, value<32>(33), value<16>(34), 11,
+                                  crypto, Signer(local), f.random, reply) == Error::none);
+    CHECK(f.second->pair_on_reply(local, reply, 12, crypto, Signer(peer), lost, sender) == PairOutcome::ok);
+    CHECK(sender && !receiver);  // The confirm never reaches the responder.
+    GroupPairHistory facts{};
+    CHECK(f.owner.records.history(facts) == Error::none && facts.history && facts.used_epoch == 0);
+
+    // These are genuinely new objects, retaining only the durable bytes.
+    GroupState fresh(PairHistoryMode::durable);
+    initialize_live(fresh);
+    Owners reopened(f.disk, fresh);
+    CHECK(reopened.roster.reopen() == DurableRosterError::none);
+    PairStart blocked{};
+    CHECK(fresh.pair_start(peer, value<32>(41), value<16>(42), 60001,
+                            Signer(local), f.random, blocked) == PairOutcome::roster_not_active);
+    CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::none);
+    CHECK(fresh.roster().accepted(peer));  // Restored local consent, without a new tap.
+    CHECK(fresh.pair_start(peer, value<32>(41), value<16>(42), 60001,
+                            Signer(local), f.random, blocked) == PairOutcome::wrong_state);
+    CHECK(reopened.records.hydrate(crypto) == Error::none);
+    CHECK(fresh.pair_status(peer)->history && fresh.pair_status(peer)->used_epoch == 0);
+    f.second->restart();
+    CHECK(f.second->pair_start(local, value<32>(41), value<16>(42), 60010,
+                                Signer(peer), f.random, start) == PairOutcome::ok);
+    CHECK(start.epoch == 2);
+    reply.signature = value<kSignatureBytes>(77);
+    bool observed_commit = false;
+    reopened.pair_kv.before_commit = [&] {
+        CHECK(reply.signature == value<kSignatureBytes>(77));
+        CHECK(fresh.pair_start(peer, value<32>(51), value<16>(52), 60011,
+                                Signer(local), f.random, blocked) == PairOutcome::busy);
+        observed_commit = true;
+    };
+    CHECK(reopened.records.answer(start, value<32>(43), value<16>(44), 60011,
+                                   crypto, Signer(local), f.random, reply) == Error::none);
+    CHECK(observed_commit);
+    reopened.pair_kv.before_commit = {};
+    CHECK(reopened.records.history(facts) == Error::none && facts.used_epoch == 1);
+    PairConfirm confirm{};
+    CHECK(f.second->pair_on_reply(local, reply, 60012, crypto, Signer(peer), confirm, sender) == PairOutcome::ok);
+    CHECK(fresh.pair_on_confirm(peer, confirm, 60013, crypto, receiver) == PairOutcome::wrong_state);
+    CHECK(reopened.records.finish_confirm(confirm, 60013, crypto, receiver) == Error::none);
+    CHECK(receiver && receiver->epoch() == 2);
+    CHECK(fresh.pair_activation_possible(peer, receiver->id()) == PairOutcome::ok);
+    CHECK(reopened.records.mark_activation_possible() == Error::none);
+    CHECK(fresh.pair_commit(peer, receiver->id()) == PairOutcome::ok);
+    CHECK(reopened.records.commit() == Error::none);
+    CHECK(reopened.records.history(facts) == Error::none && facts.committed_epoch == 2);
+    auto* previous_lane = reopened.records.storage(GroupPairLane::data_tx);
+    CHECK(previous_lane);
+    CHECK(reopened.records.hydrate(crypto) == Error::unavailable);
+
+    // Let epoch 3's confirm disappear too. A signed epoch-4 start must
+    // durably catch up the responder without reviving epoch-2 lane access.
+    f.second->restart();
+    CHECK(f.second->pair_start(local, value<32>(91), value<16>(92), 120020,
+                                Signer(peer), f.random, start) == PairOutcome::ok && start.epoch == 3);
+    CHECK(reopened.records.answer(start, value<32>(93), value<16>(94), 120021,
+                                   crypto, Signer(local), f.random, reply) == Error::none);
+    CHECK(f.second->pair_on_reply(local, reply, 120022, crypto, Signer(peer), confirm, sender) == PairOutcome::ok);
+    f.second->restart();
+    CHECK(f.second->pair_start(local, value<32>(95), value<16>(96), 180030,
+                                Signer(peer), f.random, start) == PairOutcome::ok && start.epoch == 4);
+    CHECK(reopened.records.answer(start, value<32>(97), value<16>(98), 180031,
+                                   crypto, Signer(local), f.random, reply) == Error::none);
+    CHECK(reopened.records.history(facts) == Error::none && facts.used_epoch == 3 &&
+          facts.committed_epoch == 2 && facts.phase == GroupPairPhase::committed);
+    std::array<std::uint8_t, kPersistentSlotBytes> image{};
+    CHECK(!previous_lane->read_slot(domain, 0, {image.data(), image.size()}).read());
+    CHECK(reopened.records.hydrate(crypto) == Error::unavailable);
+    no_traffic(reopened.records);
+}
+
+void catchup_write_failures() {
+    for (const auto fault : {Fault::write, Fault::unapplied, Fault::applied, Fault::readback}) {
+        Fixture f(PairHistoryMode::durable);
+        CHECK(f.owner.records.provision() == Error::none);
+        CHECK(f.owner.roster.hydrate_group(f.first) == DurableRosterError::none);
+        CHECK(f.owner.records.hydrate(crypto) == Error::none);
+        PairStart start{};
+        PairReply reply{};
+        reply.signature = value<kSignatureBytes>(77);
+        CHECK(f.second->pair_start(local, value<32>(51), value<16>(52), 10,
+                                    Signer(peer), f.random, start) == PairOutcome::ok);
+        f.owner.pair_kv.cut = f.owner.pair_kv.writes + 1;
+        f.owner.pair_kv.fault = fault;
+        CHECK(f.owner.records.answer(start, value<32>(53), value<16>(54), 11,
+                                      crypto, Signer(local), f.random, reply) == Error::storage_failure);
+        CHECK(reply.signature == value<kSignatureBytes>(77));
+        CHECK(f.owner.pair_kv.writes == f.owner.pair_kv.cut);
+        CHECK(f.first.pair_start(peer, value<32>(55), value<16>(56), 12,
+                                 Signer(local), f.random, start) == PairOutcome::wrong_state);
+        CHECK(f.first.pair_on_start(start, value<32>(57), value<16>(58), 13,
+                                    crypto, Signer(local), f.random, reply) == PairOutcome::wrong_state);
+        no_traffic(f.owner.records);
+    }
+}
+
+void put32(Blob& blob, std::size_t offset, std::uint32_t number) {
+    for (unsigned index = 0; index < 4; ++index) {
+        blob[offset + index] = static_cast<std::uint8_t>(number >> (8 * (3 - index)));
+    }
+}
+
+void fix_crc(Blob& blob) {
+    put32(blob, blob.size() - 4, configuration_crc32({blob.data(), blob.size() - 4}));
+}
+
+constexpr std::size_t phase_offset = 4 + 1 + 8 + 32 + 8 + 32 + 32 + 4 + 4;
+constexpr std::size_t used_offset = phase_offset + 1;
+constexpr std::size_t committed_offset = used_offset + 4;
+constexpr std::size_t evidence_offset = committed_offset + 4;
+constexpr std::size_t common_epoch_offset = 1 + 32 + 8 + 4 + 32;
+
+void sign_stored_binding(Blob& blob) {
+    auto* evidence = blob.data() + evidence_offset;
+    const auto responder = signature(local, evidence, kBindingBytes);
+    const auto initiator = signature(peer, evidence, kBindingBytes);
+    auto next = std::copy(responder.begin(), responder.end(), evidence + kBindingBytes);
+    std::copy(initiator.begin(), initiator.end(), next);
+    fix_crc(blob);
+}
+
+
+void fresh_initiator_persists_before_confirm() {
+    Fixture f;
+    CHECK(f.owner.records.provision() == Error::none);
+    const auto old = f.bind();
+    CHECK(f.owner.records.prepare(old) == Error::none);
+    f.activate(f.owner.records, old);
+    GroupState fresh(PairHistoryMode::durable);
+    initialize_live(fresh);
+    Owners reopened(f.disk, fresh);
+    CHECK(reopened.roster.reopen() == DurableRosterError::none);
+    CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::none);
+    CHECK(reopened.records.hydrate(crypto) == Error::none);
+    f.second->restart();
+    PairStart start{};
+    PairReply reply{};
+    PairConfirm confirm{};
+    confirm.signature = value<kSignatureBytes>(71);
+    std::optional<VerifiedPairBinding> proof, peer_proof;
+    CHECK(fresh.pair_start(peer, value<32>(61), value<16>(62), 60010,
+                            Signer(local), f.random, start) == PairOutcome::ok && start.epoch == 2);
+    CHECK(f.second->pair_on_start(start, value<32>(63), value<16>(64), 60011,
+                                   crypto, Signer(peer), f.random, reply) == PairOutcome::ok);
+    CHECK(fresh.pair_on_reply(peer, reply, 60012, crypto, Signer(local), confirm, proof) ==
+          PairOutcome::wrong_state);
+    bool held = false;
+    reopened.pair_kv.before_commit = [&] {
+        CHECK(confirm.signature == value<kSignatureBytes>(71));
+        held = true;
+    };
+    CHECK(reopened.records.finish_reply(reply, 60012, crypto, Signer(local), confirm, proof) == Error::none);
+    CHECK(held && proof && proof->epoch() == 2);
+    CHECK(f.second->pair_on_confirm(local, confirm, 60013, crypto, peer_proof) == PairOutcome::ok);
+    GroupPairHistory facts{};
+    CHECK(reopened.records.history(facts) == Error::none && facts.phase == GroupPairPhase::prepared &&
+          facts.used_epoch == 2);
+}
+
+void malformed_pair_records() {
+    Fixture f;
+    CHECK(f.owner.records.provision() == Error::none);
+    const auto proof = f.bind();
+    CHECK(f.owner.records.prepare(proof) == Error::none);
+    const auto original = f.disk.at("ot_group_pair/p00");
+    for (unsigned variant = 0; variant < 10; ++variant) {
+        auto malformed = original;
+        switch (variant) {
+            case 0: malformed.pop_back(); break;
+            case 1: malformed.push_back(0); break;
+            case 2: malformed[phase_offset] = 9; fix_crc(malformed); break;
+            case 3: put32(malformed, used_offset, 2); fix_crc(malformed); break;
+            case 4: put32(malformed, committed_offset, 1); fix_crc(malformed); break;
+            case 5: malformed[evidence_offset] ^= 1; fix_crc(malformed); break;
+            case 6:
+                put32(malformed, evidence_offset + kBindingDomain.size() + common_epoch_offset, 0);
+                fix_crc(malformed);
+                break;
+            case 7:
+                malformed[evidence_offset + kBindingDomain.size()] = 0;
+                fix_crc(malformed);
+                break;
+            case 8: malformed[3] = 1; fix_crc(malformed); break;
+            case 9: malformed[evidence_offset + kBindingBytes] ^= 1; fix_crc(malformed); break;
+        }
+        f.disk["ot_group_pair/p00"] = malformed;
+        GroupState fresh(PairHistoryMode::durable);
+        initialize_live(fresh);
+        Owners reopened(f.disk, fresh);
+        CHECK(reopened.roster.reopen() == DurableRosterError::none);
+        CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::none);
+        CHECK(reopened.records.hydrate(crypto) != Error::none);
+        PairStart start{};
+        CHECK(fresh.pair_start(peer, value<32>(71), value<16>(72), 1,
+                                Signer(local), f.random, start) == PairOutcome::wrong_state);
+        no_traffic(reopened.records);
+    }
+    f.disk["ot_group_pair/p00"] = original;
+}
+
+void maximum_epoch_hydration() {
+    Fixture f;
+    CHECK(f.owner.records.provision() == Error::none);
+    const auto proof = f.bind();
+    CHECK(f.owner.records.prepare(proof) == Error::none);
+    const auto original = f.disk.at("ot_group_pair/p00");
+    constexpr auto maximum = std::numeric_limits<std::uint32_t>::max();
+    for (const auto floor : {maximum - 1, maximum}) {
+        auto final = original;
+        final[phase_offset] = static_cast<std::uint8_t>(GroupPairPhase::committed);
+        put32(final, used_offset, floor);
+        put32(final, committed_offset, floor);
+        put32(final, evidence_offset + kBindingDomain.size() + common_epoch_offset, floor);
+        sign_stored_binding(final);  // Valid TEST-ONLY signatures over the synthetic final epoch.
+        f.disk["ot_group_pair/p00"] = final;
+        GroupState fresh(PairHistoryMode::durable);
+        initialize_live(fresh);
+        Owners reopened(f.disk, fresh);
+        CHECK(reopened.roster.reopen() == DurableRosterError::none);
+        CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::none);
+        CHECK(reopened.records.hydrate(crypto) == Error::none);
+        PairStart start{};
+        const auto result = fresh.pair_start(peer, value<32>(81), value<16>(82), 1,
+                                             Signer(local), f.random, start);
+        if (floor == maximum) {
+            CHECK(result == PairOutcome::epoch_exhausted);
+            CHECK(fresh.pair_status(peer)->next_epoch == 0);
+        } else {
+            CHECK(result == PairOutcome::ok && start.epoch == maximum && start.purpose == PairPurpose::rekey);
+        }
+        no_traffic(reopened.records);
+    }
+}
+
+void inactive_roster_hydration() {
+    for (unsigned scenario = 0; scenario < 3; ++scenario) {
+        Fixture f;
+        CHECK(f.owner.records.provision() == Error::none);
+        if (scenario == 1) {
+            auto fork = f.held;
+            fork.location_rule = LocationRule::required;
+            fork = signed_roster(fork);
+            std::array<std::uint8_t, kMaximumRosterBytes> bytes{};
+            const auto count = encode(fork, bytes.data(), bytes.size());
+            CHECK(f.owner.roster.offer(bytes.data(), count).outcome == Outcome::conflict);
+        } else if (scenario == 0) {
+            CHECK(f.owner.roster.stop_trusting() == DurableRosterError::none);
+        } else {
+            f.offer(remove(f.held, local), Outcome::accepted_removed_self, Outcome::accepted);
+        }
+        GroupState fresh(PairHistoryMode::durable);
+        initialize_live(fresh);
+        Owners reopened(f.disk, fresh);
+        CHECK(reopened.roster.reopen() == DurableRosterError::none);
+        CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::refused);
+        CHECK(reopened.records.hydrate(crypto) == Error::unavailable);
+        no_traffic(reopened.records);
+    }
+}
+
+
+void malformed_signed_start_history() {
+    Fixture f(PairHistoryMode::durable);
+    CHECK(f.owner.records.provision() == Error::none);
+    CHECK(f.owner.roster.hydrate_group(f.first) == DurableRosterError::none);
+    CHECK(f.owner.records.hydrate(crypto) == Error::none);
+    PairStart start{};
+    PairReply reply{};
+    CHECK(f.second->pair_start(local, value<32>(101), value<16>(102), 10,
+                                Signer(peer), f.random, start) == PairOutcome::ok);
+    CHECK(f.owner.records.answer(start, value<32>(103), value<16>(104), 11,
+                                  crypto, Signer(local), f.random, reply) == Error::none);
+    const auto original = f.disk.at("ot_group_pair/p00");
+    for (unsigned variant = 0; variant < 3; ++variant) {
+        auto altered = original;
+        if (variant == 0) put32(altered, used_offset, 1);
+        if (variant == 1) altered[evidence_offset + kStartBytes] ^= 1;
+        if (variant == 2) put32(altered, evidence_offset + kStartDomain.size() + common_epoch_offset, 0);
+        fix_crc(altered);
+        f.disk["ot_group_pair/p00"] = altered;
+        GroupState fresh(PairHistoryMode::durable);
+        initialize_live(fresh);
+        Owners reopened(f.disk, fresh);
+        CHECK(reopened.roster.reopen() == DurableRosterError::none);
+        CHECK(reopened.roster.hydrate_group(fresh) == DurableRosterError::none);
+        CHECK(reopened.records.hydrate(crypto) != Error::none);
+        CHECK(fresh.pair_start(peer, value<32>(105), value<16>(106), 12,
+                                Signer(local), f.random, start) == PairOutcome::wrong_state);
+    }
+}
+
 }  // namespace
 
 int main() {
+    static_assert(!std::is_default_constructible_v<VerifiedPairStart>);
+    lost_confirm_catchup();
+    catchup_write_failures();
+    fresh_initiator_persists_before_confirm();
+    malformed_pair_records();
+    maximum_epoch_hydration();
+    malformed_signed_start_history();
+    inactive_roster_hydration();
     enrollment_and_reopen();
     roster_change_and_reuse();
     interruptions();
     required_records();
     same_epoch_rollback();
     active_lane_failures();
-    std::cout << "PASS 6 group pair records groups incl 48 pair-write interruptions\n";
+    std::cout << "PASS 13 group pair records groups incl 52 pair-write interruptions\n";
 }

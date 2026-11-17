@@ -5,6 +5,8 @@
 
 namespace opentrail::identity::roster {
 
+class GroupState;
+
 enum class DurableRosterError : std::uint8_t {
     none = 0,
     missing,
@@ -45,6 +47,9 @@ public:
     // Explicit creation of a fresh roster, after commissioning the pair index.
     [[nodiscard]] DurableRosterError initialize();
     [[nodiscard]] DurableRosterError reopen();
+    // Restore the verified roster and retained member consent into a fresh
+    // durable GroupState. Pair epoch history is imported separately.
+    [[nodiscard]] DurableRosterError hydrate_group(GroupState& live);
     [[nodiscard]] DurableRosterResult offer(const std::uint8_t* bytes, std::size_t size);
     [[nodiscard]] DurableRosterError accept_member(const PublicKey& peer);
     [[nodiscard]] DurableRosterError keep_current();

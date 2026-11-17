@@ -2,6 +2,14 @@
 
 ## 2026-11-17
 
+### OT-0305 Persist verified group catch-up before reply
+
+Durable GroupState instances require exact-scope history hydration before issuing starts. The durable roster owner imports its verified retained member consent, and the pair owner checks the signed start or both binding signatures before importing public epoch facts. Restart never imports a volatile binding or revives traffic. The pair record is now format 2; its 606-byte size and the 262-byte lanes are unchanged.
+
+The responder uses a private, owner-bound verified-start transition. A D-074 catch-up commits and reads back before its reply is published. The initiator likewise persists the verified binding before releasing a confirm. Raw output APIs refuse durable mode, and failed persistence invalidates that peer until hydration. The existing volatile protocol remains available for host composition.
+
+The [pair record suite](../tests/host/group_pair_records_tests.cpp) passed 13 groups including 52 write interruptions, all four live lane rollback refusals, a lost confirm followed by catch-up, genuinely new GroupState owners, borrowed-lane retirement, malformed signed evidence, and maximum-epoch exhaustion. The existing pair suite passed 22 groups and the durable roster suite passed eight. Target restart composition and stack high-water remain integration gates.
+
 ### OT-0305 Keep the qualified group catalog within 2 KiB
 
 Owner decision D-122 selects a maximum serialized size of 2,048 bytes. Catalog version 2 stores each mapping's group as a one-byte reference to one of the four full qualified-group records. Full fingerprints and group identities retain their original sizes. The exact catalog size is 1,413 bytes, guarded by a compile-time maximum, and the previous version is refused.

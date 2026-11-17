@@ -1,3 +1,4 @@
+#include "opentrail/group_pair.hpp"
 #include "opentrail/durable_group_roster.hpp"
 
 #include <algorithm>
@@ -281,6 +282,15 @@ DurableRosterError DurableGroupRoster::open(bool create) {
 
 DurableRosterError DurableGroupRoster::initialize() { return open(true); }
 DurableRosterError DurableGroupRoster::reopen() { return open(false); }
+
+DurableRosterError DurableGroupRoster::hydrate_group(GroupState& live) {
+    if (busy_) return Error::not_ready;
+    const Busy hold(busy_);
+    const auto ready = verify_current();
+    if (ready != Error::none) return ready;
+    if (state_.state() != State::active) return Error::refused;
+    return live.hydrate_roster(state_) ? Error::none : Error::invalid_scope;
+}
 
 DurableRosterResult DurableGroupRoster::offer(const std::uint8_t* bytes, std::size_t size) {
     if (busy_) return {Error::not_ready};
