@@ -56,7 +56,19 @@ public:
     [[nodiscard]] std::optional<DurablePairScope> reserve_pair(const Fingerprint& peer);
 
 private:
-    struct Record;
+    struct Record {
+        static constexpr std::size_t kScope = 4 + 8 + 2 * kPublicKeyBytes;
+        static constexpr std::size_t kCrc = kScope + 4 + 5 + 2 + kDigestBytes +
+            kKnownDigests * (4 + kDigestBytes) + kResolvedConflicts * kDigestBytes + kMaximumRosterBytes;
+        std::array<std::uint8_t, kCrc + 4> bytes{};
+        bool intact() const;
+        bool names(std::uint64_t group, const PublicKey& admin, const PublicKey& local) const;
+    };
+    struct Workspace {
+        RosterState next;
+        Roster parsed;
+        Record serialized, readback;
+    };
     DurableRosterError open(bool create);
     DurableRosterError read(const char* key, Record& record);
     DurableRosterError verify_current();
@@ -64,7 +76,7 @@ private:
     DurableRosterError save(const char* key, const RosterState& next);
     std::optional<DurablePairScope> lookup(const Fingerprint& peer, bool reserve);
     bool encode_record(const RosterState& state, Record& out) const;
-    bool decode_record(const Record& record, RosterState& out) const;
+    bool decode_record(const Record& record, RosterState& out);
 
     persistence::PersistentKvBackend& backend_;
     persistence::GroupPairIndex& index_;
@@ -75,6 +87,9 @@ private:
     GroupName group_name_{};
     Fingerprint local_fingerprint_{};
     RosterState state_{};
+    // Transfer and candidate buffers belong to the serialized owner so that
+    // roster save and index reconciliation can share a bounded call stack.
+    Workspace workspace_{};
     const char* key_{nullptr};
     bool ready_{false};
     bool busy_{false};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -65,7 +66,42 @@ public:
     [[nodiscard]] GroupPairIndexError prune(const identity::roster::RosterState& roster);
 
 private:
-    struct Catalog;
+    struct RosterSnapshot;
+    struct Entry {
+        std::uint64_t incarnation{0};
+        identity::roster::GroupName group{};
+        identity::roster::Fingerprint peer{};
+        std::uint32_t local_added{0}, peer_added{0}, roster_version{0};
+        bool names(const identity::roster::GroupName& name,
+                   const identity::roster::Fingerprint& fingerprint) const;
+        bool valid(const identity::roster::Fingerprint& local, std::uint64_t high_water) const;
+    };
+    struct GroupWatermark {
+        identity::roster::GroupName group{};
+        std::uint32_t version{0};
+        identity::roster::Digest digest{};
+        bool current(const RosterSnapshot& roster) const;
+    };
+    static constexpr std::size_t kEntryBytes = 8 + 2 * identity::roster::kFingerprintBytes + 8 + 3 * 4;
+    static constexpr std::size_t kGroupBytes =
+        identity::roster::kFingerprintBytes + 8 + 4 + identity::roster::kDigestBytes;
+    static constexpr std::size_t kBodyBytes = 5 + identity::roster::kFingerprintBytes + 8 +
+        kMaximumPairs * kEntryBytes + kMaximumGroups * kGroupBytes;
+    using Blob = std::array<std::uint8_t, kBodyBytes + 4>;
+    struct Catalog {
+        std::uint64_t high_water{0};
+        std::array<Entry, kMaximumPairs> entries{};
+        std::array<GroupWatermark, kMaximumGroups> groups{};
+        GroupWatermark* group_for(const identity::roster::GroupName& name);
+        std::size_t pair_count(const identity::roster::GroupName& group) const;
+        bool valid(const identity::roster::Fingerprint& local);
+        void encode(const identity::roster::Fingerprint& local, Blob& blob) const;
+        GroupPairIndexError decode(const Blob& blob, const identity::roster::Fingerprint& local);
+    };
+    struct Workspace {
+        Catalog catalog;
+        Blob serialized{}, readback{};
+    };
     GroupPairIndexError load(Catalog& catalog);
     GroupPairIndexError save(const Catalog& catalog);
     GroupPairIndexResult find_or_reserve(const identity::roster::RosterState& roster,
@@ -73,6 +109,10 @@ private:
 
     PersistentKvBackend& backend_;
     const identity::roster::Fingerprint local_;
+    // One fixed workspace per serialized index owner. Backend callbacks cannot
+    // re-enter the owner while its decoded catalog or transfer buffers are used.
+    Workspace workspace_{};
+    bool busy_{false};
     bool faulted_{false};
 };
 

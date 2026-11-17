@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -32,6 +33,11 @@ public:
     KvError read_blob(const char* partition, const char* space, const char* key,
                       std::uint8_t* out, std::size_t capacity, std::size_t& size) override {
         check_path(partition, space, key);
+        if (on_read) {
+            auto callback = std::move(on_read);
+            on_read = {};
+            callback();
+        }
         if (fault == Fault::read || fail_readback) return KvError::io_failure;
         if (durable.empty()) return KvError::not_found;
         size = durable.size();
@@ -66,6 +72,7 @@ public:
         fail_readback = false;
     }
 
+    std::function<void()> on_read;
     std::vector<std::uint8_t> durable;
     Fault fault{Fault::none};
     unsigned writes{0};
@@ -325,6 +332,26 @@ void invalid_catalog() {
     CHECK(disk.writes == writes);
 }
 
+void serialized_workspace() {
+    Storage storage;
+    Group group(23);
+    group.add(peer);
+    group.add(other);
+    GroupPairIndex index(storage, self);
+    CHECK(index.initialize() == Error::none);
+    const auto first = allocated(index, group.state, peer);
+    storage.on_read = [&] {
+        CHECK(index.find(group.state, peer).error == Error::storage_failure);
+        CHECK(index.reserve(group.state, other).error == Error::storage_failure);
+        CHECK(index.prune(group.state) == Error::storage_failure);
+        CHECK(index.group_status({self, 23}) == Error::storage_failure);
+        CHECK(index.initialize() == Error::storage_failure);
+    };
+    const auto second = allocated(index, group.state, other);
+    CHECK(second.slot != first.slot && second.incarnation > first.incarnation);
+    CHECK(index.find(group.state, peer).location->incarnation == first.incarnation);
+}
+
 }  // namespace
 
 int main() {
@@ -333,5 +360,6 @@ int main() {
     capacity();
     faults_and_recovery();
     invalid_catalog();
-    std::cout << "PASS: 5 group pair index scenario groups\n";
+    serialized_workspace();
+    std::cout << "PASS: 6 group pair index scenario groups\n";
 }

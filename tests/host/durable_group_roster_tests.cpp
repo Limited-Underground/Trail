@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
+
+#include "opentrail/configuration_store.hpp"
 
 namespace {
 
@@ -34,6 +37,11 @@ public:
     KvError read_blob(const char* partition, const char* ns, const char* key, std::uint8_t* out,
                       std::size_t cap, std::size_t& size) override {
         CHECK(std::string(partition) == "ot_state");
+        if (on_read) {
+            auto callback = std::move(on_read);
+            on_read = {};
+            callback();
+        }
         if (fail_read && failure_namespace == ns) return KvError::io_failure;
         const auto it = disk.find({ns, key});
         if (it == disk.end()) return KvError::not_found;
@@ -72,6 +80,7 @@ public:
         failure_namespace.clear();
     }
 
+    std::function<void()> on_read;
     std::map<Key, Bytes> disk;
     std::vector<std::pair<std::string, std::size_t>> committed;
     std::string failure_namespace;
@@ -316,6 +325,65 @@ void self_removal() {
     CHECK(offer(restored, f.rosters.initial_bytes).outcome == Outcome::not_member);
 }
 
+void malformed_records() {
+    Fixture fixture;
+    const auto record = std::find_if(fixture.kv.disk.begin(), fixture.kv.disk.end(), [](const auto& item) {
+        return item.first.first == kRosterNs;
+    });
+    CHECK(record != fixture.kv.disk.end());
+    const auto original = record->second;
+    const auto committed = fixture.kv.committed.size();
+    const auto reject = [&](Bytes malformed, bool update_crc) {
+        if (update_crc) {
+            const auto length = malformed.size() - sizeof(std::uint32_t);
+            const auto crc = configuration_crc32({malformed.data(), length});
+            for (std::size_t i = 0; i < sizeof(crc); ++i) {
+                malformed[length + i] = static_cast<std::uint8_t>(crc >> (8 * (3 - i)));
+            }
+        }
+        record->second = std::move(malformed);
+        GroupPairIndex index(fixture.kv, local);
+        DurableGroupRoster owner(fixture.kv, index, crypto, admin, group, local);
+        CHECK(owner.reopen() == Err::invalid_record);
+        CHECK(!owner.find_pair(peer));
+        CHECK(fixture.kv.committed.size() == committed);
+    };
+    auto malformed = original;
+    malformed.pop_back();
+    reject(malformed, false);
+    malformed = original;
+    malformed.push_back(0);
+    reject(malformed, false);
+
+    constexpr std::size_t state_offset = 4 + 8 + 2 * kPublicKeyBytes + 4;
+    constexpr std::size_t size_offset = state_offset + 5;
+    constexpr std::size_t roster_offset = size_offset + 2 + kDigestBytes +
+        kKnownDigests * (4 + kDigestBytes) + kResolvedConflicts * kDigestBytes;
+    for (const auto offset : {state_offset, state_offset + 1, state_offset + 2, state_offset + 3,
+                              state_offset + 4, size_offset, roster_offset}) {
+        malformed = original;
+        malformed[offset] = 0xff;
+        reject(malformed, true);
+    }
+    malformed = original;
+    malformed[original.size() - sizeof(std::uint32_t) - 1] = 1; // nonzero signed-roster padding
+    reject(malformed, true);
+}
+
+void transaction_reentry() {
+    Fixture fixture;
+    fixture.kv.on_read = [&] {
+        CHECK(!fixture.owner.find_pair(peer));
+        CHECK(fixture.owner.keep_current() == Err::not_ready);
+    };
+    CHECK(offer(fixture.owner, fixture.rosters.removed_bytes).outcome == Outcome::accepted);
+    CHECK(!fixture.owner.find_pair(peer));
+    CHECK(offer(fixture.owner, fixture.rosters.readded_bytes).outcome == Outcome::accepted);
+    CHECK(fixture.owner.accept_member(peer) == Err::none);
+    const auto replacement = fixture.owner.reserve_pair(peer);
+    CHECK(replacement && replacement->location.incarnation > fixture.original.location.incarnation);
+}
+
 }  // namespace
 
 int main() {
@@ -325,5 +393,7 @@ int main() {
     interrupted_transition();
     missing_or_bad_state();
     self_removal();
-    std::cout << "PASS: 6 durable group roster scenario groups\n";
+    malformed_records();
+    transaction_reentry();
+    std::cout << "PASS: 8 durable group roster scenario groups\n";
 }

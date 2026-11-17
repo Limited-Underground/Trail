@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Bound the group roster transaction workspace
+
+The roster and pair-index owners now retain one bounded transaction workspace each. Staged state, decoded catalog and serialization/readback buffers stay with the serialized owner, and nested backend callbacks are refused before those buffers can be reused. The catalog format is unchanged in this increment.
+
+The same native GCC `-O2 -fstack-usage` path measured 10,976 bytes before and 896 bytes after across offer, roster save, reconciliation, prune and catalog save. The nested encode frame adds 96 bytes, for a 992-byte measured subtotal. Backend and caller frames are additional. Long-lived owner sizes are 5,592 and 6,688 bytes, so target placement and measured high-water remain board-integration checks. The [roster suite](../tests/host/durable_group_roster_tests.cpp) passed eight groups including malformed and callback-reentry cases, and the [index suite](../tests/host/group_pair_index_tests.cpp) passed six.
+
 ### OT-0305 Refuse same-epoch rollback of live group lanes
 
 The live pair storage owner retains the last verified image of each DATA and ACK transmit and receive lane. Every subsequent lane read must match that image. An external older image faults the binding, and the owner advances the image only after a successful write, commit and exact readback.

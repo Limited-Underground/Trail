@@ -62,26 +62,18 @@ private:
 
 }  // namespace
 
-struct DurableGroupRoster::Record {
-    static constexpr std::size_t kScope = kMagic.size() + 8 + 2 * kPublicKeyBytes;
-    // Scope, join floor, flags/ring cursors, exact signed-roster length,
-    // conflict digest, seen-version history, resolved digests, roster, CRC.
-    static constexpr std::size_t kCrc = kScope + 4 + 5 + 2 + kDigestBytes +
-        kKnownDigests * (4 + kDigestBytes) + kResolvedConflicts * kDigestBytes + kMaximumRosterBytes;
-    std::array<std::uint8_t, kCrc + 4> bytes{};
+bool DurableGroupRoster::Record::intact() const {
+    const auto* crc = bytes.data() + kCrc;
+    return std::equal(kMagic.begin(), kMagic.end(), bytes.begin()) &&
+           get<std::uint32_t>(crc) == persistence::configuration_crc32({bytes.data(), kCrc});
+}
 
-    bool intact() const {
-        const auto* crc = bytes.data() + kCrc;
-        return std::equal(kMagic.begin(), kMagic.end(), bytes.begin()) &&
-               get<std::uint32_t>(crc) == persistence::configuration_crc32({bytes.data(), kCrc});
-    }
-
-    bool names(std::uint64_t group, const PublicKey& admin, const PublicKey& local) const {
-        const auto* in = bytes.data() + kMagic.size();
-        return get<std::uint64_t>(in) == group &&
-               get_bytes<kPublicKeyBytes>(in) == admin && get_bytes<kPublicKeyBytes>(in) == local;
-    }
-};
+bool DurableGroupRoster::Record::names(std::uint64_t group, const PublicKey& admin,
+                                      const PublicKey& local) const {
+    const auto* in = bytes.data() + kMagic.size();
+    return get<std::uint64_t>(in) == group &&
+           get_bytes<kPublicKeyBytes>(in) == admin && get_bytes<kPublicKeyBytes>(in) == local;
+}
 
 DurableGroupRoster::DurableGroupRoster(persistence::PersistentKvBackend& backend,
     persistence::GroupPairIndex& index, const RosterCrypto& crypto, const PublicKey& admin,
@@ -90,6 +82,7 @@ DurableGroupRoster::DurableGroupRoster(persistence::PersistentKvBackend& backend
       group_(group), minimum_version_(minimum_version) {}
 
 bool DurableGroupRoster::encode_record(const RosterState& state, Record& record) const {
+    record.bytes.fill(0);
     auto* out = record.bytes.data();
     put_bytes(out, kMagic);
     put(out, group_);
@@ -121,7 +114,7 @@ bool DurableGroupRoster::encode_record(const RosterState& state, Record& record)
     return true;
 }
 
-bool DurableGroupRoster::decode_record(const Record& record, RosterState& state) const {
+bool DurableGroupRoster::decode_record(const Record& record, RosterState& state) {
     const auto* in = record.bytes.data() + Record::kScope;
     if (get<std::uint32_t>(in) != minimum_version_) return false;
     const auto stored = static_cast<State>(get<std::uint8_t>(in));
@@ -151,7 +144,8 @@ bool DurableGroupRoster::decode_record(const Record& record, RosterState& state)
         return true;
     }
 
-    Roster parsed{};
+    auto& parsed = workspace_.parsed;
+    parsed = Roster{};
     if (decode(signed_roster, size, parsed) != FormatError::none) return false;
     const auto* self = member(parsed, local_);
     if (stored == State::awaiting_roster || (stored == State::left && self) ||
@@ -202,7 +196,8 @@ DurableRosterError DurableGroupRoster::read(const char* key, Record& record) {
 DurableRosterError DurableGroupRoster::verify_current() {
     if (faulted_) return Error::storage_failure;
     if (!ready_) return Error::not_ready;
-    Record stored{}, expected{};
+    auto& stored = workspace_.readback;
+    auto& expected = workspace_.serialized;
     const auto loaded = read(key_, stored);
     if (loaded != Error::none || !encode_record(state_, expected) || stored.bytes != expected.bytes) {
         ready_ = false;
@@ -225,7 +220,8 @@ DurableRosterError DurableGroupRoster::reconcile() {
 }
 
 DurableRosterError DurableGroupRoster::save(const char* key, const RosterState& next) {
-    Record bytes{}, check{};
+    auto& bytes = workspace_.serialized;
+    auto& check = workspace_.readback;
     if (!encode_record(next, bytes)) return Error::invalid_record;
     if (backend_.write_blob(kPartition, kNamespace, key, bytes.bytes.data(), bytes.bytes.size()) != KvError::none ||
         backend_.commit(kPartition, kNamespace) != KvError::none ||
@@ -255,9 +251,10 @@ DurableRosterError DurableGroupRoster::open(bool create) {
 
     const char* vacant = nullptr;
     const char* matched = nullptr;
-    RosterState next;
+    auto& next = workspace_.next;
+    next = RosterState{};
     for (const char* key : kKeys) {
-        Record record{};
+        auto& record = workspace_.readback;
         const auto loaded = read(key, record);
         if (loaded == Error::missing) {
             if (!vacant) vacant = key;
@@ -290,7 +287,8 @@ DurableRosterResult DurableGroupRoster::offer(const std::uint8_t* bytes, std::si
     const Busy hold(busy_);
     const auto ready = verify_current();
     if (ready != Error::none) return {ready};
-    auto next = state_;
+    auto& next = workspace_.next;
+    next = state_;
     const auto outcome = next.offer(bytes, size, crypto_);
     if (outcome != Outcome::accepted && outcome != Outcome::accepted_removed_self && outcome != Outcome::conflict) {
         return {Error::none, outcome};
@@ -310,7 +308,8 @@ DurableRosterError DurableGroupRoster::accept_member(const PublicKey& peer) {
     const Busy hold(busy_);
     const auto ready = verify_current();
     if (ready != Error::none) return ready;
-    auto next = state_;
+    auto& next = workspace_.next;
+    next = state_;
     if (!next.accept_member(peer)) return Error::refused;
     return state_.accepted(peer) ? Error::none : save(key_, next);
 }
@@ -320,7 +319,8 @@ DurableRosterError DurableGroupRoster::keep_current() {
     const Busy hold(busy_);
     const auto ready = verify_current();
     if (ready != Error::none) return ready;
-    auto next = state_;
+    auto& next = workspace_.next;
+    next = state_;
     return next.keep_current() ? save(key_, next) : Error::refused;
 }
 
@@ -330,7 +330,8 @@ DurableRosterError DurableGroupRoster::stop_trusting() {
     const auto ready = verify_current();
     if (ready != Error::none) return ready;
     if (state_.state() == State::distrusted) return Error::none;
-    auto next = state_;
+    auto& next = workspace_.next;
+    next = state_;
     next.stop_trusting();
     next.conflict_digest_ = {};
     return save(key_, next);
