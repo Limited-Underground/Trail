@@ -2,6 +2,12 @@
 
 ## 2026-11-16
 
+### OT-0005i Retry pairing copies dropped before radio launch (I-061)
+
+The MeshTrail bench radio reports confirmed pre-launch discards to the pairing coordinator. A discarded pairing copy returns its send slot and is eligible for re-offer under the current request window, reserves and send floors. The app resolves the drop before accepting a new offer and discards pending pairing bytes when their runtime ends. It preserves receive-before-launch ordering and the three-backoff CAD limit.
+
+The queued-radio regression replayed the responder handshake and final-control drops across eight seeds each. Both boards paired in every replay with feedback. Before feedback, the handshake case paired neither board and the final-control case paired only the responder, with the same three-backoff limit. Validation and exact image provenance belong to the local task report. Board validation remains pending, and I-059 and I-062 still track completion under RF loss and asymmetric commitment.
+
 ### OT-0005i Fast identity reads during board pairing (I-068, I-069)
 
 The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).

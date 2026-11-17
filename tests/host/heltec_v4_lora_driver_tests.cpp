@@ -149,6 +149,7 @@ void test_busy_then_clear() {
         EXPECT(mock::count("start_cad") == 1 && mock::count("start_tx") == 0);
         poll(d, retry_ms);
         EXPECT(mock::count("start_cad") == 2 && mock::count("start_tx") == 1);
+        EXPECT(d.counters().tx_prelaunch_dropped == 0);
         EXPECT(mock::transmitted_bytes == 3 && mock::transmitted[0] == 1 &&
                mock::transmitted[1] == 2 && mock::transmitted[2] == 3);
     }
@@ -161,9 +162,10 @@ void test_always_busy() {
     for (unsigned i = 0; i < 4; ++i) poll(d, 100 + i * 32);
     EXPECT(g_random.fills == 3 && mock::count("start_cad") == 4);
     EXPECT(d.counters().tx_busy_dropped == 1 && d.counters().tx_attempts == 0);
+    EXPECT(d.counters().tx_prelaunch_dropped == 1);
     EXPECT(d.status().transmit_queue_depth == 0 && mock::chip_mode == mock::Mode::rx);
     poll(d, 300);
-    EXPECT(mock::count("start_cad") == 4);
+    EXPECT(mock::count("start_cad") == 4 && d.counters().tx_prelaunch_dropped == 1);
 
     // Accepting a new frame starts its own retry budget.
     queue(d);
@@ -172,6 +174,7 @@ void test_always_busy() {
     g_random.ready = false;
     poll(d, 432);
     EXPECT(d.counters().tx_busy_dropped == 2 && d.status().transmit_queue_depth == 0);
+    EXPECT(d.counters().tx_prelaunch_dropped == 2);
     EXPECT(mock::count("start_tx") == 0);
 }
 
@@ -182,7 +185,7 @@ void test_missing_cad_completion() {
     poll(d, 100);
     EXPECT(mock::now_us == 130000 && !d.running());
     EXPECT(d.status().state == RadioState::fault && mock::count("start_tx") == 0);
-    EXPECT(mock::count("cad_result") == 0);
+    EXPECT(mock::count("cad_result") == 0 && d.counters().tx_prelaunch_dropped == 1);
 }
 
 // F3: RadioLib's rule; a header error is fatal only without a valid header.
@@ -209,6 +212,7 @@ void test_permission_at_launch() {
     g_allowed = false;
     poll(d, 100);
     EXPECT(mock::count("start_tx") == 0 && d.counters().tx_refused == 1);
+    EXPECT(d.counters().tx_prelaunch_dropped == 1);
     EXPECT(d.running() && mock::chip_mode == mock::Mode::rx);
     g_allowed = true;
     queue(d);
@@ -229,6 +233,7 @@ void test_permission_at_launch() {
     poll(late, 100);
     EXPECT(mock::count("start_cad") == 1 && mock::count("start_tx") == 0);
     EXPECT(late.counters().tx_refused == 1 && mock::chip_mode == mock::Mode::rx);
+    EXPECT(late.counters().tx_prelaunch_dropped == 1);
 
     mock::reset(); HeltecV4Lora deferred{g_random}; begin(deferred);
     queue(deferred);
@@ -256,6 +261,7 @@ void test_late_completion() {
     EXPECT(e.running());
     poll(e, 2100);
     EXPECT(!e.running() && e.status().state == RadioState::fault && e.counters().tx_completed == 0);
+    EXPECT(e.counters().tx_prelaunch_dropped == 0);
     // A TX timeout flag is a fault at any time.
     mock::reset(); HeltecV4Lora f{g_random}; begin(f);
     queue(f);
@@ -263,6 +269,22 @@ void test_late_completion() {
     mock::irq = RADIOLIB_SX126X_IRQ_TIMEOUT;
     poll(f, 200);
     EXPECT(!f.running() && f.status().state == RadioState::fault);
+}
+
+void test_discard_retires_only_unlaunched_queue_entry() {
+    mock::reset(); HeltecV4Lora d{g_random}; begin(d);
+    queue(d);
+    d.discard_queued();
+    d.discard_queued();
+    poll(d, 100);
+    EXPECT(d.counters().tx_prelaunch_dropped == 1 && mock::count("start_tx") == 0);
+    EXPECT(d.running() && mock::chip_mode == mock::Mode::rx);
+
+    queue(d);
+    poll(d, 200);
+    d.discard_queued();
+    EXPECT(d.counters().tx_prelaunch_dropped == 1 && mock::count("start_tx") == 1);
+    EXPECT(mock::chip_mode == mock::Mode::tx);
 }
 
 // A failed command latches a fault, lowers the front end and issues no further SPI.
@@ -281,6 +303,8 @@ void test_command_failures() {
         mock::fault = s;
         poll(d, 100);
         EXPECT(!d.running() && d.status().state == RadioState::fault);
+        const bool prelaunch_fault = s == "standby" || s == "start_cad" || s == "cad_result";
+        EXPECT(d.counters().tx_prelaunch_dropped == (prelaunch_fault ? 1U : 0U));
         EXPECT(mock::gpio[7] == 0 && mock::gpio[2] == 0 && mock::gpio[46] == 0);
         const auto calls = mock::calls.size();
         poll(d, 200);
@@ -299,11 +323,12 @@ int main() {
     test_header_rule();
     test_permission_at_launch();
     test_late_completion();
+    test_discard_retires_only_unlaunched_queue_entry();
     test_command_failures();
     if (failures != 0) {
         std::cerr << failures << " LoRa driver assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 9 LoRa driver scenario groups\n";
+    std::cout << "PASS: 10 LoRa driver scenario groups\n";
     return EXIT_SUCCESS;
 }

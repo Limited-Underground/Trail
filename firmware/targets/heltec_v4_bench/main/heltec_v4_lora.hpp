@@ -40,6 +40,7 @@ struct LoraCounters {
     std::uint32_t rx_dropped{0};
     std::uint32_t tx_refused{0};  // queued frames dropped because transmit was not permitted
     std::uint32_t tx_busy_dropped{0};  // busy with no further backoff available
+    std::uint32_t tx_prelaunch_dropped{0};  // accepted queue entries discarded before TX launch
 };
 
 // Transmit grant, asked at the moment each frame would be launched (review F4).
@@ -78,6 +79,8 @@ public:
     // pairing before it calls launch_queued().
     void service(std::uint64_t now_ms) override;
     void launch_queued(std::uint64_t now_ms);
+    // Discard a queued frame when its owner retires. Leaves an in-flight TX alone.
+    void discard_queued();
 
 private:
     bool ok(std::int16_t result);

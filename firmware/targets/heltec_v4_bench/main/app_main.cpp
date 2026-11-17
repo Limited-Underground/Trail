@@ -473,6 +473,7 @@ extern "C" void app_main() {
     }
     bool lora_fault_logged = false;
     int lora_tx_allowed_logged = -1;
+    bool pairing_frame_queued = false;
 #endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
@@ -614,15 +615,22 @@ extern "C" void app_main() {
             }
             opentrail::protocol::pairing::FrameBuffer pairing_out{};
             std::size_t pairing_size = 0;
-            g_board_pairing.service(elapsed_ms, tx_allowed, pairing_out, pairing_size);
+            g_board_pairing.service(elapsed_ms, tx_allowed && g_lora.running(), pairing_out, pairing_size);
+            if (pairing_frame_queued && !g_board_pairing.active()) g_lora.discard_queued();
             // Give any received frame the poll to itself. Launch previously
             // queued work only after pairing has serviced the receive phase.
             if (!got.has_frame()) g_lora.launch_queued(elapsed_ms);
+            const bool pairing_dropped = pairing_frame_queued &&
+                g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
+            if (pairing_dropped) g_board_pairing.unsent();
+            if (g_lora.status().transmit_queue_depth == 0) pairing_frame_queued = false;
             if (pairing_size != 0) {
-                // Only a frame the radio accepts counts as a send (D-087).
-                const bool accepted = tx_allowed &&
+                // A drop changes the send count. Recompute any offer on the
+                // next poll so its first-send or retry floor is checked again.
+                const bool accepted = !pairing_dropped && tx_allowed &&
                     g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms).accepted();
                 g_board_pairing.sent(accepted, elapsed_ms);
+                if (accepted) pairing_frame_queued = true;
                 ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u accepted=%u",
                          static_cast<unsigned>(pairing_out[2] & 0x0f),
                          static_cast<unsigned>(pairing_size),
@@ -725,7 +733,7 @@ extern "C" void app_main() {
                          static_cast<unsigned>(served.last_gnss),
                          static_cast<unsigned long>(served.last_revision));
                 const auto c = g_lora.counters();
-                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu cad_dropped=%lu",
+                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu cad_dropped=%lu prelaunch_dropped=%lu",
                          static_cast<unsigned long>(c.tx_completed),
                          static_cast<unsigned long>(c.tx_attempts),
                          static_cast<unsigned long>(c.tx_refused),
@@ -733,7 +741,8 @@ extern "C" void app_main() {
                          static_cast<unsigned long>(c.rx_errors),
                          static_cast<unsigned long>(c.rx_dropped),
                          static_cast<unsigned long>(beaconer.heard_count()),
-                         static_cast<unsigned long>(c.tx_busy_dropped));
+                         static_cast<unsigned long>(c.tx_busy_dropped),
+                         static_cast<unsigned long>(c.tx_prelaunch_dropped));
             }
 #endif
             // Pinned ESP-IDF task.h defines this result in bytes, not words.

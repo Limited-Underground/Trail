@@ -46,7 +46,9 @@ struct FakeSession {
     bool committed{false};
     // The session's own deadline (request or signed invitation), on the test clock.
     std::uint64_t deadline_ms{~std::uint64_t{0}};
+    bool refuse_remaining_after_commit{false};
     bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out) const {
+        if (committed && refuse_remaining_after_commit) return false;
         out = deadline_ms == ~std::uint64_t{0} ? deadline_ms : now_ms >= deadline_ms ? 0 : deadline_ms - now_ms;
         return true;
     }
@@ -146,9 +148,10 @@ struct Run {
     };
 
     std::uint32_t cad_seed{1};
-    unsigned cad_max_backoffs{3};
+    bool report_prelaunch_drops{true};
     int cad_checks{0}, cad_backoffs{0}, cad_drops{0}, cad_last_copy_drops{0};
     int cad_interrupted_rx{0};
+    int prelaunch_refunds{0};
     // Optional interference, in addition to actual modeled peer airtime.
     std::function<bool(const Air&, bool, unsigned)> force_cad_busy;
 
@@ -174,9 +177,20 @@ struct Run {
         std::size_t n = 0;
         const bool has_offer = live && c.service(now, f, n) && n;
         // The v2 app hands off RX, runs pairing service, then launches any old
-        // queue entry on a poll with no RX. Only afterward can it accept this offer.
-        if (radio && queued_mode != QueuedRadioMode::baseline && !received) {
-            launch_queued(*radio, *peer_radio, from_a, now);
+        // queue entry on a poll with no RX. A pre-launch drop invalidates an
+        // offer based on the earlier send count, so recompute it on a later poll.
+        if (radio && queued_mode != QueuedRadioMode::baseline && !received &&
+            launch_queued(*radio, *peer_radio, from_a, now) && report_prelaunch_drops) {
+            const bool refunded = c.unsent();
+            EXPECT(refunded);
+            if (refunded) {
+                auto copy = accepted_copy(*radio);
+                EXPECT(copy != radio->accepted.end() && copy->count != 0);
+                if (copy != radio->accepted.end() && copy->count != 0) --copy->count;
+                ++prelaunch_refunds;
+            }
+            if (has_offer) c.sent(false, now);
+            return;
         }
         if (!has_offer) return;
         // Like the board: the coordinator runs, and a radio still on air refuses.
@@ -212,21 +226,25 @@ struct Run {
         if (peer_transmitting && !other.n && !mine.lost) ++receive_rearm_losses;
         mine.lost = mine.lost || peer_transmitting;
     }
+    static std::vector<AcceptedCopies>::iterator accepted_copy(Radio& radio) {
+        return std::find_if(radio.accepted.begin(), radio.accepted.end(),
+                            [&](const AcceptedCopies& item) { return item.bytes == radio.queued.bytes; });
+    }
+
     void track_accepted_copy(Radio& radio) {
-        const auto& bytes = radio.queued.bytes;
-        auto copy = std::find_if(radio.accepted.begin(), radio.accepted.end(),
-                                 [&](const AcceptedCopies& item) { return item.bytes == bytes; });
+        auto copy = accepted_copy(radio);
         if (copy == radio.accepted.end()) {
-            radio.accepted.push_back({bytes, 0});
+            radio.accepted.push_back({radio.queued.bytes, 0});
             copy = radio.accepted.end() - 1;
         }
-        const auto cap = frame_type(bytes) == FrameType::candidate ?
+        const auto cap = frame_type(radio.queued.bytes) == FrameType::candidate ?
             limits.hello_max_sends : limits.max_sends;
         radio.queued.last_allowed_copy = ++copy->count == cap;
     }
 
-    void launch_queued(Radio& mine, Radio& peer, bool from_a, std::uint64_t now) {
-        if (mine.transmitting || !mine.queued.n || now < mine.retry_at_ms) return;
+    // True when an accepted queue entry was dropped before launch.
+    bool launch_queued(Radio& mine, Radio& peer, bool from_a, std::uint64_t now) {
+        if (mine.transmitting || !mine.queued.n || now < mine.retry_at_ms) return false;
         if (queued_mode == QueuedRadioMode::listen_before_talk) {
             // Approximate four 1.024 ms CAD symbols and command overhead using
             // a 5 ms scan. Sample at its start, so simultaneous scans can both
@@ -244,18 +262,18 @@ struct Run {
                 ++cad_interrupted_rx;
             }
             if (peer_on_air || forced_busy) {
-                if (mine.backoffs == cad_max_backoffs) {
+                if (mine.backoffs == 3) {
                     ++cad_drops;
                     if (mine.queued.last_allowed_copy) ++cad_last_copy_drops;
-                    mine.queued = {};
-                } else {
-                    const auto slots = 1U + mine.random() % 3U;
-                    const auto delay_ms = (airtime_us(mine.queued.n) * slots + 999) / 1000;
-                    mine.retry_at_ms = now + delay_ms;
-                    ++mine.backoffs;
-                    ++cad_backoffs;
+                    mine.queued.n = 0;  // retain bytes for the app's budget accounting
+                    return true;
                 }
-                return;
+                const auto slots = 1U + mine.random() % 3U;
+                const auto delay_ms = (airtime_us(mine.queued.n) * slots + 999) / 1000;
+                mine.retry_at_ms = now + delay_ms;
+                ++mine.backoffs;
+                ++cad_backoffs;
+                return false;
             }
         }
 
@@ -263,6 +281,7 @@ struct Run {
         mine.queued = {};
         launch(mine.air, peer.air, peer.transmitting || now < peer.receive_blocked_until_ms, now);
         mine.transmitting = true;
+        return false;
     }
 
     int offered_a{0}, offered_b{0};
@@ -857,6 +876,140 @@ void test_listen_before_talk_with_queued_radio() {
               << ", last-copy drops=" << last_copy_drops << '\n';
 }
 
+void test_unsent_refunds_the_last_acceptance_once() {
+    FakeSession adapter{1, 2};
+    Limits limits{};
+    limits.hello_max_sends = 2;
+    PairingCoordinator<FakeSession> c(adapter, true, 123456, limits);
+    FrameBuffer first{}, out{};
+    std::size_t first_size = 0;
+    std::size_t size = 0;
+    EXPECT(c.begin(0));
+    EXPECT(c.service(0, first, first_size));
+    c.sent(false, 0);
+    EXPECT(!c.unsent());
+
+    EXPECT(c.service(1, out, size) && size == first_size && out == first);
+    c.sent(true, 1);
+    const auto next_copy = 1 + limits.hello_resend_after_ms;
+    EXPECT(c.service(next_copy, out, size));
+    c.sent(false, next_copy);  // a refusal preserves the earlier acceptance
+    EXPECT(c.unsent());
+    EXPECT(!c.unsent());
+    EXPECT(c.service(next_copy + 100, out, size) && size == first_size && out == first);
+    c.sent(true, next_copy + 100);
+
+    const auto last_copy = next_copy + 100 + limits.hello_resend_after_ms;
+    EXPECT(c.service(last_copy, out, size) && size == first_size && out == first);
+    c.sent(true, last_copy);
+    EXPECT(!c.service(last_copy + limits.hello_resend_after_ms, out, size));
+    EXPECT(c.unsent());  // the other acceptance still counts toward the limit
+    EXPECT(c.service(last_copy + limits.hello_resend_after_ms, out, size));
+    EXPECT(size == first_size && out == first);
+    c.sent(true, last_copy + limits.hello_resend_after_ms);
+    EXPECT(!c.service(last_copy + 2 * limits.hello_resend_after_ms, out, size));
+    EXPECT(adapter.produced[static_cast<int>(FrameType::candidate)] == 1);
+}
+
+void test_unsent_invalidates_an_offer_made_before_the_drop() {
+    FakeSession adapter{1, 2};
+    PairingCoordinator<FakeSession> c(adapter, true, 123456);
+    FrameBuffer first{}, out{};
+    std::size_t first_size = 0;
+    std::size_t size = 0;
+    EXPECT(c.begin(0));
+    EXPECT(c.service(0, first, first_size));
+    c.sent(true, 0);
+    EXPECT(c.service(5000, out, size));
+    EXPECT(c.unsent());
+    c.sent(true, 5000);  // this stale offer cannot create an acceptance
+    EXPECT(!c.unsent());
+    EXPECT(c.service(5100, out, size) && size == first_size && out == first);
+}
+
+void test_refunded_control_obeys_the_running_send_floor() {
+    for (const bool resend : {false, true}) {
+        for (const bool enough : {false, true}) {
+            FakeSession a{1, 2}, b{2, 1};
+            Limits limits{};
+            PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+            PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+            EXPECT(ca.begin(0) && cb.begin(0));
+            unsigned accepted_controls = 0;
+            bool checked = false;
+            for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+                FrameBuffer out{};
+                std::size_t size = 0;
+                if (ca.service(now, out, size)) {
+                    ca.sent(true, now);
+                    if (Run::frame_type(out) != FrameType::control) {
+                        cb.on_receive(out.data(), size);
+                    } else if (++accepted_controls == (resend ? 2U : 1U)) {
+                        const auto floor = resend ? limits.final_send_floor_ms : limits.final_first_send_floor_ms;
+                        const auto retry_at = now + 100;
+                        a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                        EXPECT(ca.unsent());
+                        FrameBuffer retry{};
+                        std::size_t retry_size = 0;
+                        EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                        EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                        checked = true;
+                    }
+                    // Lose the earlier physical control copy to make a resend eligible.
+                }
+                if (!checked && cb.service(now, out, size)) {
+                    cb.sent(true, now);
+                    ca.on_receive(out.data(), size);
+                }
+            }
+            EXPECT(checked);
+        }
+    }
+}
+
+void test_refunded_control_obeys_the_paired_send_floor() {
+    for (const bool enough : {false, true}) {
+        FakeSession a{1, 2}, b{2, 1};
+        Limits limits{};
+        b.refuse_remaining_after_commit = true;
+        PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+        PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+        EXPECT(ca.begin(0) && cb.begin(0));
+        bool checked = false;
+        for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+            FrameBuffer out{};
+            std::size_t size = 0;
+            if (ca.service(now, out, size)) {
+                ca.sent(true, now);
+                if (Run::frame_type(out) == FrameType::control &&
+                    out[kHeaderBytes] == fill(1, FrameType::control, 2, 0)) {
+                    b.deadline_ms = now + 12000;
+                }
+                cb.on_receive(out.data(), size);
+            }
+            if (cb.service(now, out, size)) {
+                cb.sent(true, now);
+                if (Run::frame_type(out) == FrameType::control &&
+                    out[kHeaderBytes] == fill(2, FrameType::control, 2, 0)) {
+                    FrameBuffer retry{};
+                    std::size_t retry_size = 0;
+                    (void)cb.service(now + 100, retry, retry_size);
+                    EXPECT(cb.outcome() == Outcome::paired && b.committed);
+                    EXPECT(cb.unsent());
+                    const auto retry_at = b.deadline_ms - limits.final_first_send_floor_ms + (enough ? 0 : 1);
+                    EXPECT(cb.service(retry_at, retry, retry_size) == enough);
+                    EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                    EXPECT(cb.outcome() == Outcome::paired && b.committed);
+                    checked = true;
+                } else {
+                    ca.on_receive(out.data(), size);
+                }
+            }
+        }
+        EXPECT(checked);
+    }
+}
+
 void test_cad_drop_can_spend_the_last_pairing_copy() {
     struct Target {
         const char* name;
@@ -868,38 +1021,60 @@ void test_cad_drop_can_spend_the_last_pairing_copy() {
         {"responder handshake 1", FrameType::handshake, 1, Outcome::failed},
         {"responder control 2", FrameType::control, 2, Outcome::paired},
     };
+    constexpr std::uint32_t kSeeds = 8;
     for (const auto& target : targets) {
-        for (const unsigned max_backoffs : {3U, 4U}) {
-            Run r;
-            r.queued_mode = QueuedRadioMode::listen_before_talk;
-            r.cad_max_backoffs = max_backoffs;
-            unsigned accepted = 0;
-            const auto is_target = [&](const FrameBuffer& frame, bool from_a) {
-                return !from_a && Run::frame_type(frame) == target.type &&
-                    frame[kHeaderBytes] == fill(2, target.type, target.instance, 0);
-            };
-            // Lose the earlier copies on air, then force the first four CAD
-            // results busy on the final allowed accepted copy of this frame.
-            r.drop_frame = [&](const FrameBuffer& frame, bool from_a) {
-                return is_target(frame, from_a) && ++accepted < r.limits.max_sends;
-            };
-            r.force_cad_busy = [&](const Run::Air& frame, bool from_a, unsigned backoffs) {
-                return frame.last_allowed_copy && backoffs < 4 && is_target(frame.bytes, from_a);
-            };
-            run_queued_schedule(r, {target.name, 0, false}, 25);
-            std::cout << "I-064 forced busy, " << target.name << ", backoff cap=" << max_backoffs
-                      << ": paired A/B=" << r.a.committed << '/' << r.b.committed
-                      << ", drops=" << r.cad_drops << ", last-copy drops=" << r.cad_last_copy_drops
-                      << ", steps A/B=" << r.a_step << '/' << r.b_step
-                      << ", accepted target copies=" << accepted << '\n';
-            EXPECT(accepted == r.limits.max_sends);
-            if (max_backoffs == 3) {
-                EXPECT(r.cad_last_copy_drops == 1);
-                EXPECT(r.oa == Outcome::failed && r.ob == target.responder_at_drop);
-            } else {
-                EXPECT(r.cad_last_copy_drops == 0);
-                EXPECT(both_paired(r));
+        for (const bool feedback : {false, true}) {
+            unsigned paired = 0, neither = 0, responder_only = 0;
+            int drops = 0, refunds = 0;
+            for (std::uint32_t seed = 1; seed <= kSeeds; ++seed) {
+                Run r;
+                r.queued_mode = QueuedRadioMode::listen_before_talk;
+                r.report_prelaunch_drops = feedback;
+                r.cad_seed = seed;
+                r.b.refuse_remaining_after_commit = true;
+                unsigned accepted = 0, busy_scans = 0;
+                const auto is_target = [&](const FrameBuffer& frame, bool from_a) {
+                    return !from_a && Run::frame_type(frame) == target.type &&
+                        frame[kHeaderBytes] == fill(2, target.type, target.instance, 0);
+                };
+                // Lose the earlier copies on air, then force four busy scans
+                // on the last allowed copy. That interference clears once,
+                // even if the same protocol copy is queued again.
+                r.drop_frame = [&](const FrameBuffer& frame, bool from_a) {
+                    return is_target(frame, from_a) && ++accepted < r.limits.max_sends;
+                };
+                r.force_cad_busy = [&](const Run::Air& frame, bool from_a, unsigned) {
+                    if (busy_scans == 4 || !frame.last_allowed_copy || !is_target(frame.bytes, from_a)) {
+                        return false;
+                    }
+                    ++busy_scans;
+                    return true;
+                };
+                run_queued_schedule(r, {target.name, 0, false}, 25);
+                paired += both_paired(r);
+                neither += r.oa == Outcome::failed && r.ob == Outcome::failed;
+                responder_only += r.oa == Outcome::failed && r.ob == Outcome::paired;
+                drops += r.cad_drops;
+                refunds += r.prelaunch_refunds;
+                if (feedback ? !both_paired(r)
+                             : r.oa != Outcome::failed || r.ob != target.responder_at_drop) {
+                    std::cerr << target.name << ", feedback=" << feedback << ", seed=" << seed
+                              << ", steps A/B=" << r.a_step << '/' << r.b_step << '\n';
+                }
+                EXPECT(busy_scans == 4);
+                EXPECT(r.cad_drops == 1 && r.cad_last_copy_drops == 1);
+                EXPECT(r.prelaunch_refunds == static_cast<int>(feedback));
+                EXPECT(accepted == r.limits.max_sends + static_cast<unsigned>(feedback));
+                if (feedback) {
+                    EXPECT(both_paired(r));
+                } else {
+                    EXPECT(r.oa == Outcome::failed && r.ob == target.responder_at_drop);
+                }
             }
+            std::cout << "I-064 forced busy, " << target.name << ", feedback=" << feedback
+                      << ": both=" << paired << '/' << kSeeds << ", neither=" << neither
+                      << ", responder only=" << responder_only << ", CAD drops=" << drops
+                      << ", refunded=" << refunds << '\n';
         }
     }
 }
@@ -989,6 +1164,10 @@ int main() {
     test_half_duplex_start_orders();
     test_normal_timing_with_queued_radio();
     test_listen_before_talk_with_queued_radio();
+    test_unsent_refunds_the_last_acceptance_once();
+    test_unsent_invalidates_an_offer_made_before_the_drop();
+    test_refunded_control_obeys_the_running_send_floor();
+    test_refunded_control_obeys_the_paired_send_floor();
     test_cad_drop_can_spend_the_last_pairing_copy();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
@@ -1002,6 +1181,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 19 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 23 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

@@ -205,6 +205,11 @@ void BoardPairingRuntime::sent(bool accepted, std::uint64_t now_ms) {
     coordinator_->sent(accepted, now_ms);
 }
 
+void BoardPairingRuntime::unsent() {
+    if (busy_ || !active() || !coordinator_) return;
+    (void)coordinator_->unsent();
+}
+
 void BoardPairingRuntime::on_receive(const std::uint8_t* data, std::size_t size) {
     if (busy_ || !active() || !coordinator_) return;
     busy_ = true;

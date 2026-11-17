@@ -36,6 +36,12 @@ void HeltecV4Lora::fem_off() {
     }
 }
 
+void HeltecV4Lora::discard_queued() {
+    if (tx_bytes_ == 0) return;
+    tx_bytes_ = 0;
+    ++counters_.tx_prelaunch_dropped;
+}
+
 void HeltecV4Lora::fault() {
     // After a failed SPI command no further command is issued; the front end
     // is powered down directly and the transport stays off until restart.
@@ -43,7 +49,8 @@ void HeltecV4Lora::fault() {
     faulted_ = true;
     last_error_ = radio::RadioError::io_failure;
     fem_off();
-    tx_bytes_ = rx_bytes_ = 0;
+    discard_queued();
+    rx_bytes_ = 0;
 }
 
 bool HeltecV4Lora::ok(std::int16_t result) {
@@ -94,7 +101,8 @@ void HeltecV4Lora::stop() {
     if (running_) (void)radio_.standby();
     running_ = transmitting_ = receiving_ = false;
     fem_off();
-    tx_bytes_ = rx_bytes_ = 0;
+    discard_queued();
+    rx_bytes_ = 0;
 }
 
 radio::TransportStatus HeltecV4Lora::status() const {
@@ -265,7 +273,7 @@ void HeltecV4Lora::back_off(std::uint64_t now_ms) {
     if (backoffs_ == kMaximumBackoffs ||
         !random_.fill(reinterpret_cast<std::uint8_t*>(&random), sizeof(random)).ok()) {
         ++counters_.tx_busy_dropped;
-        tx_bytes_ = 0;
+        discard_queued();
         return;
     }
 
@@ -283,7 +291,7 @@ void HeltecV4Lora::launch_queued(std::uint64_t now_ms) {
     if (!running_ || transmitting_ || tx_bytes_ == 0 || rx_bytes_ != 0) return;
     if (!transmit_permitted()) {
         ++counters_.tx_refused;
-        tx_bytes_ = 0;
+        discard_queued();
         return;
     }
     if (now_ms < retry_at_ms_) return;
@@ -318,14 +326,17 @@ void HeltecV4Lora::launch_queued(std::uint64_t now_ms) {
     // The region may change during CAD. Ask again immediately before TX.
     if (!transmit_permitted()) {
         ++counters_.tx_refused;
-        tx_bytes_ = 0;
+        discard_queued();
         (void)arm_receive();
         return;
     }
     ++counters_.tx_attempts;
     tx_started_ms_ = now_ms;
-    if (!ok(radio_.startTransmit(tx_.data(), tx_bytes_))) return;
+    const auto queued_bytes = tx_bytes_;
     tx_bytes_ = 0;
+    // A failure returned by the TX operation can leave launch uncertain.
+    // The pre-launch drop counter covers only a provably unlaunched queue entry.
+    if (!ok(radio_.startTransmit(tx_.data(), queued_bytes))) return;
     transmitting_ = true;
 }
 
