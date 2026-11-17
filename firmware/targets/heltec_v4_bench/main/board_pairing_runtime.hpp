@@ -82,7 +82,8 @@ private:
 
     HeltecEnrollmentInputArbiter& input_;
     security::SecureRandomSource& random_;
-    companion::SelectedEnrollmentRequestOwner request_{};
+    companion::SelectedEnrollmentRequestOwner request_{
+        companion::SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};  // D-110
     companion::SelectedEnrollmentRequest phone_{};
     std::uint64_t last_ms_{0}, linger_until_ms_{0};
     bool clock_seen_{false}, have_phone_{false}, busy_{false}, lingering_{false};

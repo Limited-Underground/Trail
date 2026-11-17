@@ -23,7 +23,8 @@ import io.github.nbjelanovic.otprotocol.CompanionEnrollmentRole
 import java.security.SecureRandom
 import kotlinx.coroutines.delay
 
-internal const val BOARD_PAIRING_WINDOW_MILLIS = 120_000L
+// D-110: 5 minutes (was 2, D-087), the same as the board's request window.
+internal const val BOARD_PAIRING_WINDOW_MILLIS = 300_000L
 
 sealed interface BoardPairingState {
     data object Available : BoardPairingState
@@ -96,7 +97,7 @@ internal fun V1BoardPairingPanel(
                 Text("Pairing window: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')} left")
                 return
             }
-            Text("The two-minute pairing window ended.")
+            Text("The pairing window ended.")
         }
         is BoardPairingState.Rejected -> if (role == null) Text(boardPairingRejection(state.reason))
     }

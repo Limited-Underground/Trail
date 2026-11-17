@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_flash.h"
@@ -58,6 +59,7 @@ PairingNvsStorage::~PairingNvsStorage() { retire(); }
 void PairingNvsStorage::retire() {
     Guard guard;
     good_ = false;
+    cache_.clear();
     wipe(pending_bytes_);
     if (handle_ != 0) { nvs_close(handle_); handle_ = 0; }
     if (mounted_) { (void)nvs_flash_deinit_partition(kPartition); mounted_ = false; }
@@ -83,8 +85,12 @@ bool PairingNvsStorage::budget_ok() {
     if (!good_) return false;
     nvs_stats_t stats{};
     std::size_t own = 0;
-    if (nvs_get_stats(kPartition, &stats) != ESP_OK ||
-        nvs_get_used_entry_count(handle_, &own) != ESP_OK ||
+    const auto started_us = esp_timer_get_time();
+    const bool read_ok = nvs_get_stats(kPartition, &stats) == ESP_OK &&
+                         nvs_get_used_entry_count(handle_, &own) == ESP_OK;
+    ++budget_checks_;
+    budget_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
+    if (!read_ok ||
         stats.total_entries != kTotalEntries || stats.namespace_count != 1 ||
         own > kPairingEntries || own > stats.used_entries) {
         (void)fault();
@@ -168,11 +174,16 @@ bool PairingNvsStorage::inventory() {
 bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {
     if (!good_) return false;
     if (pending_ && std::strcmp(key, pending_key_.data()) == 0) { out = pending_bytes_; return true; }
+    if (cache_.get(key, out)) return true;  // I-066
+    const auto started_us = esp_timer_get_time();
+    ++nvs_reads_;
     std::size_t size = 0;
     const auto status = nvs_get_blob(handle_, key, nullptr, &size);
     if (status == ESP_ERR_NVS_NOT_FOUND) {
         if (known_[index(key)]) { (void)fault(); return false; }
         out.fill(0xff);
+        cache_.put(key, out);
+        nvs_read_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
         return true;
     }
     if (status != ESP_OK || size != out.size()) { (void)fault(); return false; }
@@ -181,6 +192,8 @@ bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {
         return false;
     }
     known_[index(key)] = true;
+    cache_.put(key, out);
+    nvs_read_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
     return true;
 }
 
@@ -207,6 +220,7 @@ PairingNvsStorage::Error PairingNvsStorage::erase_tuple(std::uint64_t g, unsigne
     char key[16]{};
     if (!key_for(g, n, d, s, key)) return Error::invalid_argument;
     if (!start_mutation(key)) return Error::io_failure;
+    cache_.drop(key);
     const auto status = nvs_erase_key(handle_, key);
     if (status != ESP_OK && status != ESP_ERR_NVS_NOT_FOUND) return fault();
     if (status == ESP_ERR_NVS_NOT_FOUND && known_[index(key)] && !(pending_ && pending_erased_)) return fault();
@@ -225,6 +239,7 @@ PairingNvsStorage::Error PairingNvsStorage::write_tuple(std::uint64_t g, unsigne
         return Error::invalid_argument;
     }
     if (!start_mutation(key)) return Error::io_failure;
+    cache_.drop(key);
     Bytes bytes{};
     if (!load(key, bytes)) return Error::io_failure;
     // A new key must fit the pairing ceiling before touching NVS.
@@ -243,6 +258,7 @@ PairingNvsStorage::Error PairingNvsStorage::write_tuple(std::uint64_t g, unsigne
         if ((bytes[offset + i] & in.data[i]) != in.data[i]) { wipe(bytes); return Error::write_requires_erase; }
     }
     std::copy(in.data, in.data + in.size, bytes.begin() + offset);
+    cache_.drop(key);  // flash changes now; the verified bytes return at sync
     if (nvs_set_blob(handle_, key, bytes.data(), bytes.size()) != ESP_OK) { wipe(bytes); return fault(); }
     std::copy(key, key + 16, pending_key_.begin());
     pending_bytes_ = bytes;
@@ -271,6 +287,7 @@ PairingNvsStorage::Error PairingNvsStorage::sync_tuple(std::uint64_t g, unsigned
         observed = load(key, actual);
     }
     const bool ok = observed && actual == pending_bytes_ && budget_ok();
+    if (ok) cache_.put(key, actual);  // the bytes just verified in NVS
     wipe(actual);
     wipe(pending_bytes_);
     return ok ? Error::none : fault();
@@ -278,6 +295,7 @@ PairingNvsStorage::Error PairingNvsStorage::sync_tuple(std::uint64_t g, unsigned
 
 PairingNvsStorage::Error PairingNvsStorage::fault() {
     good_ = false;
+    cache_.clear();
     wipe(pending_bytes_);
     return Error::io_failure;
 }

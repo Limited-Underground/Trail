@@ -707,6 +707,13 @@ $builds = @(
         )
     },
     @{
+        Name = 'Pairing slot RAM cache (I-066)'
+        Output = Join-Path $buildDirectory 'pairing_slot_cache_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_slot_cache_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 startup display state owner'
         Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
         Sources = @(

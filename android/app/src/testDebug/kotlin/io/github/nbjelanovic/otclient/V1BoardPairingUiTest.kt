@@ -58,12 +58,12 @@ class V1BoardPairingUiTest {
         }
 
         ui.runOnIdle { state.value = BoardPairingState.Ready(now + BOARD_PAIRING_WINDOW_MILLIS) }
-        ui.onNodeWithText("Pairing window: 2:00 left").assertExists()
+        ui.onNodeWithText("Pairing window: 5:00 left").assertExists()  // D-110
         ui.onNodeWithText("000042").assertExists()
         ui.onNodeWithText("Start pairing").assertDoesNotExist()
         ui.runOnIdle { now += BOARD_PAIRING_WINDOW_MILLIS }
         ui.mainClock.advanceTimeBy(1_100)
-        ui.onNodeWithText("The two-minute pairing window ended.").assertExists()
+        ui.onNodeWithText("The pairing window ended.").assertExists()
         ui.onNodeWithText("000042").assertDoesNotExist()
         ui.onNodeWithText("Start pairing").assertExists()
     }

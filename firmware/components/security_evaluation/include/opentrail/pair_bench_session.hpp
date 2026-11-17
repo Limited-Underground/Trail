@@ -260,6 +260,7 @@ private:
             if (!unhex(tokens.values[2], peer.data(), peer.size()) || tokens.values[3].size() != 504 ||
                 !unhex(tokens.values[3].substr(0, 376), invitation.payload.data(), invitation.payload.size()) ||
                 !unhex(tokens.values[3].substr(376), invitation.signature.data(), invitation.signature.size()) ||
+                !independent_invitation_within_default_window(invitation) ||  // D-110 review: 60 s here
                 !endpoint_->begin(invitation, peer)) return false;
             const auto fields = independent_invitation_detail::decode(invitation);
             issued_ = role_ == InvitationRole::initiator ? fields.issued_a_ms : fields.issued_b_ms;
