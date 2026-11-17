@@ -15,6 +15,9 @@
 #include <vector>
 constexpr std::uint32_t RADIOLIB_NC = 0xffffffffU;
 constexpr std::int16_t RADIOLIB_ERR_NONE = 0;
+constexpr std::int16_t RADIOLIB_ERR_RX_TIMEOUT = -6;
+constexpr std::int16_t RADIOLIB_LORA_DETECTED = -702;
+constexpr std::int16_t RADIOLIB_CHANNEL_FREE = -703;
 constexpr std::int16_t RADIOLIB_ERR_SPI_CMD_TIMEOUT = -705;
 constexpr std::uint16_t RADIOLIB_SX126X_CMD_GET_IRQ_STATUS = 0x12;
 constexpr std::uint16_t RADIOLIB_SX126X_CMD_GET_RX_BUFFER_STATUS = 0x13;
@@ -28,7 +31,7 @@ constexpr std::uint16_t RADIOLIB_SX126X_IRQ_CRC_ERR = 0x40;
 constexpr std::uint16_t RADIOLIB_SX126X_IRQ_TIMEOUT = 0x200;
 
 namespace radio_mock {
-enum class Mode { standby, rx, tx };
+enum class Mode { standby, rx, cad, tx };
 inline Mode chip_mode = Mode::standby;
 inline std::vector<std::string> calls;
 inline std::string fault;
@@ -40,6 +43,10 @@ inline std::array<std::uint8_t, 255> transmitted{};
 inline std::size_t transmitted_bytes = 0;
 inline std::array<int, 47> gpio{};
 inline std::int64_t now_us = 100000;
+inline bool cad_done = true;
+inline std::int16_t cad_result = RADIOLIB_CHANNEL_FREE;
+inline std::uint32_t airtime_us = 31'001;
+inline std::size_t measured_bytes = 0;
 inline std::function<void(const std::string&)> callback;
 inline std::int16_t op(const std::string& name) {
     calls.push_back(name);
@@ -51,11 +58,13 @@ inline void reset() {
     packet.fill(0); packet[0] = 7; packet[1] = 8; packet[2] = 9;
     packet_status = {0xA0, 0xFC, 0xB4};
     transmitted.fill(0); transmitted_bytes = 0; gpio.fill(0); now_us = 100000; callback = {};
+    cad_done = true; cad_result = RADIOLIB_CHANNEL_FREE; airtime_us = 31'001; measured_bytes = 0;
 }
 inline unsigned count(const std::string& name) {
     unsigned n = 0; for (const auto& call : calls) n += call == name; return n;
 }
 inline bool dio1() {
+    if (chip_mode == Mode::cad) return cad_done;
     if (chip_mode == Mode::rx) return (irq & RADIOLIB_SX126X_IRQ_RX_DONE) != 0;
     if (chip_mode == Mode::tx) return (irq & (RADIOLIB_SX126X_IRQ_TX_DONE | RADIOLIB_SX126X_IRQ_TIMEOUT)) != 0;
     return false;
@@ -115,6 +124,19 @@ public:
         const auto r = radio_mock::op("start_rx");
         if (!r) { radio_mock::chip_mode = radio_mock::Mode::rx; radio_mock::irq = 0; }
         return r;
+    }
+    std::int16_t startChannelScan() {
+        const auto r = radio_mock::op("start_cad");
+        if (!r) { radio_mock::chip_mode = radio_mock::Mode::cad; radio_mock::irq = 0; }
+        return r;
+    }
+    std::int16_t getChannelScanResult() {
+        const auto r = radio_mock::op("cad_result");
+        return r ? r : radio_mock::cad_result;
+    }
+    std::uint32_t getTimeOnAir(std::size_t size) {
+        radio_mock::measured_bytes = size;
+        return radio_mock::airtime_us;
     }
     std::int16_t startTransmit(const std::uint8_t* data, std::size_t size) {
         const auto r = radio_mock::op("start_tx");

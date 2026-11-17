@@ -15,6 +15,7 @@
 
 #include "esp32_radiolib_hal.hpp"
 #include "opentrail/radio_transport.hpp"
+#include "opentrail/secure_random.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -38,6 +39,8 @@ struct LoraCounters {
     std::uint32_t rx_errors{0};
     std::uint32_t rx_dropped{0};
     std::uint32_t tx_refused{0};  // queued frames dropped because transmit was not permitted
+    std::uint32_t tx_busy_dropped{0};  // busy with no further backoff available
+    std::uint32_t tx_prelaunch_dropped{0};  // accepted queue entries discarded before TX launch
 };
 
 // Transmit grant, asked at the moment each frame would be launched (review F4).
@@ -48,7 +51,7 @@ class HeltecV4Lora final : public radio::RadioTransport {
 public:
     static constexpr std::size_t kMtu = 255;
 
-    HeltecV4Lora() = default;
+    explicit HeltecV4Lora(security::SecureRandomSource& random) : random_(random) {}
     HeltecV4Lora(const HeltecV4Lora&) = delete;
     HeltecV4Lora& operator=(const HeltecV4Lora&) = delete;
 
@@ -72,7 +75,12 @@ public:
     [[nodiscard]] radio::TransportStatus status() const override;
     radio::SendResult send(radio::ByteView frame, std::uint64_t now_ms) override;
     radio::ReceiveResult receive(radio::MutableByteView destination) override;
+    // Poll completions without launching. The app handles receive() and services
+    // pairing before it calls launch_queued().
     void service(std::uint64_t now_ms) override;
+    void launch_queued(std::uint64_t now_ms);
+    // Discard a queued frame when its owner retires. Leaves an in-flight TX alone.
+    void discard_queued();
 
 private:
     bool ok(std::int16_t result);
@@ -81,6 +89,9 @@ private:
     bool take_received_frame(std::uint16_t irq, std::uint64_t now_ms);
     bool complete_transmit(std::uint16_t irq);
     bool arm_receive();
+    [[nodiscard]] bool transmit_permitted() const;
+    std::int16_t detect_channel_activity();
+    void back_off(std::uint64_t now_ms);
     void fault();
     void fem_off();
 
@@ -95,7 +106,10 @@ private:
     std::size_t tx_bytes_{0};
     std::size_t rx_bytes_{0};
     radio::LinkMetadata rx_metadata_{};
+    security::SecureRandomSource& random_;
     std::uint64_t tx_started_ms_{0};
+    std::uint64_t retry_at_ms_{0};
+    unsigned backoffs_{0};
     LoraCounters counters_{};
     std::array<std::uint8_t, 3> last_packet_status_{};
     radio::RadioError last_error_{radio::RadioError::none};

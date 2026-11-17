@@ -2,6 +2,11 @@
 
 ## 2026-11-17
 
+### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
+
+- Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.
+- No code change. Retry of dropped copies is described in the 2026-11-16 entry below.
+
 ### OT-0005i Board screen shows the real radio state (I-044)
 
 The owner's photos from the sixth board session showed the Heltec home screen saying "REGION US915 TX OFF" and "RADIO --" while the link-test boards were transmitting on US915 (D-079).
@@ -11,6 +16,12 @@ The owner's photos from the sixth board session showed the Heltec home screen sa
 Tests: the OLED port and presentation host tests and bench admission (20 groups) pass; the link-test build is 812,496 bytes, with no warnings (Codex).
 
 ## 2026-11-16
+
+### OT-0005i Retry pairing copies dropped before radio launch (I-061)
+
+The MeshTrail bench radio reports confirmed pre-launch discards to the pairing coordinator. A discarded pairing copy returns its send slot and is eligible for re-offer under the current request window, reserves and send floors. The app resolves the drop before accepting a new offer and discards pending pairing bytes when their runtime ends. It preserves receive-before-launch ordering and the three-backoff CAD limit.
+
+The queued-radio regression replayed the responder handshake and final-control drops across eight seeds each. Both boards paired in every replay with feedback. Before feedback, the handshake case paired neither board and the final-control case paired only the responder, with the same three-backoff limit. Validation and exact image provenance belong to the local task report. Board validation remains pending, and I-059 and I-062 still track completion under RF loss and asymmetric commitment.
 
 ### OT-0005i Fast identity reads during board pairing (I-068, I-069)
 
