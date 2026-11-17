@@ -99,10 +99,26 @@ jobs:
           python -X utf8 -B ".\tools\Test-Security${env:SECURITY_OPERATOR}Operator.py"
           if ($LASTEXITCODE -ne 0) { throw "Security operator matrix failed." }
 
+  android-v1test:
+    name: Android V1-Test compilation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Compile V1-Test
+        shell: bash
+        working-directory: android
+        run: |
+          export JAVA_HOME="${JAVA_HOME_17_X64:?Java 17 is required}"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          bash ./gradlew --no-daemon :app:compileV1TestKotlin
+
   host-tests:
     name: Windows host matrix
     if: ${{ always() }}
-    needs: [core-tests, security-operators]
+    needs: [core-tests, security-operators, android-v1test]
     runs-on: windows-2025
     timeout-minutes: 5
     steps:
@@ -111,7 +127,8 @@ jobs:
         env:
           CORE_RESULT: ${{ needs.core-tests.result }}
           OPERATORS_RESULT: ${{ needs.security-operators.result }}
+          ANDROID_RESULT: ${{ needs.android-v1test.result }}
         run: |
-          if ($env:CORE_RESULT -ne 'success' -or $env:OPERATORS_RESULT -ne 'success') {
-            throw "Host validation incomplete: core=$env:CORE_RESULT operators=$env:OPERATORS_RESULT"
+          if ($env:CORE_RESULT -ne 'success' -or $env:OPERATORS_RESULT -ne 'success' -or $env:ANDROID_RESULT -ne 'success') {
+            throw "Host validation incomplete: core=$env:CORE_RESULT operators=$env:OPERATORS_RESULT android-v1test=$env:ANDROID_RESULT"
           }
