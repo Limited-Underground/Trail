@@ -61,6 +61,15 @@ The product is renamed Limited Underground MeshTrail (owner decision D-089). The
 
 Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app. Next: step 3b, indexed per-pair storage, message numbers and the group header (step 3).
 
+## Capture runner host verification
+
+The I-027/I-048 change reduces path verification work by reading Windows file
+attributes once per component. The security matrix gives each of two capture test
+groups its own 300-second limit. Every request still rechecks its ancestors,
+and a parent replaced by a junction is refused even when it leads to the same
+file. See the [capture runner progress entry](PROGRESS_LOG.md#ot-0238c-speed-up-capture-runner-verification-i-027-i-048).
+This change does not add device evidence.
+
 ## Development rules
 
 On 2026-11-11 the owner ended the November 2 product freeze and its November 3

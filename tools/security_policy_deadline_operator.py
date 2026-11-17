@@ -12,9 +12,19 @@ from importlib.machinery import PathFinder
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
+
+if os.name == 'nt':
+    import ctypes
+
+    # System32 only, independent of the capsule's working directory and PATH.
+    _get_attributes = ctypes.WinDLL('kernel32.dll', use_last_error=True,
+                                    winmode=0x00000800).GetFileAttributesW
+    _get_attributes.argtypes = (ctypes.c_wchar_p,)
+    _get_attributes.restype = ctypes.c_uint32
 
 HEX = re.compile(r'[0-9a-f]{64}\Z')
 PTH = b'Lib\nDLLs\npackages\npolicy\n'
@@ -44,11 +54,39 @@ def decode(raw):
     except Exception:
         raise OperatorError('operator_refused') from None
 
+def _check_component(path, *, allow_missing=False):
+    if os.name == 'nt':
+        # Raw entry attributes cover every reparse tag. os.lstat on Windows
+        # may follow reparse points other than name surrogates.
+        attributes = _get_attributes(str(path))
+        if attributes == 0xffffffff:
+            if allow_missing and ctypes.get_last_error() == 2:  # ERROR_FILE_NOT_FOUND
+                return False
+            raise OperatorError('operator_refused')
+        need(not attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+    else:
+        try:
+            mode = path.lstat().st_mode
+        except FileNotFoundError:
+            if allow_missing:
+                return False
+            raise OperatorError('operator_refused') from None
+        except OSError:
+            raise OperatorError('operator_refused') from None
+        need(not stat.S_ISLNK(mode))
+    return True
+
+def _check_path(path, *, allow_missing_leaf=False):
+    need(path.is_absolute())
+    # Walk the original names from the root, without following a known reparse
+    # point to check its descendants. Recheck all components on every call.
+    for parent in reversed(path.parents):
+        _check_component(parent)
+    return _check_component(path, allow_missing=allow_missing_leaf)
+
 def regular(path):
     path = Path(path)
-    need(path.is_absolute())
-    for part in (path, *path.parents):
-        need(not part.is_symlink() and not getattr(part, 'is_junction', lambda: False)())
+    _check_path(path)
     need(path.is_file())
     return path
 
@@ -76,11 +114,10 @@ def verify_manifest(path, expected_sha):
         need(set(obj) == {'schema', 'root', 'worktree', 'files', 'versions', 'powershell'}
              and obj['schema'] == 'OT212-DEADLINE-RUNTIME-1')
         root, worktree = Path(obj['root']), Path(obj['worktree'])
-        need(root.is_absolute() and worktree.is_absolute() and root.is_dir()
+        _check_path(root)
+        need(worktree.is_absolute() and root.is_dir()
              and root.resolve().is_relative_to((worktree / '.private').resolve())
              and root != worktree / '.private')
-        for part in (root, *root.parents):
-            need(not part.is_symlink() and not getattr(part, 'is_junction', lambda: False)())
         files = obj['files']
         need(type(files) is dict and 0 < len(files) <= 50000)
         folded = set()
@@ -92,7 +129,7 @@ def verify_manifest(path, expected_sha):
             descriptor(root / name, value)
         observed = set()
         for item in root.rglob('*'):
-            need(not item.is_symlink() and not getattr(item, 'is_junction', lambda: False)())
+            _check_component(item)
             if item.is_file():
                 observed.add(item.relative_to(root).as_posix())
         need(observed == set(files) and (root / 'python314._pth').read_bytes() == PTH
@@ -364,10 +401,9 @@ def validate_rom_argv(ctx, op, data, argv):
     def region_file(value, prefix, existing):
         path = Path(value)
         need(path.is_absolute() and path.name == 'region.bin' and path.parent.parent == private
-             and path.parent.name.startswith(prefix) and path.parent.is_dir())
-        for part in (path, *path.parents):
-            need(not part.is_symlink() and not getattr(part, 'is_junction', lambda: False)())
-        need(path.is_file() if existing else not path.exists())
+             and path.parent.name.startswith(prefix))
+        present = _check_path(path, allow_missing_leaf=not existing)
+        need(path.parent.is_dir() and (path.is_file() if existing else not present))
         return path
     if name == 'read-flash':
         need(len(operation) == 4 and phase in ('preflight_intent', 'candidate_write_intent', 'restore_intent'))
