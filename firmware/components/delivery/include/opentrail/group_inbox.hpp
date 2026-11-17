@@ -1,8 +1,8 @@
 #pragma once
 
 // Receiving and sending state for Trail V1 group messages (docs/security/GROUP_PAIRWISE_V1.md,
-// "Group messages"; implementation order step 3). Host-only logic; durable storage of this
-// state is a later part of step 3.
+// "Group messages"; implementation order step 3). GroupReceiveState uses the same
+// receive window for durable storage.
 //
 // Receiving (GroupInbox, one per group):
 // - accept only from members on this board's newest roster with an active pair;
@@ -80,14 +80,27 @@ public:
     void clear();
 
 private:
-    struct Sender {
-        bool used{false};
-        GroupMemberId id{};
-        std::uint32_t first{0};    // first number seen (nothing before it counts as missing)
+    friend class GroupReceiveState;
+
+    struct Window {
+        std::uint32_t first{0};    // first number seen (zero means an empty window)
         std::uint32_t highest{0};
         std::uint32_t seen{0};     // bit i: number highest - i has arrived
         std::array<std::uint64_t, kGroupInboxWindow> sums{};  // content checksum per bit
     };
+
+    struct Sender {
+        bool used{false};
+        GroupMemberId id{};
+        Window window{};
+    };
+
+    static GroupReceiveResult admit(const SenderStanding& standing, const GroupView& view,
+                                    GroupContent content, const DecodedGroupFrame& frame);
+    static void observe(Window& window, GroupContent content, const DecodedGroupFrame& frame,
+                        GroupReceiveResult& result);
+    static std::uint32_t count_missing(const Window& window);
+
     Sender* find(const GroupMemberId& id);
     const Sender* find(const GroupMemberId& id) const;
 

@@ -23,6 +23,18 @@ The MeshTrail bench radio reports confirmed pre-launch discards to the pairing c
 
 The queued-radio regression replayed the responder handshake and final-control drops across eight seeds each. Both boards paired in every replay with feedback. Before feedback, the handshake case paired neither board and the final-control case paired only the responder, with the same three-backoff limit. Validation and exact image provenance belong to the local task report. Board validation remains pending, and I-059 and I-062 still track completion under RF loss and asymmetric commitment.
 
+### OT-0305 Persist the group receive window on the host
+
+The [durable receive state](../firmware/components/delivery/include/opentrail/group_receive_state.hpp) validates the existing frame and admission rules, then stores the bounded number window and content checksums before returning a new message for display. The state is scoped to the full group, receiving identity and sender, and survives rekey and pair-slot reuse. It stores no message body. Conflicting, duplicate, too-old and refused frames do not advance it.
+
+Five new [host scenario groups](../tests/host/group_receive_state_tests.cpp) passed, as did the ten existing group frame and delivery groups. The tests include restart, scope separation, failure before and after commit, readback faults, receive admission and retained capacity. A crash after committing the window can suppress a retry before the message reaches the user. The target ACK and presentation path still needs that ordering bound and tested.
+
+### OT-0305 Index durable group pair storage on the host
+
+The [group pair index](../firmware/components/persistence/include/opentrail/group_pair_index.hpp) maps the full group name and peer fingerprint to a bounded slot under `ot_state`. It checks the local fingerprint, both membership versions and the roster watermark. New mappings are published only after their catalog update commits and reads back exactly. A later roster removes obsolete mappings before those slots can be reused under fresh incarnations. Older or conflicting views cannot recover a retired mapping.
+
+The caller must supply the current accepted roster and complete its durable update first. Pair data, counters and keys have separate owners. The [host suite](../tests/host/group_pair_index_tests.cpp) passed five scenario groups, including scope separation, removal and re-addition, stale and conflicting rosters, capacity, restart and uncertain storage writes. The KV catalog and capacity are host-tested candidates for target review.
+
 ### OT-0005i Fast identity reads during board pairing (I-068, I-069)
 
 The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).
@@ -65,6 +77,12 @@ classify `BLUETOOTH_STATE_READ_DENIED`. It now records the exact reason using
 the existing log record format. The variant's checked-in JVM tests are wired
 into Gradle and exercise every runtime block through log write, reload, and
 export. The host workflow requires the Android V1-Test compilation job.
+
+### OT-0305 Reserve durable group message numbers on the host
+
+First storage increment of [step 3b](security/GROUP_PAIRWISE_V1.md#implementation-order). [Group message numbers](../firmware/components/delivery/include/opentrail/group_message_numbers.hpp) binds a sender's sequence to the full group name (admin fingerprint and group ID) and the full local sender fingerprint. The host candidate commits and reads back the high-water mark in batches of 32 before issuing a number. Reopening skips unused numbers, and the last batch ends at the 32-bit limit. A missing or invalid record refuses allocation. The [host test](../tests/host/group_message_number_tests.cpp) passed four C++17 scenario groups under warnings-as-errors, including failures before and after commit, failed read-back, reboot, group identity isolation and exhaustion.
+
+The KV layout is a candidate. It requires a serialized owner and atomic replacement of one committed record. Next: select the production per-pair index and group record lifecycle, link roster and pair updates in durable order, and persist the receive window. Group acknowledgements, reset coverage and the wear check remain open.
 
 ## 2026-11-15
 
