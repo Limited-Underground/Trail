@@ -57,6 +57,25 @@ class BleConfigurationSessionTest {
         assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81,revision=ULong.MAX_VALUE,selectionId=12))))
         assertFalse(f.session.writeRegion(1))
     }
+    @Test fun regionNoticesDescribeOnlyWhatTheBoardConfirmed() {
+        val f = Fixture(3)
+        assertTrue(f.session.readRegion())
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81))))
+        assertEquals("No radio region is saved.", f.session.state.notice)
+
+        assertTrue(f.session.writeRegion(1))
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x82, revision = 1u, selectionId = 1))))
+        assertEquals("Region saved. MeshTrail uses this region's radio rules.", f.session.state.notice)
+
+        assertTrue(f.session.readRegion())
+        assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81, revision = 1u, selectionId = 1))))
+        assertEquals("Saved radio region confirmed.", f.session.state.notice)
+
+        assertTrue(f.session.readRegion())
+        f.session.lost(f.sent.last().exchangeId)
+        assertEquals("Couldn't confirm the radio region. Read the saved region before trying again.", f.session.state.notice)
+    }
+
     @Test fun regionUncertaintyLossAndReconnectNeverInventConfirmation() {
         val f=Fixture(3);f.session.readRegion();f.session.receive(f.region(CompanionRegionPayload(0x81)))
         f.session.writeRegion(1);val pending=f.sent.last().exchangeId

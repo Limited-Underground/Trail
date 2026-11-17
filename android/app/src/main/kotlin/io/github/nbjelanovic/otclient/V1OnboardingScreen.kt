@@ -61,6 +61,7 @@ fun V1OnboardingScreen(
     state: V1OnboardingScreenState,
     onAction: (V1OnboardingUiAction) -> Unit,
     modifier: Modifier = Modifier,
+    footer: @Composable () -> Unit = {},
     connectionContent: @Composable () -> Unit = {},
 ) {
     val currentState by rememberUpdatedState(state)
@@ -96,13 +97,14 @@ fun V1OnboardingScreen(
                 }
             }
         }
+        footer()
     }
 }
 
 @Composable
 private fun V1OnboardingExplanation(state: V1OnboardingScreenState) {
     val title = when (state.stage) {
-        V1SetupStage.MATCH_DEVICE -> "Find your Trail device"
+        V1SetupStage.MATCH_DEVICE -> "Find your MeshTrail device"
         V1SetupStage.SECURE_PAIR_AND_AUTHORIZE -> "Connect securely"
         V1SetupStage.NAME_DEVICE -> "Name your device"
         V1SetupStage.CONFIRM_RADIO_REGION -> "Choose your radio region"
@@ -117,7 +119,7 @@ private fun V1OnboardingExplanation(state: V1OnboardingScreenState) {
         V1SetupStage.NAME_DEVICE ->
             "Choose a name you recognize. This name will also appear on your device's display."
         V1SetupStage.CONFIRM_RADIO_REGION ->
-            "Choose the region where you will use this device. Radio transmission stays off until the device confirms its compatible configuration."
+            "Choose the region where you use your MeshTrail board. Your board uses the radio rules for its saved region."
         V1SetupStage.PUBLIC_PROFILE ->
             "Choose the name nearby people can discover. They must request a chat before sending you messages."
         V1SetupStage.COMPLETE ->
