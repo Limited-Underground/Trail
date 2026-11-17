@@ -4,10 +4,12 @@
 // can drop chosen frames. The fake session authenticates by checking that each
 // payload is exactly what the peer produced for that type and instance.
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -88,6 +90,8 @@ Limits window_120s() {
     return l;
 }
 
+enum class QueuedRadioMode { baseline, receive_first, listen_before_talk };
+
 struct Run {
     FakeSession a{1, 2}, b{2, 1};
     Limits limits = window_120s();
@@ -109,6 +113,7 @@ struct Run {
     // frames; frames whose airtimes overlap are both lost.
     bool half_duplex{false};
     bool queued_radio{false};
+    QueuedRadioMode queued_mode{QueuedRadioMode::baseline};
     std::uint64_t b_poll_phase_ms{0};  // A polls at phase zero, both periods are 100 ms
     bool trace{false};  // print each accepted frame (debugging only)
     // A transmit hold on one board: its radio refuses every offer in [from, until).
@@ -124,25 +129,56 @@ struct Run {
         std::size_t n{0};
         std::uint64_t start{0}, end{0};
         bool lost{false};
+        bool last_allowed_copy{false};
     } air_a, air_b;
+    struct AcceptedCopies {
+        FrameBuffer bytes{};
+        unsigned count{0};
+    };
     struct Radio {
         Air queued{}, air{}, received{};
         bool transmitting{false};  // true until the TX_DONE poll re-arms RX
+        std::uint64_t receive_blocked_until_ms{0};
+        std::uint64_t retry_at_ms{0};
+        unsigned backoffs{0};
+        std::mt19937 random{};
+        std::vector<AcceptedCopies> accepted;
     };
+
+    std::uint32_t cad_seed{1};
+    unsigned cad_max_backoffs{3};
+    int cad_checks{0}, cad_backoffs{0}, cad_drops{0}, cad_last_copy_drops{0};
+    int cad_interrupted_rx{0};
+    // Optional interference, in addition to actual modeled peer airtime.
+    std::function<bool(const Air&, bool, unsigned)> force_cad_busy;
+
+    static FrameType frame_type(const FrameBuffer& frame) {
+        return static_cast<FrameType>(frame[2] & 0x0f);
+    }
 
     // LoRa airtime at the bench profile: 125 kHz, SF7, CR 4/5, explicit header,
     // CRC, 8 preamble symbols (an offer, 115 bytes, is 194.816 ms).
-    static std::uint64_t airtime_ms(std::size_t bytes) {
+    static std::uint64_t airtime_us(std::size_t bytes) {
         const std::size_t symbols = 8 + ((8 * bytes + 16 + 27) / 28) * 5;
-        return static_cast<std::uint64_t>((12.25 + static_cast<double>(symbols)) * 1.024 + 0.999);
+        return 12544 + symbols * 1024;  // 12.25 preamble symbols plus data
+    }
+
+    static std::uint64_t airtime_ms(std::size_t bytes) {
+        return (airtime_us(bytes) + 999) / 1000;
     }
 
     void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
-                  int& offered, int& sent, bool from_a, std::uint64_t now, Radio* radio = nullptr) {
-        if (!live) return;
+                  int& offered, int& sent, bool from_a, std::uint64_t now,
+                  Radio* radio = nullptr, Radio* peer_radio = nullptr, bool received = false) {
         FrameBuffer f{};
         std::size_t n = 0;
-        if (!c.service(now, f, n) || !n) return;
+        const bool has_offer = live && c.service(now, f, n) && n;
+        // The v2 app hands off RX, runs pairing service, then launches any old
+        // queue entry on a poll with no RX. Only afterward can it accept this offer.
+        if (radio && queued_mode != QueuedRadioMode::baseline && !received) {
+            launch_queued(*radio, *peer_radio, from_a, now);
+        }
+        if (!has_offer) return;
         // Like the board: the coordinator runs, and a radio still on air refuses.
         const bool held = from_a == hold_a && now >= hold_from_ms && now < hold_until_ms;
         const bool busy = radio ? radio->transmitting || radio->queued.n != 0 : mine.n != 0;
@@ -152,6 +188,11 @@ struct Run {
         auto& frame = radio ? radio->queued : mine;
         frame = {f, n, 0, 0, drop(sent, from_a) || drop_frame(f, from_a)};
         ++sent;
+        if (radio && queued_mode == QueuedRadioMode::listen_before_talk) {
+            radio->retry_at_ms = 0;
+            radio->backoffs = 0;
+            track_accepted_copy(*radio);
+        }
         if (!radio) launch(mine, other, false, now);
         if (trace) {
             std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
@@ -171,6 +212,59 @@ struct Run {
         if (peer_transmitting && !other.n && !mine.lost) ++receive_rearm_losses;
         mine.lost = mine.lost || peer_transmitting;
     }
+    void track_accepted_copy(Radio& radio) {
+        const auto& bytes = radio.queued.bytes;
+        auto copy = std::find_if(radio.accepted.begin(), radio.accepted.end(),
+                                 [&](const AcceptedCopies& item) { return item.bytes == bytes; });
+        if (copy == radio.accepted.end()) {
+            radio.accepted.push_back({bytes, 0});
+            copy = radio.accepted.end() - 1;
+        }
+        const auto cap = frame_type(bytes) == FrameType::candidate ?
+            limits.hello_max_sends : limits.max_sends;
+        radio.queued.last_allowed_copy = ++copy->count == cap;
+    }
+
+    void launch_queued(Radio& mine, Radio& peer, bool from_a, std::uint64_t now) {
+        if (mine.transmitting || !mine.queued.n || now < mine.retry_at_ms) return;
+        if (queued_mode == QueuedRadioMode::listen_before_talk) {
+            // Approximate four 1.024 ms CAD symbols and command overhead using
+            // a 5 ms scan. Sample at its start, so simultaneous scans can both
+            // see clear and then collide. Physical detection and capture vary.
+            constexpr std::uint64_t kCadMs = 5;
+            const bool peer_on_air = peer.air.n && peer.air.start <= now;
+            const bool forced_busy = force_cad_busy &&
+                force_cad_busy(mine.queued, from_a, mine.backoffs);
+            ++cad_checks;
+            now += kCadMs;
+            mine.receive_blocked_until_ms = now;
+            // Standby before CAD interrupts a packet already being received.
+            if (peer_on_air && !peer.air.lost) {
+                peer.air.lost = true;
+                ++cad_interrupted_rx;
+            }
+            if (peer_on_air || forced_busy) {
+                if (mine.backoffs == cad_max_backoffs) {
+                    ++cad_drops;
+                    if (mine.queued.last_allowed_copy) ++cad_last_copy_drops;
+                    mine.queued = {};
+                } else {
+                    const auto slots = 1U + mine.random() % 3U;
+                    const auto delay_ms = (airtime_us(mine.queued.n) * slots + 999) / 1000;
+                    mine.retry_at_ms = now + delay_ms;
+                    ++mine.backoffs;
+                    ++cad_backoffs;
+                }
+                return;
+            }
+        }
+
+        mine.air = mine.queued;
+        mine.queued = {};
+        launch(mine.air, peer.air, peer.transmitting || now < peer.receive_blocked_until_ms, now);
+        mine.transmitting = true;
+    }
+
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
@@ -187,6 +281,8 @@ struct Run {
         int* const sent[] = {&sent_a, &sent_b};
         bool begun[] = {false, false};
         Radio radio[2]{};
+        radio[0].random.seed(cad_seed);
+        radio[1].random.seed(cad_seed ^ 0x9e3779b9U);
         for (std::uint64_t now = 0; now <= limit_ms; ++now) {
             for (int side : {0, 1}) {
                 auto& mine = radio[side];
@@ -203,18 +299,19 @@ struct Run {
                 auto& peer = radio[1 - side];
                 if (mine.transmitting) {
                     if (!mine.air.n) mine.transmitting = false;
-                } else if (mine.queued.n) {
-                    mine.air = mine.queued;
-                    mine.queued = {};
-                    launch(mine.air, peer.air, peer.transmitting, now);
-                    mine.transmitting = true;
+                } else if (queued_mode == QueuedRadioMode::baseline) {
+                    launch_queued(mine, peer, side == 0, now);
                 }
             }
             for (int side : {0, 1}) {
                 if (now % 100 != phase[side]) continue;
                 auto& c = *coordinator[side];
                 auto& mine = radio[side];
-                if (mine.received.n && begun[side]) {
+                const bool received = mine.received.n != 0;
+                const auto ended = side == 0 ? a_end_ms : b_end_ms;
+                const bool active = ended == 0 ||
+                    (c.outcome() == Outcome::paired && now - ended < linger_ms);
+                if (received && begun[side] && active) {
                     c.on_receive(mine.received.bytes.data(), mine.received.n);
                 }
                 mine.received = {};
@@ -222,8 +319,8 @@ struct Run {
                     EXPECT(c.begin(now));
                     begun[side] = true;
                 }
-                transmit(c, begun[side], mine.air, radio[1 - side].air,
-                         *offered[side], *sent[side], side == 0, now, &mine);
+                transmit(c, begun[side] && active, mine.air, radio[1 - side].air,
+                         *offered[side], *sent[side], side == 0, now, &mine, &radio[1 - side], received);
             }
             if (a_end_ms == 0 && ca.outcome() != Outcome::running) a_end_ms = now;
             if (b_end_ms == 0 && cb.outcome() != Outcome::running) b_end_ms = now;
@@ -670,6 +767,7 @@ constexpr QueuedSchedule kI064Schedules[] = {
 
 void run_queued_schedule(Run& r, const QueuedSchedule& schedule, std::uint64_t phase_ms) {
     r.limits = Limits{};  // D-110 window and current final-send floors.
+    r.linger_ms = 15000;  // BoardPairingRuntime's paired reply window.
     r.queued_radio = true;
     r.b_poll_phase_ms = phase_ms;
     (schedule.b_first ? r.a_start_ms : r.b_start_ms) = schedule.late_ms;
@@ -711,6 +809,98 @@ void test_normal_timing_with_queued_radio() {
         EXPECT(!r.a.committed && !r.b.committed);
         EXPECT(r.a_step == 14 && r.b_step == 15);
         EXPECT(r.collisions != 0 && r.receive_rearm_losses != 0);
+    }
+}
+
+void test_listen_before_talk_with_queued_radio() {
+    constexpr std::uint32_t kSeeds = 8;
+    unsigned count_receive_first = 0;
+    unsigned count_paired = 0;
+    int drops = 0;
+    int last_copy_drops = 0;
+    for (const std::uint64_t phase : {0, 25, 50, 75}) {
+        for (const auto& schedule : kI064Schedules) {
+            Run split;
+            split.queued_mode = QueuedRadioMode::receive_first;
+            run_queued_schedule(split, schedule, phase);
+            count_receive_first += both_paired(split);
+
+            unsigned paired = 0;
+            int checks = 0, backoffs = 0, discarded = 0, last = 0, interrupted = 0;
+            for (std::uint32_t seed = 1; seed <= kSeeds; ++seed) {
+                Run r;
+                r.queued_mode = QueuedRadioMode::listen_before_talk;
+                r.cad_seed = seed;
+                run_queued_schedule(r, schedule, phase);
+                paired += both_paired(r);
+                checks += r.cad_checks;
+                backoffs += r.cad_backoffs;
+                discarded += r.cad_drops;
+                last += r.cad_last_copy_drops;
+                interrupted += r.cad_interrupted_rx;
+            }
+            EXPECT(checks > 0);
+            EXPECT(both_paired(split));
+            EXPECT(paired == kSeeds);
+            EXPECT(discarded == 0 && last == 0);
+            count_paired += paired;
+            drops += discarded;
+            last_copy_drops += last;
+            std::cout << "I-064 compare " << schedule.name << ", phase=" << phase
+                      << " ms: receive-first=" << both_paired(split) << ", LBT=" << paired << '/' << kSeeds
+                      << ", checks=" << checks << ", backoffs=" << backoffs << ", drops=" << discarded
+                      << ", last-copy drops=" << last << ", RX interruptions=" << interrupted << '\n';
+        }
+    }
+    std::cout << "I-064 comparison total: receive-first=" << count_receive_first
+              << "/24, LBT=" << count_paired << '/' << (24 * kSeeds) << ", drops=" << drops
+              << ", last-copy drops=" << last_copy_drops << '\n';
+}
+
+void test_cad_drop_can_spend_the_last_pairing_copy() {
+    struct Target {
+        const char* name;
+        FrameType type;
+        int instance;
+        Outcome responder_at_drop;
+    };
+    const Target targets[] = {
+        {"responder handshake 1", FrameType::handshake, 1, Outcome::failed},
+        {"responder control 2", FrameType::control, 2, Outcome::paired},
+    };
+    for (const auto& target : targets) {
+        for (const unsigned max_backoffs : {3U, 4U}) {
+            Run r;
+            r.queued_mode = QueuedRadioMode::listen_before_talk;
+            r.cad_max_backoffs = max_backoffs;
+            unsigned accepted = 0;
+            const auto is_target = [&](const FrameBuffer& frame, bool from_a) {
+                return !from_a && Run::frame_type(frame) == target.type &&
+                    frame[kHeaderBytes] == fill(2, target.type, target.instance, 0);
+            };
+            // Lose the earlier copies on air, then force the first four CAD
+            // results busy on the final allowed accepted copy of this frame.
+            r.drop_frame = [&](const FrameBuffer& frame, bool from_a) {
+                return is_target(frame, from_a) && ++accepted < r.limits.max_sends;
+            };
+            r.force_cad_busy = [&](const Run::Air& frame, bool from_a, unsigned backoffs) {
+                return frame.last_allowed_copy && backoffs < 4 && is_target(frame.bytes, from_a);
+            };
+            run_queued_schedule(r, {target.name, 0, false}, 25);
+            std::cout << "I-064 forced busy, " << target.name << ", backoff cap=" << max_backoffs
+                      << ": paired A/B=" << r.a.committed << '/' << r.b.committed
+                      << ", drops=" << r.cad_drops << ", last-copy drops=" << r.cad_last_copy_drops
+                      << ", steps A/B=" << r.a_step << '/' << r.b_step
+                      << ", accepted target copies=" << accepted << '\n';
+            EXPECT(accepted == r.limits.max_sends);
+            if (max_backoffs == 3) {
+                EXPECT(r.cad_last_copy_drops == 1);
+                EXPECT(r.oa == Outcome::failed && r.ob == target.responder_at_drop);
+            } else {
+                EXPECT(r.cad_last_copy_drops == 0);
+                EXPECT(both_paired(r));
+            }
+        }
     }
 }
 
@@ -798,6 +988,8 @@ int main() {
     test_late_joiner_still_pairs();
     test_half_duplex_start_orders();
     test_normal_timing_with_queued_radio();
+    test_listen_before_talk_with_queued_radio();
+    test_cad_drop_can_spend_the_last_pairing_copy();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
     test_attempt_window_expires();
@@ -810,6 +1002,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 17 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 19 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }
