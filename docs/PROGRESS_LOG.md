@@ -1,5 +1,20 @@
 # OpenTrail Progress Log
 
+## 2026-11-17
+
+### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
+
+- Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.
+- No code change. Retry of dropped copies is described in the 2026-11-16 entry below.
+
+### OT-0005i Board screen shows the real radio state (I-044)
+
+The owner's photos from the sixth board session showed the Heltec home screen saying "REGION US915 TX OFF" and "RADIO --" while the link-test boards were transmitting on US915 (D-079).
+- **Link-test builds:** with US915 saved and the radio running, the screen now shows `REGION US915 TX ON`, and `RADIO TX`, `RADIO RX` or `RADIO IDLE` for recent activity.
+- **Normal builds:** these do not transmit, and show `TX OFF` and `RADIO OFF`.
+
+Tests: the OLED port and presentation host tests and bench admission (20 groups) pass; the link-test build is 812,496 bytes, with no warnings (Codex).
+
 ## 2026-11-16
 
 ### OT-0005i Retry pairing copies dropped before radio launch (I-061)
@@ -36,6 +51,20 @@ The fourth owner-present board session (main `b0fd006`) got through the whole ra
 - **Window.** The phone request for board pairing, the board attempt (`Limits::attempt_limit_ms`) and the app countdown (`BOARD_PAIRING_WINDOW_MILLIS`) are now 300 s. `SelectedEnrollmentRequestOwner` takes its limit as a setting: the bench target's GATT admission and the board's mirror use `kBoardPairingLimitMs` (300 s), and every other user keeps `kPreparationLimitMs` (120 s). The fingerprint review keeps its 120 s default, and accepts a request deadline up to 300 s (`maximum_review_window_ms`). The hello repeats up to 70 times, so it still covers the window (D-106). After a board's clock mark, the signed invitation is valid for up to 180 s, because it must cover the code check, the final messages and the save. Only board pairing issues and expects it (`kBoardPairingInvitationWindowMs`, set with `EnrollmentCandidateSession::set_invitation_window` before start); every other session, including enrollment evaluation and rekey, keeps the 60 s default (`kIndependentInvitationDefaultWindowMs`). The decoding ceiling `kIndependentInvitationMaximumWindowMs` is 180 s so that retained board-paired records still re-verify later (Codex review). New session groups: board pairing with 180 s on both sides, and a 60 s board refusing a 180 s invitation in either direction. The two evaluation commands that take an externally signed invitation directly (Pair Bench `OTPAIR1 INV`, Enrolled Bench `OTENROLL1 BEGIN`) refuse a window over 60 s before anything claims the invitation (`independent_invitation_within_default_window`); a new group in each bench test checks the refusal.
 - **Save (I-066).** A host count with real sessions found 66,608 storage reads in one pairing, against 52 writes. 47,148 of the final-phase reads were the same session-generation ledger slot, which the session re-checks before every storage operation. On the board each read is an NVS lookup in the 1 MB `ot_state` partition. `PairingNvsStorage` now keeps a 16-slot RAM copy of recently read slots (`pairing_slot_cache.hpp`). It is the only writer of the partition: it drops a slot when a write or erase of it starts, stores the verified bytes after sync, and clears the cache on any fault or retire. The checks are unchanged. At the end of each attempt the board logs that attempt's storage cost: cache hits, NVS reads and their time, and the budget checks (`nvs_get_stats` plus `nvs_get_used_entry_count`, which scan the partition) and their time, and `service took … ms at step …` when one pairing service call blocks 200 ms or more, so the next session can confirm the gain.
 - **Tests.** New `pairing_slot_cache_tests` (4 groups). The coordinator scenario groups keep an explicit 120 s profile, since every rule is relative to the window, and a new group covers the 300 s defaults: joins at 0, 120 and 240 s, slow confirmations up to about 4 minutes (both boards or neither), and a silent peer. `pairing_coordinator_tests` grows to 16 groups. The invitation tests use the shared maximum, and the request-owner tests cover the 300 s board limit. The session, device-session and fingerprint-review tests use the shared invitation window and the 300 s review maximum, and the OT-0005i composition pins for `independent_invitation.hpp` and `enrollment_fingerprint_review.hpp` are updated (68 scenarios pass). Link-test build 811,632 bytes, no warnings. The app's countdown text and test now say 5:00, and the expired message no longer names a length.
+
+### OT-0170a Clarify Android radio status and scroll App settings
+
+I-044 and the owner's Device layout report. The Limited Underground MeshTrail Android app reports saved region results without inferring radio activity. A board that sends unavailable radio telemetry now appears as “radio status not reported.” App settings is at the end of the Device scroll in both connected and first-use views. The first-use heading uses MeshTrail (D-100). Pairing and Bluetooth connection code retain their existing behavior.
+
+Host validation and the read-only usability review are in the local task report. Phone acceptance remains pending.
+
+### OT-0170a Restore V1-Test compilation (I-053)
+
+V1-Test failed to compile on `b0fd0063` because the connection trace did not
+classify `BLUETOOTH_STATE_READ_DENIED`. It now records the exact reason using
+the existing log record format. The variant's checked-in JVM tests are wired
+into Gradle and exercise every runtime block through log write, reload, and
+export. The host workflow requires the Android V1-Test compilation job.
 
 ## 2026-11-15
 

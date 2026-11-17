@@ -7,6 +7,13 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Android radio and Device presentation
+
+The local Android UX topic distinguishes a saved region from unreported live
+radio status. App settings scrolls at the end of the Device content in first-use
+and connected views. See the [November 16 progress entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
+Phone verification remains pending.
+
 ## Android reconnect and status refresh
 
 The local OT-0170a topic lets a visible app attach to an existing owner or
@@ -18,6 +25,10 @@ That session exposed I-050 and I-052. The local correction bounds a silent servi
 bind, retries the owned board after a link failure, and keeps the initiator's code
 visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
 The correction still needs phone verification.
+
+I-053 restores V1-Test compilation by recording a denied Bluetooth state read
+as its own trace reason. The host workflow checks V1-Test compilation and the
+variant's JVM tests cover log write, reload, and export.
 
 ## Heltec V4 factory reset fixes
 
@@ -151,7 +162,7 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-16 |
+| Reviewed | 2026-11-17 |
 | Task | OT-0005i — MeshTrail bench pairing radio drop feedback (V1 F5 R2a, I-061). |
 | Owner | Codex owns the pre-launch drop feedback, focused host checks and local closeout on feat/i061-listen-before-talk-v2. |
 | Scope | Route a confirmed drop from the bench radio queue to the pairing coordinator and re-offer within the same request and send floors. |
@@ -161,7 +172,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Physical radio and pairing validation waits for a separately authorized owner-present two-board session. |
 | Next action | Review the local v2 change and link-test image evidence. Use a separately authorized board session for radio behavior and two-sided completion. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Retry pairing copies dropped before radio launch (I-061)](PROGRESS_LOG.md#ot-0005i-retry-pairing-copies-dropped-before-radio-launch-i-061). |
+| Latest record | [OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)](PROGRESS_LOG.md#ot-0005i-listen-before-talk-updated-to-current-main-i-061-i-063-i-064). |
 | Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-4.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
