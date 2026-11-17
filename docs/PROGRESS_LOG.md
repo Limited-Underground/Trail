@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Bind group pair records to the current roster
+
+The [indexed pair owner](../firmware/components/persistence/include/opentrail/group_pair_records.hpp) persists the verified binding, used and committed epochs, and activation stage for the exact durable roster location and membership incarnation. Per-epoch DATA and ACK counter/replay stores are disjoint. A new binding must commit and read back its prepared state, lanes and activation before any live scope can open traffic storage. Reopen returns public recovery history only. Restart retires the volatile group binding while preserving its epoch history.
+
+Four [host scenario groups](../tests/host/group_pair_records_tests.cpp) passed, including 32 injected interruptions across provisioning, binding, lane setup, activation and commit. They also cover preserved surviving pairs, removal/re-add, missing lane or metadata, and refusal of prior epochs and stale lane handles. The roster owner and index now verify the same local identity before use. Production restart must still consume the durable history through the group session owner, including the accepted authenticated catch-up rule.
+
 ### OT-0305 Persist signed group rosters and apply pair changes after commit
 
 The [durable roster owner](../firmware/components/identity/include/opentrail/durable_group_roster.hpp) keeps the signed roster, bounded conflict history, dismissed forks and local member acceptances. Opening rechecks the signed roster and replays the index transition. New roster bytes commit and read back before the index advances its watermark and prunes obsolete mappings in one catalog update. A missing or interrupted record blocks the live owner until successful reopen. Removed peers lose their mapping, and fresh mappings require current membership and its own incarnation.

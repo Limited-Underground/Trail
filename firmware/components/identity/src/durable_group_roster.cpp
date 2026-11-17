@@ -248,7 +248,8 @@ DurableRosterError DurableGroupRoster::open(bool create) {
     group_name_.group_id = group_;
     if (!group_ || !minimum_version_ || admin_ == PublicKey{} || local_ == PublicKey{} ||
         !crypto_.fingerprint(admin_, group_name_.admin) || group_name_.admin == Fingerprint{} ||
-        !crypto_.fingerprint(local_, local_fingerprint_) || local_fingerprint_ == Fingerprint{}) {
+        !crypto_.fingerprint(local_, local_fingerprint_) || local_fingerprint_ == Fingerprint{} ||
+        index_.local_identity() != local_fingerprint_) {
         return Error::invalid_scope;
     }
 

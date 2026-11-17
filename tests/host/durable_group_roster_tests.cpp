@@ -278,6 +278,13 @@ void interrupted_transition() {
 
 void missing_or_bad_state() {
     Fixture f;
+    // A different board's index, even on valid storage, cannot authorize this roster owner.
+    Kv alien_disk;
+    GroupPairIndex alien_index(alien_disk, peer);
+    CHECK(alien_index.initialize() == GroupPairIndexError::none);
+    DurableGroupRoster crossed(f.kv, alien_index, crypto, admin, group, local);
+    CHECK(crossed.reopen() == Err::invalid_scope);
+
     const auto roster = std::find_if(f.kv.disk.begin(), f.kv.disk.end(), [](const auto& entry) {
         return entry.first.first == kRosterNs;
     });

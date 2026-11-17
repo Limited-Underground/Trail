@@ -440,7 +440,10 @@ void PairRecord::roster_applied(const RosterState& roster) {
 void PairRecord::restart() {
     own_live_ = false;
     pending_ = {};
-    if (stage_ == PairStep::bound || stage_ == PairStep::activation_possible) stage_ = PairStep::none;  // never resumed
+    // A new boot can use epoch history, but must earn a fresh live binding.
+    stage_ = PairStep::none;
+    bound_id_ = 0;
+    bound_start_ = {};
     answered_ = {};
     answered_next_ = 0;
     answer_times_ = {};

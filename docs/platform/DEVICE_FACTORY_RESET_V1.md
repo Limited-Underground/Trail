@@ -180,6 +180,8 @@ Trail record, including:
   (signed roster, conflict and acceptance history), `ot_group_idx` (pair index and
   roster watermarks), `ot_group_num` (sender number reservations), and
   `ot_group_rx` (receive history);
+- the `ot_group_pair` namespace in `ot_state` (group enrollment evidence,
+  activation, epochs and scoped counter/replay records);
 - saved positions, breadcrumbs, archives, routes, location history, and
   location-bearing diagnostic or audit records;
 - user-selected or user-transferred offline map packages, selectors, indexes,

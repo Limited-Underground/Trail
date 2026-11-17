@@ -52,6 +52,7 @@ public:
 
     // Explicit commissioning only. Normal lookups and mutations refuse a missing catalog.
     [[nodiscard]] GroupPairIndexError initialize();
+    [[nodiscard]] const identity::roster::Fingerprint& local_identity() const { return local_; }
     [[nodiscard]] GroupPairIndexError group_status(const identity::roster::GroupName& group);
     [[nodiscard]] GroupPairIndexResult find(const identity::roster::RosterState& roster,
                                             const identity::roster::Fingerprint& peer);
