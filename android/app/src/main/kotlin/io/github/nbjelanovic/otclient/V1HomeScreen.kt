@@ -88,15 +88,7 @@ internal fun V1HomeScreen(
         } },
         group = { retainedPages.SaveableStateProvider("group") {
             V1GroupScreen(
-                V1GroupScreenState(
-                    statusMessage = when {
-                        !connected -> "Connect your device to manage a group. V1 group setup requires the upcoming device update."
-                        confirmation == V1GroupConfirmationState.Unsupported ->
-                            "This device's current firmware does not yet support V1 group setup."
-                        else -> "Review the nearby peer before joining."
-                    },
-                    confirmation = confirmation,
-                ),
+                v1LiveGroupScreenState(connected, confirmation),
                 onAction = { action ->
                     when (action) {
                         V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
