@@ -7,6 +7,13 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Android radio and Device presentation
+
+The local Android UX topic distinguishes a saved region from unreported live
+radio status. App settings scrolls at the end of the Device content in first-use
+and connected views. See the [November 16 progress entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
+Phone verification remains pending.
+
 ## Android reconnect and status refresh
 
 The local OT-0170a topic lets a visible app attach to an existing owner or

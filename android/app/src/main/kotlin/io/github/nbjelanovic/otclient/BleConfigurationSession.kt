@@ -63,7 +63,7 @@ internal class BleConfigurationSession(
         return transmit(6,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(request)))
     }
     private fun uncertainRegion() = update(state.copy(busy=false,regionRevision=null,
-        notice="Region was not confirmed. Read the device region before applying another choice. Radio TX remains disabled."))
+        notice="Couldn't confirm the radio region. Read the saved region before trying again."))
     private fun clearPublic(value: BleConfigurationState) = value.copy(publicName=null, publiclyDiscoverable=null, publicRevision=null)
     private fun publicPrerequisites(): Boolean = state.available && state.nameRevision?.let { it>0uL }==true &&
         state.deviceName?.let(V1DeviceName::create)!=null && state.regionAvailable &&
@@ -140,11 +140,11 @@ internal class BleConfigurationSession(
             if(result?.kind==0x81 && region.request.kind==1 &&
                 (result.selectionId==0 || RegionSelectionCatalog.find(result.selectionId)!=null)) {
                 update(state.copy(busy=false,regionSelectionId=result.selectionId.takeIf { it!=0 },regionRevision=result.revision,
-                    notice="Region read back. Radio TX remains disabled."))
+                    notice=if(result.selectionId==0) "No radio region is saved." else "Saved radio region confirmed."))
             } else if(result?.kind==0x82 && region.request.kind==2 && region.request.revision!=ULong.MAX_VALUE &&
                 result.revision==region.request.revision+1u && result.selectionId==region.request.selectionId) {
                 update(state.copy(busy=false,regionSelectionId=result.selectionId,regionRevision=null,
-                    notice="Region saved and read back. Radio TX remains disabled."))
+                    notice="Region saved. MeshTrail uses this region's radio rules."))
             } else uncertainRegion()
             return true
         }
