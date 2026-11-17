@@ -2,6 +2,12 @@
 
 ## 2026-11-16
 
+### OT-0305 Persist the group receive window on the host
+
+The [durable receive state](../firmware/components/delivery/include/opentrail/group_receive_state.hpp) validates the existing frame and admission rules, then stores the bounded number window and content checksums before returning a new message for display. The state is scoped to the full group, receiving identity and sender, and survives rekey and pair-slot reuse. It stores no message body. Conflicting, duplicate, too-old and refused frames do not advance it.
+
+Five new [host scenario groups](../tests/host/group_receive_state_tests.cpp) passed, as did the ten existing group frame and delivery groups. The tests include restart, scope separation, failure before and after commit, readback faults, receive admission and retained capacity. A crash after committing the window can suppress a retry before the message reaches the user. The target ACK and presentation path still needs that ordering bound and tested.
+
 ### OT-0305 Index durable group pair storage on the host
 
 The [group pair index](../firmware/components/persistence/include/opentrail/group_pair_index.hpp) maps the full group name and peer fingerprint to a bounded slot under `ot_state`. It checks the local fingerprint, both membership versions and the roster watermark. New mappings are published only after their catalog update commits and reads back exactly. A later roster removes obsolete mappings before those slots can be reused under fresh incarnations. Older or conflicting views cannot recover a retired mapping.

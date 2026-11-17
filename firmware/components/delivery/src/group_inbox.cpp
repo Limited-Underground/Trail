@@ -41,81 +41,98 @@ const GroupInbox::Sender* GroupInbox::find(const GroupMemberId& id) const {
     return nullptr;
 }
 
-GroupReceiveResult GroupInbox::receive(const GroupMemberId& sender, const SenderStanding& standing,
-                                       const GroupView& view, GroupContent content,
-                                       const DecodedGroupFrame& frame) {
-    GroupReceiveResult r{};
-    if (!standing.on_current_roster) { r.outcome = GroupReceive::not_member; return r; }
-    if (!standing.pair_active) { r.outcome = GroupReceive::no_pair; return r; }
-    const GroupFrameHeader& h = frame.header;
-    if (h.roster_version > view.roster_version) { r.outcome = GroupReceive::roster_newer; return r; }
-    if (h.roster_version == view.roster_version && h.digest_prefix != view.digest_prefix) {
-        r.outcome = GroupReceive::roster_differs;
-        return r;
+GroupReceiveResult GroupInbox::admit(const SenderStanding& standing, const GroupView& view,
+                                    GroupContent content, const DecodedGroupFrame& frame) {
+    GroupReceiveResult result{};
+    if (!standing.on_current_roster) { result.outcome = GroupReceive::not_member; return result; }
+    if (!standing.pair_active) { result.outcome = GroupReceive::no_pair; return result; }
+    const GroupFrameHeader& header = frame.header;
+    if (header.roster_version > view.roster_version) {
+        result.outcome = GroupReceive::roster_newer;
+        return result;
     }
-    r.sender_roster_older = h.roster_version < view.roster_version;
-    if (content == GroupContent::position && !view.location_allowed) {
-        r.outcome = GroupReceive::position_refused;
-        return r;
+    if (header.roster_version == view.roster_version && header.digest_prefix != view.digest_prefix) {
+        result.outcome = GroupReceive::roster_differs;
+        return result;
     }
+    result.sender_roster_older = header.roster_version < view.roster_version;
+    result.outcome = content == GroupContent::position && !view.location_allowed
+                         ? GroupReceive::position_refused
+                         : GroupReceive::shown;
+    return result;
+}
+
+void GroupInbox::observe(Window& window, GroupContent content, const DecodedGroupFrame& frame,
+                         GroupReceiveResult& result) {
+    const std::uint32_t number = frame.header.message_number;
     const std::uint64_t sum = checksum(content, frame.body, frame.body_size);
-    const std::uint32_t n = h.message_number;
-    Sender* s = find(sender);
-    if (s == nullptr) {
-        for (Sender& free : senders_) {
-            if (!free.used) { s = &free; break; }
-        }
-        if (s == nullptr) { r.outcome = GroupReceive::capacity; return r; }
-        *s = Sender{};
-        s->used = true;
-        s->id = sender;
-        s->first = n;
-        s->highest = n;
-        s->seen = 1;
-        s->sums[0] = sum;
-        r.outcome = GroupReceive::shown;
-        return r;
+    if (window.first == 0) {
+        window.first = number;
+        window.highest = number;
+        window.seen = 1;
+        window.sums[0] = sum;
+        return;
     }
-    if (n > s->highest) {
-        const std::uint32_t shift = n - s->highest;
-        r.missing_before = shift - 1;
+    if (number > window.highest) {
+        const std::uint32_t shift = number - window.highest;
+        result.missing_before = shift - 1;
         if (shift >= kGroupInboxWindow) {
-            s->seen = 0;
-            s->sums = {};
+            window.seen = 0;
+            window.sums = {};
         } else {
-            s->seen <<= shift;
-            for (std::uint32_t i = kGroupInboxWindow; i-- > shift;) s->sums[i] = s->sums[i - shift];
-            for (std::uint32_t i = 0; i < shift; ++i) s->sums[i] = 0;
+            window.seen <<= shift;
+            for (std::uint32_t i = kGroupInboxWindow; i-- > shift;) window.sums[i] = window.sums[i - shift];
+            for (std::uint32_t i = 0; i < shift; ++i) window.sums[i] = 0;
         }
-        s->highest = n;
-        s->seen |= 1U;
-        s->sums[0] = sum;
-        r.outcome = GroupReceive::shown;
-        return r;
+        window.highest = number;
+        window.seen |= 1U;
+        window.sums[0] = sum;
+        return;
     }
-    const std::uint32_t back = s->highest - n;
+    const std::uint32_t back = window.highest - number;
     if (back >= kGroupInboxWindow) {
-        r.outcome = GroupReceive::too_old;
-        return r;
+        result.outcome = GroupReceive::too_old;
+        return;
     }
     const std::uint32_t bit = 1U << back;
-    if ((s->seen & bit) != 0) {
-        r.outcome = s->sums[back] == sum ? GroupReceive::duplicate : GroupReceive::conflict;
-        return r;
+    if ((window.seen & bit) != 0) {
+        result.outcome = window.sums[back] == sum ? GroupReceive::duplicate : GroupReceive::conflict;
+        return;
     }
-    s->seen |= bit;
-    s->sums[back] = sum;
-    if (n < s->first) s->first = n;  // arrived out of order before the first one seen
-    r.outcome = GroupReceive::shown;  // a late arrival fills its gap
-    return r;
+    window.seen |= bit;
+    window.sums[back] = sum;
+    if (number < window.first) window.first = number;
+}
+
+std::uint32_t GroupInbox::count_missing(const Window& window) {
+    if (window.first == 0) return 0;
+    const std::uint32_t span = std::min(kGroupInboxWindow, window.highest - window.first + 1);
+    const std::uint32_t mask = span >= kGroupInboxWindow ? 0xFFFFFFFFU : ((1U << span) - 1U);
+    return static_cast<std::uint32_t>(span - popcount(window.seen & mask));
+}
+
+GroupReceiveResult GroupInbox::receive(const GroupMemberId& sender, const SenderStanding& standing,
+                                      const GroupView& view, GroupContent content,
+                                      const DecodedGroupFrame& frame) {
+    auto result = admit(standing, view, content, frame);
+    if (result.outcome != GroupReceive::shown) return result;
+
+    Sender* slot = find(sender);
+    if (slot == nullptr) {
+        const auto free = std::find_if(senders_.begin(), senders_.end(), [](const Sender& candidate) {
+            return !candidate.used;
+        });
+        if (free == senders_.end()) { result.outcome = GroupReceive::capacity; return result; }
+        *free = Sender{true, sender, {}};
+        slot = &*free;
+    }
+    observe(slot->window, content, frame, result);
+    return result;
 }
 
 std::uint32_t GroupInbox::missing(const GroupMemberId& sender) const {
-    const Sender* s = find(sender);
-    if (s == nullptr) return 0;
-    const std::uint32_t span = std::min<std::uint32_t>(kGroupInboxWindow, s->highest - s->first + 1);
-    const std::uint32_t mask = span >= 32 ? 0xFFFFFFFFU : ((1U << span) - 1U);
-    return static_cast<std::uint32_t>(span - popcount(s->seen & mask));
+    const Sender* slot = find(sender);
+    return slot != nullptr ? count_missing(slot->window) : 0;
 }
 
 void GroupInbox::forget(const GroupMemberId& sender) {
