@@ -37,6 +37,14 @@ I-044 and the owner's Device layout report. The Limited Underground MeshTrail An
 
 Host validation and the read-only usability review are in the local task report. Phone acceptance remains pending.
 
+### OT-0170a Restore V1-Test compilation (I-053)
+
+V1-Test failed to compile on `b0fd0063` because the connection trace did not
+classify `BLUETOOTH_STATE_READ_DENIED`. It now records the exact reason using
+the existing log record format. The variant's checked-in JVM tests are wired
+into Gradle and exercise every runtime block through log write, reload, and
+export. The host workflow requires the Android V1-Test compilation job.
+
 ## 2026-11-15
 
 ### OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)
