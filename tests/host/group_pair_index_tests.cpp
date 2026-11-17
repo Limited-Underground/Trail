@@ -254,6 +254,16 @@ void capacity() {
         }
         if (group_id == 4) CHECK(index.reserve(extra.state, peer).error == Error::capacity);
     }
+    CHECK(disk.durable.size() <= 2048);
+    CHECK(disk.durable.size() == 1413);
+    GroupPairIndex reopened(disk, self);
+    for (std::uint64_t group_id = 1; group_id <= 4; ++group_id) {
+        Group group(group_id);
+        for (std::uint8_t member = 2; member <= 6; ++member) group.add(id(member));
+        for (std::uint8_t member = 2; member <= 6; ++member) {
+            CHECK(reopened.find(group.state, id(member)).location.has_value());
+        }
+    }
 }
 
 void faults_and_recovery() {
@@ -352,6 +362,47 @@ void serialized_workspace() {
     CHECK(index.find(group.state, peer).location->incarnation == first.incarnation);
 }
 
+void catalog_group_indices() {
+    Storage storage;
+    Group group(29);
+    group.add(peer);
+    GroupPairIndex index(storage, self);
+    CHECK(index.initialize() == Error::none);
+    allocated(index, group.state, peer);
+    const auto original = storage.durable;
+    const auto writes = storage.writes;
+    const auto rejected = [&](std::vector<std::uint8_t> bytes) {
+        const auto body_size = bytes.size() - sizeof(std::uint32_t);
+        const auto crc = configuration_crc32({bytes.data(), body_size});
+        for (std::size_t i = 0; i < sizeof(crc); ++i) {
+            bytes[body_size + i] = static_cast<std::uint8_t>(crc >> (8 * (3 - i)));
+        }
+        storage.durable = std::move(bytes);
+        GroupPairIndex reopened(storage, self);
+        CHECK(reopened.find(group.state, peer).error == Error::invalid_record);
+        CHECK(reopened.initialize() == Error::invalid_record);
+        CHECK(storage.writes == writes);
+    };
+
+    auto malformed = original;
+    malformed[4] = 1;  // the previous format is explicitly refused
+    rejected(malformed);
+    malformed.resize(2193, 0);  // previous full-size image cannot be migrated implicitly
+    rejected(malformed);
+    constexpr std::size_t first_group_index = 5 + kFingerprintBytes + 8 + 8;
+    for (const auto bad : {1, 4, 255}) { // unused in-range group, past group array, vacant-entry marker
+        malformed = original;
+        malformed[first_group_index] = static_cast<std::uint8_t>(bad);
+        rejected(malformed);
+    }
+    malformed = original;
+    constexpr std::size_t entry_size = 8 + 1 + kFingerprintBytes + 3 * 4;
+    malformed[first_group_index + entry_size] = 0; // an empty entry must use its canonical sentinel
+    rejected(malformed);
+    storage.durable = original;
+    CHECK(index.find(group.state, peer).location.has_value());
+}
+
 }  // namespace
 
 int main() {
@@ -361,5 +412,6 @@ int main() {
     faults_and_recovery();
     invalid_catalog();
     serialized_workspace();
-    std::cout << "PASS: 6 group pair index scenario groups\n";
+    catalog_group_indices();
+    std::cout << "PASS: 7 group pair index scenario groups\n";
 }

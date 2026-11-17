@@ -16,7 +16,8 @@ using KvError = PersistentKvBackendError;
 constexpr char kNamespace[] = "ot_group_idx";
 constexpr char kKey[] = "catalog";
 static_assert(sizeof(kNamespace) - 1 <= 15 && sizeof(kKey) - 1 <= 15);
-constexpr std::array<std::uint8_t, 5> kHeader{'O', 'T', 'P', 'I', 1};
+constexpr std::array<std::uint8_t, 5> kHeader{'O', 'T', 'P', 'I', 2};
+constexpr std::uint8_t kNoGroup = 0xff;
 
 template <typename T>
 void write_be(std::uint8_t*& out, T value) {
@@ -144,8 +145,10 @@ void GroupPairIndex::Catalog::encode(const roster::Fingerprint& local, Blob& blo
     write_be(out, high_water);
     for (const auto& entry : entries) {
         write_be(out, entry.incarnation);
-        write_fingerprint(out, entry.group.admin);
-        write_be(out, entry.group.group_id);
+        const auto group = std::find_if(groups.begin(), groups.end(), [&entry](const auto& candidate) {
+            return candidate.version != 0 && same_group(candidate.group, entry.group);
+        });
+        write_be(out, entry.incarnation == 0 ? kNoGroup : static_cast<std::uint8_t>(group - groups.begin()));
         write_fingerprint(out, entry.peer);
         write_be(out, entry.local_added);
         write_be(out, entry.peer_added);
@@ -169,10 +172,12 @@ GroupPairIndexError GroupPairIndex::Catalog::decode(const Blob& blob, const rost
     const auto* in = blob.data() + kHeader.size();
     if (read_fingerprint(in) != local) return Error::invalid_scope;
     high_water = read_be<std::uint64_t>(in);
-    for (auto& entry : entries) {
+    std::array<std::uint8_t, kMaximumPairs> group_indices{};
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        auto& entry = entries[i];
         entry.incarnation = read_be<std::uint64_t>(in);
-        entry.group.admin = read_fingerprint(in);
-        entry.group.group_id = read_be<std::uint64_t>(in);
+        group_indices[i] = read_be<std::uint8_t>(in);
+        entry.group = {};
         entry.peer = read_fingerprint(in);
         entry.local_added = read_be<std::uint32_t>(in);
         entry.peer_added = read_be<std::uint32_t>(in);
@@ -184,6 +189,16 @@ GroupPairIndexError GroupPairIndex::Catalog::decode(const Blob& blob, const rost
         group.version = read_be<std::uint32_t>(in);
         std::copy_n(in, group.digest.size(), group.digest.begin());
         in += group.digest.size();
+    }
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        auto& entry = entries[i];
+        const auto group = group_indices[i];
+        if (entry.incarnation == 0) {
+            if (group != kNoGroup) return Error::invalid_record;
+            continue;
+        }
+        if (group >= groups.size() || groups[group].version == 0) return Error::invalid_record;
+        entry.group = groups[group].group;
     }
     return valid(local) ? Error::none : Error::invalid_record;
 }

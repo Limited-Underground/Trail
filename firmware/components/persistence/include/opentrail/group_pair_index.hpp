@@ -45,6 +45,13 @@ public:
     static constexpr std::size_t kMaximumGroups = 4;
     static constexpr std::size_t kPeersPerGroup = identity::roster::kMaximumMembers - 1;
     static constexpr std::size_t kMaximumPairs = kMaximumGroups * kPeersPerGroup;
+    // Format 2 stores each pair's group as one index into the qualified group
+    // records. Full group and peer identities remain part of every lookup.
+    static constexpr std::size_t kMaximumSerializedBytes = 5 + identity::roster::kFingerprintBytes + 8 +
+        kMaximumPairs * (8 + 1 + identity::roster::kFingerprintBytes + 3 * 4) +
+        kMaximumGroups * (identity::roster::kFingerprintBytes + 8 + 4 + identity::roster::kDigestBytes) + 4;
+    static_assert(kMaximumSerializedBytes <= 2048);
+    static_assert(kMaximumGroups < 0xff);
 
     GroupPairIndex(PersistentKvBackend& backend, const identity::roster::Fingerprint& local)
         : backend_(backend), local_(local) {}
@@ -82,12 +89,13 @@ private:
         identity::roster::Digest digest{};
         bool current(const RosterSnapshot& roster) const;
     };
-    static constexpr std::size_t kEntryBytes = 8 + 2 * identity::roster::kFingerprintBytes + 8 + 3 * 4;
+    static constexpr std::size_t kEntryBytes = 8 + 1 + identity::roster::kFingerprintBytes + 3 * 4;
     static constexpr std::size_t kGroupBytes =
         identity::roster::kFingerprintBytes + 8 + 4 + identity::roster::kDigestBytes;
     static constexpr std::size_t kBodyBytes = 5 + identity::roster::kFingerprintBytes + 8 +
         kMaximumPairs * kEntryBytes + kMaximumGroups * kGroupBytes;
-    using Blob = std::array<std::uint8_t, kBodyBytes + 4>;
+    static_assert(kBodyBytes + 4 == kMaximumSerializedBytes);
+    using Blob = std::array<std::uint8_t, kMaximumSerializedBytes>;
     struct Catalog {
         std::uint64_t high_water{0};
         std::array<Entry, kMaximumPairs> entries{};

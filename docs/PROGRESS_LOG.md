@@ -2,6 +2,12 @@
 
 ## 2026-11-17
 
+### OT-0305 Keep the qualified group catalog within 2 KiB
+
+Owner decision D-122 selects a maximum serialized size of 2,048 bytes. Catalog version 2 stores each mapping's group as a one-byte reference to one of the four full qualified-group records. Full fingerprints and group identities retain their original sizes. The exact catalog size is 1,413 bytes, guarded by a compile-time maximum, and the previous version is refused.
+
+The [index suite](../tests/host/group_pair_index_tests.cpp) passed seven groups, including all 20 mappings in four groups, reopening the maximum catalog, invalid or unused group references, canonical empty mappings and old-version refusal. The size regression failed against the former 2,193-byte format. The roster suite passed eight groups. A removal still makes two commits, now replacing 978 + 1,413 bytes. The single-chunk NVS projection for the catalog falls from 71 entries to 47, before page splits or garbage collection.
+
 ### OT-0305 Admit the pinned local dependency through the stock security runner
 
 The stock current-source security runner accepts an explicit `--cached-component` directory. It verifies the exact 733-file manifest, lengths, hashes, checksums metadata and component marker before creating the fresh admitted output. Missing, changed, extra or indirect files are refused. The default archive admission continues to check the pinned archive bytes.
