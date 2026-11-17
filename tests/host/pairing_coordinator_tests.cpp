@@ -35,6 +35,7 @@ struct FakeSession {
     int peer_role{};
     int review_ticks{3};
     int confirm_ticks{2};
+    std::uint64_t review_at_ms{0}, confirm_at_ms{0};  // optional absolute times for phased polls
     bool refuse_consume{false};
     int produced[11]{};
     int consumed[11]{};
@@ -63,9 +64,15 @@ struct FakeSession {
         log.push_back(-static_cast<int>(t));
         return true;
     }
-    LocalResult local(LocalStep s, std::uint64_t) {
-        if (s == LocalStep::review) return ++review_waited >= review_ticks ? LocalResult::done : LocalResult::pending;
-        if (s == LocalStep::confirm) return ++confirm_waited >= confirm_ticks ? LocalResult::done : LocalResult::pending;
+    LocalResult local(LocalStep s, std::uint64_t now) {
+        if (s == LocalStep::review) {
+            const bool ready = review_at_ms ? now >= review_at_ms : ++review_waited >= review_ticks;
+            return ready ? LocalResult::done : LocalResult::pending;
+        }
+        if (s == LocalStep::confirm) {
+            const bool ready = confirm_at_ms ? now >= confirm_at_ms : ++confirm_waited >= confirm_ticks;
+            return ready ? LocalResult::done : LocalResult::pending;
+        }
         committed = true;
         return LocalResult::done;
     }
@@ -101,6 +108,8 @@ struct Run {
     // SF7 airtime and arrives at the end of it; a radio still sending refuses new
     // frames; frames whose airtimes overlap are both lost.
     bool half_duplex{false};
+    bool queued_radio{false};
+    std::uint64_t b_poll_phase_ms{0};  // A polls at phase zero, both periods are 100 ms
     bool trace{false};  // print each accepted frame (debugging only)
     // A transmit hold on one board: its radio refuses every offer in [from, until).
     bool hold_a{true};
@@ -109,12 +118,17 @@ struct Run {
     std::function<bool(const FrameBuffer&, bool)> drop_frame = [](const FrameBuffer&, bool) { return false; };
     int sent_a{0}, sent_b{0};      // frames the radio accepted
     int collisions{0};             // half-duplex: frames lost to overlapping airtime
+    int receive_rearm_losses{0};   // peer waited for TX_DONE when a new frame began
     struct Air {
         FrameBuffer bytes{};
         std::size_t n{0};
         std::uint64_t start{0}, end{0};
         bool lost{false};
     } air_a, air_b;
+    struct Radio {
+        Air queued{}, air{}, received{};
+        bool transmitting{false};  // true until the TX_DONE poll re-arms RX
+    };
 
     // LoRa airtime at the bench profile: 125 kHz, SF7, CR 4/5, explicit header,
     // CRC, 8 preamble symbols (an offer, 115 bytes, is 194.816 ms).
@@ -124,38 +138,106 @@ struct Run {
     }
 
     void transmit(PairingCoordinator<FakeSession>& c, bool live, Air& mine, Air& other,
-                  int& offered, int& sent, bool from_a, std::uint64_t now) {
+                  int& offered, int& sent, bool from_a, std::uint64_t now, Radio* radio = nullptr) {
         if (!live) return;
         FrameBuffer f{};
         std::size_t n = 0;
         if (!c.service(now, f, n) || !n) return;
         // Like the board: the coordinator runs, and a radio still on air refuses.
         const bool held = from_a == hold_a && now >= hold_from_ms && now < hold_until_ms;
-        const bool accepted = !mine.n && !held && !refuse(offered++, from_a);
+        const bool busy = radio ? radio->transmitting || radio->queued.n != 0 : mine.n != 0;
+        const bool accepted = !busy && !held && !refuse(offered++, from_a);
         c.sent(accepted, now);
         if (!accepted) return;
-        mine.bytes = f;
-        mine.n = n;
-        mine.start = now;
-        mine.end = now + airtime_ms(n);
-        mine.lost = drop(sent, from_a) || drop_frame(f, from_a);
+        auto& frame = radio ? radio->queued : mine;
+        frame = {f, n, 0, 0, drop(sent, from_a) || drop_frame(f, from_a)};
         ++sent;
+        if (!radio) launch(mine, other, false, now);
+        if (trace) {
+            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
+                      << " step " << c.step() << (frame.lost ? " LOST" : "") << std::endl;
+        }
+    }
+
+    void launch(Air& mine, Air& other, bool peer_transmitting, std::uint64_t now) {
+        mine.start = now;
+        mine.end = now + airtime_ms(mine.n);
         if (other.n && other.start < mine.end && mine.start < other.end) {
             if (!mine.lost) ++collisions;
             if (!other.lost) ++collisions;
             mine.lost = other.lost = true;
         }
-        if (trace) {
-            std::cerr << now << (from_a ? " A " : " B ") << "type " << (f[2] & 0x0f) << " bytes " << n
-                      << " step " << c.step() << (mine.lost ? " LOST" : "") << std::endl;
-        }
+        // An on-air packet also misses a receiver that has yet to service TX_DONE.
+        if (peer_transmitting && !other.n && !mine.lost) ++receive_rearm_losses;
+        mine.lost = mine.lost || peer_transmitting;
     }
     int offered_a{0}, offered_b{0};
     Outcome oa{}, ob{};
     FailReason ra{}, rb{};
     std::uint64_t end_ms{};
+    std::uint64_t a_end_ms{}, b_end_ms{};
+    std::size_t a_step{}, b_step{};
+
+    void go_queued(std::uint64_t limit_ms) {
+        PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
+        PairingCoordinator<FakeSession>* coordinator[] = {&ca, &cb};
+        const std::uint64_t start[] = {a_start_ms, b_start_ms};
+        const std::uint64_t phase[] = {0, b_poll_phase_ms};
+        int* const offered[] = {&offered_a, &offered_b};
+        int* const sent[] = {&sent_a, &sent_b};
+        bool begun[] = {false, false};
+        Radio radio[2]{};
+        for (std::uint64_t now = 0; now <= limit_ms; ++now) {
+            for (int side : {0, 1}) {
+                auto& mine = radio[side];
+                auto& peer = radio[1 - side];
+                if (mine.air.n && now == mine.air.end) {
+                    if (!mine.air.lost) peer.received = mine.air;
+                    mine.air = {};
+                }
+            }
+            // Driver polls happen before the app picks up RX or queues a new send.
+            for (int side : {0, 1}) {
+                if (now % 100 != phase[side]) continue;
+                auto& mine = radio[side];
+                auto& peer = radio[1 - side];
+                if (mine.transmitting) {
+                    if (!mine.air.n) mine.transmitting = false;
+                } else if (mine.queued.n) {
+                    mine.air = mine.queued;
+                    mine.queued = {};
+                    launch(mine.air, peer.air, peer.transmitting, now);
+                    mine.transmitting = true;
+                }
+            }
+            for (int side : {0, 1}) {
+                if (now % 100 != phase[side]) continue;
+                auto& c = *coordinator[side];
+                auto& mine = radio[side];
+                if (mine.received.n && begun[side]) {
+                    c.on_receive(mine.received.bytes.data(), mine.received.n);
+                }
+                mine.received = {};
+                if (!begun[side] && now >= start[side]) {
+                    EXPECT(c.begin(now));
+                    begun[side] = true;
+                }
+                transmit(c, begun[side], mine.air, radio[1 - side].air,
+                         *offered[side], *sent[side], side == 0, now, &mine);
+            }
+            if (a_end_ms == 0 && ca.outcome() != Outcome::running) a_end_ms = now;
+            if (b_end_ms == 0 && cb.outcome() != Outcome::running) b_end_ms = now;
+            if (a_end_ms != 0 && b_end_ms != 0) break;
+        }
+        oa = ca.outcome(); ob = cb.outcome(); ra = ca.reason(); rb = cb.reason();
+        a_step = ca.step(); b_step = cb.step();
+    }
 
     void go(std::uint64_t limit_ms = 130000) {
+        if (queued_radio) {
+            go_queued(limit_ms);
+            return;
+        }
         PairingCoordinator<FakeSession> ca(a, true, code, limits), cb(b, false, code, limits);
         bool a_begun = false, b_begun = false;
         if (a_start_ms == 0) { EXPECT(ca.begin(0)); a_begun = true; }
@@ -569,6 +651,69 @@ void test_default_window_d110() {
     }
 }
 
+struct QueuedSchedule {
+    const char* name;
+    std::uint64_t late_ms;
+    bool b_first;
+};
+
+// Keep both order labels for the identical simultaneous-start input, as in
+// the original 24-schedule sweep.
+constexpr QueuedSchedule kI064Schedules[] = {
+    {"A first, 0 s", 0, false},
+    {"B first, 0 s", 0, true},
+    {"A first, 15 s", 15000, false},
+    {"B first, 15 s", 15000, true},
+    {"A first, 30 s", 30000, false},
+    {"B first, 30 s", 30000, true},
+};
+
+void run_queued_schedule(Run& r, const QueuedSchedule& schedule, std::uint64_t phase_ms) {
+    r.limits = Limits{};  // D-110 window and current final-send floors.
+    r.queued_radio = true;
+    r.b_poll_phase_ms = phase_ms;
+    (schedule.b_first ? r.a_start_ms : r.b_start_ms) = schedule.late_ms;
+    r.a.review_at_ms = r.b.review_at_ms = schedule.late_ms + 25000;
+    r.a.confirm_at_ms = r.b.confirm_at_ms = schedule.late_ms + 50000;
+    r.go(schedule.late_ms + r.limits.attempt_limit_ms + 100);
+}
+
+bool both_paired(const Run& r) {
+    return r.oa == Outcome::paired && r.ob == Outcome::paired && r.a.committed && r.b.committed;
+}
+
+// I-064: independent service phases with a one-slot queue and delayed RX re-arm.
+void test_normal_timing_with_queued_radio() {
+    for (const std::uint64_t phase : {0, 25, 50}) {
+        for (const auto& schedule : kI064Schedules) {
+            Run r;
+            run_queued_schedule(r, schedule, phase);
+            if (!both_paired(r)) std::cerr << "I-064 " << schedule.name << " phase=" << phase << " ms\n";
+            EXPECT(both_paired(r));
+        }
+    }
+
+    for (const auto& schedule : kI064Schedules) {
+        Run r;
+        run_queued_schedule(r, schedule, 75);
+        std::cout << "I-064 " << schedule.name << ", phase=75 ms: "
+                  << (both_paired(r) ? "both paired" : "incomplete")
+                  << ", end A/B=" << r.a_end_ms << '/' << r.b_end_ms << " ms"
+                  << ", steps A/B=" << r.a_step << '/' << r.b_step
+                  << ", accepted A/B=" << r.sent_a << '/' << r.sent_b
+                  << ", overlap losses=" << r.collisions
+                  << ", RX re-arm losses=" << r.receive_rearm_losses << '\n';
+        // Expected failures on main: the responder spends all handshake
+        // replies on overlapping airtime or during A's TX_DONE-to-RX gap.
+        // Both expire before final controls. A recovery must update these checks.
+        EXPECT(r.oa == Outcome::failed && r.ob == Outcome::failed);
+        EXPECT(r.ra == FailReason::expired && r.rb == FailReason::expired);
+        EXPECT(!r.a.committed && !r.b.committed);
+        EXPECT(r.a_step == 14 && r.b_step == 15);
+        EXPECT(r.collisions != 0 && r.receive_rearm_losses != 0);
+    }
+}
+
 void test_attempt_window_expires() {
     Run r;
     r.a.review_ticks = 2000;  // 200 s: longer than the 120 s request window
@@ -652,6 +797,7 @@ int main() {
     test_silent_peer_stops_within_limits();
     test_late_joiner_still_pairs();
     test_half_duplex_start_orders();
+    test_normal_timing_with_queued_radio();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
     test_attempt_window_expires();
@@ -664,6 +810,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 16 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 17 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }
