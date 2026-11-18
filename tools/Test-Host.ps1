@@ -1065,6 +1065,82 @@ $builds = @(
         )
     },
     @{
+        Name = 'repeater lifecycle supervision'
+        Output = Join-Path $buildDirectory 'repeater_lifecycle_controller_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_forwarder.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_replay_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_lifecycle_controller.cpp'),
+            (Join-Path $projectRoot 'tests\host\repeater_lifecycle_controller_tests.cpp')
+        )
+    },
+    @{
+        Name = 'repeater dispatch budgets'
+        Output = Join-Path $buildDirectory 'repeater_dispatch_controller_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_forwarder.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_replay_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_lifecycle_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_dispatch_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'tests\host\repeater_dispatch_controller_tests.cpp')
+        )
+    },
+    @{
+        Name = 'repeater host driver contract'
+        Output = Join-Path $buildDirectory 'repeater_driver_contract_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_forwarder.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_replay_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_lifecycle_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_dispatch_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'tests\host\repeater_driver_contract_tests.cpp')
+        )
+    },
+    @{
+        Name = 'P1-Pro SX1262 adapter'
+        Output = Join-Path $buildDirectory 'p1pro_sx1262_radio_port_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_forwarder.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_replay_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_lifecycle_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_dispatch_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\sensecap_solar_p1_pro_smoke\src\p1pro_sx1262_radio_port.cpp'),
+            (Join-Path $projectRoot 'tests\host\p1pro_sx1262_radio_port_tests.cpp')
+        )
+    },
+    @{
+        Name = 'P1-Pro actual Arduino backend'
+        Output = Join-Path $buildDirectory 'p1pro_sx1262_backend_tests.exe'
+        Arguments = @('-DARDUINO', '-I', (Join-Path $projectRoot 'tests\host\support\p1pro_sx1262'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_window.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\duplicate_checkpoint_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_forwarder.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\single_repeater_replay_coordinator.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_lifecycle_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\repeater_dispatch_controller.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'firmware\targets\sensecap_solar_p1_pro_smoke\src\p1pro_sx1262_radio_port.cpp'),
+            (Join-Path $projectRoot 'tests\host\p1pro_sx1262_backend_tests.cpp')
+        )
+    },
+    @{
         Name = 'priority queue'
         Output = Join-Path $buildDirectory 'priority_queue_tests.exe'
         Sources = @(

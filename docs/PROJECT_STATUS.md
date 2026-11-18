@@ -72,6 +72,9 @@ Step 3b reserves the sender's group message numbers durably against the full gro
 
 The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android polling, logging, age display and text export remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
 
+## MeshTrail Repeater pre-device work
+
+The seven RadioLib command-header warning sites on the P1-Pro receive path have a source-bound bounds proof and host checks (I-011 closed for this exact candidate). The branch also documents keyless Repeater admission for current Trail frames, a conditional US915 review profile (transmission still refused, I-012), the battery planning target and a receive-only power session kit. No device was touched; the bench power measurement needs a separate owner-approved session. See the [bounds review entry](PROGRESS_LOG.md#ot-0266b-limited-underground-meshtrail-repeater-radiolib-bounds-review-i-011).
 ## Capture runner host verification
 
 The I-027/I-048 change reduces path verification work by reading Windows file

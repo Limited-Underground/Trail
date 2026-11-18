@@ -1,6 +1,6 @@
 # Optional Tracker, Console and Repeater task plan
 
-Planning register, 2026-09-21. All children are Pending proposals. These products remain optional and do not change base V1 or completion.
+Planning register originated 2026-09-21. Its original Pending labels are historical; GitHub Projects owns live status and recorded owner decisions. These products remain optional and do not change base V1 or completion. OT-0266b's current bounded decision packet and successor proposals are linked from its existing task entry below; proposed choices are not approvals.
 
 ## Completeness boundary
 
@@ -232,6 +232,11 @@ All tasks below prepare documents/contracts/test procedures only: no device conn
 - Checkpoint: Submit the named planning deliverable and exact unresolved decisions for owner review; register bounded implementation/physical children only after scope and target decisions.
 - Depends on: OT-0266a.
 
+- Current pickup: [P4 security/storage decision packet](../docs/testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#p4-security-and-storage-decision-packet). Dedicated Repeater Project #9 is current mapped authority; its private status is unverified (API read unavailable), and old Trail V1 snapshots are historical. Explicit local grants completed P1/P2/P3-A/P3-B and consolidation host-only: 17 executables / corrected137 reported groups. This task authorizes P4 four-document preparation only; parent acceptance and production gates remain open.
+- Proposed successor boundaries: P1-P3 runtime owners remain unchanged; [P4 decisions and conditional seven-file budget-store binding](../docs/testing/OT-0266b-REPEATER-PROVISIONING-RECOVERY-2026-10-01.md#conditional-smallest-implementation-successor-and-exact-files) require named shared security/storage/time/radio producers and separate implementation approval. No current direct-only credential or generic protected ledger owner is selected. P5 target/power and P6 physical/release scopes remain gated; no new task IDs or GitHub writes.
+- Validation boundary: sealed consolidated patch/manifest,52 integration artifacts, earlier8 receipts/196 artifacts and all260 inputs verified. Reuse the corrected17-suite/137-group evidence; the corrected 94/96/108/118/137 count lineage supersedes inherited totals without rewriting receipts. P4 successor fixtures are proposed/NOT RUN. Documentation checks are not cryptographic, protected-storage, hardware or radio acceptance; Packet-v1/direct-only OTSL0 unchanged and payloads opaque.
+- Decision checkpoint: D1-D7 host direction remains unchanged. Owner/shared Trail security and persistence owners must accept P4-R1 through R8 and supply the concrete credential/store/freshness/time/radio contracts before any adapter allowlist is executable. Choose Repeater rollback threat explicitly; Decision0033 physical-flash limitation is not a blanket Repeater approval or a new base-V1 hardware-floor requirement. No protected-store/schema/endpoint-key/wire implementation, physical operation or parent closure is authorized.
+
 ## OT-0267a: Prepare relay interoperability and fault acceptance
 
 - Product: repeater
@@ -251,3 +256,6 @@ All tasks below prepare documents/contracts/test procedures only: no device conn
 - Acceptance: Every support/range/power claim links to required measured evidence; direct path remains optional-relay independent and release/signing/publication need explicit approval.
 - Checkpoint: Submit the named planning deliverable and exact unresolved decisions for owner review; register bounded implementation/physical children only after scope and target decisions.
 - Depends on: OT-0267a.
+
+
+P4 dependency reconciliation (2026-10-28): see the existing OT-0266b decision packet section "P4 shared-security dependency reconciliation" and build/repeater-baseline/p4-dependency-resolution-20261028/. Verified reciprocal Project 9 OT-0266b-4 / Project 1 OT-0237e requests; OT-0237c actual-target persistence is not a generic ledger API. Implementation BLOCKED pending actual shared-owner contracts; no status/acceptance or runtime changes.

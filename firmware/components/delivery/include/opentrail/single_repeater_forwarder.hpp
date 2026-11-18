@@ -34,6 +34,19 @@ struct SingleRepeaterPolicy {
     std::uint32_t maximum_queue_age_ms{0};
 };
 
+enum class SingleRepeaterAdmission : std::uint8_t { allow, denied, uncertain };
+
+// Optional host accounting hook. Runs once only after authenticated fixture
+// evidence and a new replay key; it must not throw, retain pointers or reenter
+// the forwarder. Uncertainty permanently blocks release until reconstruction.
+class SingleRepeaterAdmissionGate {
+public:
+    virtual ~SingleRepeaterAdmissionGate() = default;
+    virtual SingleRepeaterAdmission evaluate(
+        const VerifiedForwardingMetadata& metadata, std::size_t frame_bytes,
+        std::uint64_t now_ms) noexcept = 0;
+};
+
 enum class SingleRepeaterDisposition : std::uint8_t {
     queued = 0,
     invalid_argument,
@@ -48,6 +61,9 @@ enum class SingleRepeaterDisposition : std::uint8_t {
     duplicate,
     queue_full,
     rate_limited,
+    admission_denied,
+    admission_uncertain,
+    reentrant,
 };
 
 struct SingleRepeaterDecision {
@@ -62,10 +78,17 @@ struct ExactForwardedFrame {
     std::size_t size{0};
 };
 
+struct ForwardingProvenance {
+    VerifiedForwardingMetadata metadata{};
+    std::uint64_t enqueued_at_ms{0};
+    std::uint32_t maximum_queue_age_ms{0};
+};
+
 struct ExactForwardedFrameResult {
     bool has_frame{false};
     std::uint8_t expired_frames_dropped{0};
     ExactForwardedFrame frame{};
+    ForwardingProvenance provenance{};
 };
 
 struct SingleRepeaterStatus {
@@ -78,6 +101,7 @@ struct SingleRepeaterStatus {
     std::uint32_t duplicates_dropped{0};
     std::uint32_t congestion_dropped{0};
     std::uint32_t expired_dropped{0};
+    bool admission_uncertain{false};
 };
 
 class SingleRepeaterForwarder {
@@ -87,30 +111,40 @@ public:
         std::uint64_t group_context_id,
         std::uint32_t group_epoch,
         SingleRepeaterPolicy policy,
-        DuplicateWindow& duplicate_window);
+        DuplicateWindow& duplicate_window,
+        SingleRepeaterAdmissionGate* admission_gate = nullptr);
 
     [[nodiscard]] SingleRepeaterDecision process(
         const VerifiedForwardingMetadata& metadata,
         radio::ByteView exact_protected_frame,
         std::uint64_t now_ms);
     [[nodiscard]] ExactForwardedFrameResult next_forward(std::uint64_t now_ms);
+    // Expiry-only bounded service: never pops a live head or releases bytes.
+    [[nodiscard]] std::uint8_t prune_expired(std::uint64_t now_ms);
     [[nodiscard]] SingleRepeaterStatus status() const;
 
 private:
     struct QueuedFrame {
         ExactForwardedFrame frame{};
-        std::uint64_t queued_at_ms{0};
+        ForwardingProvenance provenance{};
+    };
+    struct CallGuard {
+        bool& busy;
+        explicit CallGuard(bool& value) noexcept : busy(value) { busy = true; }
+        ~CallGuard() { busy = false; }
     };
 
     bool valid_configuration() const;
     void update_rate_window(std::uint64_t now_ms);
     void pop_front();
+    std::uint8_t prune_expired_impl(std::uint64_t now_ms);
 
     std::uint64_t local_alias_{0};
     std::uint64_t group_context_id_{0};
     std::uint32_t group_epoch_{0};
     SingleRepeaterPolicy policy_{};
     DuplicateWindow& duplicate_window_;
+    SingleRepeaterAdmissionGate* admission_gate_{nullptr};
     std::array<QueuedFrame, kSingleRepeaterQueueCapacity> queue_{};
     std::size_t queue_head_{0};
     std::size_t queue_tail_{0};
@@ -121,6 +155,8 @@ private:
     std::uint64_t last_process_ms_{0};
     bool process_time_initialized_{false};
     SingleRepeaterStatus counters_{};
+    bool busy_{false};
+    bool gate_uncertain_{false};
 };
 
 }  // namespace opentrail::delivery
