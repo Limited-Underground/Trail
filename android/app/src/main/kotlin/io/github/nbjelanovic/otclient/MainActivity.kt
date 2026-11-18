@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -130,6 +131,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
     val activity = LocalActivity.current
+    val pairingCodes = rememberBoardPairingCodeRetention()
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val displayPreferences = remember(context) { AppDisplayPreferences(context) }
     var showBuildLabel by remember { mutableStateOf(displayPreferences.showBuildLabel()) }
@@ -148,10 +150,14 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { controller.refreshPermissionState() }
-    DisposableEffect(controller) {
-        controller.observe { state = it }
+    DisposableEffect(controller, pairingCodes) {
+        controller.observe { next ->
+            pairingCodes.observe(next, SystemClock.elapsedRealtime())
+            state = next
+        }
         onDispose { controller.observe(null) }
     }
+    ExpireBoardPairingCode(pairingCodes)
 
     val requestNearbyPermissions = {
         if (controller.beginNearbyDevicesPermissionRequest()) {
@@ -839,7 +845,16 @@ private fun BluetoothReadyPanel(
     SnapshotSummary("Device status", session.snapshot)
     if (session.boardPairing != null) {
         androidx.compose.runtime.key(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
-            V1BoardPairingPanel(session.boardPairing) { request ->
+            val pairingCodes = rememberBoardPairingCodeRetention()
+            val scope = BoardPairingCodeScope(session.companion.endpointToken, session.sessionNonce)
+            V1BoardPairingPanel(
+                session.boardPairing,
+                retainedInitiatorCode = pairingCodes.current(scope, session.boardPairing, SystemClock.elapsedRealtime()),
+                onInitiatorCodeSubmitted = { code ->
+                    if (code == null) pairingCodes.clear()
+                    else pairingCodes.retain(scope, code, SystemClock.elapsedRealtime())
+                },
+            ) { request ->
                 val current = ((controller.state as? TrailAppUiState.BluetoothDevice)
                     ?.runtimeState as? BleRuntimeState.Ready)?.session
                 current != null && current.sessionNonce == session.sessionNonce &&

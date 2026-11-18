@@ -1,5 +1,35 @@
 # OpenTrail Progress Log
 
+## 2026-11-18
+
+### OT-0170a Correct five Android usability blockers (D-114)
+
+Set up later now opens Messages without completing setup. Bluetooth-off
+recovery offers Open Bluetooth settings and an explicit retry through the
+existing discovery-route owner. Erase confirmation names the current board,
+uses Erase this board, and explains the board data removed and the phone and
+firmware data retained. The live Group route hides unimplemented create, join
+and QR forms while preserving supported device confirmation.
+
+The starter's submitted pairing code uses an Activity ViewModel bound to the
+current board endpoint and session nonce. Its monotonic deadline is bounded
+by the original five-minute submission window and any earlier board deadline.
+Tab navigation and Activity recreation keep the same attempt. Refusal, bound
+disconnect, changed session, expiry and clock rollback clear it. Unbound
+Activity observation gaps keep the attempt until its deadline. The code does
+not enter saved-instance state or persistent storage.
+
+Implemented November 17 and validated November 18: all 673 Debug unit/UI
+tests and 114 protocol tests passed with no failures or skips. Debug tests
+use one JVM per class to isolate Robolectric Activity/Compose state; no tests
+or assertions were removed. The complete offline run took 5 minutes 30 seconds.
+Documentation checks passed, including 48 documentation tests and 23 Android
+source-admission scenario groups. The local task report records commands,
+results and the test-fixture corrections.
+
+The D-111 pairing-result topic shares the pairing panel and status presentation;
+its acceptance remains separate. Phone verification remains pending.
+
 ## 2026-11-17
 
 ### OT-0238c Speed up capture runner verification (I-027, I-048)
