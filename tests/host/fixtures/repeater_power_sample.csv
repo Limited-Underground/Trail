@@ -1,0 +1,8 @@
+elapsed_s,battery_v,current_ma,state
+0,4.05,110,boot
+1,4.02,90,boot
+2,4.03,20,rx
+3,4.02,20,rx
+4,4.01,20,rx
+5,3.99,62,rx_gnss_track
+6,3.98,58,rx_gnss_track
