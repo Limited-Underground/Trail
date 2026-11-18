@@ -3,6 +3,7 @@
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
 #include "opentrail/selected_enrollment_request_owner.hpp"
+#include "opentrail/pairing_result_owner.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "opentrail/companion_confirmation_codec.hpp"
 #if OPENTRAIL_CONFIRMATION_EVALUATION
@@ -148,6 +149,7 @@ ConfigurationLane g_configuration_lane{};
 // D-110: the phone's board pairing request lasts 5 minutes.
 SelectedEnrollmentRequestOwner g_selected_enrollment_requests{SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};
 ConfigurationPhoneStatus g_phone_status;
+PairingResultOwner g_pairing_result;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
 ConfigurationDispatcher* g_configuration_dispatcher = nullptr;
@@ -330,8 +332,32 @@ int stream_access(std::uint16_t connection_handle,
                   ble_gatt_access_ctxt* context,
                   void* argument);
 
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+// Version metadata only. Pairing results remain on the protected status lane.
+const ble_uuid128_t kPairingResultFeatureUuid = BLE_UUID128_INIT(
+    0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
+    0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d);
+int pairing_result_feature_access(std::uint16_t, std::uint16_t,
+                                 ble_gatt_access_ctxt* context, void*) {
+    if (context == nullptr || context->om == nullptr ||
+        context->op != BLE_GATT_ACCESS_OP_READ_DSC) return BLE_ATT_ERR_READ_NOT_PERMITTED;
+    constexpr std::uint8_t version = 1;
+    return os_mbuf_append(context->om, &version, sizeof(version)) == 0
+        ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+}
+ble_gatt_dsc_def kPairingResultDescriptors[] = {
+    {&kPairingResultFeatureUuid.u, BLE_ATT_F_READ, 0, pairing_result_feature_access, nullptr},
+    {},
+};
+#endif
+
 const ble_gatt_chr_def kCharacteristics[] = {
-    {&kProtocolInfoUuid.u, protocol_info_access, nullptr, nullptr,
+    {&kProtocolInfoUuid.u, protocol_info_access, nullptr,
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+     nullptr,
+#else
+     kPairingResultDescriptors,
+#endif
      kProtocolInfoFlags, kMinimumKeyBytes, &g_protocol_info_handle, nullptr},
     {&kCommandUuid.u, command_access, nullptr, nullptr,
      kCommandFlags, kMinimumKeyBytes, &g_command_handle, nullptr},
@@ -373,6 +399,7 @@ void update_configuration_authority() {
     if (g_configuration_revoked) {
         g_configuration_authority.phase = DeviceNamePhase::revoked;
         g_phone_status.clear();
+        g_pairing_result.retire();
         g_selected_enrollment_requests.retire();
         return;
     }
@@ -389,6 +416,8 @@ void update_configuration_authority() {
             g_configuration_selected = false;
         }
         g_configuration_authority.phase = DeviceNamePhase::disconnected;
+        g_configuration_authority.now_ms = now_ms();
+        g_pairing_result.observe(g_configuration_authority);
         g_phone_status.clear();
         if (g_selected_enrollment_requests.pending())
             (void)g_selected_enrollment_requests.observe(
@@ -400,6 +429,7 @@ void update_configuration_authority() {
         {1, 1, 1, 1, status.transport_generation,
          status.transport_generation, life.session_nonce}, now_ms()};
     g_phone_status.observe(g_configuration_authority);
+    g_pairing_result.observe(g_configuration_authority);
     if (g_selected_enrollment_requests.pending())
         (void)g_selected_enrollment_requests.observe(
             g_configuration_authority,
@@ -811,7 +841,9 @@ SelectedEnrollmentAdmission admit_selected_enrollment_request(
     switch (g_selected_enrollment_requests.admit(
         g_configuration_authority, lane.connection, lane.token, exchange_id,
         action.value.enrollment_role, action.value.pairing_code)) {
-        case SelectedEnrollmentRequestResult::admitted: return SelectedEnrollmentAdmission::admitted;
+        case SelectedEnrollmentRequestResult::admitted:
+            g_pairing_result.begin(g_selected_enrollment_requests.request());
+            return SelectedEnrollmentAdmission::admitted;
         case SelectedEnrollmentRequestResult::busy: return SelectedEnrollmentAdmission::busy;
         case SelectedEnrollmentRequestResult::invalid: return SelectedEnrollmentAdmission::invalid;
         case SelectedEnrollmentRequestResult::retired: return SelectedEnrollmentAdmission::retired;
@@ -847,6 +879,41 @@ void companion_pairing_request_complete(const SelectedEnrollmentRequest& request
     // Completion releases only its exact admission. The independently owned
     // result survives; a stale completion cannot cancel a newer request.
     (void)g_selected_enrollment_requests.cancel_exact(request);
+}
+
+bool companion_pairing_result_claim(const SelectedEnrollmentRequest& request) {
+    GattLock lock;
+    if (!lock || g_configuration_revoked) return false;
+    update_configuration_authority();
+    const auto current = g_selected_enrollment_requests.request();
+    return current.authority == request.authority &&
+           current.delivery_token == request.delivery_token &&
+           current.exchange_id == request.exchange_id &&
+           g_pairing_result.claim(request);
+}
+
+void companion_pairing_result_publish(const SelectedEnrollmentRequest& request,
+                                     CompanionPairingState state, CompanionPairingReason reason,
+                                     std::uint16_t peer_short_id) {
+    GattLock lock;
+    if (!lock || g_configuration_revoked) return;
+    (void)g_pairing_result.publish(request, state, reason, peer_short_id, now_ms());
+}
+
+bool companion_pairing_result_snapshot(const DeviceNameContext& context,
+                                      CompanionPairingResult& result) {
+    GattLock lock;
+    if (!lock || g_configuration_revoked) return false;
+    update_configuration_authority();
+    const auto status = g_adapter == nullptr ? CompanionGattAdapterStatus{} : g_adapter->status();
+    if (kSelectedConfigurationMinor != kPublicProfileMinor ||
+        g_configuration_authority.phase != DeviceNamePhase::connected ||
+        g_configuration_authority.context != context ||
+        !g_phone_status.ready(g_configuration_authority, status.transport_generation)) return false;
+    // The V1 owner is unique for this boot. Owner/reset retirement clears the
+    // slot before any later bond can authorize reads.
+    result = g_pairing_result.read(g_configuration_authority);
+    return true;
 }
 
 bool companion_nimble_gatt_definition_self_check() {
@@ -1167,7 +1234,10 @@ bool close_companion_confirmation() {
 }
 
 void invalidate_companion_configuration_locked(bool revoke) {
-    if (revoke) g_selected_enrollment_requests.retire();
+    if (revoke) {
+        g_pairing_result.retire();
+        g_selected_enrollment_requests.retire();
+    }
     else if (g_selected_enrollment_requests.pending())
         (void)g_selected_enrollment_requests.cancel_exact(
             g_selected_enrollment_requests.request());

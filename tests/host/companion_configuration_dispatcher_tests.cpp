@@ -38,7 +38,29 @@ struct Actions:CompanionActionAuthority {
 struct Base:ConfigurationBaseHandler {
     Snapshots snapshots; Actions actions; CompanionRequestCoordinator coordinator{snapshots,actions};
     bool corrupt=false, wrong_minor=false;
+    bool pairing_response_as_v0=false, legacy_response_as_pairing=false;
+    int executions=0;
     bool execute(const DeviceNameContext& c,const ConfigurationFrame& request,ConfigurationFrame& response) override {
+        ++executions;
+        const bool pairing_request=decode_companion_pairing_snapshot_request(
+            {request.payload.data(),request.payload_bytes}).decoded();
+        if(request.kind==1 && (pairing_request || legacy_response_as_pairing)) {
+            response.minor_version=request.minor_version;
+            response.kind=0x81;response.session_nonce=request.session_nonce;response.exchange_id=request.exchange_id;
+            const auto base=snapshots.read_snapshot();
+            CompanionSemanticEncodeResult encoded{};
+            if(pairing_response_as_v0) {
+                encoded=encode_companion_status_snapshot(base.snapshot,
+                    {response.payload.data(),response.payload.size()});
+            } else {
+                const CompanionPairingStatusSnapshot value{base.snapshot,
+                    {CompanionPairingState::paired_both,CompanionPairingReason::none,0x0A3B,17,29,3}};
+                encoded=encode_companion_pairing_status_snapshot(value,
+                    {response.payload.data(),response.payload.size()});
+            }
+            response.payload_bytes=static_cast<std::uint16_t>(encoded.encoded_bytes);
+            return encoded.encoded();
+        }
         const CompanionSessionEvidence evidence{c.controller,true,true,true};
         if(!coordinator.session_status().active) EXPECT(coordinator.open_session(evidence,c.session_nonce).opened());
         CompanionFragment old{}; old.kind=static_cast<CompanionFrameKind>(request.kind);
@@ -426,8 +448,70 @@ void public_profile_dispatch_composition() {
     EXPECT(h.public_profile.commits==0);
     for(std::uint8_t minor:{2,3,127}){request.minor_version=minor;std::array<std::uint8_t,148> out{};EXPECT(!encode_configuration_frame(request,out.data(),out.size()).encoded());}
 }
-int main(){public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+
+void pairing_read_requires_selected_v0_ready_and_matching_response() {
+    auto request = [](Harness& h, std::uint32_t exchange, bool pairing=true) {
+        auto f=h.frame(1,exchange);
+        const auto e=pairing
+            ? encode_companion_pairing_snapshot_request({}, {f.payload.data(),f.payload.size()})
+            : encode_companion_snapshot_request({}, {f.payload.data(),f.payload.size()});
+        EXPECT(e.encoded());f.payload_bytes=static_cast<std::uint16_t>(e.encoded_bytes);
+        return f;
+    };
+    Harness h(5);
+    EXPECT(h.submit(request(h,1)).code==ConfigurationDispatchCode::unauthorized);
+    EXPECT(!h.owner.ready() && h.base.executions==0);
+    h.ready();
+    auto poll=request(h,2);
+    EXPECT(h.submit(poll).code==ConfigurationDispatchCode::accepted);
+    auto result=h.owner.execute();
+    EXPECT(result.code==ConfigurationDispatchCode::responded && h.owner.ready());
+    const auto frame=response(result,5);
+    EXPECT(frame.payload_bytes==40);
+    const auto decoded=decode_companion_pairing_status_snapshot(
+        {frame.payload.data(),frame.payload_bytes});
+    EXPECT(decoded.decoded() && decoded.value.pairing.peer_short_id==0x0A3B);
+    EXPECT(h.submit(poll).code==ConfigurationDispatchCode::replayed);
+    EXPECT(h.owner.execute().code==ConfigurationDispatchCode::no_pending);
+    auto malformed=request(h,3);malformed.payload[7]=1;
+    EXPECT(h.submit(malformed).code==ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().code==ConfigurationDispatchCode::no_result);
+    EXPECT(h.submit(request(h,4,false)).code==ConfigurationDispatchCode::accepted);
+    auto legacy=response(h.owner.execute(),5);
+    EXPECT(legacy.payload_bytes==32 &&
+        decode_companion_status_snapshot({legacy.payload.data(),legacy.payload_bytes}).decoded());
+    for (std::uint8_t minor : {2,3}) {
+        Harness old(minor);old.ready();
+        const auto count=old.base.executions;
+        EXPECT(old.submit(request(old,2)).code==ConfigurationDispatchCode::unauthorized);
+        EXPECT(old.base.executions==count);
+    }
+    for (bool pairing : {false,true}) {
+        Harness mismatch(5);mismatch.ready();
+        mismatch.base.pairing_response_as_v0=pairing;
+        mismatch.base.legacy_response_as_pairing=!pairing;
+        EXPECT(mismatch.submit(request(mismatch,2,pairing)).code==ConfigurationDispatchCode::accepted);
+        EXPECT(mismatch.owner.execute().code==ConfigurationDispatchCode::no_result);
+    }
+    Harness gone(5);gone.ready();
+    EXPECT(gone.submit(request(gone,2)).code==ConfigurationDispatchCode::accepted);
+    gone.source.state.phase=DeviceNamePhase::disconnected;
+    EXPECT(gone.owner.execute().bytes==0 && !gone.owner.ready());
+
+    // A pairing-aware receipt cannot bootstrap the separate phone Ready proof.
+    using opentrail::target::heltec_v4_bench::ConfigurationLane;
+    using opentrail::target::heltec_v4_bench::ConfigurationPhoneStatus;
+    ConfigurationPhoneStatus phone;
+    ConfigurationLane lane{};
+    lane.occupied=true;lane.indicated=true;lane.context=h.source.state.context;
+    lane.connection=9;lane.token=99;lane.exchange=2;lane.admitted_ms=0;
+    lane.bytes=result.bytes;lane.record=result.record;
+    phone.complete(lane,h.source.state,true,1,5);
+    EXPECT(!phone.ready(h.source.state,lane.context.transport_generation));
+}
+
+int main(){pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 13 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 14 composed configuration dispatcher groups\n";
     return 0;
 }

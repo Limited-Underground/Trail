@@ -40,6 +40,8 @@ import io.github.nbjelanovic.otprotocol.CompanionProtocolInfo
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodecError
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+import io.github.nbjelanovic.otprotocol.CompanionPairingResult
+import io.github.nbjelanovic.otprotocol.CompanionPairingState
 
 private val configurationScopeCounter = java.util.concurrent.atomic.AtomicLong(0)
 private fun nextConfigurationScope(): Long? {
@@ -57,6 +59,8 @@ internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
 internal const val STATUS_REFRESH_INTERVAL_MILLIS = 30_000L
+internal const val PAIRING_STATUS_REFRESH_INTERVAL_MILLIS = 5_000L
+internal const val PAIRING_RESULT_FEATURE_UUID = "8d53dc1d-1db7-4cd3-868b-8a527460aa84"
 internal const val FACTORY_RESET_RESTART_TIMEOUT_MILLIS = 20_000L
 internal const val AUTHORIZATION_RESULT_TIMEOUT_MILLIS = 30_000L
 private val RECOVERED_FACTORY_RESET_COMPANION =
@@ -206,6 +210,7 @@ interface BleScanLease : BleLease {
 }
 
 interface BleGattLease : BleLease {
+    val pairingResultSupported: Boolean get() = false
     fun start(): Boolean
     fun requestMtu(mtu: Int): Boolean
     fun readProtocolInfo(): Boolean
@@ -516,6 +521,10 @@ class BleCompanionRuntime(
     private var statusRefreshForeground = false
     private var statusRefreshTimer: BleReconnectLease? = null
     private var pendingStatusRefresh: PendingStatusRefresh? = null
+    private var pairingResultEnabled = false
+    private var pairingOrigin: PairingOrigin? = null
+    private var lastPairingResult: CompanionPairingResult? = null
+    private data class PairingOrigin(val exchangeId: Long, val sessionNonce: Long)
     private val authorizationTracker = CompanionAuthorizationResponseTracker()
     private var authorizationClaim: RuntimeAuthorizationClaim? = null
     private data class PendingAction(
@@ -523,7 +532,9 @@ class BleCompanionRuntime(
         val request: CompanionActionRequest,
         val pairingDeadlineMillis: Long? = null,
     )
-    private data class PendingStatusRefresh(val exchangeId: Long, val startedAtMillis: Long)
+    private data class PendingStatusRefresh(
+        val exchangeId: Long, val startedAtMillis: Long, val pairing: Boolean = false,
+    )
     private data class FactoryResetVerificationTarget(
         val receipt: ULong,
         val companion: BleDiscoveredCompanion?,
@@ -937,6 +948,14 @@ class BleCompanionRuntime(
         normalProfileConfirmedAfterPromotion &&
         configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE
 
+    private fun statusRefreshInterval(): Long {
+        val pairing = (state as? BleRuntimeState.Ready)?.session?.boardPairing
+        return if ((pairing is BoardPairingState.Ready && confirmationClockMillis() < pairing.deadlineMillis) ||
+            (pairing is BoardPairingState.Result && pairing.result.state == CompanionPairingState.PAIRED_LOCAL))
+            PAIRING_STATUS_REFRESH_INTERVAL_MILLIS
+            else STATUS_REFRESH_INTERVAL_MILLIS
+    }
+
     private fun requestStatusRefresh() {
         val lease = gattLease ?: return
         if (deliveringObserver || pendingStatusRefresh != null || pendingAction != null ||
@@ -953,9 +972,10 @@ class BleCompanionRuntime(
             kind = CompanionFrameKind.SNAPSHOT_REQUEST,
             sessionNonce = activeSessionNonce,
             exchangeId = exchange,
-            payload = CompanionSemanticCodec.encodeSnapshotRequest(),
+            payload = if (pairingResultEnabled) CompanionSemanticCodec.encodePairingSnapshotRequest()
+                else CompanionSemanticCodec.encodeSnapshotRequest(),
         )) ?: return
-        val pending = PendingStatusRefresh(exchange, started)
+        val pending = PendingStatusRefresh(exchange, started, pairingResultEnabled)
         val callbackGeneration = generation
         nextRequestId++
         pendingStatusRefresh = pending
@@ -968,7 +988,18 @@ class BleCompanionRuntime(
         // Keep the lane occupied through the existing response deadline, even if the UI leaves.
         operationTimeoutLease = scheduler.schedule(ACTION_RESULT_TIMEOUT_MILLIS) {
             requireOwnerThread()
-            if (accepts(callbackGeneration) && pendingStatusRefresh === pending) finishStatusRefresh()
+            if (accepts(callbackGeneration) && pendingStatusRefresh === pending) {
+                // A cached feature descriptor can outlive a firmware change. A missing optional
+                // response retires only the extension for this link, then uses ordinary status.
+                if (pending.pairing) {
+                    pairingResultEnabled = false
+                    val ready = state as? BleRuntimeState.Ready
+                    if (ready?.session?.boardPairing is BoardPairingState.Result) {
+                        publish(BleRuntimeState.Ready(ready.session.copy(boardPairing = BoardPairingState.Unknown)))
+                    }
+                }
+                finishStatusRefresh()
+            }
         }
     }
 
@@ -977,7 +1008,7 @@ class BleCompanionRuntime(
         operationTimeoutLease?.close()
         operationTimeoutLease = null
         pumpAutomaticConfiguration()
-        if (statusRefreshTimer == null) scheduleStatusRefresh(STATUS_REFRESH_INTERVAL_MILLIS)
+        if (statusRefreshTimer == null) scheduleStatusRefresh(statusRefreshInterval())
     }
 
     /** Dedicated fixed-status lane: never falls back to a legacy/plaintext action. */
@@ -2236,10 +2267,21 @@ class BleCompanionRuntime(
             acceptAuthorizationStreamValue(companion, fragment)
             return
         }
+        val expectedPairingSnapshot = fragment != null &&
+            fragment.kind == CompanionFrameKind.SNAPSHOT && pairingResultEnabled &&
+            pendingStatusRefresh?.let { it.pairing && it.exchangeId == fragment.exchangeId } == true &&
+            fragment.sessionNonce == activeSessionNonce && state is BleRuntimeState.Ready
+        val isPairingSnapshot = fragment?.kind == CompanionFrameKind.SNAPSHOT &&
+            CompanionSemanticCodec.decodePairingStatusSnapshot(fragment.payload).isSuccess
+        if (isPairingSnapshot && !expectedPairingSnapshot) return
+        val validSemantic = if (expectedPairingSnapshot) {
+            CompanionSemanticCodec.decodePairingStatusSnapshot(checkNotNull(fragment).payload).value != null
+        } else fragment != null &&
+            CompanionSemanticCodec.validateSemanticFragment(fragment) == CompanionSemanticCodecError.NONE
         if (
             fragment == null ||
             fragment.payload.size > (protocolInfo?.maxFragmentPayloadBytes ?: 0) ||
-            CompanionSemanticCodec.validateSemanticFragment(fragment) != CompanionSemanticCodecError.NONE
+            !validSemantic
         ) {
             if (state is BleRuntimeState.FactoryResetRequesting) {
                 factoryResetNotVerified(
@@ -2496,7 +2538,12 @@ class BleCompanionRuntime(
             ),
         )
         initializeConfigurationSession()
-        if (statusRefreshTimer == null) scheduleStatusRefresh(STATUS_REFRESH_INTERVAL_MILLIS)
+        pairingResultEnabled = normalProfileConfirmedAfterPromotion &&
+            configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE &&
+            gattLease?.pairingResultSupported == true
+        if (statusRefreshTimer == null) {
+            scheduleStatusRefresh(if (pairingResultEnabled) 0 else STATUS_REFRESH_INTERVAL_MILLIS)
+        }
     }
 
     private fun acceptSnapshotUpdate(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
@@ -2523,16 +2570,47 @@ class BleCompanionRuntime(
         val now = confirmationClockMillis()
         if (now < pending.startedAtMillis || now - pending.startedAtMillis >= ACTION_RESULT_TIMEOUT_MILLIS) return
         val previous = ready.session.snapshot
-        val snapshot = CompanionSemanticCodec.decodeStatusSnapshot(fragment.payload).value ?: return
+        val pairingSnapshot = if (pending.pairing) {
+            CompanionSemanticCodec.decodePairingStatusSnapshot(fragment.payload).value ?: return
+        } else null
+        val snapshot = pairingSnapshot?.snapshot ?:
+            CompanionSemanticCodec.decodeStatusSnapshot(fragment.payload).value ?: return
         if (snapshot.revision < previous.revision ||
             (snapshot.revision == previous.revision && snapshot != previous)) return
         val groupLocation = ready.session.groupLocation.withAuthoritativeStatus(
             snapshot.revision, snapshot.positionSharing,
         ) ?: return
+        val pairingState = if (pairingSnapshot != null) {
+            acceptPairingProjection(ready.session.boardPairing, pairingSnapshot.pairing) ?: return
+        } else ready.session.boardPairing
         publish(BleRuntimeState.Ready(ready.session.copy(
             snapshot = snapshot, groupLocation = groupLocation, statusReadAtMillis = now,
+            boardPairing = pairingState,
         )))
         if (pendingStatusRefresh === pending) finishStatusRefresh()
+    }
+
+    private fun acceptPairingProjection(
+        current: BoardPairingState?, result: CompanionPairingResult,
+    ): BoardPairingState? {
+        if (current == null) return null
+        val previous = lastPairingResult
+        if (previous != null && (result.revision < previous.revision ||
+                (result.revision == previous.revision && result != previous))) return null
+        val origin = pairingOrigin
+        if (result.state == CompanionPairingState.NONE) {
+            lastPairingResult = result
+            return if (origin != null && current is BoardPairingState.Ready) current
+                else BoardPairingState.Available
+        }
+        if (origin != null && (result.originExchangeId != origin.exchangeId ||
+                result.originSessionNonce != origin.sessionNonce)) return null
+        lastPairingResult = result
+        if (result.state == CompanionPairingState.RUNNING) {
+            return if (origin != null && current is BoardPairingState.Ready) current
+                else BoardPairingState.Unknown
+        }
+        return BoardPairingState.Result(result, historical = origin == null)
     }
 
     private fun acceptActionResult(session: BleActiveSession, fragment: CompanionFragment) {
@@ -2616,10 +2694,16 @@ class BleCompanionRuntime(
             return
         }
         if (pending.pairingDeadlineMillis != null) {
-            val pairing = if (result.disposition == CompanionActionDisposition.ADMITTED) {
+            val admitted = result.disposition == CompanionActionDisposition.ADMITTED
+            val pairing = if (admitted) {
+                pairingOrigin = PairingOrigin(pending.exchangeId, activeSessionNonce)
+                lastPairingResult = null
                 BoardPairingState.Ready(pending.pairingDeadlineMillis)
             } else BoardPairingState.Rejected(result.rejectReason)
             publish(BleRuntimeState.Ready(session.copy(boardPairing = pairing)))
+            if (admitted && pairingResultEnabled) {
+                scheduleStatusRefresh(PAIRING_STATUS_REFRESH_INTERVAL_MILLIS)
+            }
             return
         }
         publish(BleRuntimeState.Ready(session.copy(lastActionResult = result)))
@@ -3114,6 +3198,9 @@ class BleCompanionRuntime(
         statusRefreshTimer?.close()
         statusRefreshTimer = null
         pendingStatusRefresh = null
+        pairingResultEnabled = false
+        pairingOrigin = null
+        lastPairingResult = null
         authorizationProtocolInfo = null
         authorizationSecurityEvidence = null
     }

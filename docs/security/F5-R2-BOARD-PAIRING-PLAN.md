@@ -1,6 +1,6 @@
 # F5 R2: first board pairing in the product firmware (plan)
 
-Status: local host/build candidate, 2026-11-18. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (phone admission), D-112 (recoverable pairing). Physical acceptance and independent review before merge remain open.
+Status: local host/build candidate, 2026-11-18. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (phone admission), D-112 (recoverable pairing), D-111 (protected phone outcome). Physical acceptance and independent review before merge remain open.
 
 ## What already exists
 
@@ -29,7 +29,7 @@ The product target (`heltec_v4_bench`) already admits the phone's start-enrollme
 - **Product storage.** Product NVS namespaces for identity, journal, binding and boot, included in factory reset.
 - **Screen.** The OLED shows a pairing status line and the review pages.
 
-Protected phone results are the D-111 increment. Retained fresh-session Packet-v1 traffic is a separate candidate; recovered pairing never restores traffic keys.
+Protected phone results are implemented in the local D-111 increment below. Retained fresh-session Packet-v1 traffic is a separate candidate; recovered pairing never restores traffic keys.
 
 ## Recoverable pairing decision (D-112)
 
@@ -57,6 +57,41 @@ eighth of the partition. The separately reviewed D-113 candidate also uses
 names 11..15: the two branches require one reconciled mapping, inventory, budget
 and compatibility policy before integration. Older firmware rejects the added
 inventory; restoring an image alone does not establish storage compatibility.
+
+## Protected phone outcome (D-111)
+
+The metadata-only ProtocolInfo descriptor advertises result version 1. After the
+unchanged V0 protected Ready bootstrap, the app opts into OTX1/OTN1 status.
+The 40-byte snapshot preserves ordinary telemetry and adds state/reason,
+the confirmed peer suffix, originating action exchange/nonce and an independent
+result revision. Discovery contains no outcome; a result read requires the
+current authorized Ready owner. A result cannot establish Ready or grant trust.
+
+The runtime captures the exact admitted ticket before consuming its session
+request and publishes before teardown. Only successful session/coordinator
+startup permits projection of a cached journal: failed identity/binding checks
+cannot expose an old successful phase. Local durable commit reports
+"Paired with board XXXX" and "Saved on this board"; durable authenticated peer
+Committed proof reports "Both boards paired". XXXX is the opposite confirmed
+identity's final two bytes in four uppercase hex digits. Archive-only recovery
+cannot project an unrelated current journal. Unresolved saved decisions report
+incomplete rather than assumed success or refusal.
+
+One boot-local result lasts ten minutes from a terminal transition. Repeated
+reads/publications do not extend it. A newer admission supersedes it; reset,
+revocation, owner change and cold boot retire RAM history. A freshly authorized
+same-owner reconnect may read terminal history as "Last pairing attempt";
+a running attempt is not exposed on a new link. Exact ended-request release
+happens after session cleanup and the final-response linger, preserves result
+history and cannot cancel a newer admission.
+
+Foreground polling remains five seconds through local save and returns to
+normal after peer proof. Incomplete offers explicit Resume pairing: use the
+original Start/Join phones and a new matching code. Resume sends no action
+until the person submits the form; Cancel only exits that form. No reply carries
+a check-code hint without asserting a mismatch. Old/stale-feature firmware
+falls back to ordinary status and board guidance. Hardware verification remains
+open; see the task report's independent checklist and owner-present procedure.
 
 ## Role and group (decided: D-085, option A)
 

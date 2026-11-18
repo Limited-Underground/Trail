@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otprotocol
 
 const val COMPANION_SNAPSHOT_REQUEST_BYTES = 8
 const val COMPANION_STATUS_SNAPSHOT_BYTES = 32
+const val COMPANION_PAIRING_STATUS_SNAPSHOT_BYTES = 40
 const val COMPANION_ACTION_REQUEST_BYTES = 20
 const val COMPANION_ACTION_RESULT_BYTES = 20
 
@@ -99,6 +100,31 @@ data class CompanionStatusSnapshot(
     val pendingCriticalAlertId: ULong = 0uL,
 )
 
+enum class CompanionPairingState(val wireValue: Int) {
+    NONE(0), RUNNING(1), PAIRED_LOCAL(2), PAIRED_BOTH(3), FAILED(4), CANCELLED(5), INCOMPLETE(6);
+    companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
+}
+
+enum class CompanionPairingReason(val wireValue: Int) {
+    NONE(0), TIMED_OUT(1), NO_REPLY(2), STORAGE(3), REQUEST_ENDED(4),
+    RADIO_UNAVAILABLE(5), VERIFICATION_FAILED(6), UNAVAILABLE(7);
+    companion object { fun fromWire(value: Int) = entries.firstOrNull { it.wireValue == value } }
+}
+
+data class CompanionPairingResult(
+    val state: CompanionPairingState = CompanionPairingState.NONE,
+    val reason: CompanionPairingReason = CompanionPairingReason.NONE,
+    val peerShortId: Int = 0,
+    val originExchangeId: Long = 0,
+    val originSessionNonce: Long = 0,
+    val revision: Long = 0,
+)
+
+data class CompanionPairingStatusSnapshot(
+    val snapshot: CompanionStatusSnapshot,
+    val pairing: CompanionPairingResult,
+)
+
 data class CompanionActionRequest(
     val kind: CompanionActionKind,
     val quickStatus: CompanionQuickStatus = CompanionQuickStatus.OK,
@@ -122,6 +148,8 @@ data class CompanionActionResult(
 object CompanionSemanticCodec {
     private val snapshotRequestMagic = byteArrayOf(0x4f, 0x54, 0x58, 0x30)
     private val statusSnapshotMagic = byteArrayOf(0x4f, 0x54, 0x4e, 0x30)
+    private val pairingSnapshotRequestMagic = byteArrayOf(0x4f, 0x54, 0x58, 0x31)
+    private val pairingStatusSnapshotMagic = byteArrayOf(0x4f, 0x54, 0x4e, 0x31)
     private val actionRequestMagic = byteArrayOf(0x4f, 0x54, 0x41, 0x30)
     private val actionResultMagic = byteArrayOf(0x4f, 0x54, 0x52, 0x30)
 
@@ -177,6 +205,87 @@ object CompanionSemanticCodec {
         )
         validateStatus(snapshot)?.let { return SemanticCodecResult.failure(it) }
         return SemanticCodecResult.success(snapshot)
+    }
+
+    // The selected protected lane opts in after its ordinary V0 Ready snapshot.
+    fun encodePairingSnapshotRequest(): ByteArray = byteArrayOf(0x4f, 0x54, 0x58, 0x31, 0, 0, 0, 0)
+
+    fun decodePairingSnapshotRequest(encoded: ByteArray): SemanticCodecResult<CompanionSnapshotRequest> {
+        validatePrefix(encoded, pairingSnapshotRequestMagic, COMPANION_SNAPSHOT_REQUEST_BYTES)?.let {
+            return SemanticCodecResult.failure(it)
+        }
+        if (encoded[6].toInt() != 0 || encoded[7].toInt() != 0) {
+            return SemanticCodecResult.failure(CompanionSemanticCodecError.RESERVED_BITS_SET)
+        }
+        return SemanticCodecResult.success(CompanionSnapshotRequest)
+    }
+
+    fun encodePairingStatusSnapshot(value: CompanionPairingStatusSnapshot): SemanticCodecResult<ByteArray> {
+        validatePairing(value.pairing)?.let { return SemanticCodecResult.failure(it) }
+        val base = encodeStatusSnapshot(value.snapshot)
+        if (!base.isSuccess) return SemanticCodecResult.failure(base.error)
+        val output = checkNotNull(base.value).copyOf(COMPANION_PAIRING_STATUS_SNAPSHOT_BYTES)
+        pairingStatusSnapshotMagic.copyInto(output)
+        output[24] = value.pairing.state.wireValue.toByte()
+        output[25] = value.pairing.reason.wireValue.toByte()
+        writeU16Le(output, 26, value.pairing.peerShortId)
+        writeU32Le(output, 28, value.pairing.originExchangeId)
+        writeU32Le(output, 32, value.pairing.originSessionNonce)
+        writeU32Le(output, 36, value.pairing.revision)
+        return SemanticCodecResult.success(output)
+    }
+
+    fun decodePairingStatusSnapshot(encoded: ByteArray): SemanticCodecResult<CompanionPairingStatusSnapshot> {
+        validatePrefix(encoded, pairingStatusSnapshotMagic, COMPANION_PAIRING_STATUS_SNAPSHOT_BYTES)?.let {
+            return SemanticCodecResult.failure(it)
+        }
+        val base = encoded.copyOf(COMPANION_STATUS_SNAPSHOT_BYTES)
+        statusSnapshotMagic.copyInto(base)
+        base.fill(0, 24, COMPANION_STATUS_SNAPSHOT_BYTES)
+        val decoded = decodeStatusSnapshot(base)
+        if (!decoded.isSuccess) return SemanticCodecResult.failure(decoded.error)
+        val state = CompanionPairingState.fromWire(encoded.u8(24))
+            ?: return SemanticCodecResult.failure(CompanionSemanticCodecError.UNKNOWN_ENUM)
+        val reason = CompanionPairingReason.fromWire(encoded.u8(25))
+            ?: return SemanticCodecResult.failure(CompanionSemanticCodecError.UNKNOWN_ENUM)
+        val pairing = CompanionPairingResult(
+            state, reason, encoded.readU16Le(26), encoded.readU32Le(28),
+            encoded.readU32Le(32), encoded.readU32Le(36),
+        )
+        validatePairing(pairing)?.let { return SemanticCodecResult.failure(it) }
+        return SemanticCodecResult.success(CompanionPairingStatusSnapshot(checkNotNull(decoded.value), pairing))
+    }
+
+    private fun validatePairing(value: CompanionPairingResult): CompanionSemanticCodecError? {
+        if (value.revision !in 0..0xffff_ffffL) return CompanionSemanticCodecError.INVALID_REVISION
+        if (value.peerShortId !in 0..0xffff ||
+            value.originExchangeId !in 0..0xffff_ffffL || value.originSessionNonce !in 0..0xffff_ffffL
+        ) return CompanionSemanticCodecError.INCOHERENT_RESULT
+        if (value.state == CompanionPairingState.NONE) {
+            return if (value.reason == CompanionPairingReason.NONE && value.peerShortId == 0 &&
+                value.originExchangeId == 0L && value.originSessionNonce == 0L
+            ) null else CompanionSemanticCodecError.INCOHERENT_RESULT
+        }
+        if (value.revision == 0L) return CompanionSemanticCodecError.INVALID_REVISION
+        if (value.originExchangeId == 0L || value.originSessionNonce == 0L) {
+            return CompanionSemanticCodecError.INCOHERENT_RESULT
+        }
+        val coherent = when (value.state) {
+            CompanionPairingState.PAIRED_LOCAL, CompanionPairingState.PAIRED_BOTH ->
+                value.reason == CompanionPairingReason.NONE
+            CompanionPairingState.RUNNING ->
+                value.peerShortId == 0 && value.reason == CompanionPairingReason.NONE
+            CompanionPairingState.FAILED ->
+                value.peerShortId == 0 && value.reason != CompanionPairingReason.NONE
+            CompanionPairingState.CANCELLED ->
+                value.peerShortId == 0 && value.reason == CompanionPairingReason.REQUEST_ENDED
+            CompanionPairingState.INCOMPLETE ->
+                value.peerShortId == 0 && value.reason in listOf(
+                    CompanionPairingReason.NONE, CompanionPairingReason.STORAGE, CompanionPairingReason.REQUEST_ENDED,
+                )
+            CompanionPairingState.NONE -> false
+        }
+        return if (coherent) null else CompanionSemanticCodecError.INCOHERENT_RESULT
     }
 
     fun encodeActionRequest(request: CompanionActionRequest): SemanticCodecResult<ByteArray> {

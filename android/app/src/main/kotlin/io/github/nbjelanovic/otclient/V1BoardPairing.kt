@@ -20,6 +20,9 @@ import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionActionRejectReason
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionEnrollmentRole
+import io.github.nbjelanovic.otprotocol.CompanionPairingResult
+import io.github.nbjelanovic.otprotocol.CompanionPairingState
+import io.github.nbjelanovic.otprotocol.CompanionPairingReason
 import java.security.SecureRandom
 import kotlinx.coroutines.delay
 
@@ -29,6 +32,8 @@ internal const val BOARD_PAIRING_WINDOW_MILLIS = 300_000L
 sealed interface BoardPairingState {
     data object Available : BoardPairingState
     data object Waiting : BoardPairingState
+    data object Unknown : BoardPairingState
+    data class Result(val result: CompanionPairingResult, val historical: Boolean = false) : BoardPairingState
     data class Ready(val deadlineMillis: Long) : BoardPairingState
     data class Rejected(val reason: CompanionActionRejectReason) : BoardPairingState
 
@@ -51,6 +56,32 @@ internal fun boardPairingRejection(reason: CompanionActionRejectReason): String 
     else -> "Your board couldn't start pairing. Try again."
 }
 
+internal fun boardPairingResultText(result: CompanionPairingResult): Pair<String, String?> {
+    val peer = result.peerShortId.toString(16).uppercase().padStart(4, '0')
+    return when (result.state) {
+        CompanionPairingState.PAIRED_LOCAL -> "Paired with board $peer" to
+            "Saved on this board. Check the result on the other board."
+        CompanionPairingState.PAIRED_BOTH -> "Both boards paired" to "Paired with board $peer"
+        CompanionPairingState.INCOMPLETE -> "Pairing incomplete." to
+            "On both phones, tap Resume pairing. Use Start pairing on the phone that started it before, and Join pairing on the other with the same new code."
+        CompanionPairingState.CANCELLED -> "Pairing was cancelled." to
+            "The phone disconnected before pairing finished."
+        CompanionPairingState.FAILED -> when (result.reason) {
+            CompanionPairingReason.TIMED_OUT -> "Pairing timed out." to
+                "Start again and confirm on both MeshTrail boards."
+            CompanionPairingReason.NO_REPLY -> "The other board didn't answer." to
+                "Bring the boards closer and check that both phones used the same pairing code."
+            CompanionPairingReason.STORAGE -> "This board couldn't save the pairing." to
+                "Check the board screen before trying again."
+            CompanionPairingReason.RADIO_UNAVAILABLE -> "This board's radio stopped during pairing." to null
+            else -> "Pairing couldn't finish." to "Check the messages on both boards."
+        }
+        CompanionPairingState.RUNNING -> "Pairing in progress." to
+            "Compare the IDs and confirm on both MeshTrail boards."
+        CompanionPairingState.NONE -> "Pairing result unavailable." to "Check your MeshTrail board screen."
+    }
+}
+
 @Composable
 internal fun V1BoardPairingPanel(
     state: BoardPairingState,
@@ -62,6 +93,7 @@ internal fun V1BoardPairingPanel(
     var codeText by remember { mutableStateOf("") }
     var submittedInitiatorCode by remember { mutableStateOf<String?>(null) }
     var sendFailed by remember { mutableStateOf(false) }
+    var resumeRequested by remember(state) { mutableStateOf(false) }
     val deadline = (state as? BoardPairingState.Ready)?.deadlineMillis
     var remaining by remember(deadline) { mutableLongStateOf(deadline?.let { (it - clockMillis()).coerceAtLeast(0) } ?: 0) }
     LaunchedEffect(deadline) {
@@ -97,9 +129,24 @@ internal fun V1BoardPairingPanel(
                 Text("Pairing window: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')} left")
                 return
             }
-            Text("The pairing window ended.")
+            Text("Pairing result unavailable.")
+            Text("Check your MeshTrail board screen.")
         }
         is BoardPairingState.Rejected -> if (role == null) Text(boardPairingRejection(state.reason))
+        BoardPairingState.Unknown -> {
+            Text("Pairing result unavailable.")
+            Text("Check your MeshTrail board screen.")
+        }
+        is BoardPairingState.Result -> {
+            if (state.historical) Text("Last pairing attempt")
+            val (title, detail) = boardPairingResultText(state.result)
+            Text(title)
+            detail?.let { Text(it) }
+            if (state.result.state == CompanionPairingState.INCOMPLETE && !resumeRequested) {
+                OutlinedButton(onClick = { resumeRequested = true }) { Text("Resume pairing") }
+                return
+            }
+        }
     }
 
     if (sendFailed) Text("Couldn't send the pairing request. Check the connection and try again.")

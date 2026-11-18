@@ -256,6 +256,7 @@ class AndroidBluetoothGattFacade(
     private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
     private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
     private val protocolInfoUuid = UUID.fromString(CompanionGattV0Contract.PROTOCOL_INFO_UUID)
+    private val pairingResultFeatureUuid = UUID.fromString(PAIRING_RESULT_FEATURE_UUID)
     private val commandUuid = UUID.fromString(CompanionGattV0Contract.COMMAND_UUID)
     private val streamUuid = UUID.fromString(CompanionGattV0Contract.STREAM_UUID)
     private val cccdUuid = UUID.fromString(CLIENT_CONFIGURATION_UUID)
@@ -679,6 +680,8 @@ class AndroidBluetoothGattFacade(
         private val allowSystemBondCreation: Boolean,
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
+        override var pairingResultSupported = false
+            private set
         private val operations = AndroidGattOperationGate()
         private val protocolInfoDiagnostics = ProtectedProtocolInfoDiagnostics.create(
             appContext as? ProtectedProtocolInfoDiagnosticObserver,
@@ -1311,6 +1314,7 @@ class AndroidBluetoothGattFacade(
         }
 
         private fun scheduleServiceRediscovery(callbackGatt: BluetoothGatt) {
+            pairingResultSupported = false
             protocolInfo = null
             command = null
             stream = null
@@ -1354,6 +1358,12 @@ class AndroidBluetoothGattFacade(
                 fail(BleGattFailure.PERMISSION_REVOKED)
                 return
             }
+            val pairingFeature = try {
+                info?.getDescriptor(pairingResultFeatureUuid) != null
+            } catch (_: SecurityException) {
+                fail(BleGattFailure.PERMISSION_REVOKED)
+                return
+            }
             val profile = AndroidGattProfileSnapshot(
                 hasService = discovered.hasService,
                 protocolInfoReadable = info.hasProperty(BluetoothGattCharacteristic.PROPERTY_READ),
@@ -1372,6 +1382,7 @@ class AndroidBluetoothGattFacade(
                         return
                     }
                     protocolInfo = info
+                    pairingResultSupported = pairingFeature
                     command = commandCharacteristic
                     stream = streamCharacteristic
                     streamCccd = cccd

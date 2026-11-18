@@ -2,6 +2,34 @@
 
 ## 2026-11-18
 
+### OT-0005i Show protected MeshTrail pairing results (D-111)
+
+The protected opt-in status now reports the exact admitted pairing attempt.
+Local durable save shows Paired with board XXXX and Saved on this board; Both
+boards paired requires D-112 peer completion proof. Failed startup cannot
+project an old cached success. The result owner retains one terminal outcome
+for ten minutes during this boot, bounded by owner/reset/new-admission rules,
+and labels same-owner reconnect history. V0 Ready and ordinary reads remain
+compatible. No reply suggests checking the code without claiming a mismatch.
+
+The Android flow polls every five seconds through local save and offers an
+explicit Resume for incomplete work with the original Start/Join roles and a
+new matching code. It does not replay enrollment automatically. All 658 debug
+app tests and 119 protocol tests pass; two final Resume-copy interaction tests
+also pass. Firmware result/owner and dispatcher groups pass 22 and 14; the real
+session suite passes 44, including the genuine cached-success/failed-identity
+regression. Bench admission passes 21 and the actual offline companion recipe
+passes 68 scenarios. Two fresh link-test builds have zero warnings and identical
+841,840-byte images. Required matrix/docs results, exact source binding, command
+ledgers and artifact SHA-256 values are in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-3.md.
+
+This local increment follows D-112 commit 2cb16e7 on the same 4b7e5d5-based task
+branch. Independent source review of the final startup guard is clear. External
+review/publication and owner-present hardware acceptance remain separate. No
+push, PR, device changes, signing or V1 score change. I-073 and D-113 storage
+namespace reconciliation remain board-session/integration prerequisites.
+
 ### OT-0005i Recover interrupted MeshTrail board pairing (D-112)
 
 The product pairing path now records the exact confirmed transaction and durable

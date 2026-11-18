@@ -15,7 +15,8 @@
 //
 // D-112 finishes only after durable peer proof, then answers repeats for
 // kLingerMs. Interrupted decisions recover in their saved transaction on a
-// fresh phone request. Terminal negative history remains available to peers.
+// fresh phone request. D-111 reports a local durable save separately from
+// bilateral proof; historical negative recovery never reports another pair.
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -78,6 +79,7 @@ private:
     companion::DeviceNameAuthority current() noexcept override;
     bool start(const companion::SelectedEnrollmentRequest& phone, std::uint64_t now_ms);
     void end(Phase result);
+    void publish_result(companion::CompanionPairingState, companion::CompanionPairingReason);
     bool same_phone_request(const companion::SelectedEnrollmentRequest& r) const;
 
     HeltecEnrollmentInputArbiter& input_;
@@ -94,6 +96,9 @@ private:
     std::optional<security_evaluation::PairingSessionAdapter> adapter_;
     std::optional<Coordinator> coordinator_;
     Phase phase_{Phase::idle};
+    companion::CompanionPairingReason failure_reason_{companion::CompanionPairingReason::unavailable};
+    bool saw_peer_{false}, sent_any_{false};
+    bool successful_start_{false};
 };
 
 }  // namespace opentrail::target::heltec_v4_bench

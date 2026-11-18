@@ -8,6 +8,7 @@
 #include "opentrail/pairing_session_adapter.hpp"
 #include "opentrail/pairing_completion_archive.hpp"
 #include "opentrail/pairing_recovery_route.hpp"
+#include "../../firmware/targets/heltec_v4_bench/main/board_pairing_result.hpp"
 
 using namespace product_enrollment_test;
 using namespace opentrail::companion;
@@ -683,6 +684,45 @@ unsigned test_recovery_freshness() {
     }
     return groups;
 }
+unsigned test_failed_recovery_does_not_publish_saved_result() {
+    using State = opentrail::companion::CompanionPairingState;
+    using Reason = opentrail::companion::CompanionPairingReason;
+    using opentrail::target::heltec_v4_bench::project_board_pairing_result;
+    Board a(InvitationRole::initiator, 1, 100), b(InvitationRole::responder, 81, 50100);
+    const auto paired = drive(a, b);
+    CHECK(paired.ready_a && paired.ready_b);
+    CHECK(paired.completion_a.phase == PairingCompletionPhase::peer_confirmed);
+    const auto peer = static_cast<std::uint16_t>(
+        (static_cast<unsigned>(paired.completion_a.peer[30]) << 8) | paired.completion_a.peer[31]);
+    const auto verified = project_board_pairing_result(
+        paired.completion_a, true, false, State::failed, Reason::storage);
+    CHECK(verified.state == State::paired_both && verified.reason == Reason::none &&
+          verified.peer_short_id == peer);
+    auto local = paired.completion_a;
+    local.phase = PairingCompletionPhase::committed;
+    const auto verified_local = project_board_pairing_result(
+        local, true, false, State::failed, Reason::storage);
+    CHECK(verified_local.state == State::paired_local && verified_local.reason == Reason::none &&
+          verified_local.peer_short_id == peer);
+    const auto archived = project_board_pairing_result(
+        paired.completion_a, true, true, State::failed, Reason::storage);
+    CHECK(archived.state == State::failed && archived.reason == Reason::storage && archived.peer_short_id == 0);
+
+    // Recovery loads its cached durable observation before validating identity.
+    // A failed start leaves that old phase visible; it must not become a result
+    // for the newly admitted phone action.
+    a.open_request(171);
+    a.identity.arm(Fault::read_error);
+    CHECK(!a.session->start_pairing(a.role, 123456));
+    const auto unverified = a.session->pairing_completion();
+    CHECK(unverified.phase == PairingCompletionPhase::peer_confirmed);
+    CHECK(unverified.peer == paired.completion_a.peer);
+    const auto refused = project_board_pairing_result(
+        unverified, false, false, State::failed, Reason::storage);
+    CHECK(refused.state == State::failed && refused.reason == Reason::storage && refused.peer_short_id == 0);
+    CHECK(a.session->secrets_cleared() && !a.request.pending());
+    return 1;
+}
 }  // namespace pairing_adapter_test
 
 int main(int argc, char** argv) {
@@ -695,6 +735,11 @@ int main(int argc, char** argv) {
             if (name == "vote-deadline") count = pairing_adapter_test::test_vote_deadline_reservation();
             if (name == "journal-mismatch") count = pairing_adapter_test::test_recovery_rejects_other_transaction_journal();
             if (name == "pending-entrypoints") count = pairing_adapter_test::test_pending_pairing_blocks_retained_entrypoints();
+            std::cout << "PASS " << count << " pairing session adapter groups\n";
+            return 0;
+        }
+        if (name == "result-projection") {
+            const auto count = pairing_adapter_test::test_failed_recovery_does_not_publish_saved_result();
             std::cout << "PASS " << count << " pairing session adapter groups\n";
             return 0;
         }
@@ -816,6 +861,7 @@ int main(int argc, char** argv) {
     groups += test_repeated_descriptor_save_failure();
     groups += test_recovery_rejects_other_transaction_journal();
     groups += test_pending_pairing_blocks_retained_entrypoints();
+    groups += test_failed_recovery_does_not_publish_saved_result();
     std::cout << "PASS " << groups << " pairing session adapter groups\n";
     return 0;
 }

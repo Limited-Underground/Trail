@@ -174,16 +174,16 @@ activation, signing, source publication and merge require separate authority.
 | Field | Current pickup state |
 | --- | --- |
 | Reviewed | 2026-11-18 |
-| Task | OT-0005i — recoverable MeshTrail board pairing (D-112; I-059, I-062, I-067). |
-| Owner | Codex owns firmware, real-session host validation and local closeout on feat/d112-d111-pairing-completion. Claude coordinates independent review and any separately approved publication. |
-| Scope | Durable pairing decisions, exact-transaction recovery after restart, terminal negative history and exact ended-request release. |
-| State | Local implementation candidate; focused tests and independent source review pass. Two fresh combined link-test builds and D-112-only target compilation pass with zero warnings. The final combined offline matrix is running; D-111 phone reporting is the next local increment. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Task | OT-0005i — recoverable MeshTrail pairing and protected phone results (D-112, D-111; I-059, I-062, I-067, I-070). |
+| Owner | Codex owns the local firmware/Android candidate and evidence on feat/d112-d111-pairing-completion. Claude coordinates independent review and separately approved publication. |
+| Scope | Durable pairing decisions and exact-transaction recovery; protected result ownership/wire, phone presentation, explicit Resume and compatibility. |
+| State | Local firmware and Android implementation candidate for review. Focused host/app tests and two fresh warning-free link-test builds pass; full final gate detail is in REPORT-3.md. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
 | Source | D:/LimitedUnderground/Build/worktrees/trl-d112, based on 4b7e5d5e66e92132d6a0fcb7690f36bcf2613fb1. The task scope is TASK-3.md under D:/LimitedUnderground/Build/codex-pairing-design. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | 43 real-session groups, 278 membership groups, 10 completion-journal groups and 10 terminal-archive groups pass. Review found no unresolved actionable findings. Two fresh combined images match at 841,840 bytes; D-112-only target files compile against base companion semantics. Final combined gate evidence belongs in REPORT-3.md. |
+| Verified | 44 real-session groups, 278 membership groups, journal/archive 10 each, companion 68 scenarios, result/dispatcher 22/14 groups, bench 21 groups, app debug 658 and protocol 119 tests pass. Two fresh 841,840-byte images match. Exact matrix/docs results and source/artifact hashes are in REPORT-3.md. |
 | Blocker | Physical validation is separate. I-073 must be fixed before a board session; composition with D-113 needs reconciled namespaces, budget, reset inventory and older-image storage policy. |
-| Next action | Finish D-111 and final gates, retain separate local commits, then obtain independent review before any owner-authorized publication or board session. |
+| Next action | Review the two local increments and final evidence before any separately owner-approved publication. Fix/review I-073 before a board session; reconcile storage mapping before combining D-113. |
 | Restrictions | Local branch only. No devices, downloads, credentials, signing, pushes, PRs or GitHub writes. |
-| Latest record | [OT-0005i Recover interrupted MeshTrail board pairing (D-112)](PROGRESS_LOG.md#ot-0005i-recover-interrupted-meshtrail-board-pairing-d-112). |
+| Latest record | [OT-0005i Show protected MeshTrail pairing results (D-111)](PROGRESS_LOG.md#ot-0005i-show-protected-meshtrail-pairing-results-d-111). |
 | Evidence access | Source and tests become clone-visible after publication. Exact command/results, offline input limits, images and future board procedure are task-local in D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-3.md and the worktree build directory. Historical diagnostic primary root remains Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; its grant is consumed. This task does not read that root or run retired tooling. |
 <!-- current-handoff:end -->
 
