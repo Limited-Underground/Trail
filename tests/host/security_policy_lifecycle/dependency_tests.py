@@ -1,6 +1,7 @@
 """Negative admission and selected-compiler checks; no network or retained cache."""
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 import zipfile
 from types import SimpleNamespace
@@ -78,8 +79,122 @@ class Tests(unittest.TestCase):
             self.assertTrue(all(args[0]==selected for args in calls[:-1]))
             self.assertTrue(calls[-1][0].endswith('independent-probe.exe'))
 
+
+class CachedTreeTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.source = self.root / 'cached'
+        self.source.mkdir()
+        self.output = self.root / 'fresh'
+        files = {f'file-{index}': f'content {index}'.encode() for index in range(731)}
+        inventory = {'files': [
+            {'path': name, 'size': len(raw), 'hash': dependency.sha(raw)}
+            for name, raw in files.items()
+        ]}
+        checksums = dependency.json.dumps(inventory).encode()
+        files['CHECKSUMS.json'] = checksums
+        files['.component_hash'] = dependency.COMPONENT_HASH.encode()
+        manifest = ''.join(
+            f'{name}\t{len(raw)}\t{dependency.sha(raw)}\n'
+            for name, raw in files.items()
+        ).encode()
+        self.manifest = self.root / 'tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/source-manifest.sha256'
+        self.manifest.parent.mkdir(parents=True)
+        self.manifest.write_bytes(manifest)
+        for name, raw in files.items():
+            (self.source / name).write_bytes(raw)
+        self.original = files
+        for name, value in (('ROOT', self.root), ('MANIFEST_SHA', dependency.sha(manifest)),
+                            ('CHECKSUM_SHA', dependency.sha(checksums))):
+            replacement = patch.object(dependency, name, value)
+            replacement.start()
+            self.addCleanup(replacement.stop)
+        self.fetch = unittest.mock.Mock(side_effect=AssertionError('cache mode fetched data'))
+
+    def acquire(self):
+        return dependency.acquire(self.output, fetch=self.fetch, cached_component=self.source)
+
+    def test_complete_tree_copied_with_exact_bytes_without_network(self):
+        result = self.acquire()
+        self.assertEqual(result, self.output)
+        self.assertEqual(
+            {p.relative_to(result).as_posix(): p.read_bytes() for p in result.rglob('*') if p.is_file()},
+            self.original
+        )
+        self.fetch.assert_not_called()
+
+    def test_missing_extra_changed_and_truncated_entries_refuse_before_output(self):
+        # Each independent run uses a new cache mutation and restores its bytes.
+        for mutation in ('missing', 'extra', 'changed', 'truncated'):
+            original = self.source / 'file-0'
+            raw = original.read_bytes()
+            if mutation == 'missing':
+                original.rename(self.root / 'retained-file-0')
+            elif mutation == 'extra':
+                (self.source / 'unexpected').write_bytes(b'extra')
+            elif mutation == 'changed':
+                original.write_bytes(b'x' * len(raw))
+            else:
+                original.write_bytes(raw[:-1])
+            with self.subTest(mutation=mutation), self.assertRaises(RuntimeError):
+                self.acquire()
+            self.assertFalse(self.output.exists())
+            if mutation == 'missing':
+                (self.root / 'retained-file-0').rename(original)
+            elif mutation == 'extra':
+                (self.source / 'unexpected').rename(self.root / 'retained-extra')
+            else:
+                original.write_bytes(raw)
+        self.fetch.assert_not_called()
+
+    def test_metadata_or_manifest_mismatch_refuses_before_output(self):
+        for name in ('CHECKSUMS.json', '.component_hash'):
+            file = self.source / name
+            raw = file.read_bytes()
+            file.write_bytes(b'changed metadata')
+            with self.subTest(name=name), self.assertRaises(RuntimeError):
+                self.acquire()
+            file.write_bytes(raw)
+            self.assertFalse(self.output.exists())
+        self.manifest.write_bytes(self.manifest.read_bytes() + b'changed')
+        with self.assertRaises(RuntimeError):
+            self.acquire()
+        self.assertFalse(self.output.exists())
+        self.fetch.assert_not_called()
+
+    def test_symbolic_link_and_junction_refuse_before_output(self):
+        selected = self.source / 'file-0'
+        for name in ('is_symlink', 'is_junction'):
+            actual = getattr(Path, name)
+            def indirect(path):
+                return path == selected or actual(path)
+            with self.subTest(kind=name), patch.object(Path, name, indirect), self.assertRaises(RuntimeError):
+                self.acquire()
+            self.assertFalse(self.output.exists())
+        self.fetch.assert_not_called()
+
+    def test_existing_destination_preserved(self):
+        self.output.mkdir()
+        sentinel = self.output / 'sentinel'
+        sentinel.write_bytes(b'keep')
+        with self.assertRaises(RuntimeError):
+            self.acquire()
+        self.assertEqual(sentinel.read_bytes(), b'keep')
+        self.fetch.assert_not_called()
+
+    def test_source_missing_or_output_inside_source_refused(self):
+        missing = self.root / 'missing'
+        for source, output in ((missing, self.output), (self.source, self.source / 'new-output')):
+            with self.subTest(source=source), self.assertRaises(RuntimeError):
+                dependency.acquire(output, fetch=self.fetch, cached_component=source)
+            self.assertFalse(output.exists())
+        self.fetch.assert_not_called()
+
+
 def run():
-    result=unittest.TextTestRunner(verbosity=0).run(unittest.defaultTestLoader.loadTestsFromTestCase(Tests))
+    result=unittest.TextTestRunner(verbosity=0).run(unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__]))
     if not result.wasSuccessful():raise RuntimeError('dependency admission tests failed')
 
 if __name__=='__main__':run()

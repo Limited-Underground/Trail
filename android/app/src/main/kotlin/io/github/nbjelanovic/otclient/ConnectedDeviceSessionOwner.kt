@@ -62,6 +62,10 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.scanBluetoothDevices()
     }
 
+    override fun retryDiscovery() {
+        if (!closed) controller.retryBluetoothDiscovery()
+    }
+
     override fun authorize(endpointToken: String) {
         if (!closed) controller.selectBluetoothDevice(endpointToken)
     }

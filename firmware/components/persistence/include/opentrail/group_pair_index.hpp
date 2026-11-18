@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -44,6 +45,13 @@ public:
     static constexpr std::size_t kMaximumGroups = 4;
     static constexpr std::size_t kPeersPerGroup = identity::roster::kMaximumMembers - 1;
     static constexpr std::size_t kMaximumPairs = kMaximumGroups * kPeersPerGroup;
+    // Format 2 stores each pair's group as one index into the qualified group
+    // records. Full group and peer identities remain part of every lookup.
+    static constexpr std::size_t kMaximumSerializedBytes = 5 + identity::roster::kFingerprintBytes + 8 +
+        kMaximumPairs * (8 + 1 + identity::roster::kFingerprintBytes + 3 * 4) +
+        kMaximumGroups * (identity::roster::kFingerprintBytes + 8 + 4 + identity::roster::kDigestBytes) + 4;
+    static_assert(kMaximumSerializedBytes <= 2048);
+    static_assert(kMaximumGroups < 0xff);
 
     GroupPairIndex(PersistentKvBackend& backend, const identity::roster::Fingerprint& local)
         : backend_(backend), local_(local) {}
@@ -52,18 +60,56 @@ public:
 
     // Explicit commissioning only. Normal lookups and mutations refuse a missing catalog.
     [[nodiscard]] GroupPairIndexError initialize();
+    [[nodiscard]] const identity::roster::Fingerprint& local_identity() const { return local_; }
+    [[nodiscard]] GroupPairIndexError group_status(const identity::roster::GroupName& group);
     [[nodiscard]] GroupPairIndexResult find(const identity::roster::RosterState& roster,
                                             const identity::roster::Fingerprint& peer);
     [[nodiscard]] GroupPairIndexResult reserve(const identity::roster::RosterState& roster,
                                                const identity::roster::Fingerprint& peer);
 
-    // Retire obsolete pair mappings for a still-active group after its roster changed.
-    // Persist the roster watermark even if this update retires the last pair.
-    // Group-wide retention on leave/distrust is separate. All inactive rosters block use.
+    // Apply the committed, current roster watermark and retire obsolete pairs atomically.
+    // Keep the watermark after the last pair or the local member is removed.
+    // All inactive rosters block lookup and reserve.
     [[nodiscard]] GroupPairIndexError prune(const identity::roster::RosterState& roster);
 
 private:
-    struct Catalog;
+    struct RosterSnapshot;
+    struct Entry {
+        std::uint64_t incarnation{0};
+        identity::roster::GroupName group{};
+        identity::roster::Fingerprint peer{};
+        std::uint32_t local_added{0}, peer_added{0}, roster_version{0};
+        bool names(const identity::roster::GroupName& name,
+                   const identity::roster::Fingerprint& fingerprint) const;
+        bool valid(const identity::roster::Fingerprint& local, std::uint64_t high_water) const;
+    };
+    struct GroupWatermark {
+        identity::roster::GroupName group{};
+        std::uint32_t version{0};
+        identity::roster::Digest digest{};
+        bool current(const RosterSnapshot& roster) const;
+    };
+    static constexpr std::size_t kEntryBytes = 8 + 1 + identity::roster::kFingerprintBytes + 3 * 4;
+    static constexpr std::size_t kGroupBytes =
+        identity::roster::kFingerprintBytes + 8 + 4 + identity::roster::kDigestBytes;
+    static constexpr std::size_t kBodyBytes = 5 + identity::roster::kFingerprintBytes + 8 +
+        kMaximumPairs * kEntryBytes + kMaximumGroups * kGroupBytes;
+    static_assert(kBodyBytes + 4 == kMaximumSerializedBytes);
+    using Blob = std::array<std::uint8_t, kMaximumSerializedBytes>;
+    struct Catalog {
+        std::uint64_t high_water{0};
+        std::array<Entry, kMaximumPairs> entries{};
+        std::array<GroupWatermark, kMaximumGroups> groups{};
+        GroupWatermark* group_for(const identity::roster::GroupName& name);
+        std::size_t pair_count(const identity::roster::GroupName& group) const;
+        bool valid(const identity::roster::Fingerprint& local);
+        void encode(const identity::roster::Fingerprint& local, Blob& blob) const;
+        GroupPairIndexError decode(const Blob& blob, const identity::roster::Fingerprint& local);
+    };
+    struct Workspace {
+        Catalog catalog;
+        Blob serialized{}, readback{};
+    };
     GroupPairIndexError load(Catalog& catalog);
     GroupPairIndexError save(const Catalog& catalog);
     GroupPairIndexResult find_or_reserve(const identity::roster::RosterState& roster,
@@ -71,6 +117,10 @@ private:
 
     PersistentKvBackend& backend_;
     const identity::roster::Fingerprint local_;
+    // One fixed workspace per serialized index owner. Backend callbacks cannot
+    // re-enter the owner while its decoded catalog or transfer buffers are used.
+    Workspace workspace_{};
+    bool busy_{false};
     bool faulted_{false};
 };
 

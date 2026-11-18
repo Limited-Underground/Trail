@@ -58,6 +58,7 @@ data class V1GroupScreenState(
     val canShowQr: Boolean = false,
     val canScanQr: Boolean = false,
     val confirmation: V1GroupConfirmationState = V1GroupConfirmationState.Unsupported,
+    val setupAvailable: Boolean = true,
 )
 
 sealed interface V1GroupUiAction {
@@ -137,6 +138,15 @@ fun V1GroupScreen(
 private fun V1NoGroupContent(
     state: V1GroupScreenState, onAction: (V1GroupUiAction) -> Unit, initiallyCreateGroup: Boolean,
 ) {
+    if (!state.setupAvailable) {
+        Text("Your group", style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.semantics { heading() })
+        state.statusMessage?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (state.confirmation != V1GroupConfirmationState.Unsupported) {
+            V1DeviceGroupConfirmation(state.confirmation, onAction)
+        }
+        return
+    }
     var createSelected by rememberSaveable { mutableStateOf(initiallyCreateGroup) }
     var name by rememberSaveable { mutableStateOf("") }
     // Invitation secrets deliberately do not enter saved instance state.

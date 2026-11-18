@@ -90,6 +90,7 @@ interface ConnectedDeviceSessionPort {
     fun activateReturningOwner(): Boolean = false
     fun refreshPermissionState()
     fun scan()
+    fun retryDiscovery() = Unit
     fun authorize(endpointToken: String)
     fun disconnect()
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false

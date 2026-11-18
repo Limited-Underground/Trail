@@ -275,6 +275,10 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             attached?.scan()
         }
+        override fun retryDiscovery() {
+            assertMainThread()
+            attached?.retryDiscovery()
+        }
         override fun authorize(endpointToken: String) {
             assertMainThread()
             attached?.authorize(endpointToken)

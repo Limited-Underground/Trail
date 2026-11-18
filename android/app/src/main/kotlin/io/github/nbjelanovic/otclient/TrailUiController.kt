@@ -21,6 +21,7 @@ interface TrailUiController {
     fun refreshPermissionState()
     fun startBluetoothService()
     fun scanBluetoothDevices()
+    fun retryBluetoothDiscovery() = Unit
     fun selectBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false

@@ -39,7 +39,7 @@ internal fun V1HomeScreen(
     additionalDeviceTools: @Composable () -> Unit = {},
     onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
-    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
+    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit, onSetUpLater: () -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
         save={ it.save() },restore={ V1HomeLaunchState.restore(it) }) }
@@ -88,15 +88,7 @@ internal fun V1HomeScreen(
         } },
         group = { retainedPages.SaveableStateProvider("group") {
             V1GroupScreen(
-                V1GroupScreenState(
-                    statusMessage = when {
-                        !connected -> "Connect your device to manage a group. V1 group setup requires the upcoming device update."
-                        confirmation == V1GroupConfirmationState.Unsupported ->
-                            "This device's current firmware does not yet support V1 group setup."
-                        else -> "Review the nearby peer before joining."
-                    },
-                    confirmation = confirmation,
-                ),
+                v1LiveGroupScreenState(connected, confirmation),
                 onAction = { action ->
                     when (action) {
                         V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
@@ -133,9 +125,12 @@ internal fun V1HomeScreen(
                         TextButton(onClick = { support = true }) { Text("Help & support") }
                         additionalDeviceTools()
                     }
-                    Box(Modifier.weight(1f)) { deviceContent { scope ->
-                        navigation = navigation.finish(scope,currentRuntime)
-                    } }
+                    Box(Modifier.weight(1f)) {
+                        deviceContent(
+                            { scope -> navigation = navigation.finish(scope, currentRuntime) },
+                            { navigation = navigation.select(V1AppDestination.MESSAGES) },
+                        )
+                    }
                     TextButton(onClick = { setupDraft = true }) { Text("Prepare setup choices") }
                 }
             }

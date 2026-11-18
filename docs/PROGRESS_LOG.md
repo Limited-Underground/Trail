@@ -8,8 +8,86 @@ The new MeshTrail component collects typed, timestamped observations and encodes
 
 The host candidate passes seven codec groups (including all 1,696 single-bit mutations) and ten collector groups. The 20-group bench admission check and documentation checks pass. The full offline security matrix passed all 83 suites and 613 commands; all 1,241 source pins and the new suite pins match the final sources. Both new sources compile separately with strict Xtensa warning flags. The unchanged link-test target builds without warnings (814,192 bytes); it does not include this component. The local task report retains commands, hashes and the cached-dependency admission limit. The collector is deliberately unwired because TASK-6 reserves the existing bench and status files for other work. The [component design](../firmware/components/device_parameters/README.md) gives the source-owner, coherent publication, protected two-fragment response and separate Android logging/export hooks. I-045 remains open until firmware acquisition and Android age display are integrated. No board, app, release or physical acceptance is added.
 
+### OT-0170a Correct five Android usability blockers (D-114)
+
+Set up later now opens Messages without completing setup. Bluetooth-off
+recovery offers Open Bluetooth settings and an explicit retry through the
+existing discovery-route owner. Erase confirmation names the current board,
+uses Erase this board, and explains the board data removed and the phone and
+firmware data retained. The live Group route hides unimplemented create, join
+and QR forms while preserving supported device confirmation.
+
+The starter's submitted pairing code uses an Activity ViewModel bound to the
+current board endpoint and session nonce. Its monotonic deadline is bounded
+by the original five-minute submission window and any earlier board deadline.
+Tab navigation and Activity recreation keep the same attempt. Refusal, bound
+disconnect, changed session, expiry and clock rollback clear it. Unbound
+Activity observation gaps keep the attempt until its deadline. The code does
+not enter saved-instance state or persistent storage.
+
+Implemented November 17 and validated November 18: all 673 Debug unit/UI
+tests and 114 protocol tests passed with no failures or skips. Debug tests
+use one JVM per class to isolate Robolectric Activity/Compose state; no tests
+or assertions were removed. The complete offline run took 5 minutes 30 seconds.
+Documentation checks passed, including 48 documentation tests and 23 Android
+source-admission scenario groups. The local task report records commands,
+results and the test-fixture corrections.
+
+The D-111 pairing-result topic shares the pairing panel and status presentation;
+its acceptance remains separate. Phone verification remains pending.
+
 
 ## 2026-11-17
+
+### OT-0305 Persist verified group catch-up before reply
+
+Durable GroupState instances require exact-scope history hydration before issuing starts. The durable roster owner imports its verified retained member consent, and the pair owner checks the signed start or both binding signatures before importing public epoch facts. Restart never imports a volatile binding or revives traffic. The pair record is now format 2; its 606-byte size and the 262-byte lanes are unchanged.
+
+The responder uses a private, owner-bound verified-start transition. A D-074 catch-up commits and reads back before its reply is published. The initiator likewise persists the verified binding before releasing a confirm. Raw output APIs refuse durable mode, and failed persistence invalidates that peer until hydration. The existing volatile protocol remains available for host composition.
+
+The [pair record suite](../tests/host/group_pair_records_tests.cpp) passed 13 groups including 52 write interruptions, all four live lane rollback refusals, a lost confirm followed by catch-up, genuinely new GroupState owners, borrowed-lane retirement, malformed signed evidence, and maximum-epoch exhaustion. The existing pair suite passed 22 groups and the durable roster suite passed eight. Target restart composition and stack high-water remain integration gates.
+
+### OT-0305 Keep the qualified group catalog within 2 KiB
+
+Owner decision D-122 selects a maximum serialized size of 2,048 bytes. Catalog version 2 stores each mapping's group as a one-byte reference to one of the four full qualified-group records. Full fingerprints and group identities retain their original sizes. The exact catalog size is 1,413 bytes, guarded by a compile-time maximum, and the previous version is refused.
+
+The [index suite](../tests/host/group_pair_index_tests.cpp) passed seven groups, including all 20 mappings in four groups, reopening the maximum catalog, invalid or unused group references, canonical empty mappings and old-version refusal. The size regression failed against the former 2,193-byte format. The roster suite passed eight groups. A removal still makes two commits, now replacing 978 + 1,413 bytes. The single-chunk NVS projection for the catalog falls from 71 entries to 47, before page splits or garbage collection.
+
+### OT-0305 Admit the pinned local dependency through the stock security runner
+
+The stock current-source security runner accepts an explicit `--cached-component` directory. It verifies the exact 733-file manifest, lengths, hashes, checksums metadata and component marker before creating the fresh admitted output. Missing, changed, extra or indirect files are refused. The default archive admission continues to check the pinned archive bytes.
+
+Eighteen [dependency tests](../tests/host/security_policy_lifecycle/dependency_tests.py) passed, including six cache tests, and a real local-cache admission and readback matched every pin. The cache route records its source mode and archive-verification limit in the result. This supports the authorized no-download host gate through the stock entry point.
+
+### OT-0305 Bound the group roster transaction workspace
+
+The roster and pair-index owners now retain one bounded transaction workspace each. Staged state, decoded catalog and serialization/readback buffers stay with the serialized owner, and nested backend callbacks are refused before those buffers can be reused. The catalog format is unchanged in this increment.
+
+The same native GCC `-O2 -fstack-usage` path measured 10,976 bytes before and 896 bytes after across offer, roster save, reconciliation, prune and catalog save. The nested encode frame adds 96 bytes, for a 992-byte measured subtotal. Backend and caller frames are additional. Long-lived owner sizes are 5,592 and 6,688 bytes, so target placement and measured high-water remain board-integration checks. The [roster suite](../tests/host/durable_group_roster_tests.cpp) passed eight groups including malformed and callback-reentry cases, and the [index suite](../tests/host/group_pair_index_tests.cpp) passed six.
+
+### OT-0305 Refuse same-epoch rollback of live group lanes
+
+The live pair storage owner retains the last verified image of each DATA and ACK transmit and receive lane. Every subsequent lane read must match that image. An external older image faults the binding, and the owner advances the image only after a successful write, commit and exact readback.
+
+The four-lane regression reproduced the review finding with zero refusals before the change and four afterward. The [pair suite](../tests/host/group_pair_records_tests.cpp) passed six groups, including 48 write interruption cases. The additional sixteen faults interrupt active counter or replay updates in all four lanes, and leave both existing and newly requested lane access unavailable. This guard has the live binding's lifetime. Whole-flash rollback protection remains outside the design.
+
+### OT-0305 Acknowledge durable group board receipt
+
+The [group ACK](../firmware/components/delivery/include/opentrail/group_ack.hpp) uses the reviewed 16-byte payload and D-120 board-receipt contract. An authenticated, current group route can produce a reply only after the group receive window accepts the message durably, or when a duplicate is verified against that retained admission. The sender matches the reverse route, session, message ID and original DATA counter. Phone presentation has its own event.
+
+Four [host scenario groups](../tests/host/group_ack_tests.cpp) passed, including a cut before commit, uncertain applied writes, durable duplicate replies, and mismatched operation and identity fields. Packet-v1 group routing and ACK transmission still need target composition.
+
+### OT-0305 Bind group pair records to the current roster
+
+The [indexed pair owner](../firmware/components/persistence/include/opentrail/group_pair_records.hpp) persists the verified binding, used and committed epochs, and activation stage for the exact durable roster location and membership incarnation. Per-epoch DATA and ACK counter/replay stores are disjoint. A new binding must commit and read back its prepared state, lanes and activation before any live scope can open traffic storage. Reopen returns public recovery history only. Restart retires the volatile group binding while preserving its epoch history.
+
+Four [host scenario groups](../tests/host/group_pair_records_tests.cpp) passed, including 32 injected interruptions across provisioning, binding, lane setup, activation and commit. They also cover preserved surviving pairs, removal/re-add, missing lane or metadata, and refusal of prior epochs and stale lane handles. The roster owner and index now verify the same local identity before use. Production restart must still consume the durable history through the group session owner, including the accepted authenticated catch-up rule.
+
+### OT-0305 Persist signed group rosters and apply pair changes after commit
+
+The [durable roster owner](../firmware/components/identity/include/opentrail/durable_group_roster.hpp) keeps the signed roster, bounded conflict history, dismissed forks and local member acceptances. Opening rechecks the signed roster and replays the index transition. New roster bytes commit and read back before the index advances its watermark and prunes obsolete mappings in one catalog update. A missing or interrupted record blocks the live owner until successful reopen. Removed peers lose their mapping, and fresh mappings require current membership and its own incarnation.
+
+Six [host scenario groups](../tests/host/durable_group_roster_tests.cpp) passed. They cover cuts at write, commit and readback in both namespaces, reopened conflict state, removal and re-add, and refusal when a required record is missing. A normal removal uses two KV commits and replaces 978 bytes of roster state and 2,193 bytes of catalog state in the host model. The shared reset inventory now names the group namespaces used by these host components.
 
 ### OT-0238c Speed up capture runner verification (I-027, I-048)
 
