@@ -9,6 +9,7 @@
 #include "opentrail/companion_gatt_session.hpp"
 
 namespace opentrail::companion {
+class CompanionPacketOwnerChannel;
 
 inline constexpr std::uint8_t kCompanionAuthorizationProtocolMajor = 0;
 inline constexpr std::uint8_t kCompanionAuthorizationProtocolMinor = 1;
@@ -352,6 +353,7 @@ public:
     [[nodiscard]] CompanionGattAuthorizationStatus status() const;
 
 private:
+    friend class CompanionPacketOwnerChannel;
     [[nodiscard]] CompanionGattAuthorizationError connection_error(
         std::uint16_t connection_handle,
         std::uint64_t transport_generation) const;

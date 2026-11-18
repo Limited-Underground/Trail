@@ -39,12 +39,12 @@ struct Node {
         entropy(random,seed);entropy(identity_random,seed+40);CHECK(identity.initialize());CHECK(identity.public_key(key));
         CHECK(allocator.initialize());CHECK(allocator.allocate(generation));clock.value={{seed+1,seed+2},1101};
     }
-    void prepare(const InvitationKey& signer,const InvitationKey& peer){
+    void prepare(const InvitationKey& signer,const InvitationKey& peer,std::uint64_t group=17){
         endpoint.emplace(random,boot,roles,tx,rx,trust,journal,membership,evidence,binding_proof,clock,port,role,signer);
         if(role==InvitationRole::responder){InvitationBootAuthority previous(boot);CHECK(previous.start());}
         CHECK(endpoint->prepare_identity());
         port.value.context={endpoint->boot_context(),generation,1};port.value.now_ms=100;
-        EnrollmentFingerprintReview review(port,key,role,17);CHECK(review.begin(peer));CHECK(review.show_peer());CHECK(review.poll());
+        EnrollmentFingerprintReview review(port,key,role,group);CHECK(review.begin(peer));CHECK(review.show_peer());CHECK(review.poll());
         port.value.now_ms=101;port.value.button_down=true;CHECK(review.poll());
         port.value.now_ms=1101;port.value.button_down=false;CHECK(review.poll());CHECK(review.take_review(reviewed));
         preparation.emplace(random,identity,allocator,port,std::move(*reviewed));
@@ -66,11 +66,12 @@ inline void restart_node(Node& n,const InvitationKey& signer,unsigned seed) {
 }
 struct ProductPair {
     Node a{InvitationRole::initiator,1},b{InvitationRole::responder,81};
-    ProductPair(){
-        a.prepare(a.key,b.key);b.prepare(a.key,a.key);authorize(1);
+    std::uint64_t group;
+    ProductPair(std::uint64_t group_id=17):group(group_id){
+        a.prepare(a.key,b.key,group);b.prepare(a.key,a.key,group);authorize(1);
     }
     void authorize(unsigned epoch){
-        RetainedEnrollmentIdentities pins{a.key,b.key};EnrollmentPossessionStatement statement{};statement.group=17;
+        RetainedEnrollmentIdentities pins{a.key,b.key};EnrollmentPossessionStatement statement{};statement.group=group;
         statement.initiator_context={a.endpoint->boot_context(),a.generation,a.port.value.context.request};
         statement.responder_context={b.endpoint->boot_context(),b.generation,b.port.value.context.request};
         CHECK(a.preparation->prepare_challenge(statement.initiator_challenge));
@@ -80,7 +81,7 @@ struct ProductPair {
         CHECK(bp.sign(InvitationRole::responder,b.identity,proof.responder_signature));
         std::optional<VerifiedEnrollmentPossession> av,bv;CHECK(ap.verify(proof,av));CHECK(bp.verify(proof,bv));
         CHECK(a.preparation->accept_possession(*av));CHECK(b.preparation->accept_possession(*bv));
-        IndependentInvitationFields f{};f.group=17;f.epoch=epoch;f.signer=a.key;
+        IndependentInvitationFields f{};f.group=group;f.epoch=epoch;f.signer=a.key;
         f.peer_a=a.endpoint->public_identity();f.peer_b=b.endpoint->public_identity();
         f.boot_a=a.endpoint->boot_context();f.boot_b=b.endpoint->boot_context();
         f.nonce.fill(static_cast<unsigned char>(epoch+2));f.issued_a_ms=1101;f.issued_b_ms=1101;f.window_a_ms=60000;f.window_b_ms=60000;

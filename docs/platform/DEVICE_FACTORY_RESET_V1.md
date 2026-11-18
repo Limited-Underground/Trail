@@ -134,7 +134,7 @@ The physical path requires local access to the Trail device and uses the
 designated Heltec user control:
 
 1. Press and hold the control continuously for at least 10 seconds.
-2. At the 10-second threshold, the LCD displays `Erase all Trail data?` while
+2. At the 10-second threshold, the LCD displays `ERASE MESHTRAIL DATA?` while
    no user data has been changed.
 3. Release the control. Release after the threshold arms one 10-second
    confirmation window.
@@ -144,6 +144,9 @@ designated Heltec user control:
    blocked.
 6. After verified reset completion, the device restarts unowned and enters the
    fresh 60-second PIN and advertising window described above.
+
+While the pairing PIN is on screen the device is unowned and holds no user
+data to erase, so the control is ignored and the erase prompt is not shown.
 
 Releasing before the initial 10-second threshold never starts reset. Failing to
 confirm before the second 10-second deadline cancels the request. An additional
@@ -173,6 +176,12 @@ Trail record, including:
 - direct and group contacts, messages, quick statuses, alerts, receipts,
   pending transfers, retry/outbox/queue state, acknowledgements, replay and
   duplicate checkpoints, and user-associated counters;
+- the group namespaces in the `ot_state` partition, including `ot_group_rost`
+  (signed roster, conflict and acceptance history), `ot_group_idx` (pair index and
+  roster watermarks), `ot_group_num` (sender number reservations), and
+  `ot_group_rx` (receive history);
+- the `ot_group_pair` namespace in `ot_state` (group enrollment evidence,
+  activation, epochs and scoped counter/replay records);
 - saved positions, breadcrumbs, archives, routes, location history, and
   location-bearing diagnostic or audit records;
 - user-selected or user-transferred offline map packages, selectors, indexes,

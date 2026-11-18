@@ -46,10 +46,12 @@ class ConnectedDeviceSessionOwner(
         try {
             observer(lastState)
         } catch (_: Exception) {
-            observers.remove(token)
+            removeObserver(token)
             return null
         }
-        return ConnectedDeviceStateObservation { observers.remove(token) }
+        if (closed || !observers.containsKey(token)) return null
+        controller.setStatusRefreshForeground(true)
+        return ConnectedDeviceStateObservation { removeObserver(token) }
     }
 
     override fun refreshPermissionState() {
@@ -60,6 +62,10 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.scanBluetoothDevices()
     }
 
+    override fun retryDiscovery() {
+        if (!closed) controller.retryBluetoothDiscovery()
+    }
+
     override fun authorize(endpointToken: String) {
         if (!closed) controller.selectBluetoothDevice(endpointToken)
     }
@@ -68,6 +74,10 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.disconnectBluetoothDevice()
     }
 
+    override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean =
+        !closed && controller.submitText(recipient, text)
+    override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean =
+        !closed && controller.submitQuickStatus(recipient, status)
     override fun submitAction(request: CompanionActionRequest): Boolean =
         !closed && controller.submitBluetoothAction(request)
     override fun refreshGroupConfirmation(): Boolean = !closed && controller.refreshGroupConfirmation()
@@ -99,6 +109,7 @@ class ConnectedDeviceSessionOwner(
         if (closed) return
         closed = true
         observers.clear()
+        controller.setStatusRefreshForeground(false)
         try {
             controller.observe(null)
         } finally {
@@ -126,13 +137,19 @@ class ConnectedDeviceSessionOwner(
         serviceState = if (closed) ConnectedDeviceServiceUiState.START_REQUIRED else ConnectedDeviceServiceUiState.RUNNING,
     )
 
+    private fun removeObserver(token: Long) {
+        if (observers.remove(token) != null && observers.isEmpty()) {
+            controller.setStatusRefreshForeground(false)
+        }
+    }
+
     private fun notifyObservers(next: TrailAppUiState.BluetoothDevice) {
         observers.toList().forEach { (token, observer) ->
             if (closed) return
             try {
                 observer(next)
             } catch (_: Exception) {
-                observers.remove(token)
+                removeObserver(token)
             }
         }
     }

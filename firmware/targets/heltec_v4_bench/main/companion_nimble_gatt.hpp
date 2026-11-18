@@ -4,6 +4,7 @@
 
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
 #include "opentrail/companion_configuration_dispatcher.hpp"
+#include "opentrail/selected_enrollment_request_owner.hpp"
 
 struct ble_gap_event;
 
@@ -14,9 +15,15 @@ namespace opentrail::target::heltec_v4_bench {
     companion::DeviceNamePersistence&, companion::ConfigurationBaseHandler&,
     companion::RegionPersistence&, companion::PublicProfilePersistence* public_profile = nullptr);
 void service_companion_configuration();
+// R2a: why an admission did not happen. `refused` covers lane, session and
+// security-gate failures, which get no reply; the others are answered with
+// a correlated rejected result so the phone can tell them apart.
+enum class SelectedEnrollmentAdmission : std::uint8_t {
+    refused, admitted, busy, invalid, retired,
+};
 // Called only by the normal selected configuration owner after a kind-2
 // request is decoded. It admits a pending phone request, not enrollment.
-[[nodiscard]] bool admit_selected_enrollment_request(
+[[nodiscard]] SelectedEnrollmentAdmission admit_selected_enrollment_request(
     const companion::DeviceNameContext&, std::uint32_t exchange_id);
 // Application-owner only; no GATT mutex may be held. Must succeed before the
 // existing NimBLE/controller owner disables its shared physical entropy source.
@@ -24,6 +31,12 @@ void service_companion_configuration();
 void invalidate_companion_configuration(bool revoke = false);
 // Terminal containment gate. Must succeed before BLE teardown or reset cleanup.
 [[nodiscard]] bool retire_selected_enrollment_request();
+// V1 F5 R2a: the app task reads the admitted pairing request and a fresh
+// connection authority together, under the GATT lock. It observes (and so
+// expires or cancels) the request but never admits, extends or claims it.
+[[nodiscard]] bool companion_pairing_request_snapshot(
+    companion::SelectedEnrollmentRequest& request,
+    companion::DeviceNameAuthority& authority);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 [[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();

@@ -2,13 +2,16 @@ package io.github.nbjelanovic.otclient
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,9 +34,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,6 +55,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionKind
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
+import io.github.nbjelanovic.otprotocol.CompanionRadioState
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 import io.github.nbjelanovic.otprotocol.COMPANION_FACTORY_RESET_CAPABILITY
 import java.util.Locale
@@ -96,28 +102,71 @@ private data class DeviceSettingsAuthority(
     val sessionNonce: Long,
 )
 
+internal enum class NearbyPermissionDenial {
+    RETRYABLE,
+    SETTINGS_ONLY,
+}
+
+internal fun nearbyPermissionDenial(
+    result: Map<String, Boolean>,
+    isGranted: (String) -> Boolean,
+    shouldShowRationale: (String) -> Boolean?,
+): NearbyPermissionDenial? {
+    // A false rationale alone also describes a permission that has never been requested.
+    val denied = AndroidBlePermissionContract.runtimePermissions.filter {
+        result[it] == false && !isGranted(it)
+    }
+    if (denied.isEmpty()) return null
+    return if (denied.any { shouldShowRationale(it) == false }) {
+        NearbyPermissionDenial.SETTINGS_ONLY
+    } else {
+        NearbyPermissionDenial.RETRYABLE
+    }
+}
+
 @Composable
 fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> Unit = {}) {
     var state by remember { mutableStateOf(controller.state) }
     val homeStateHolder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
+    val activity = LocalActivity.current
+    val pairingCodes = rememberBoardPairingCodeRetention()
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val displayPreferences = remember(context) { AppDisplayPreferences(context) }
+    var showBuildLabel by remember { mutableStateOf(displayPreferences.showBuildLabel()) }
+    var displaySettingSaveFailed by remember { mutableStateOf(false) }
+    var nearbyDenial by rememberSaveable { mutableStateOf<NearbyPermissionDenial?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
-    ) { controller.onNearbyDevicesPermissionResult() }
+    ) { result ->
+        nearbyDenial = nearbyPermissionDenial(
+            result,
+            isGranted = { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED },
+            shouldShowRationale = { activity?.shouldShowRequestPermissionRationale(it) },
+        )
+        controller.onNearbyDevicesPermissionResult()
+    }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { controller.refreshPermissionState() }
-    DisposableEffect(controller) {
-        controller.observe { state = it }
+    DisposableEffect(controller, pairingCodes) {
+        controller.observe { next ->
+            pairingCodes.observe(next, SystemClock.elapsedRealtime())
+            state = next
+        }
         onDispose { controller.observe(null) }
     }
+    ExpireBoardPairingCode(pairingCodes)
 
     val requestNearbyPermissions = {
         if (controller.beginNearbyDevicesPermissionRequest()) {
             permissionLauncher.launch(AndroidBlePermissionContract.runtimePermissions.toTypedArray())
         }
+    }
+    val findBluetoothDevice = {
+        controller.chooseBluetoothDeviceMode()
+        requestNearbyPermissions()
     }
     val openAppSettings = {
         context.startActivity(
@@ -138,6 +187,9 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
     }
     val bluetooth = state as? TrailAppUiState.BluetoothDevice
+    LaunchedEffect(bluetooth?.permissionState) {
+        if (bluetooth?.permissionState == NearbyDevicesPermissionState.GRANTED) nearbyDenial = null
+    }
     val readySession = (bluetooth?.runtimeState as? BleRuntimeState.Ready)?.session
     val settingsSession = readySession?.takeIf { session ->
         deviceSettingsAuthority?.let { authority ->
@@ -147,12 +199,12 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     }
 
     Column(modifier = Modifier.fillMaxSize().imePadding()) {
-      V1StatusStrip(state)
+      V1StatusStrip(state, showBuildLabel = showBuildLabel)
       if (!landscape) additionalTools()
       androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
       Surface(modifier = Modifier.fillMaxSize()) {
         if (bluetooth?.factoryResetConfirmationVisible == true) {
-            FactoryResetConfirmationScreen(controller)
+            FactoryResetConfirmationScreen(readySession, controller)
             return@Surface
         }
         if (settingsSession != null) {
@@ -164,21 +216,33 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             return@Surface
         }
         homeStateHolder.SaveableStateProvider("home") {
+        val appSettings: @Composable () -> Unit = {
+            AppDisplaySettings(showBuildLabel, { show ->
+                val saved = displayPreferences.setShowBuildLabel(show)
+                displaySettingSaveFailed = !saved
+                if (saved) showBuildLabel = show
+            }, displaySettingSaveFailed)
+        }
         V1HomeScreen(
             state = state,
             liveRuntime = { (controller.state as? TrailAppUiState.BluetoothDevice)?.runtimeState },
+            onSubmitQuickStatus = controller::submitQuickStatus,
+            onSubmitText = controller::submitText,
             onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
             additionalDeviceTools = { if (landscape) additionalTools() },
-        ) { onSetupComplete ->
+        ) { onSetupComplete, onSetUpLater ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
                     "Connect below to read your device name and radio-region settings."),
-                onAction = {},
+                onAction = { action ->
+                    if (action == V1OnboardingUiAction.Back) onSetUpLater()
+                },
+                footer = appSettings,
                 connectionContent = {
-                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Find device")
                     }
                 },
@@ -192,7 +256,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                 TrailAppUiState.ChooseMode -> {
                     Text("Connect your Trail device", style = MaterialTheme.typography.titleLarge)
                     Text("Turn on your device and keep it nearby. Android will ask for Nearby Devices permission when needed.")
-                    Button(onClick = controller::chooseBluetoothDeviceMode, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Connect device")
                     }
                 }
@@ -201,6 +265,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     state = current,
                     controller = controller,
                     requestNearbyPermissions = requestNearbyPermissions,
+                    nearbyDenial = nearbyDenial,
                     requestNotificationPermission = requestNotificationPermission,
                     openAppSettings = openAppSettings,
                     openBluetoothSettings = openBluetoothSettings,
@@ -213,6 +278,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                     },
                 )
             }
+            appSettings()
           }
           }
         }
@@ -312,6 +378,7 @@ private fun BluetoothDevicePanel(
     state: TrailAppUiState.BluetoothDevice,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    nearbyDenial: NearbyPermissionDenial?,
     requestNotificationPermission: () -> Unit,
     openAppSettings: () -> Unit,
     openBluetoothSettings: () -> Unit,
@@ -329,17 +396,20 @@ private fun BluetoothDevicePanel(
             "Waiting for Android's permission decision. No scan has started.",
         )
         state.permissionState == NearbyDevicesPermissionState.MISSING -> {
+            val settingsOnly = nearbyDenial == NearbyPermissionDenial.SETTINGS_ONLY
+            val denied = nearbyDenial != null || state.permissionWasDenied
             StatusCard(
-                if (state.permissionWasDenied) "Nearby Devices permission denied" else "Nearby Devices permission required",
-                "Bluetooth scan and connection stay disabled until both Nearby Devices permissions are granted.",
+                if (denied) "Nearby devices access is off" else "Allow nearby devices",
+                if (settingsOnly) "Open app settings, tap Permissions, and allow Nearby devices."
+                else "Trail needs Nearby devices access to find and connect to your board.",
             )
-            Button(onClick = requestNearbyPermissions, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.permissionWasDenied) "Request permission again" else "Allow Nearby Devices")
-            }
-            if (state.permissionWasDenied) {
-                OutlinedButton(onClick = openAppSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Open app permission settings")
+            if (!settingsOnly) {
+                Button(onClick = requestNearbyPermissions, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (denied) "Ask again" else "Allow Nearby Devices")
                 }
+            }
+            OutlinedButton(onClick = openAppSettings, modifier = Modifier.fillMaxWidth()) {
+                Text("Open app settings")
             }
         }
         state.serviceState == ConnectedDeviceServiceUiState.START_REQUIRED -> {
@@ -373,7 +443,9 @@ private fun BluetoothDevicePanel(
             }
         }
         else -> {
-            if (state.notificationPermissionState == NotificationPermissionState.DENIED) {
+            if (state.serviceState == ConnectedDeviceServiceUiState.RUNNING &&
+                state.notificationPermissionState == NotificationPermissionState.DENIED
+            ) {
                 StatusCard(
                     "Service running · reduced notification visibility",
                     "Notification permission is not granted. Android still discloses the foreground service in Task " +
@@ -521,6 +593,14 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Blocked -> {
             StatusCard("Bluetooth unavailable", state.reason.publicText())
+            if (state.reason == BleRuntimeBlock.BLUETOOTH_DISABLED) {
+                Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open Bluetooth settings")
+                }
+                OutlinedButton(onClick = controller::retryBluetoothDiscovery, modifier = Modifier.fillMaxWidth()) {
+                    Text("Try again")
+                }
+            }
             if (
                 state.reason == BleRuntimeBlock.SCAN_PERMISSION_MISSING ||
                 state.reason == BleRuntimeBlock.CONNECT_PERMISSION_MISSING
@@ -546,7 +626,7 @@ private fun BluetoothRuntimePanel(
             StatusCard(
                 "Scan complete",
                 if (state.candidates.isEmpty()) {
-                    "No compatible Trail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
+                    "No compatible MeshTrail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
                 } else {
                     "The scan ended. Choose a compatible device found during this scan, or scan again."
                 },
@@ -717,13 +797,9 @@ private fun PairingHelp() {
 internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
     "A replacement phone cannot take over an owned device. On the device, hold the physical control for at " +
         "least 10 seconds, release when prompted, then short-press within 10 seconds to confirm. The physical " +
-        "factory reset erases all Trail user data. After the verified reset reboots the device unowned, its " +
+        "factory reset erases all MeshTrail user data. After the verified reset reboots the device unowned, its " +
         "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
         "the window closes."
-
-internal const val APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT =
-    "This permanently erases the paired phone, device name, settings, groups, messages, saved locations, and offline maps. " +
-        "Firmware and factory hardware data remain. This cannot be undone."
 
 internal data class AndroidSystemPairingInstructions(
     val beforeActionTitle: String,
@@ -742,13 +818,13 @@ internal fun androidSystemPairingInstructions(
         beforeActionBody =
             "Restart the unowned or just-reset device if its six-digit PIN is not showing. The PIN and pairable " +
                 "window open automatically for 60 seconds after unowned boot. Then tap Authorize this phone and " +
-                "enter the displayed six digits only in Android's system pairing dialog. Trail never receives " +
+                "enter the displayed six digits only in Android's system pairing dialog. MeshTrail never receives " +
                 "or stores the code.",
         startingTitle = "Android system pairing starting",
         startingBody =
             "Keep the automatically opened 60-second PIN window active. If Android asks for a code, enter the " +
                 "six digits shown on the device only in Android's system pairing dialog. If the PIN is no " +
-                "longer showing, cancel, restart the unowned device, and retry. Trail never receives or stores " +
+                "longer showing, cancel, restart the unowned device, and retry. MeshTrail never receives or stores " +
                 "the code.",
         pendingTitle = "Secure pairing completed",
         pendingBody =
@@ -767,6 +843,27 @@ private fun BluetoothReadyPanel(
     val device = connectedDevicePresentation(session.configuration)
     StatusCard(device.title, device.detail)
     SnapshotSummary("Device status", session.snapshot)
+    if (session.boardPairing != null) {
+        androidx.compose.runtime.key(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
+            val pairingCodes = rememberBoardPairingCodeRetention()
+            val scope = BoardPairingCodeScope(session.companion.endpointToken, session.sessionNonce)
+            V1BoardPairingPanel(
+                session.boardPairing,
+                retainedInitiatorCode = pairingCodes.current(scope, session.boardPairing, SystemClock.elapsedRealtime()),
+                onInitiatorCodeSubmitted = { code ->
+                    if (code == null) pairingCodes.clear()
+                    else pairingCodes.retain(scope, code, SystemClock.elapsedRealtime())
+                },
+            ) { request ->
+                val current = ((controller.state as? TrailAppUiState.BluetoothDevice)
+                    ?.runtimeState as? BleRuntimeState.Ready)?.session
+                current != null && current.sessionNonce == session.sessionNonce &&
+                    current.companion.endpointToken == session.companion.endpointToken &&
+                    current.configuration.editorSessionId == session.configuration.editorSessionId &&
+                    controller.submitBluetoothAction(request)
+            }
+        }
+    }
     var editConfiguration by remember(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
         mutableStateOf(false)
     }
@@ -837,22 +934,22 @@ private fun DeviceSettingsScreen(
 }
 
 @Composable
-private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
+private fun FactoryResetConfirmationScreen(session: BleActiveSession?, controller: TrailUiController) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Erase all Trail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Erase ${factoryResetBoardName(session)}?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
                 "Keep the device nearby",
-                "After you confirm, Trail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
+                "After you confirm, MeshTrail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = { controller.confirmFactoryReset() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Erase all Trail data")
+            Button(onClick = { controller.confirmFactoryReset() }, enabled = session != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Erase this board")
             }
             OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")
@@ -879,13 +976,13 @@ private fun FactoryResetNotVerifiedReason.factoryResetPublicText(): String = whe
     FactoryResetNotVerifiedReason.MALFORMED_RESPONSE ->
         "The reset response was invalid. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE ->
-        "Trail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
+        "MeshTrail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT ->
         "This exact device did not show its verified unowned state before the check ended. No success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED ->
         "The observed device did not match the reset target. It was ignored, no success is claimed, and the saved device record was kept."
     FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED ->
-        "The reset device was observed unowned, but Trail could not safely remove its saved record. Completion is not claimed."
+        "The reset device was observed unowned, but MeshTrail could not safely remove its saved record. Completion is not claimed."
 }
 
 @Composable
@@ -905,7 +1002,7 @@ private fun CandidateList(candidates: List<Pair<String, String>>, connect: (Stri
 @Composable
 private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
     Text(
-        "$title · radio ${snapshot.radio.publicLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
+        "$title · ${snapshot.radio.deviceStatusLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
             "power ${snapshot.power.publicLabel()} · position ${snapshot.positionSharing.publicLabel()} · " +
             "queued ${snapshot.queuedActionCount}",
         style = MaterialTheme.typography.bodyMedium,
@@ -1071,6 +1168,8 @@ private fun BleRuntimeBlock.publicText(): String = when (this) {
     BleRuntimeBlock.PLATFORM_UNSUPPORTED -> "The real Bluetooth path requires Android 12 or newer."
     BleRuntimeBlock.BLUETOOTH_UNAVAILABLE -> "This phone does not expose the required Bluetooth Low Energy adapter."
     BleRuntimeBlock.BLUETOOTH_DISABLED -> "Turn on Bluetooth, then scan again."
+    BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED ->
+        "Android refused the Bluetooth state check. Verify Nearby Devices permission, then retry discovery."
     BleRuntimeBlock.SCAN_PERMISSION_MISSING,
     BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
     -> "Nearby Devices permission is required before Bluetooth can continue."
@@ -1081,7 +1180,7 @@ private fun BleRuntimeFailure.publicText(): String = when (this) {
     BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS -> "Two nearby devices showed the same setup label. Restart one of the devices awaiting setup and scan again, then match the Trail label on its display."
     BleRuntimeFailure.SETUP_LABEL_CHANGED -> "A nearby device's setup label changed or became invalid. Scan again and match the current Trail label on your Heltec display."
     BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS ->
-        "More than one bonded Trail device answered. Reconnect stopped without choosing or storing an identity."
+        "More than one bonded MeshTrail device answered. Reconnect stopped without choosing or storing an identity."
     BleRuntimeFailure.CONNECTION_START_FAILED -> "The selected companion connection ended or could not start."
     BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> "The companion did not meet the required security checks."
     BleRuntimeFailure.MTU_NEGOTIATION_FAILED -> "The companion could not negotiate the required message size."
@@ -1134,6 +1233,13 @@ private fun BleNegotiationPhase.publicText(): String = when (this) {
     BleNegotiationPhase.AUTHORIZATION_CLAIM -> "Waiting for an exact device authorization result."
     BleNegotiationPhase.INITIAL_SNAPSHOT -> "Waiting for the initial authoritative device status."
 }
+
+internal fun CompanionRadioState.deviceStatusLabel(): String =
+    when (this) {
+        CompanionRadioState.UNAVAILABLE -> "radio status not reported"
+        CompanionRadioState.UNKNOWN -> "radio status unknown"
+        else -> "radio ${publicLabel()}"
+    }
 
 private fun Enum<*>.publicLabel(): String = name.lowercase().replace('_', ' ')
 

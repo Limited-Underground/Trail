@@ -1,6 +1,129 @@
-# Limited Underground MeshTrail progress log
+# OpenTrail Progress Log
+
+## 2026-11-18
+
+### OT-0341 Device parameters collector and codec for logging (F11)
+
+The new MeshTrail component collects typed, timestamped observations and encodes a strict 212-byte version-1 record. Twelve independent availability groups distinguish missing data from valid zero and retain source age. Collection and serving refuse clock rollback, source timestamps from the future and sequence exhaustion. The record contains no device/peer identifiers, coordinates or private payloads.
+
+The host candidate passes seven codec groups (including all 1,696 single-bit mutations) and ten collector groups. The 20-group bench admission check and documentation checks pass. The full offline security matrix passed all 83 suites and 613 commands; all 1,241 source pins and the new suite pins match the final sources. Both new sources compile separately with strict Xtensa warning flags. The unchanged link-test target builds without warnings (814,192 bytes); it does not include this component. The local task report retains commands, hashes and the cached-dependency admission limit. The collector is deliberately unwired because TASK-6 reserves the existing bench and status files for other work. The [component design](../firmware/components/device_parameters/README.md) gives the source-owner, coherent publication, protected two-fragment response and separate Android logging/export hooks. I-045 remains open until firmware acquisition and Android age display are integrated. No board, app, release or physical acceptance is added.
+
+### OT-0170a Correct five Android usability blockers (D-114)
+
+Set up later now opens Messages without completing setup. Bluetooth-off
+recovery offers Open Bluetooth settings and an explicit retry through the
+existing discovery-route owner. Erase confirmation names the current board,
+uses Erase this board, and explains the board data removed and the phone and
+firmware data retained. The live Group route hides unimplemented create, join
+and QR forms while preserving supported device confirmation.
+
+The starter's submitted pairing code uses an Activity ViewModel bound to the
+current board endpoint and session nonce. Its monotonic deadline is bounded
+by the original five-minute submission window and any earlier board deadline.
+Tab navigation and Activity recreation keep the same attempt. Refusal, bound
+disconnect, changed session, expiry and clock rollback clear it. Unbound
+Activity observation gaps keep the attempt until its deadline. The code does
+not enter saved-instance state or persistent storage.
+
+Implemented November 17 and validated November 18: all 673 Debug unit/UI
+tests and 114 protocol tests passed with no failures or skips. Debug tests
+use one JVM per class to isolate Robolectric Activity/Compose state; no tests
+or assertions were removed. The complete offline run took 5 minutes 30 seconds.
+Documentation checks passed, including 48 documentation tests and 23 Android
+source-admission scenario groups. The local task report records commands,
+results and the test-fixture corrections.
+
+The D-111 pairing-result topic shares the pairing panel and status presentation;
+its acceptance remains separate. Phone verification remains pending.
 
 ## 2026-11-17
+
+### OT-0305 Persist verified group catch-up before reply
+
+Durable GroupState instances require exact-scope history hydration before issuing starts. The durable roster owner imports its verified retained member consent, and the pair owner checks the signed start or both binding signatures before importing public epoch facts. Restart never imports a volatile binding or revives traffic. The pair record is now format 2; its 606-byte size and the 262-byte lanes are unchanged.
+
+The responder uses a private, owner-bound verified-start transition. A D-074 catch-up commits and reads back before its reply is published. The initiator likewise persists the verified binding before releasing a confirm. Raw output APIs refuse durable mode, and failed persistence invalidates that peer until hydration. The existing volatile protocol remains available for host composition.
+
+The [pair record suite](../tests/host/group_pair_records_tests.cpp) passed 13 groups including 52 write interruptions, all four live lane rollback refusals, a lost confirm followed by catch-up, genuinely new GroupState owners, borrowed-lane retirement, malformed signed evidence, and maximum-epoch exhaustion. The existing pair suite passed 22 groups and the durable roster suite passed eight. Target restart composition and stack high-water remain integration gates.
+
+### OT-0305 Keep the qualified group catalog within 2 KiB
+
+Owner decision D-122 selects a maximum serialized size of 2,048 bytes. Catalog version 2 stores each mapping's group as a one-byte reference to one of the four full qualified-group records. Full fingerprints and group identities retain their original sizes. The exact catalog size is 1,413 bytes, guarded by a compile-time maximum, and the previous version is refused.
+
+The [index suite](../tests/host/group_pair_index_tests.cpp) passed seven groups, including all 20 mappings in four groups, reopening the maximum catalog, invalid or unused group references, canonical empty mappings and old-version refusal. The size regression failed against the former 2,193-byte format. The roster suite passed eight groups. A removal still makes two commits, now replacing 978 + 1,413 bytes. The single-chunk NVS projection for the catalog falls from 71 entries to 47, before page splits or garbage collection.
+
+### OT-0305 Admit the pinned local dependency through the stock security runner
+
+The stock current-source security runner accepts an explicit `--cached-component` directory. It verifies the exact 733-file manifest, lengths, hashes, checksums metadata and component marker before creating the fresh admitted output. Missing, changed, extra or indirect files are refused. The default archive admission continues to check the pinned archive bytes.
+
+Eighteen [dependency tests](../tests/host/security_policy_lifecycle/dependency_tests.py) passed, including six cache tests, and a real local-cache admission and readback matched every pin. The cache route records its source mode and archive-verification limit in the result. This supports the authorized no-download host gate through the stock entry point.
+
+### OT-0305 Bound the group roster transaction workspace
+
+The roster and pair-index owners now retain one bounded transaction workspace each. Staged state, decoded catalog and serialization/readback buffers stay with the serialized owner, and nested backend callbacks are refused before those buffers can be reused. The catalog format is unchanged in this increment.
+
+The same native GCC `-O2 -fstack-usage` path measured 10,976 bytes before and 896 bytes after across offer, roster save, reconciliation, prune and catalog save. The nested encode frame adds 96 bytes, for a 992-byte measured subtotal. Backend and caller frames are additional. Long-lived owner sizes are 5,592 and 6,688 bytes, so target placement and measured high-water remain board-integration checks. The [roster suite](../tests/host/durable_group_roster_tests.cpp) passed eight groups including malformed and callback-reentry cases, and the [index suite](../tests/host/group_pair_index_tests.cpp) passed six.
+
+### OT-0305 Refuse same-epoch rollback of live group lanes
+
+The live pair storage owner retains the last verified image of each DATA and ACK transmit and receive lane. Every subsequent lane read must match that image. An external older image faults the binding, and the owner advances the image only after a successful write, commit and exact readback.
+
+The four-lane regression reproduced the review finding with zero refusals before the change and four afterward. The [pair suite](../tests/host/group_pair_records_tests.cpp) passed six groups, including 48 write interruption cases. The additional sixteen faults interrupt active counter or replay updates in all four lanes, and leave both existing and newly requested lane access unavailable. This guard has the live binding's lifetime. Whole-flash rollback protection remains outside the design.
+
+### OT-0305 Acknowledge durable group board receipt
+
+The [group ACK](../firmware/components/delivery/include/opentrail/group_ack.hpp) uses the reviewed 16-byte payload and D-120 board-receipt contract. An authenticated, current group route can produce a reply only after the group receive window accepts the message durably, or when a duplicate is verified against that retained admission. The sender matches the reverse route, session, message ID and original DATA counter. Phone presentation has its own event.
+
+Four [host scenario groups](../tests/host/group_ack_tests.cpp) passed, including a cut before commit, uncertain applied writes, durable duplicate replies, and mismatched operation and identity fields. Packet-v1 group routing and ACK transmission still need target composition.
+
+### OT-0305 Bind group pair records to the current roster
+
+The [indexed pair owner](../firmware/components/persistence/include/opentrail/group_pair_records.hpp) persists the verified binding, used and committed epochs, and activation stage for the exact durable roster location and membership incarnation. Per-epoch DATA and ACK counter/replay stores are disjoint. A new binding must commit and read back its prepared state, lanes and activation before any live scope can open traffic storage. Reopen returns public recovery history only. Restart retires the volatile group binding while preserving its epoch history.
+
+Four [host scenario groups](../tests/host/group_pair_records_tests.cpp) passed, including 32 injected interruptions across provisioning, binding, lane setup, activation and commit. They also cover preserved surviving pairs, removal/re-add, missing lane or metadata, and refusal of prior epochs and stale lane handles. The roster owner and index now verify the same local identity before use. Production restart must still consume the durable history through the group session owner, including the accepted authenticated catch-up rule.
+
+### OT-0305 Persist signed group rosters and apply pair changes after commit
+
+The [durable roster owner](../firmware/components/identity/include/opentrail/durable_group_roster.hpp) keeps the signed roster, bounded conflict history, dismissed forks and local member acceptances. Opening rechecks the signed roster and replays the index transition. New roster bytes commit and read back before the index advances its watermark and prunes obsolete mappings in one catalog update. A missing or interrupted record blocks the live owner until successful reopen. Removed peers lose their mapping, and fresh mappings require current membership and its own incarnation.
+
+Six [host scenario groups](../tests/host/durable_group_roster_tests.cpp) passed. They cover cuts at write, commit and readback in both namespaces, reopened conflict state, removal and re-add, and refusal when a required record is missing. A normal removal uses two KV commits and replaces 978 bytes of roster state and 2,193 bytes of catalog state in the host model. The shared reset inventory now names the group namespaces used by these host components.
+
+### OT-0238c Speed up capture runner verification (I-027, I-048)
+
+The MeshTrail host capture runner now checks each Windows path component with
+one file attribute lookup. It refuses every reparse tag, checks ancestors again
+on each request, and retains the file type, containment, size and hash checks.
+The regression accepts a request, replaces its parent with a junction to the same
+bytes, and then verifies refusal. On other hosts it tests a directory symlink.
+The full suite still exceeds 300 seconds under profiling on the local PC, so
+the security matrix runs all capture tests in two separately timed groups.
+That complete run exposed the later pre-device resume suite at its existing
+90-second limit; its 58 tests passed standalone in 109 seconds. The same
+discovery splits that suite into two groups, preserving 90 seconds for each.
+The full offline security matrix passed 83 suite results with no timeouts.
+Capture groups passed 15/14 tests in 98.766/111.362 seconds; pre-device
+resume groups passed 29/29 in 48.081/48.885 seconds. The operator tests
+(17), runtime capsule tests (16), and documentation tests (48) also passed.
+The standalone capture profiles passed all 29 tests before (267.936 seconds)
+and after (312.405 seconds); full-suite wall time did not improve in those
+two samples. Alternating path-only runs measured a 27 percent helper saving.
+The matrix used all 733 files verified from the prescribed existing managed
+component tree; official ZIP admission was not repeated under the no-download
+rule. The local task report contains timings, CI evidence and the input limit.
+This is host tooling evidence only.
+
+### OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)
+
+- Merged current main (PR #274) into the listen-before-talk branch for PR #275. Only the documentation conflicted; the handoff keeps this task.
+- No code change. Retry of dropped copies is described in the 2026-11-16 entry below.
+
+### OT-0005i Board screen shows the real radio state (I-044)
+
+The owner's photos from the sixth board session showed the Heltec home screen saying "REGION US915 TX OFF" and "RADIO --" while the link-test boards were transmitting on US915 (D-079).
+- **Link-test builds:** with US915 saved and the radio running, the screen now shows `REGION US915 TX ON`, and `RADIO TX`, `RADIO RX` or `RADIO IDLE` for recent activity.
+- **Normal builds:** these do not transmit, and show `TX OFF` and `RADIO OFF`.
+
+Tests: the OLED port and presentation host tests and bench admission (20 groups) pass; the link-test build is 812,496 bytes, with no warnings (Codex).
 
 ### OT-0266b Limited Underground MeshTrail Repeater RadioLib bounds review (I-011)
 
@@ -21,6 +144,73 @@
 
 ## 2026-11-16
 
+### OT-0005i Retry pairing copies dropped before radio launch (I-061)
+
+The MeshTrail bench radio reports confirmed pre-launch discards to the pairing coordinator. A discarded pairing copy returns its send slot and is eligible for re-offer under the current request window, reserves and send floors. The app resolves the drop before accepting a new offer and discards pending pairing bytes when their runtime ends. It preserves receive-before-launch ordering and the three-backoff CAD limit.
+
+The queued-radio regression replayed the responder handshake and final-control drops across eight seeds each. Both boards paired in every replay with feedback. Before feedback, the handshake case paired neither board and the final-control case paired only the responder, with the same three-backoff limit. Validation and exact image provenance belong to the local task report. Board validation remains pending, and I-059 and I-062 still track completion under RF loss and asymmetric commitment.
+
+### OT-0305 Persist the group receive window on the host
+
+The [durable receive state](../firmware/components/delivery/include/opentrail/group_receive_state.hpp) validates the existing frame and admission rules, then stores the bounded number window and content checksums before returning a new message for display. The state is scoped to the full group, receiving identity and sender, and survives rekey and pair-slot reuse. It stores no message body. Conflicting, duplicate, too-old and refused frames do not advance it.
+
+Five new [host scenario groups](../tests/host/group_receive_state_tests.cpp) passed, as did the ten existing group frame and delivery groups. The tests include restart, scope separation, failure before and after commit, readback faults, receive admission and retained capacity. A crash after committing the window can suppress a retry before the message reaches the user. The target ACK and presentation path still needs that ordering bound and tested.
+
+### OT-0305 Index durable group pair storage on the host
+
+The [group pair index](../firmware/components/persistence/include/opentrail/group_pair_index.hpp) maps the full group name and peer fingerprint to a bounded slot under `ot_state`. It checks the local fingerprint, both membership versions and the roster watermark. New mappings are published only after their catalog update commits and reads back exactly. A later roster removes obsolete mappings before those slots can be reused under fresh incarnations. Older or conflicting views cannot recover a retired mapping.
+
+The caller must supply the current accepted roster and complete its durable update first. Pair data, counters and keys have separate owners. The [host suite](../tests/host/group_pair_index_tests.cpp) passed five scenario groups, including scope separation, removal and re-addition, stale and conflicting rosters, capacity, restart and uncertain storage writes. The KV catalog and capacity are host-tested candidates for target review.
+
+### OT-0005i Fast identity reads during board pairing (I-068, I-069)
+
+The fifth owner-present board session (main `b72f372`) paired both boards for the first time. The final save still blocked each board's main task for 26 s, which fired the task watchdog and dropped both phones (BLE-GATT-AUTHORIZATION-REJECTED) until the boards were restarted (I-068). Each confirm poll took about 1.1 s (I-069). Storage reads were already fast (0.4 s per attempt, I-066).
+
+- **Cause.** A host probe with real sessions timed every pairing service call and counted the expensive operations:
+  - the final save takes about 6 ms on the PC, with only 9 signature checks on the initiator and 18 on the responder (about 0.2-0.5 s on the ESP32-S3, at 22-27 ms per check from the recorded benchmarks);
+  - the board identity record, however, is read about 11,300 times per pairing per board, about 6,500 of them during the final exchange and save.
+
+  On the board, every `EnrollmentIdentityNvsStorage::read_slot` opens NVS, walks the namespace and runs the reset-marker check twice (`nvs_get_used_entry_count`, a partition scan). At about 4 ms per read, that matches the 26 s, and the hundreds of reads per confirm poll match the 1.1 s.
+- **Fix.** `EnrollmentIdentityNvsStorage` keeps the bytes it last verified in NVS under its guard.
+  - **When the copy is used:** only while no write is pending and the reset generation is unchanged.
+  - **When it changes:** a write drops it, a verified sync refreshes it, and any fault wipes it.
+  - **Reset safety:** the factory-reset marker write (`HeltecV4FactoryResetMarkerStorage::commit_intent_and_readback`) now bumps the reset generation before it touches NVS, so a reset in progress always forces the next read back to NVS and the marker check.
+  - **Logging:** the board logs each attempt's identity reads (cache and NVS).
+- **Tests.** `enrollment_identity_nvs_tests` grows to 18 groups:
+  - repeated reads are served without NVS while a fresh owner still sees NVS errors;
+  - a write drops the copy;
+  - the marker write and a factory reset each end it.
+
+  Two existing groups now check NVS read errors on a fresh owner, which is what every pairing attempt creates. Codex review: the record holds the private seed, so retiring the identity owner (pairing handoff, reset containment) now wipes and permanently disables the storage copy (`retire_cache`); the owner test checks that no seed copy remains after retire and after a verified reset erase, and identity NVS grows to 19 groups. `OT-0238b-IDENTITY-NVS` describes the cached read. The target reset composition (27 groups), public profile settings (37) and bench admission (20) suites pass.
+
+### OT-0005i Five-minute pairing window and a faster pairing save (D-110, I-066)
+
+The fourth owner-present board session (main `b0fd006`) got through the whole radio exchange for the first time, but both attempts ran out of the 2-minute window. The people steps took most of it, and the final save took 15+ s, with board B's watchdog firing twice (I-066). Owner decision D-110: a 5-minute window.
+
+- **Window.** The phone request for board pairing, the board attempt (`Limits::attempt_limit_ms`) and the app countdown (`BOARD_PAIRING_WINDOW_MILLIS`) are now 300 s. `SelectedEnrollmentRequestOwner` takes its limit as a setting: the bench target's GATT admission and the board's mirror use `kBoardPairingLimitMs` (300 s), and every other user keeps `kPreparationLimitMs` (120 s). The fingerprint review keeps its 120 s default, and accepts a request deadline up to 300 s (`maximum_review_window_ms`). The hello repeats up to 70 times, so it still covers the window (D-106). After a board's clock mark, the signed invitation is valid for up to 180 s, because it must cover the code check, the final messages and the save. Only board pairing issues and expects it (`kBoardPairingInvitationWindowMs`, set with `EnrollmentCandidateSession::set_invitation_window` before start); every other session, including enrollment evaluation and rekey, keeps the 60 s default (`kIndependentInvitationDefaultWindowMs`). The decoding ceiling `kIndependentInvitationMaximumWindowMs` is 180 s so that retained board-paired records still re-verify later (Codex review). New session groups: board pairing with 180 s on both sides, and a 60 s board refusing a 180 s invitation in either direction. The two evaluation commands that take an externally signed invitation directly (Pair Bench `OTPAIR1 INV`, Enrolled Bench `OTENROLL1 BEGIN`) refuse a window over 60 s before anything claims the invitation (`independent_invitation_within_default_window`); a new group in each bench test checks the refusal.
+- **Save (I-066).** A host count with real sessions found 66,608 storage reads in one pairing, against 52 writes. 47,148 of the final-phase reads were the same session-generation ledger slot, which the session re-checks before every storage operation. On the board each read is an NVS lookup in the 1 MB `ot_state` partition. `PairingNvsStorage` now keeps a 16-slot RAM copy of recently read slots (`pairing_slot_cache.hpp`). It is the only writer of the partition: it drops a slot when a write or erase of it starts, stores the verified bytes after sync, and clears the cache on any fault or retire. The checks are unchanged. At the end of each attempt the board logs that attempt's storage cost: cache hits, NVS reads and their time, and the budget checks (`nvs_get_stats` plus `nvs_get_used_entry_count`, which scan the partition) and their time, and `service took … ms at step …` when one pairing service call blocks 200 ms or more, so the next session can confirm the gain.
+- **Tests.** New `pairing_slot_cache_tests` (4 groups). The coordinator scenario groups keep an explicit 120 s profile, since every rule is relative to the window, and a new group covers the 300 s defaults: joins at 0, 120 and 240 s, slow confirmations up to about 4 minutes (both boards or neither), and a silent peer. `pairing_coordinator_tests` grows to 16 groups. The invitation tests use the shared maximum, and the request-owner tests cover the 300 s board limit. The session, device-session and fingerprint-review tests use the shared invitation window and the 300 s review maximum, and the OT-0005i composition pins for `independent_invitation.hpp` and `enrollment_fingerprint_review.hpp` are updated (68 scenarios pass). Link-test build 811,632 bytes, no warnings. The app's countdown text and test now say 5:00, and the expired message no longer names a length.
+
+### OT-0170a Clarify Android radio status and scroll App settings
+
+I-044 and the owner's Device layout report. The Limited Underground MeshTrail Android app reports saved region results without inferring radio activity. A board that sends unavailable radio telemetry now appears as “radio status not reported.” App settings is at the end of the Device scroll in both connected and first-use views. The first-use heading uses MeshTrail (D-100). Pairing and Bluetooth connection code retain their existing behavior.
+
+Host validation and the read-only usability review are in the local task report. Phone acceptance remains pending.
+
+### OT-0170a Restore V1-Test compilation (I-053)
+
+V1-Test failed to compile on `b0fd0063` because the connection trace did not
+classify `BLUETOOTH_STATE_READ_DENIED`. It now records the exact reason using
+the existing log record format. The variant's checked-in JVM tests are wired
+into Gradle and exercise every runtime block through log write, reload, and
+export. The host workflow requires the Android V1-Test compilation job.
+
+### OT-0305 Reserve durable group message numbers on the host
+
+First storage increment of [step 3b](security/GROUP_PAIRWISE_V1.md#implementation-order). [Group message numbers](../firmware/components/delivery/include/opentrail/group_message_numbers.hpp) binds a sender's sequence to the full group name (admin fingerprint and group ID) and the full local sender fingerprint. The host candidate commits and reads back the high-water mark in batches of 32 before issuing a number. Reopening skips unused numbers, and the last batch ends at the 32-bit limit. A missing or invalid record refuses allocation. The [host test](../tests/host/group_message_number_tests.cpp) passed four C++17 scenario groups under warnings-as-errors, including failures before and after commit, failed read-back, reboot, group identity isolation and exhaustion.
+
+The KV layout is a candidate. It requires a serialized owner and atomic replacement of one committed record. Next: select the production per-pair index and group record lifecycle, link roster and pair updates in durable order, and persist the receive window. Group acknowledgements, reset coverage and the wear check remain open.
+
 ### OT-0266b Limited Underground MeshTrail Repeater US915 follow-up (I-012)
 
 - Updated the US915 proposal to retain the 915.000 MHz / 125 kHz receive
@@ -38,6 +228,879 @@
   [Session kit](testing/REPEATER-RECEIVE-ONLY-POWER-SESSION.md) ·
   [US915 proposal](testing/REPEATER-US915-SETTINGS-PROPOSAL.md)
 
+## 2026-11-15
+
+### OT-0005i Fix pairing retries and late joining found on the boards (I-057, I-058)
+
+The third owner-present board session (2026-11-15, main `ab3642b`, pairing records cleared) found two faults. Both are fixed here.
+
+- **I-058, a regression from PR #268.** `PairingNvsStorage` tracked its keys in a table sized for generations 0-2 and indexed it with only the last generation digit. Raising the capacity to 32 meant the third attempt read past the table; the storage then faulted and the start was refused with reason 9. Board A was refused after 2 accepted starts, which matches this defect; board B was refused after 1, and its log cannot show which allocator check refused, so the board result stays open until the next session. The key mapping now lives in `pairing_storage_key.hpp`: all 8 generation digits, a table sized from `kCapacity`, and any malformed or out-of-range key maps to a guard slot and faults. New `pairing_storage_key_tests` (3 groups) covers every key for generations 0-32 and shows the old index overflowing at generation 3 and aliasing generation 16 to 0.
+- **I-057.** Each board sent its first frame (the candidate hello) at most twice, about 2 s apart, and could not answer the peer's repeats after that. The board started second (its person still typing the code) never received the first board's hello. The hello now repeats for the whole 120 s window, up to 30 sends (owner decision D-106); every other frame keeps the D-087 limit of 2. New coordinator group: a joiner 30 s and 100 s late still pairs, and one after the window cannot; it fails 7 checks on the previous coordinator.
+- **First independent review (Codex): request changes.** Both boards repeated the hello on the same 5 s schedule; the radios are half-duplex, so in a host model where frames sent in the same instant both get lost, the boards collided on every repeat. The same happened right after the hello: both boards send their next frame together after the shared review step, and with 2 sends each, a collision left one board waiting forever. The roles are now kept out of step: the starter repeats the hello every 5 s and the joiner every 4.3 s; the joiner holds each new frame 0.6 s (more than one frame's airtime at SF7, under 0.3 s) and resends other frames every 2.3 s instead of 3 s; a hello answered because the peer repeated waits at least 1 s after the previous send. New half-duplex group: both start orders, simultaneous start, every start offset 0-20 s in 0.1 s steps, and joins 30-95 s late all pair; joins in the last 10 s of the window are never paired on one side only; with the role offsets turned off the boards never pair (the control). `pairing_coordinator_tests` grows to 14 groups. Also from the review: the key formatter is shared by the storage and its test (`pairing_storage_key::format`), keys are passed as 16-byte arrays, and a reason-9 refusal now logs which allocator check refused (`allocator=`, 1-9; 4 is capacity).
+- **Second independent review (Codex): request changes.** Two more faults, found with a model of real airtime:
+  - A board stopped resending a frame once it heard the peer's copy of the same exchange. If its own copy had collided, the peer waited forever. A board now resends each frame until a later frame from the peer proves it arrived.
+  - A confirmation in the last seconds let the responder commit after the initiator had expired. A board now starts the final exchange only with 15 s of its window left.
+  Tracing the new airtime model (frames on air for their SF7 airtime, a busy radio refuses new frames, overlapping frames both lost) found two more causes:
+  - boards answered into the rest of the peer's burst; neither board now transmits until 0.5 s after it last heard the peer;
+  - the two boards echoed hello answers back and forth; hellos are no longer answered, and nor is any frame already proven received.
+  Even so, with 2 sends per frame, 2.1% of 10,000 simulated pairings with random start offsets, review and confirmation times failed from collisions alone; with 4 sends none did, and with 5% random loss 0.4% failed and none was one-sided. Owner decision D-107 raises the limit to 4 sends. A new coordinator group covers different review times on each board, any single lost frame with the joiner 4.4 s late, and late joins (0-119 s in 0.5 s steps) with slow confirmations, which must pair both boards or neither. With the final reserve turned off, 21 of 7,648 of those runs paired one side only (the control). The previous coordinator fails 62 of the new checks. `pairing_coordinator_tests` grows to 15 groups. Also from the review: the key decoder applies the same generation-0-only rule for namespaces 7-10 as the writer, the capacity constant is shared by the storage and its test, and the allocator always reports a failure code when it refuses; the generation storage tests now check the codes.
+  Known limit, recorded as I-059: if every copy of the responder's last control frame is lost, the responder is paired and the initiator is not.
+- **Third independent review (Codex): request changes.** The 15 s reserve checked only the board's own window, and only for its first control. With A confirming early and B (started 61 s later) confirming at 118 s, B passed its own check, A sent its second control at 119.6 s and expired at 120 s, and B committed at 120.6 s. Every control now needs time left (15 s for the first, 10 s for each later one), measured to the earlier of the board's window and its session's deadlines: the phone request, and the signed invitation's 60 s. `EnrollmentCandidateSession::completion_remaining_ms()` reports them through the adapter. In the new sweep (B confirming from 1 s to 110 s, four join offsets, either role first, and an earlier session deadline on either board), 5 of 2,640 runs were one-sided with only the first-control check and none with the new rule. Also:
+  - the board loop now hands received frames to pairing before asking it for a frame to send, so the 0.5 s quiet rule sees them on the same tick (the review showed a queued hello launched 100 ms after a receive);
+  - a queued answer is dropped once the frame is proven received;
+  - the test radio refuses offers while on air, as the board does, instead of skipping the coordinator.
+  With 5% random loss, 2 of 10,000 simulated pairings were one-sided (I-059) and 39 failed on both boards; with no loss, all paired.
+- **Fourth independent review (Codex): request changes.** Two more one-sided cases:
+  - The board can start after the phone request was admitted (the radio hold), so the deadline the final exchange used could end after the original phone request, which the board enforces every tick. Fixed: the adapter now takes the original request's deadline (`PairingSessionAdapter(session, outer_deadline_ms)`, from `BoardPairingRuntime::start`), and `completion_remaining_ms()` uses the earliest of the three. Also, a control frame, first copy or resend, is offered to the radio only with 3 s left (`final_send_floor_ms`). New tests: an adapter group checks the bound, and the coordinator sweeps every B confirmation time with A's phone request admitted 20 s before A's board started, either role first.
+  - The responder sends its last control and then saves; if the save fails or its request is withdrawn after that frame reached the radio, the initiator pairs alone (I-062). Also, a frame already in the radio queue can launch in the same poll that picks up a received frame (I-063). Owner decision D-108: both are tracked for a proper design and do not block the fourth board session.
+- **Fifth independent review (Codex, narrow): request changes.** The original-deadline fix passed. The single 3 s floor could block the one resend that repairs a lost final reply: with A's radio holding its transmits until 5.8 s before A's deadline and B's final control lost, A's resend at 2.8 s left was suppressed and only B was paired. The first copy of a control now needs 6.5 s (that copy and one resend), a resend 2 s. New coordinator case: an 8.5 s transmit hold on A starting anywhere from 95 s to 119 s, with B's final control lost once; both boards or neither in every run (8 one-sided runs under the previous single 3 s floor).
+- **Sixth independent review (Codex, narrow): request changes.** The 2 s resend floor let A's last resend collide with B's final reply when B's radio had been holding its transmits; the resend floor is back to 3 s (Codex's recommendation, with the 6.5 s first-copy floor). A wider host sweep (an 8.5 s hold on either board at any time in the last 25 s, with and without B's final reply lost) then found one-sided runs with every floor setting tried (11 to 27 of 1,928 runs), so the floors only move the boundary. On the board a hold during a running attempt can only come from the saved region no longer allowing transmit, so `BoardPairingRuntime` now ends the attempt at once in that case. The coordinator test keeps holds on A without loss, and B's final reply lost (checked by content, not a resend of its first control) at join offsets of 0-48 s without a hold: both boards or neither in every run.
+
+Bench admission passes; link-test build 810,784 bytes, no warnings.
+
+### OT-0005i Allow pairing retries and log why a start is refused (I-055)
+
+The second owner-present board session (2026-11-15, main `e6670f5`) stopped at the review step: both boards logged `pairing: start refused`. Every pairing attempt, even a failed or interrupted one, permanently consumes one session generation, and the bench pairing storage allowed only 2. Both boards had used theirs in earlier attempts that day.
+
+- `PairingNvsStorage::kCapacity` is now 32. The worst-case pairing budget is 1,044 NVS entries, about 3% of `ot_state`; the formula is in the code and checked at compile time. A factory reset restores the capacity.
+- `EnrollmentCandidateSession::start_refusal()` names the exact check that refused a start: repeated, no request, invalid setup, retained preflight, journal not empty, retained records, stale request, identity, generations, or other. The board logs each refusal with its reason, so a refusal is never a bare "start refused" again.
+- A new session test group starts interrupted attempts until the capacity is used, then checks the `generations` reason; 168 session groups pass.
+
+Freeing the records of failed attempts, so retries can never run out, stays open under I-055; it needs its own design and review (R2A-5).
+
+### OT-0005i Fix the board pairing stack overflow; longer startup logo (V1 F5, D-088)
+
+First owner-present two-board pairing session (2026-11-15, main `7b66fcc` on boards A and B): both boards started pairing from the phones, exchanged pairing frames over LoRa in both directions and showed the review pages. Board A then stopped with `A stack overflow in task main has been detected` and rebooted; board B's main task fell to 1,520 free bytes. Board pairing runs the Noise session on the 8,192-byte main task; the confirmation evaluation, which runs the same session crypto, already used 24,576.
+
+- Link-test builds (the only builds with board pairing) now add `sdkconfig.lora-link-test.defaults`: main task stack 24,576 bytes. CMake refuses a link-test build whose resolved stack is smaller, because an existing `sdkconfig` overrides the defaults; build with `-DSDKCONFIG=<build dir>/sdkconfig`. Normal builds keep 8,192.
+- The startup logo, with the firmware version (D-081), now stays at least 5 s instead of 1.2 s (owner decision D-088), counted from when the logo is on screen rather than from app entry (independent audit finding). Urgent screens (phone PIN, reset, faults) still replace it at once.
+
+Tests: BLE stack configuration (7, 3 skipped as before) and bench target admission (20 groups) pass. Fresh builds: link test 808,672 bytes (stack 24,576), default 606,464 bytes (stack 8,192), no warnings. The pairing pass waits for a second board session.
+
+### OT-0170a Apply the MeshTrail Android display name
+
+Owner decision D-089 and [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The Android app uses Limited Underground MeshTrail for the launcher, home-screen accessibility label and notification title. Reset and recovery copy, support-share subjects, and the MeshTrail V1-Test label and log heading use the new name. The existing wordmark image stays for the separate artwork change. Application IDs, signing configuration, version code, Bluetooth UUIDs, the Trail-XXXXXX setup label and saved-state and support formats retain their prior values. The rename follows the local board-session fixes. Phone update verification remains pending.
+
+### OT-0170a Recover the owned board session and retain the pairing code
+
+Part of [Trail #97](https://github.com/Limited-Underground/Trail/issues/97). The 2026-11-15 Note20 session exposed two returning-owner defects and a pairing display defect:
+
+- I-050: When Android accepts the noncreating service bind but supplies no callback, the Activity releases that binding after one second and tries the existing foreground-only owned-board route. A current service callback cancels the deadline.
+- I-050: After a returning-owner link failure, Scan again uses the bonded owned-board scan and a fresh protected claim. Logcat showed advertisements from the same board during both failed retries and the later successful connection after restart. The old retry was looking for an unowned setup advertisement.
+- I-052: The initiator's six-digit code remains visible while the Device panel waits for the board and during the admitted window. It is held in memory and is cleared on refusal, expiry or panel dismissal. The board still owns the confirmation and result.
+
+The four focused regressions failed on the unchanged base. Post-fix validation is recorded in the task report. The candidate has not been tested on phones.
+
+### OT-0178a Show the MeshTrail name on the board (D-089)
+
+Owner decision D-089 renames the product to Limited Underground MeshTrail. On the Heltec V4:
+- The startup logo keeps the LIMITED UNDERGROUND top line and replaces the retired LT/TRAIL art with the new Linked Route symbol (owner decision D-091) and the MeshTrail wordmark. In one colour the three nodes have a thin gap so they read as dots on the route. The bottom row stays blank for the firmware version (D-081). Bitmap SHA-256 `e6a3e6ff...6227`.
+- The reset question reads "ERASE MESHTRAIL DATA?" (21 characters, one row) on both display paths.
+
+The Bluetooth setup label `Trail-XXXXXX`, identifiers, storage and protocol are unchanged. Host tests pass (startup display 19 groups, Heltec OLED presentation 8, OLED presentation 9, bench target 20). Default build 606,464 bytes, no warnings. Not flashed: renamed firmware goes on the boards only after the F5 R2 pairing passes.
+
+### OT-0175a Messaging checklist for Trail issue 158
+
+Closes checklist scope only: [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). See the [acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
+
+### OT-0005i Start first board pairing from the app (V1 F5 R2b)
+
+Part of [Trail #232](https://github.com/Limited-Underground/Trail/issues/232). The Device tab lets an authorized owner start or join first board pairing. Start generates a six-digit code and Join accepts the same code, including leading zeros. Android sends action 6 with the selected role and code over the existing protected BLE configuration lane, clears the input on send, and shows the two-minute window after admission. A correlated firmware reply distinguishes Busy, Policy Denied and Unavailable. Silence uses the existing timeout with no automatic resend. The owner still compares fingerprints and confirms the pairing on each board.
+
+Validated offline against main at 3999660 (PR #255): 114 protocol tests, 622 Android debug unit tests including the pairing UI, and 23 Android operational-release admission groups passed. The owner-present two-board session and the later authenticated message exchange remain pending.
+
+### OT-0178a Show the firmware version on the startup screen
+
+Owner decision D-081. The Heltec V4 startup screen now shows the firmware version on the bottom row of the Trail logo, which the artwork leaves blank. The text is "FW <version>", with "FW R<n> <version>" for a Firmware Loader release. It is the same version the boot log reports (`esp_app_get_description()`), for example "FW C486A42A-DIRTY" for a development build from uncommitted changes.
+
+New `draw_text_row` in the OLED presentation component draws one sanitized row, clipping long text with "~". `oled_presentation_tests` grows to 9 groups. The bench target admission now pins the logo-copy drawing and checks that the logo's bottom row stays blank. Builds: default 606,464 bytes, link test 808,672 bytes, no warnings. Showing the version in the app may wait until after V1 (D-081).
+
+### OT-0005i Show board pairing on the screen (V1 F5, step R2a)
+
+The board's normal screen now shows the pairing state in place of the group/location row:
+- "PAIRING..." while an attempt runs;
+- then "PAIRED - THIS BOARD" or "PAIRING FAILED" for 60 seconds.
+
+The wording does not claim the other board committed; that point came from the R2a review. The new `BoardPairing` field in the OLED presentation snapshot defaults to `none`, so every other frame is unchanged. Exclusive surfaces (factory reset, failure, region required) keep priority. `oled_presentation_tests` grows to 8 groups. The heltec presentation tests and the bench target admission (20 groups) pass. Builds: link test 808,000 bytes, default 605,792 bytes, no warnings.
+
+### OT-0176a Location sharing checklist for Trail issue 159
+
+Closes checklist scope only: [Trail #159](https://github.com/Limited-Underground/Trail/issues/159). See the [acceptance checklist](testing/OT-176-LOCATION-SHARING-ACCEPTANCE-CHECKLIST.md). Covers requirements 6 and 7 and records open design/code differences. No design change or device execution; parent and device acceptance remain open.
+
+### OT-0170a Reconnect to the owned board and refresh device status
+
+- I-023: On a cold launch with Nearby Devices already granted, the visible app can recover the user's board using Android's bond inventory and the bounded owned Trail service scan. A unique candidate still has to pass the existing protected claim and snapshot. The temporary binding ends when the app leaves the foreground. No board identity is saved by Trail, and no background service is started on launch.
+- I-023: The first Find device tap requests Nearby Devices. A denial explains how to continue through app settings, and offers another request when Android permits it. The broader wording work remains separate.
+- I-045: The selected board configuration profile reuses its protected status request about every 30 seconds and on foreground return. A single shared command lane guards each request. Stale, contradictory and expired replies leave the displayed status age unchanged.
+
+Offline host validation passed with 111 protocol tests, 631 app tests and 23 Android admission scenario groups. Both unit suites had zero failures, errors or skips. The two-phone and two-board checks remain pending. Scope tracked under [issue #97](https://github.com/Limited-Underground/Trail/issues/97).
+
+## 2026-11-14
+
+### OT-0005i Fix the R2a review findings before the board session (V1 F5)
+
+An independent review of PRs #253 and #254 asked for changes. The fixes are listed in [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md#independent-review-and-fixes-2026-11-14):
+- **Lost final control:** commit now waits for radio acceptance, and the runtime keeps answering the peer for 15 s after a local commit.
+- **Send accounting:** sends count only when the radio accepts them, and an attempt starts only when transmit is permitted (owner decision D-087: 120 s window, 2 sends).
+- **Cancellation:** every tick re-reads the exact phone request, and a stopped radio ends the attempt.
+- **Reset fence:** a storage lock for factory reset from the BLE side.
+- **Storage:** mounted once per boot.
+- **Rejection reply:** a correlated rejected result for a refused pairing request, with a new `busy` reason (7), so the app can tell busy from silence.
+
+Tests:
+- `pairing_coordinator_tests` grows to 12 groups (final-control loss with and without linger, refused offers not counted, commit waits for acceptance, held transmit spends nothing).
+- `companion_semantics_tests` grows to 17 groups (busy and rejection bytes). Its summary line had printed 15 since PR #253; now corrected.
+- `pairing_session_adapter_tests` reports radio acceptance.
+- Bench target admission pins the reply mapping. The OT-0005i composition pins are updated for the codec change.
+
+Builds: link test 807,712 bytes, default 605,648 bytes, no warnings.
+
+### OT-0005i Compose first board pairing in the product firmware (V1 F5, step R2a, slices 4 and 5a-5c)
+
+Plan: [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md). Follows the request role and code, LoRa frames and coordinator from PR #253.
+- [`pairing_session_adapter.hpp`](../firmware/components/security_evaluation/include/opentrail/pairing_session_adapter.hpp) connects the coordinator to the enrollment session:
+  - converts each session value to and from its exact frame payload, with explicit little-endian fields;
+  - drives the local steps through the session's review observer: own key, peer key and transcript, each confirmed by a press on the board;
+  - adds no trust decision.
+- [`pairing_nvs_storage.cpp`](../firmware/targets/heltec_v4_bench/main/pairing_nvs_storage.cpp): owner decision D-086. The pairing records need about 204 NVS entries and do not fit the default NVS. They go in a standard NVS instance inside the existing 1 MB `ot_state` partition (`nvs_flash_init_partition_ptr`), opened only when pairing starts and modelled on the board-tested evaluation storage. Factory reset unmounts it before erasing `ot_state`. No partition table change.
+- [`board_pairing_runtime.cpp`](../firmware/targets/heltec_v4_bench/main/board_pairing_runtime.cpp) starts one enrollment session per admitted product pairing request:
+  - It mirrors the phone request into an app-task owner. The phone request keeps governing, through a locked GATT snapshot (`companion_pairing_request_snapshot`) that reports the authority unavailable once that request ends.
+  - It hands the board identity from the load-only boot owner to the session.
+  - The review uses the existing BOOT/OLED arbiter.
+- `app_main`, in link-test blocks only:
+  - services the runtime and sends its frames when transmit is permitted (D-079);
+  - passes non-beacon frames to it;
+  - pauses beacons while pairing;
+  - closes pairing before factory reset.
+  The radio build adds the confirmation evaluation's supporting sources and refuses to be combined with it.
+
+Tests and builds:
+- New `pairing_session_adapter_tests` (security matrix): two real sessions pair over a simulated link with three presses per board; pairing survives a lost frame early and late; a different code never pairs; a mutant corrupting one offer field fails.
+- Bench target admission: 20 groups. Factory-reset storage admission passes.
+- Builds: link test 807,008 bytes, default 605,616 bytes, no warnings.
+
+Not yet run on a board. The phone side (R2b) and an OLED status line are still to come.
+
+### OT-0005i Start first board pairing: request role and code, LoRa pairing frames and coordinator (V1 F5, step R2a)
+
+Plan: [F5-R2-BOARD-PAIRING-PLAN.md](security/F5-R2-BOARD-PAIRING-PLAN.md). Pairing starts from the phone (D-082) and runs over LoRa (D-076). Owner decision D-085: the phone that taps Start pairing shows a 6-digit code, and the other phone types it on Join pairing. Each phone sends its role and the code, which becomes the pair's group number. A peer board never selects either. Existing enrollment owners are reused; this change adds three slices:
+- Action 6 (`start_enrollment`) now carries the role at byte 16 and the code little-endian at bytes 17-19, validated in the codec ([`companion_enrollment_role.hpp`](../firmware/components/companion/include/opentrail/companion_enrollment_role.hpp)). `SelectedEnrollmentRequestOwner` keeps them; evaluation requests carry neither.
+- [`pairing_frame.hpp`](../firmware/components/protocol/include/opentrail/pairing_frame.hpp): a 6-byte header (`OP`, version and type, code) and an exact payload size per session message. The invitation travels as payload and signature, so the largest frame is 194 bytes, under the 255-byte radio MTU. Frames with another code are ignored.
+- [`pairing_coordinator.hpp`](../firmware/components/protocol/include/opentrail/pairing_coordinator.hpp): each board's fixed script, in the order of the two-endpoint session tests. It buffers early frames, repeats while waiting (at most 2 sends per frame, D-078), and answers a repeated peer frame with exactly the frame that peer still needs. It never decides trust: the enrollment session authenticates every payload.
+
+Tests: `companion_semantics_tests` (15 groups, one new), `selected_enrollment_request_owner_tests` (one new group), new `pairing_frame_tests` (4 groups) and `pairing_coordinator_tests` (8 groups, including recovery from any single lost frame; a mutant without repeat answers fails 11 checks). The bench target source checks (20 groups) pin the role and code admission. The security matrix's enrollment candidate preparation group (45) passes. The product firmware builds with no warnings. Not yet done: the session adapter, the target composition and the two-board session.
+
+### OT-0318a Show the Android app build beside Bluetooth
+
+Owner decision D-080 adds the exact app build to the status strip, on by default. Gradle generates a version and source-commit label, marks an uncommitted tree with `-dirty`, includes non-release build types, and reports `unknown` when Git cannot establish the source. The owner approved a small App settings section on the existing Device tab because there was no app-settings screen; its show/hide switch uses phone-local SharedPreferences and needs no device connection. After the first install the owner reported that the front camera covered part of the label, so it now sits on its own line under the status icons, and the layout test checks that it is below every icon. D-081's firmware version is not added to the app. With the missing test libraries downloaded (owner approved), `:app:testDebugUnitTest` passes 617 tests with 0 failures, including the 11 new formatting, persistence and 360 dp and 1440 px layout tests. The debug-key-signed build of `330810f` is installed on the Note20 and the S24 (same SHA-256 on both), and both show `1.0.0-dev · 330810f · debug` clear of the camera. No device, protocol or Bluetooth behavior is changed.
+
+### OT-0005i Fix the product LoRa driver findings from the R1 review (V1 F5)
+
+An independent Codex review of the R1 driver asked for changes before it carries pairing or Packet-v1 traffic. All six confirmed findings are fixed:
+- F1 (High), TX launch could block forever on the radio's BUSY line. With the radio enabled, the product build now replaces RadioLib's two affected translation units with the same pinned, SHA-256-checked bounded copies the evaluation targets use (`tools/pair_radio_driver_source.py`).
+- F2, a queued transmission discarded a frame that had already arrived. The driver now stops reception and collects any completed frame before TX staging clears the flags and the FIFO.
+- F3, a stale header error dropped a valid frame. It now uses RadioLib's rule: a header error counts only without a valid header.
+- F4, the region was checked at enqueue. The driver now asks a transmit grant at every launch (D-079: region US915 saved) and drops and counts a frame that is no longer permitted; without a grant it never transmits.
+- F5, a completed transmission serviced late became a permanent fault. Completion is now inspected before the time limit is applied.
+- F6, the bench target test's LoRa filter accepted `#else` and extended conditions. It now accepts only exact opt-in blocks and has regression cases for both bypasses.
+
+New `tests/host/heltec_v4_lora_driver_tests.cpp` (6 scenario groups) runs the real driver against stubs that model the chip's flag behavior (`tests/host/heltec_v4_lora_stubs`). A mutation check re-creating each finding was caught 9 of 9 times. The bench target test has 20 groups, including the filter and bounded-RadioLib checks. A bench diagnostic in the link-test build logs the raw packet-status bytes and the status replies served to a phone: on the boards the chip reports packet RSSI 0 (raw `00 3x 00`), and a phone that connected seconds after a board restart got GNSS "unknown" for the whole session because the app reads status once per connection.
+
+## 2026-11-13
+
+### OT-0005i Put the LoRa radio in the product firmware, with a bench link test (V1 F5, step R1)
+
+Owner decision D-075 (hardware first) moves Trail to V1 item F5, authenticated one-to-one messages between two boards. The product target `heltec_v4_bench` had no LoRa code. [`heltec_v4_lora.hpp`](../firmware/targets/heltec_v4_bench/main/heltec_v4_lora.hpp) adds a continuous SX1262 transport (the `RadioTransport` interface), adapted from the OT-234 evaluation driver that passed a two-board handshake on 2026-09-15, with the same close-bench profile (915 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 2 dBm). RadioLib 7.7.1 is pinned as in `heltec_v4_radio_diag`. The opt-in build `-DOPENTRAIL_LORA_LINK_TEST=ON` (development builds only) starts the radio and sends an unauthenticated 21-byte beacon about every 5 s ([`lora_link_test.hpp`](../firmware/targets/heltec_v4_bench/main/lora_link_test.hpp)); each board logs the beacons it hears with RSSI and SNR, and the screen footer shows the LoRa TX/RX arrow. Normal builds do not start the radio. `tests/host/lora_link_test_tests.cpp`: 3 scenario groups. The bench target admission test now admits the new files and allows LoRa code in the application only inside `OPENTRAIL_LORA_LINK_TEST` blocks. Not authenticated messaging. On 2026-11-13 it passed on boards A and B (owner present). Only the app region was written, after `verify-flash` matched the installed apps to their restore files. Beacons went both ways with no receive errors and no resets: A sent 173 and heard all 88 of B's, B heard 87 of A's, SNR about +12.5 dB. The phone stayed connected to A over Bluetooth. Found: the RSSI field always reads 0, and the test transmits although the board shows "region required". Both are now fixed. The packet status is decoded from the chip's reply in [`lora_packet_status.hpp`](../firmware/targets/heltec_v4_bench/main/lora_packet_status.hpp), because RadioLib 7.7.1 `getRSSI()` returns the third status byte instead of the packet RSSI. The link test transmits only when region US915 (catalog id 1) is saved: owner decision D-079 makes that the transmit grant. It follows [decision 0104](decisions/0104-freeze-ot169-v1-user-experience-profile.md) and, for US915, replaces [decision 0110](decisions/0110-protected-region-selection-without-transmit-authority.md)'s rule that a saved region is not a transmit grant. Host tests: 5 scenario groups.
+
+### OT-0305 Implement group frames, receiving and delivery state on the host (group design step 3a)
+
+First part of step 3 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), in the delivery component (host-only): [`group_frame.hpp`](../firmware/components/delivery/include/opentrail/group_frame.hpp) encodes and strictly decodes the 14-byte group header (version, body length, roster version, digest prefix, message number; big-endian) with a body of 1 to 80 bytes (94-byte plaintext at the Heltec V4 MTU) and strict UTF-8 for texts. [`group_inbox.hpp`](../firmware/components/delivery/include/opentrail/group_inbox.hpp) holds the receiving rules (members on the newest roster with an active pair only; newer roster held back; same version with another digest refused; positions refused when the location rule is off; each message shown once per sender and number, with gaps counted and filled by late arrivals; a reused number with different content shown as a conflict) and the sender's delivery state per member for up to 16 sent messages (the oldest complete one is dropped first, otherwise the oldest). `tests/host/group_frame_tests.cpp`: 10 scenario groups; a mutation check of 35 rule removals was caught. A Codex review accepted it with two low findings (delivery retention wording; a test fixture that kept a pointer into a copied buffer), both fixed, plus window-boundary and number-limit regressions. Not yet: durable message numbers, durable receive state, the indexed per-pair storage and factory-reset coverage (step 3b), and the group acknowledgement format. No device was touched.
+
+### OT-0305 Implement group pair setup on the host (group design step 2)
+
+Step 2 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), without the handshake suite or key derivation (not selected), in [`group_pair.hpp`](../firmware/components/identity/include/opentrail/group_pair.hpp): one `PairOwner` per pair of non-admin members runs the start / reply / confirm exchange in which both identities sign one binding (group name, roster version and digest, epoch, both fingerprints in role order, both fresh session keys, both challenges, both boot tokens, lifetime), so each side holds its own challenge signed back by the peer. The owner needs the older member's acceptance and the newer member as starter for a first pairing, history for this membership for a rekey, settles crossing starts atomically, answers a budget of distinct verified starts per window, and keeps the durable steps (verified binding, ACTIVATION_POSSIBLE, commit) private; an interrupted attempt is retired and never resumed. The roster's member acceptance tap and fingerprint lookup support it. A first version (`9176227`) was reviewed before merge; see below.
+
+Independent review of that version (read-only, by a reviewer who did not write the code) rejected it with ten confirmed findings: loose objects the caller wired together let a cached authority, a retained ledger or a retired attempt still produce a verified binding after removal, re-addition or restart; numeric ledger steps committed without evidence; the confirm signer was not pinned; an unheard old start could reserve an epoch and use the answer budget; the responder restarted the lifetime; crossing starts could reuse a number; unverified roster hints were acted on. The step was redesigned as one pair owner per pair, with owner decisions D-072 (epoch used only on a verified binding; catch-up of one) and D-073 (60 s per side). A second review of that redesign (`485b81a`) rejected it again: two lost confirms in a row left the boards two epochs apart, a bound attempt could still activate and commit after removal, a substitute roster object or a duplicated or moved owner could complete a second binding, replayed starts could displace the live answer, cached replies escaped the budget and a roster change, an expired or ineligible own start still won a crossing, and caller-supplied challenges could be reused. The final design makes `GroupState` the single authority (roster and pair records together; it is neither copied nor moved); applying a roster ends records of removed or re-added members and drops affected attempts; activation and commit take the exact epoch and recheck the roster; a start at used + 2 proves the peer's progress so the gap stays at most one; crossing ignores expired starts and lets an introduced pair start beat a rekey; up to three pending answers are kept; repeated replies are budgeted and checked against the roster; challenges come from the board's random source. `tests/host/group_pair_tests.cpp`: 20 scenario groups, with the probes of both reviews as regressions. A third review (`29162d6`) rejected that design for a signed catch-up claim alone moving the responder's floor (settled by owner decision D-074: a start signed by the peer counts as proof of the peer's progress; only that peer can claim it, so a dishonest member only harms its own pair), a delayed start retiring activation intent, old starts evicting a live answer after the budget window reset, cancel leaving pending answers live, epoch-only activation selecting a later membership's binding, a reentrant signer changing the roster mid-step, and distrust keeping pair records. Fixed: activation intent stays until a new binding verifies or restart, and a board holding it may start a rekey; live pending answers are never displaced; cancel retires pending answers; activation and commit name the binding by id; pair steps refuse nested roster changes; a conflict drops unfinished work and stopping trust ends the pair records. A fourth review (`d72c56c`) confirmed D-074 is implemented as decided and rejected the step for: move assignment letting a kept binding id select another group's binding, a signer callback moving the group state or changing the caller's message so that an issued binding did not match its signatures, and an older activation intent still committing after a catch-up proved a later epoch. Fixed: the group state can no longer be moved, binding ids are unique across all groups, every pair step copies its incoming message before any callback, and commit (like activation) is refused once a later epoch is used; the design now states the pending-answer and roster-conflict exceptions exactly. A fifth review (`82aae0d`) accepted the step for the host scope with no new confirmed defect; its one low note (an input stored inside the output result) is handled by copying inputs before clearing the output. `tests/host/group_pair_tests.cpp`: 22 scenario groups including the probes of all five reviews. Mutation check: all deliberate rule removals are caught except second checks that applying the roster already guarantees. No device was touched.
+
+### OT-0305 Implement the signed group roster on the host (group design step 1)
+
+Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order): the roster record, digest chain, signature domain and member acceptance rules, including roster conflict, in [`group_roster.hpp`](../firmware/components/identity/include/opentrail/group_roster.hpp) (identity component, host-only). The signature, digest and fingerprint primitives stay behind an interface because the design selects none; the version-1 byte layout is a candidate (a 6-member roster with 16-byte aliases is at most 439 bytes, within 5 frames of 94 bytes). Acceptance pins the admin identity and group ID; checks the signature before anything else, so unsigned look-alikes change nothing; refuses stale rosters; treats the same version with a different digest, a broken chain, or a member history that disagrees across a gap as a roster conflict that blocks changes until the user keeps the current roster or stops trusting the group; and stores a roster that removes this board before it leaves. The first 14 scenario groups in `tests/host/group_roster_tests.cpp` use a labelled test-only crypto stand-in, and a mutation check of 18 rule removals was caught by the tests. Not yet: binding additions to the admin board's in-person enrollment receipt, durable storage, and the selected primitives. No device was touched.
+
+Independent review of PR #248 (read-only, by a reviewer who did not write the code; workspace file `REVIEW-PR248.md`) rejected the first version with seven confirmed findings, all fixed in the same PR: a board now remembers the versions and digests it has seen and flags a later contradicting roster (a fork across a gap was otherwise missed when its branch point was in versions it never saw; the remaining limit is now stated in the design's "Roster conflict"); an exact replay of a conflict the user dismissed is ignored instead of blocking the group again; member fingerprints are recomputed on acceptance and two keys with one fingerprint are refused; group ID 0 is reserved; successor builders compute the predecessor digest from the signed current roster; C1 control characters are refused in aliases; and a failed encode writes nothing. Also from the review: a join can set a minimum roster version, the header states the requirements on the primitives (strict, non-malleable signatures; enrollment's fingerprint derivation), and the design states sign, store, read back, then send. 23 scenario groups pass; a mutation check of 26 rule removals is caught.
+
+### OT-0251 Replace the November 2 freeze wording with the current development rules
+
+The owner ended the November 2 product freeze and its November 3 and November 4 exceptions on 2026-11-11 and approved this documentation update on 2026-11-13. The [working contract](../CONTRIBUTING.md#working-contract), `AGENTS.md`, the README files and the current reading guides now state the current rules: development is active; priority is Trail Firmware, then Firmware Loader, then Trail Android; device sessions, pushing, merging, signing keys or credentials, and releases each need the owner's approval first; Wio Tracker work may start under the device playbook. `tools/check_repository_docs.py` no longer requires the word "frozen" in the entry documents. Dated history keeps its original wording. No device was touched.
+
+### OT-0251 Make the bench build independent of the checkout folder
+
+A clean checkout reproduces the bench configuration: `idf.py set-target esp32s3` generates an `sdkconfig` identical (apart from comments) to the ignored local one. The same commit (`8f3c18a`, generation 2) built from two folders gave images that differed only in the recorded ELF SHA-256 and the image checksum, because debug information held the checkout path for the shared components outside the project folder. The bench target now maps the Trail root to `/opentrail` (`-ffile-prefix-map`); the [target README](../firmware/targets/heltec_v4_bench/README.md#building-from-a-clean-checkout) describes the clean build. No device was touched.
+
+## 2026-11-12
+
+### OT-0251 Add a release generation and boot identity line for the Firmware Loader
+
+The Firmware Loader's first signed release (workspace decision D-063) needs the board to say which release it runs and that it started correctly. The bench target now has a build option `OPENTRAIL_RELEASE_GENERATION`, which defaults to 0, meaning a development build. After the boot self-check passes, it prints `lu_ident generation=<n> version=<app version> partition=0x<offset> self_check=PASS` and repeats it with every heartbeat, because the USB port reconnects after a reset and the Loader may reopen it late. Described in the [target README](../firmware/targets/heltec_v4_bench/README.md#release-generation-and-boot-identity-line). The bench target built with ESP-IDF v6.0.2 with no warnings. Its bootloader and partition table are byte-identical to the `ce6048c` build now on board A, and the app grew by 304 bytes. No device was touched.
+
+### OT-0306 Revise the pairwise group design after security review
+
+An independent, read-only security review of [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) found the design acceptable with ten required changes. The largest: traffic keys are never kept across a restart (accepted enrollment rule; keys live only in memory), so every reboot needs a rekey, which the first version did not handle. Following owner decision D-059 (workspace records), revision 2 adds automatic rekey for all V1 pairs after a reboot or recovery, retire-and-redo recovery of interrupted pairs, a fully specified introduced-pair binding with a typed authority, rosters identified by digest and chained to the previous roster with a visible roster-conflict state, additions only from the admin board's own in-person enrollment receipt, a one-tap acceptance of each new member by every member, local "stop trusting the group", a signed group-closed statement, roster delivery with progress, a 10-minute stop on positions to silent members, per-board limits of 4 groups and 8 conversations, a storage plan, proposed Packet-v1 type values and a 14-byte group header that leaves 80 bytes for a group text at the 154-byte Heltec MTU.
+
+The enrollment design's top note now lists its three V1 amendments explicitly, and group lifecycle v0 is marked superseded for V1 groups apart from the rules the new design keeps. Documentation only: no code, build, device or crypto selection.
+
+The same reviewer re-checked revision 2: still acceptable with listed changes, 7 of 10 met. This commit adds its follow-up fixes: an "added in" roster version and a rekey start rule for every pair, acceptance of a signed roster across a version gap, replay protection so an old rekey start cannot freeze a working pair, naming of outside-group conversations, the digest prefix as an early warning only, and rekey triggers limited to boot and recovery. A roster (about 390 bytes) does not fit one 94-byte frame; owner decision D-060 allows splitting roster transfer only (5 fragments, reassembled with the bounded protected reassembler), while texts stay one frame. Group-pair acknowledgements are proposed at 16 bytes instead of the profile's fixed 8, to carry the roster version and digest prefix.
+
+### OT-0306 Propose the pairwise group design
+
+The accepted security designs cover two boards only: OTSL0 allows exactly two members with pairwise unicast, and the accepted enrollment design requires an in-person fingerprint check for every pair. Following owner decisions D-057 and D-058 (workspace records), [GROUP_PAIRWISE_V1.md](security/GROUP_PAIRWISE_V1.md) proposes V1 groups of up to 6 members built from pairs: a group message is sent once to each other member over that pair's link, with no group key. A new member pairs in person with the group admin only; the admin's board signs a complete, versioned roster, and the other pairs are set up from the identities in it without a human step. Removal publishes a new roster and deletes only the removed member's pairs. Groups that share location need fast radio settings and a position interval of at least 60 seconds (estimated channel use for 6 members at SF7/125 kHz about 20% with busy text, about 64% at SF9).
+
+The proposal amends two accepted rules (per-pair in-person verification; whole-group epoch advance on revocation), so the group lifecycle and enrollment documents now point to it. It lists seven review questions and needs an independent security review before implementation. Documentation only: no code, build, device or crypto selection.
+
+### OT-171 Name the Heltec V4 in Android's Bluetooth list
+
+Android listed every Trail board as "nimble": the firmware started the NimBLE GAP service but never set a device name, so the stack default was used, and testers could not tell which pairing to forget after a reset. Following owner decision D-056 (workspace records), the Bluetooth device name is now the device name saved from the app; until one is saved it is `Trail-XXXXXX`, the label this boot already shows during setup; an owned boot without a saved name uses `Trail`. Owned advertising is unchanged and still carries no name; only a connected client can read the Device Name characteristic. The main loop requests the name and the NimBLE host task applies it, so the characteristic is never changed under a read. `CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN` is raised to 96 to match the saved-name limit, and the default name is `Trail` instead of `nimble`. A factory reset already erases the saved name, so a reset board is named by its new setup label.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2, 604,944-byte app). Startup display host tests 19/19, including the new naming group; bench target checks 19/19; reset composition 27/27; raw-byte checkout 291/291 with the sdkconfig register updated; BLE stack configuration checks pass. Not yet tested on a board, including whether Android refreshes a paired board's name after a rename.
+
+### OT-0170a Confirm phone indications so a restarted Heltec V4 reconnects
+
+After a Heltec V4 board restart, the bonded Android phone reconnected about one second later and then dropped the link with `BLE-GATT-PLATFORM-FAILURE`. Phone and board logs captured together on board A (Samsung Note20) show the cause. On a bonded reconnect Android sends the board a Service Changed indication (ATT 0x1D). The bench target was built without the NimBLE GATT client, so NimBLE had no handler for it and answered with an ATT Error Response. Android matched that error to its own pending service discovery request, ended discovery with an empty database, and the app's profile check failed. The same happens after any disconnect while the phone's own GATT database has changed, not only after a restart.
+
+The fix enables `CONFIG_BT_NIMBLE_GATT_CLIENT` so NimBLE confirms the indication. ESP-IDF 6.0.2 only offers the client with `CONFIG_BT_NIMBLE_ROLE_CENTRAL`, so that is enabled too. Target sources still never scan, connect out or start a client procedure, which the existing source check enforces; the received value is ignored. The build script and target checks now require both selections, and the raw-byte register is updated for the two changed files.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2, 604,128-byte app, about 12 KB larger). Bench target checks 19/19, reset composition 27/27, raw-byte checkout 291/291, BLE stack configuration, radio diagnostic and dependency boundary checks pass. On board A with the fix: pair, then RST; the phone reconnected four seconds after boot, the session was authorized and the link stayed up. The lowest free main-task stack seen fell from 4,544 to 3,280 bytes and should be watched. A separate test build of the app failed right after pairing by reading the service list before Android's post-bonding discovery finished; that is an app issue and is not changed here.
+
+## 2026-11-11
+
+### OT-0168c Fix Heltec V4 reset refusal and pairing clock rollback
+
+Bench sessions on board A (Heltec V4, app-only image over `main` 5758ee0) found two defects in the button factory reset. First, a reset right after pairing in the same power-on was refused: the reset executor kept the "unowned" view it read at boot. `DeviceFactoryResetExecutor::refresh_idle_ownership()` now re-reads the marker and the user and bond domains before a reset is prepared, from both the button path and the app reset authority. It is read-only, only valid in the idle phases, and leaves the phase unchanged on any read failure, a present marker or a mixed state. Second, the failure screen after some resets was `clock_rollback` in the pairing window: timestamps were taken outside the pairing lock on the main loop and NimBLE tasks, so an older one could arrive after a newer one. The runtime now passes every pairing-window time through one monotonic view under the lock. Failure stops now log their site and error code, and the bench target logs the reset commit result; the NimBLE runtime stays log-free.
+
+Results: Heltec V4 bench build passes (ESP-IDF 6.0.2). Host: reset executor 21/21 with two new tests, app reset authority 7/7, reset gesture 10/10, reset storage, bench target source checks 19/19, reset composition 27/27. The full local host matrix passed except `enrollment_candidate_capture_runner_tests`, which exceeded its 300 s limit under load and passes alone. Bench: four button resets with the fix (three right after pairing), all clean into a fresh PIN. `DEVICE_FACTORY_RESET_V1.md` now states that the control is ignored while the pairing PIN is shown. Phone reconnect after a board restart and the app-initiated reset retest remain open.
+
+## 2026-11-10
+
+### OT-0312 Integrate the accepted typed-text carrier on the host
+
+T-0072 implements D-035 TEXT-CARRIER-V1 without changing OTXT, OTY0 or crypto. The four records retain kinds0a/8c/8d/8e, exact single-fragment sizes and the148-byte record /151 ATT MTU ceiling. Exact shared vectors include13 goldens and23 faults; nine fault records are structurally valid and require live context refusal rather than decoder authority. The accepted OTXT fixture remains unchanged and byte-exact. Invalid Unicode, empty/oversize text and over-limit templates have visible refusal; no truncation or fragmentation occurs.
+
+Messages forwards typed drafts or selected free-text templates through the existing Activity/binder/session owner/controller/runtime. Only a current provider proof from the completed OTY0 adapter supplies the immutable sender/recipient/group/epoch/membership binding. A Boolean-only provider, UI selection, received event or cached observation cannot admit text. The existing command allocator stays above the accepted OTY0 exchange, and OTE0/text events share one cursor. Receive is current-session and counter-bound. Matching delivery evidence alone supplies protected-peer ACK; write, queue, TX, timeout and unknown never do. Fixed quick statuses and template persistence/order policy are preserved.
+
+Focused tests exercise the actual OTY0 wire adapter, opaque handles, all seven lifecycle invalidations, shared cursor/replay/gap, result/event races, terminal outcomes, fixed expiry, counter exhaustion, owner forwarding and the composed UI. First-run failures exposed incomplete containment and a host fixture callback-generation assumption; corrected with evidence retained. Android callback generation is independently bound and is not equated with device/session generation. The maintained full protocol/debug/release JVM, lint and documentation matrix qualifies this exact host draft; owning issues record source/head and CI.
+
+PR #224 was normally adopted at8aee75e17b43d67f0e221cc4aa488dcd8c679559 after all seven checks passed at its exact approved8552b4da692ccd5bd3a042d78f1b00c883de8d7c. This twenty-file topic begins there. Firmware does not implement the carrier yet: interoperability is proven only against shared host vectors, production stays disabled/default-null provider, and real issuer/pins/target/security/physical acceptance remains separate. Full OT-0312, OT-0313 and OT-0314 stay open. No device, BLE/RF, signing/release, firmware change or Ready/merge is included.
+
+### OT-0312 Add the OTXT v1 payload codec
+
+T-0066 implements only the protocol payload accepted under D-024: OTXT version1, reserved flags0, exact unsigned big-endian length and 1–90 strict UTF-8 bytes. Encoding refuses unpaired UTF-16 surrogates, empty/oversize input and smaller admitted whole-frame budgets. Decoding refuses malformed/overlong UTF-8, wrong domain/version/flags and missing/trailing bytes. No normalization, replacement, truncation or fragmentation occurs.
+
+The portable fixture copies every golden/fault ID and exact payload/frame bytes from T-0042's frozen JSON (SHA-256 b88a38379c914c38319e19a324633e3086d5b43d42e3024ca8ef43939998b77d). Three goldens round-trip byte-exact; fourteen malformed payload cases refuse; the lower-link-budget vector refuses in both directions. Six outer Packet faults are tested only as non-payload domains, with an independent valid-payload control: this codec performs no Packet authentication, replay, recipient or fragment admission. Additional tests cover 89/90/91-byte ASCII/multibyte/supplementary boundaries, strict scalars, unsigned lengths and extreme budgets. Protocol, lint and documentation results are bound to the exact draft on #116.
+
+The isolated topic begins at main 6d72cfd8ec74729a0c7e0c1a1b6ef8c3c5fe9f30 after normal adoption of PR #223. App-module source and its fixed-status behavior are unchanged. T-0065's protected BLE text carrier is still a proposal; no composer, send/receive, template or firmware binding is added. Production profile6/default-null authority and free-text sending remain disabled. Full OT-0312 stays open; this draft supplies no device, BLE/RF, signing/release, Ready or merge acceptance.
+
+### OT-0313 Bind fixed quick statuses to the inactive authenticated path
+
+T-0040 narrows the text-blocked continuation to the existing four firmware meanings. Messages maps only exact known status labels, including matching saved templates; other built-ins and free text remain editable/local but their Send controls are visibly disabled. Template storage, limits, order and save-failure behavior are unchanged. The ordinary text format remains F-005, not an invented encoding.
+
+The dedicated runtime lane requires its current opaque attachment handle and rechecks the accepted OTY0 provider proof before using the existing OTA0 action path. It cannot fall back to legacy/local transport. Received OTE0 records retain strict format, nonce/generation and live-proof checks. Existing request-correlated queue, TX and protected-peer-ACK observations remain distinct; neither a template nor a successful platform write means delivered. Attachment retirement hides old received/progress state and makes old UI handles unusable.
+
+Focused host tests use the actual B1 codec and completed adapter exchange with the frozen producer-wire fixture, existing OTA0/OTE0 byte layouts, malformed/boundary cases, expired/revoked/foreign-handle refusals, owner forwarding and composed UI. Initial compilation caught a missing import, corrected within scope; that failure is preserved. The maintained full Android JVM/lint/documentation matrix qualifies the publication candidate. Host fixture pins are supplied inputs, not physical authentication or target acceptance.
+
+PR #221 was normally adopted at a9802721249d378fcb4ec52e27f7a82738fe4536 after all seven checks passed at its exact owner-approved head. T-0040 begins from that main in a clean topic and is draft-only; the existing issues record publication/CI separately. Production remains disabled/default-null provider. No hardware, BLE/RF, install/signing/release, new authentication framework, full OT-0312/OT-0313 completion or owner merge is included.
+
+### OT-0101c Record owner-approved D1 qualification metadata
+
+Recorded the evidenced HTIT-WB32LAF V4.2 received revision, bounded US915
+applicability label and OTHP0 layout version 1 in the bench target contract.
+The exact UTF-8/LF postimage is 6861 bytes, SHA-256
+`bf40d99aa261a616060672238eb0c301e462e164c5fa2ae3ccdabb7e78ebbbba`.
+Only the corresponding old-value expectations in the target-admission test
+changed; all 19 target-admission groups pass. The separate standalone contract
+schema version, experimental status, supported=false and every capability,
+write and recovery refusal are preserved.
+
+The Firmware owner prepares this bounded correction on
+`fix/d1-target-contract-r6-2-20261110` for a draft PR; merge is not authorized.
+D1 records qualification applicability only, not operational support,
+certification, installation or RF authority. The Loader pin remains unchanged;
+its eventual repin and all remaining LUF-0008b production-input criteria stay
+separate. No device, security activation, signing, release or V1 completion
+credit follows from these metadata and host-check results.
+
+### OT-0312 Bind the inactive host session-authority adapter
+
+R6-3 resumes the preserved R5 topic on B1 af07c204d9ff771104897bd2d492e2d9bf2f3cc7. Only the missing MainActivity denied-state branch is added, using the verified sealed-patch wording; no other part of that file is imported. The service owns an unarmed OTY0 consumer; production runtime provider remains default-null and profile6 remains disabled. One completed protected-owner exchange is correlated to exact supplied pins, membership revision, lease/callback, nonce/exchange and fixed request-start deadline. Refusal, malformed/duplicate/late responses and lifecycle changes cannot create or renew proof. No caller Boolean supplies authority.
+
+Maintained validation passes test: 91, testDebugUnitTest: 569, testReleaseUnitTest: 553 JVM cases, zero failures/errors/skips, plus debug/release lint. Fifteen adapter tests exercise the consumer side of frozen state cases2–6. Actual producer journal transitions, command-time races and target/physical behavior remain Not Tested here. The original fixture no-op mutation failure and interrupted runs are retained. Source review corrected reentrant clock-callback retirement, with a focused regression. This is host lifecycle evidence only; supplied identity pins still require the real protected owner and are not authenticated by metadata.
+
+The exact adopted runtime/test and three verified dependency versions remain preserved. The existing [OT-0312](https://github.com/Limited-Underground/Trail/issues/116) records the draft stacked on #220 and current CI separately from main adoption. No target registration, device/BLE/RF, signing/release, Ready/merge or product completion is included.
+
+### OT-0312 Stop B2 at the adopted-runtime rendering dependency
+
+R5-2 admits the exact eleven-file B2 scope and a new isolated topic stacked on B1 af07c204d9ff771104897bd2d492e2d9bf2f3cc7. The adopted runtime/test were copied at their exact approved successor hashes. CompanionRadioEvents.kt, CompanionConfiguration.kt and BleConfigurationSession.kt used preserved, verified versions: original baseline/absence plus sealed consolidation patch reconstructs each pinned successor; recorded historical tests bind those versions. No other overlay source was imported.
+
+The actual protocol suite passes, but app debug compilation fails at MainActivity.kt:1069 because its exhaustive when lacks BLUETOOTH_STATE_READ_DENIED from the exact adopted runtime. MainActivity.kt is outside the eleven-file allowlist. Stop before adapter implementation, service wiring or publication; do not remove the adopted enum, add a stub or edit the twelfth file. App and adapter tests are Not Run; state cases 2–6 remain Not Tested, not passing fixtures. An additional rendering-path admission is needed before continuing this same B2 topic. No B2 PR, production activation, device, signing, Ready or merge occurred. Canonical dirty source and original evidence remain preserved.
+
+### OT-0312 Validate the standalone session-authority wire codec
+
+Added a standalone, unwired OTY0 codec in the protocol module: exact 76-byte request and 136-byte response records, schema/domain/header/reserved validation, flags 3 success / 0 refusal with zero authority metadata, full unsigned generation fields, supplied-pin/request comparison and fixed request-start monotonic expiry. Decoded metadata cannot authenticate itself or create Packet authority. Profile 6 remains disabled and the production provider unavailable; no Android app file changes.
+
+Owner R4-2 accepts B1 for codec-local evidence only. The exact unchanged protocol suite passes 91 tests with zero failures/errors/skips, including 32 new tests: 29 frozen codec-local cases plus 3 additional tests. Frozen positive controls retain their specified valid outcomes. State cases 2–6 remain **Not Tested** and move to B2/producer integration: journal/precommit/readback, lease/callback/duplicate lifecycle, revoke/rekey/membership races, lost invalidation/command-time refusal and restart without traffic resumption. No simulated or Boolean authority is counted as acceptance.
+
+Static comparison with the adopted firmware CompanionPacketOwnerChannel::query at f3ef095ceef0e54f05cf3e35dc9a0e181512e241 found no byte-layout disagreement; independent LE reconstruction matches all three full records. This is source/serialization evidence, not execution of a target issuer or protected channel. The R3-3 protocol files and their test results are unchanged; only the two repository-required continuity documents are added under R4-2. Documentation checks are run on the resulting four-file publication candidate. The existing [OT-0312 issue](https://github.com/Limited-Underground/Trail/issues/116) records draft publication/CI and the separately gated B2 scope.
+
+The owner selects the preserved runtime/test successors only, using the verified October 30 S24 reconnect baseline-to-successor chain. That decision neither adopts the remaining dirty overlay nor supplies an authenticated production provider. Full OT-0312, target/security and physical acceptance remain open. Canonical dirty source, original evidence and earlier diagnostic/editor/phone results remain preserved. No Ready/merge, device, BLE/RF, installation, signing, release or activation is included.
+
+### OT-0320 Clean unoffered reports after failed share preparation
+
+Corrected the existing Share / Email path so a preparation failure cleans up only its newly created, never-offered cached report. Reports offered previously, or possibly offered once chooser dispatch is attempted, remain available. Report bytes, read-only grant flags and the existing eight-file/24-hour retention policy are unchanged. The before-fix provider-failure regression left an extra report; the same case now passes, along with repeated failures, successful/uncertain handoff and capacity preservation. All 19 focused/affected debug JVM tests pass.
+
+Host contexts intercept every Activity launch. The Windows positive-handoff fixture adapts only AndroidX path separators after real provider initialization; it does not prove device provider or cross-app permissions. Original red/failing/stopped evidence and the original isolated candidate remain preserved. The publication topic is based on merged PR #218, with an unchanged Android base tree. Only the two scoped source/test paths and required current-status/progress records change.
+
+The topic was published as [draft PR #219](https://github.com/Limited-Underground/Trail/pull/219) from implementation revision 9209b3e7f0626dc46a69337a798bc25b1457da6d; all four remote blobs matched the reviewed payload. Required hosted CI and the owner merge decision remain tracked on the existing task. This dated publication entry follows the local validation checkpoint and changes no implementation bytes.
+
+Owner Task 5 authorizes a topic PR only; no merge. Full [OT-0320](https://github.com/Limited-Underground/Trail/issues/124) physical export/recipient/grant acceptance remains open. The producer-interface report on [OT-0312](https://github.com/Limited-Underground/Trail/issues/116) is read-only: no authority adapter, OT-0305 work, device, signing or release operation occurs. Earlier Note20/editor/TalkBack evidence is retained rather than repeated.
+
+## 2026-11-09
+
+### OT-0005i Bind committed enrollment to live authority queries
+
+Implemented the internal Companion producer from the real committed enrollment
+owner and durable stores, with per-request and command-current checks. It retains
+Ed25519 identity direction, full group64, exact epoch and original deadline;
+revoke/reset/close, generation changes, reentry and storage uncertainty refuse.
+Independent review reproduced authenticated-context substitution and lifetime
+inflation from producer-only clock samples. The corrected private observation
+path consumes the same owner's last validated time/context after its original
+live checks. The failed reproductions remain preserved.
+
+The initial producer validation passed 14 scenario families, eight actual
+clock-cancellation boundaries and 28 paired context substitutions. The runner
+pins the 27 reused accepted objects and their dependencies; unchanged versus
+altered/missing reuse controls pass. An actual post-run tamper refuses with exit 2
+and cannot leave a PASS result. Accepted cryptographic admission evidence was
+reused. Independent behavioral review passed for that initial producer increment.
+
+A subsequent direct owner grant released the existing inactive Packet/driver and
+protected owner-channel host increment. Its fourteen-file implementation now
+composes the real committed enrollment owner, private Packet session keys,
+four distinct fresh counter/replay stores and actual Heltec driver code with
+host I/O stubs. OTY0 export uses the same concrete controller/persistent GATT
+authority and live inner-session/owner checks. No target registration or Android
+runtime is changed. Review found and corrected context-domain mismatch,
+misreported retirement uncertainty, cleanup of borrowed unacquired resources,
+unconsumed plaintext overwrite and ACK/retry ordering. Original failures and
+intermediate passing candidates remain preserved.
+
+The final affected native suite passes 68 composed host scenarios, including
+retirement write/partial/sync failure, inert/duplicate facade preservation,
+rekey/retained-store/tampered-frame refusal, two messages before draining the
+single receive slot, and an ACK already present at the retry boundary. Thirty
+accepted objects are reused with before/after compiler, cache, object and
+dependency checks. New filesystem controls refuse changed/missing inputs and
+post-run tampering; unsupported inherited runner selectors now refuse before
+creating output. Independent behavioral review passed for this bounded host composition. The fixture
+issuer, protected store, peer and hardware I/O are not target acceptance.
+
+The local candidate is uncommitted and unpublished. Full OT-0005i, OT-0312,
+target/security and production acceptance remain open; OT-0168c stays paused.
+The next boundary is separate source publication/adoption or additional execution authority. [Current pickup state](PROJECT_STATUS.md#firmware-host-composition) and
+[focused cases](../tests/host/companion_committed_authority_tests.cpp) identify the
+source and limits. Canonical dirty work, original selected source, failed runs and
+all admission evidence are retained. No website or V1 completion credit changes.
+
+### OT-0237c Preserve exclusive outbound counter lease ownership
+
+Prohibited copy and move operations on the live outbound counter allocator,
+preventing a cloned lease cursor from returning a previously allocated counter.
+The existing host lease suite now enforces all four ownership traits at compile
+time. Historical operator test fixtures reconstruct the exact earlier
+header bytes required by their frozen build reports; current allocator changes
+are not substituted into historical candidates. The admission checks and original
+source/evidence pins remain unchanged. Existing lease, key-value composition and direct-consumer validation passed;
+independent source review found no actionable findings. Counter reservation,
+persistence formats and wire behavior are unchanged. This host correction does
+not accept target interruption, replay/retirement, production security or device
+operation. Full [OT-0237c](https://github.com/Limited-Underground/Trail/issues/204)
+remains open; no public website or V1 acceptance credit changes.
+
+### OT-0313 Cover composed local-editor storage failures
+
+Added four composed editor host cases using actual framework preference files:
+failed add, edit, reorder/removal and unreadable stored data. Failed writes retain
+the draft and visible entries, show uncertainty and preserve durable XML; only
+an explicit successful retry publishes durable changes. An unreadable stored
+type disables editing without rewriting the record. All four cases and the
+48 documentation fixtures pass; independent review found no actionable findings.
+Initial test-coordinate and disabled-input assumptions were corrected and retained.
+Production source is unchanged; this is host simulation, not physical disk-full,
+power-loss or device acceptance. Full OT-0313 and OT-0312 remain open pending
+real authority/transport integration. No V1 or website credit changes.
+
+## 2026-11-08
+
+### OT-0101g Request-time coarse GNSS firmware bridge
+
+Connected the existing app-task GNSS observer to synchronized protected BLE
+snapshots, replacing the constant unknown placeholder. Six shared C++/Kotlin
+vectors, no-fix/fix, five-second expiry, malformed-NMEA retention, monotonic
+rollback and revision checks pass. Existing Android snapshot lifecycle and
+status projection tests pass without production Android changes. Unchanged
+authorization, 32-byte OTN0 and reserved-zero behavior are retained. Independent
+source/consumer review found no actionable findings. Target build and final
+task closeout are recorded on [OT-0101g](https://github.com/Limited-Underground/Trail/issues/214).
+Host implementation does not establish installed-device, continuous/numeric
+telemetry, reset/security or full-product acceptance. No public website
+capability claim or V1 completion credit changes.
+
+## 2026-11-07
+
+### OT-0313 Correct local editor focus and keyboard-visible actions
+
+The owner authorized a bounded local production correction and Note20 validation, with publication excluded. On accepted main `4c7579f59507c09292135f8787bd8f3ac6864018`, the isolated local-validation candidate keeps Save/Cancel outside the scrolling content, adds policy-bound Tab/Shift-Tab and IME Next form navigation, and gives repeated reorder/remove controls contextual descriptions. Multiline Tab insertion is a documented Compose default; the application-specific navigation change follows the existing control-free template policy. No storage/schema, authenticated composer, transport, firmware or backend change. The earlier seven-pass/two-blocked physical record is preserved.
+
+Final focused host validation passed six debug UI tests, 13 template tests in each variant and five affected release preferences tests, plus debug/release lint and 23 unchanged privacy/admission groups. A reviewed test source-set finding was corrected by placing the new suite only in testDebug; the release class output excludes it. Initial fixture/resource-path/assertion failures remain in private task evidence. The existing non-fatal preferences-fixture nullability warning remains disclosed.
+
+Standard debug APK SHA-256 `fa8b7e70d21b75dcb4979e4bb4fb0c100eb506fd3e772b1bc7dbc81799fb5713` was installed in place on the authorized Note20 after signer/data checks. Existing template and receipt bytes survived the update; automated physical tests observed reachable field/Save/Cancel with the Samsung keyboard visible, forward/reverse keyboard focus and Next, create/edit/cancel/save and force-stop/relaunch retention. With Samsung TalkBack actually enabled and the keyboard hidden, the owner reported correct names and matching blue outlines in both directions for the requested field, Save/Cancel and navigation controls. Automated tests separately covered keyboard-visible controls. Earlier unclear field-start instructions were not counted; an assisted starting selection at Save was used. This is bounded owner-reported screen-reader evidence, not tree-only or universal conformance. CLI navigation bounds alone did not establish an app defect, and shared navigation layout is unchanged.
+
+[Existing editor note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md) retains scope and evidence limits. Source, APK, command/XML/screenshot and review receipts remain in the existing owner-held OT-0313 packet. Canonical dirty work and earlier evidence are preserved. The validation phase made no commit/push/PR/merge, new task, OT-0312 change or full OT-0313 Done claim. After the owner-confirmed TalkBack result, TalkBack was restored Off. The owner then authorized normal publication/merge of the independently reviewed correction, subject to required checks and reviews; [OT-0313](https://github.com/Limited-Underground/Trail/issues/117) and repository history record the actual publication outcome.
+
+
+### OT-0313 Prepare reviewed SharedPreferences host tests for adoption
+
+Five focused Android-35 SharedPreferences host tests passed, native exit 0,
+and independent review found no actionable defects. Actual XML save/reload and
+real failed commits preserve prior durable data, while failed commits can change
+in-memory values. The test-only payload was reconciled against published main
+`06da083ca1652a7ccd7362e1f9f52dac268558f1`; its complete Android base tree equals
+the tested base. Existing editor and production source remain unchanged.
+
+This local candidate is uncommitted and unpublished. The five-test proof is
+reused, not a new main or hosted run; its non-fatal fixture nullability warning
+remains. The [Android task note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md#host-android-preferences-checkpoint--november-7-2026) records
+coverage and limits. Actual Android process death needs an authorized Android
+runtime and app kill/relaunch path; a host JVM proxy does not accept that gate.
+OT-0313 and OT-0312 remain open. No production, device/ADB, authentication or
+recovery work occurred.
+
+## 2026-11-06
+
+### OT-0340 Correct current guidance and guard backlog history
+
+The Foundation coordinator prepared the correction under the existing OT-0340
+continuity scope in an isolated topic based on published main
+`46cbbc67f21e674184649ff276cb97dac8c04d49`. The backlog now routes current work
+through its owning Project and labels the retained physical sequence as history.
+The historical sequence body was preserved byte-for-byte in the repository diff.
+
+The OT-0340a row records the later adoption evidence: PRs #71, #68 and #210
+merged, and PR #69 closed as superseded. The November 5 progress entry below
+still records its original checkpoint. OT-0340 stays open for its remaining
+source and recovery exceptions.
+
+The checker now rejects the stale PR71 next action without treating separate
+task rows as one instruction. Headings in HTML comment blocks and fenced
+examples cannot hide the current backlog. Independent review identified both
+regressions. The new tests reproduced them on the supplied checker, and all 48
+documentation tests passed with the correction. The base-aware check uses this
+dated record and the current project handoff.
+
+This is an uncommitted local candidate. Publication and hosted checks are
+separate. The existing diagnostic artifact identities and physical acceptance
+limits remain authoritative. Canonical overlays are outside the isolated topic.
+
+## 2026-11-05
+
+### OT-0340a Reconcile runbook and continuity on adopted main
+
+The owner authorized isolated reconciliation of the previously reviewed nine-file
+documentation candidate with main
+`546b13d2725d3da9dd50f071d62cc01b153071f6`. The runbook/reference policy,
+portable continuity rules, current-V1 checks and base-aware documentation workflow
+are retained together. The public runbook remains registered for link checking;
+the private extended runbook and unrelated dirty overlays are excluded.
+
+The November 2 bidirectional unauthenticated diagnostic history and its full
+artifact attribution remain unchanged. Main already adopted the durable Android
+host slice through PR #72 and the bounded local editor through PR #209. The latter
+normal merge is `546b13d2725d3da9dd50f071d62cc01b153071f6`, with reviewed tree
+`5b66d9005230dcd71b44e5f9872ae9969d335354`; its main documentation and host CI
+passed. The November 4 draft/publication and earlier local-candidate entries below
+retain their original checkpoint facts, rather than implying earlier adoption.
+Full OT-0313, OT-0312, actual Android preferences/rendered/IME/accessibility/
+process-death behavior and firmware security/source admission remain open.
+
+Only the two current history/handoff overlaps, the later runbook-link registration
+and its focused regression differ from the frozen reviewed candidate. Source-bound
+prior reviews and unchanged workflow evidence are reused; current focused checks,
+exact source/history preservation and independent delta review are retained in the
+maintainer-held reconciliation-20261105 handoff under the existing OT-0340a
+pr-closeout evidence route. The resulting candidate is local and uncommitted;
+publication and adoption require exact owner approval and applicable required CI.
+No product code, canonical checkout synchronization, device operation, protected
+store, production activation, V1 score or public website status changed.
+
+## 2026-11-04
+
+### OT-0313 Draft publication and handoff correction
+
+Publication occurred on November 4, 2026: [draft PR #209](https://github.com/Limited-Underground/Trail/pull/209)
+was opened at 20:45:36 UTC with source revision
+[05120f37f2a48f2fc134cf70a4000ed105717a0c](https://github.com/Limited-Underground/Trail/commit/05120f37f2a48f2fc134cf70a4000ed105717a0c),
+parent main 7e1c394987eed9384681c16b35eaf0df5cf06474 and exact tree
+6dfe6161db1377bf9e22d9cae4dcba4c85c895b4. Remote identities matched
+the original approved seven-file payload:
+
+- Four reviewed files: V1HomeScreen.kt, V1QuickMessages.kt,
+  V1QuickMessagesTest.kt and android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md.
+- Three continuity documents: android/README.md, docs/PROJECT_STATUS.md
+  and docs/PROGRESS_LOG.md.
+
+At that exact published editor head, the required
+[Repository documentation](https://github.com/Limited-Underground/Trail/actions/runs/41909653842)
+and [Windows host matrix](https://github.com/Limited-Underground/Trail/actions/runs/41909653518)
+checks passed; all seven checks succeeded. The actual synthetic-merge CI
+checkout had the approved tree. Independent publication review found no
+implementation defect and one documentation finding, DOC-PUBLICATION-1.
+
+This subsequent correction updates only the current handoff and adds this dated
+publication record. The earlier integration-candidate entry below records the
+prepublication checkpoint and is preserved unchanged. Frozen manifests, source,
+original tests/reviews and publication receipts retain their original identities.
+The four reviewed files and canonical dirty checkout are untouched.
+
+PR #209 remains a draft and is not merged. Full OT-0313, OT-0312 and actual
+Android preferences/rendered/IME/accessibility/process-death acceptance remain
+open. Existing 13 JVM cases, 23 privacy scenarios and editor review are reused
+at their unchanged source scope; no JVM, privacy or physical testing is repeated
+for this documentation correction. Each newer head requires its applicable
+publication authority, remote identity checks and required CI. Ready/merge needs
+explicit owner approval; issue #117 body changes remain excluded. No V1 score,
+public website capability or device state changed.
+
+### OT-0313 Local template editor integration candidate
+
+The owner-approved local-only editor was reconciled with main
+7e1c394987eed9384681c16b35eaf0df5cf06474 in an independent topic. The four
+reviewed files were carried forward exactly; canonical dirty overlays and the
+original editor topic were untouched. The only difference between the reviewed
+base d54d64e and current main is an unrelated C++ protocol test addition.
+
+The [editor behavior and acceptance note](../android/docs/OT-0313-LOCAL-TEMPLATE-EDITOR.md)
+covers in-place edit/save/cancel, separate add draft, order/original-value fencing,
+12-by-160 bounds and honest preference-write uncertainty. The exact source-bound
+13 JVM cases and independent coordinator review are reused because Android
+source/build/test inputs are unchanged. Current integration privacy, documentation
+and continuity checks, exact patch replay and preservation checks passed. No
+repeated Gradle build, new editor functionality or synthetic acceptance was added.
+
+The candidate remains uncommitted and unpublished pending exact adoption
+approval. Full OT-0313, OT-0312, actual Android preferences, rendered/IME/
+accessibility/process-death behavior remain open. No composer, sending, queue,
+delivery, authenticated transport, signing or device operation occurred.
+No V1 score or public website status changed. Maintainer-held evidence is under
+Android-Packet-v1-Consolidation-20261028/ot-0313-local-editor-20261104,
+with the current integration manifest, patch, validation and approval scope in
+integration-20261104. Previous evidence and recovery obligations remain preserved.
+
+### OT-0340 Reconcile adopted documentation and portable continuity
+
+The owner approved adoption of the exact Android group-state host slice in
+[PR #72](https://github.com/Limited-Underground/Trail/pull/72). Main reached
+`59447d1d0bb206f32feb2464e1f01109ccf7c282`, retaining the successful November 2
+unauthenticated diagnostic evidence and the default-unavailable production source.
+This adoption is not authenticated transport, protected-store, physical, release
+or parent-task acceptance. The separate local-template-editor host exception
+remains local-only while its production state dependency stays open.
+
+The coordinator prepared a local, uncommitted nine-path reconciliation of the
+public runbook/reference rules and portable continuity checker from PRs #68/#69
+against that adopted main. The current reading/anchor/diagnostic-identity guards
+and seven distinct continuity cases are combined; the private extended runbook
+and unrelated dirty overlays are excluded. The combined documentation checker and 39 focused tests passed locally.
+Independent review and exact candidate evidence remain separate from publication
+and product acceptance. This candidate is uncommitted and unpublished. Historical
+source and evidence remain preserved.
+
+## 2026-11-03
+
+### OT-0305 Durable group-state host slice
+
+The existing child OT-0305-1, under the November 3 narrow host exception, added
+a dormant Android-local
+versioned snapshot codec/coordinator and ordinary-file fixture adapter. Device
+state remains authoritative: a fresh admitted source and exact session reference
+are required; retained bytes/checksums or diagnostic confirmation cannot mint
+membership. Unsupported/corrupt records, rollback, version conflicts, stale
+contexts, uncertain storage and reentrancy refuse without automatic repair.
+Independent pre-build review found unenforced thread confinement; the correction
+checks construction-thread ownership before every public operation/state read.
+
+One offline JVM gate compiled the current main/test Kotlin and passed 37 tests:
+17 snapshot, 5 actual temporary-file and 15 unchanged group-model tests, with
+zero failures/errors/skips. The real-thread overlap/close case passed. The
+[source/transition and reproduction note](../android/docs/OT-0305-1-DURABLE-GROUP-SNAPSHOT.md)
+describes the exact boundary; the selected base is
+a44630abc028a778b2aee5e8b02e04bd3efa9f0a. Canonical dirty overlays and
+accepted diagnostic artifacts were preserved. No production adapter/issuer,
+transport, UI/service integration, protected-store or physical proof is added.
+Host child/parent completion, production admission, publication and release
+remain separate; no V1 progress credit or device operation follows.
+
+The first public host slice d4e652a subsequently failed the existing OT-088
+source-privacy gate: its ordinary-file fixture was in production main source.
+The unchanged fixture is now isolated to JVM-test source. The original failure
+was reproduced, then the unchanged 23-scenario admission suite and affected
+37-test JVM gate passed. Main/test Kotlin recompiled; the fixture is absent
+from main output and both production class jars and present only in test output.
+No privacy/check policy or production storage permission changed. Full CI on
+the corrected public head remains required; local success does not replace the
+retained failure or grant release/device/production acceptance.
+
+Corrected public head 1974863 passed all 23 admission scenarios in CI, then
+the unchanged publication-safety scan refused an email-like qualified receiver
+expression in a JVM test. A private fixture helper preserves the same lambda
+read without that syntax. Production source, the file fixture and both guards
+are unchanged. The full local publication scan and its scanner scenarios pass;
+a new four-class JVM run passes all 37 tests with zero failures/errors/skips.
+The production jar exclusion remains verified. The follow-up was local at its
+source-review checkpoint; narrow independent review then passed with no findings.
+Exact publication authority and full CI on any resulting public head remain
+separate: local checks do not turn the retained failed full CI into a pass.
+No main merge or product acceptance follows.
+
+### OT-0340a Attribute the reconstructed image differences without substitution
+
+Integrated the November 3 focused recovery review at its accepted exact-image
+scope. It accounts for every differing byte in the two retained application
+images: the embedded source filename, 2,200 corresponding data pointers,
+segment packaging and derived integrity metadata. Independent systematic
+transformation reproduces the retained rebuilt image in memory with zero
+unattributed output bytes. The 4,503 nonzero loaded ELF function symbol ranges
+retain identical names, addresses, sizes and range bytes. Disassembly, maps,
+39 original SDK relocation records and the final relaxed initializer support
+the executable-section literal/data classification.
+
+Raw image equality remains false. Nonloaded/debug ELF attribution is incomplete;
+the symbol-range result does not establish every executable instruction,
+reachable behavior or runtime equivalence. No replacement image, new product
+build or device result is accepted, and the original diagnostic reference remains
+authoritative. Android host/unsigned-payload proof and signed-container/signer/
+runtime restoration remain separate. See the [central recovery explanation](firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences).
+
+This minimal documentation delta follows published topic27713db, which already
+contains PR70's original history. It awaits delta-only fresh-reader review and
+scoped publication to existing draft PR71; that base's green checks do not
+validate this unpublished delta. Main/Ready transitions, product resumption,
+hardware and release retain separate owner authority. The earlier reconstruction
+and November 2 diagnostic/preparation records below are unchanged; no V1 credit,
+product behavior, protocol, checker, model or workflow changes.
+
+### OT-0340a Finalize V1 documentation and preserve diagnostic evidence
+
+Reconciled the shared firmware/Android V1 reading route with the separate
+[diagnostic PR70](https://github.com/Limited-Underground/Trail/pull/70). The
+original November 2 OT-0005j success, exact firmware/APK/execution hashes and
+preparation history are retained below without broadening their unauthenticated
+diagnostic scope. The original PR70 and PR71 heads both insert November 2
+entries at the same point and conflict; the reviewed topic must incorporate
+PR70 through normal history reconciliation before an eventual separately
+authorized PR70-then-PR71 main adoption. No main merge occurs in this task.
+
+The [firmware V1 guide](firmware/README.md), [build/recovery comparison](firmware/BUILD_AND_RECOVERY.md),
+[existing acceptance map](firmware/V1_ACCEPTANCE.md), shared arc42/C4 and
+[protocol selector](protocol/README.md) distinguish accepted prerequisites,
+qualified declared-host reconstruction, failed raw firmware equality and
+remaining protected-product/runtime/release acceptance. Android documentation
+has a separate author and stopped-input handoff. Final integrated fresh review,
+exact-delta topic publication and prospective-main reading-path checks remain
+separate from merge approval; no V1 score, product behavior or physical grant changes.
+
+Current V1 entrypoint reconciliation replaces temporary publication-next-step
+instructions with stable Project/working-contract gates, clarifies the recorded
+in-tree Loader toolchain, and keeps Android's physical bidirectional diagnostic
+result prominent while excluding protected production/release acceptance.
+The existing documentation checker now verifies current Markdown anchors and
+filename case, derives exact accepted artifact identities and the single primary
+success route from the handoff-selected progress record, and rejects known
+stale permissions/claims. Targeted negative fixtures cover those regressions;
+dates alone do not establish freshness. Historical contracts/evidence and the
+original diagnostic-success block remain preserved. No product behavior, V1
+score, hardware, workflow protection or merge authority changes.
+
+## 2026-11-02
+
+### OT-0005j two-phone diagnostic LoRa exchange delivered both ways
+
+Owner-approved G3 981e43cff4914a948386933fb3edb7fb ran with both boards on
+553ece87 and both phones on APK 7b9b25e8. Exact SHA-256 identities:
+
+- Firmware (both): `553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283`
+- APK (both): `7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c`
+- Execution bundle: `b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc`
+
+Preflight, fresh protected Ready and diagnostic opt-in all passed, and the board
+now records the opt-in. Both boards
+answered the idle gate and accepted session-start.
+
+- Forward: "Test: OK" went Note20 → A → LoRa 915 MHz → B → S24. The S24
+  displayed "Received: peer diagnostic DATA - OK", and the Note20 displayed the
+  matching diagnostic peer ACK.
+- Reverse: "Test: Available to help" went S24 → B → LoRa → A → Note20. The
+  Note20 displayed the received DATA, and the S24 displayed its ACK.
+- Result verified with exact counters: each board tx 2/2, rx_data 1, rx_ack 1,
+  rejected 0, BLE 3/3. RF 4/4 with no retry, 57.2 s from opt-in to close.
+- Both boards verified_stopped, phones closed, exit 0. No reset, flash or panic
+  markers. The owner reported the boards normal and the app closed on both
+  phones, which is the designed, verified force-stop closure. The final UI
+  captures show the delivered messages.
+
+This is diagnostic, unauthenticated RF only. Protected delivery and production
+acceptance remain open, and the V1 milestone requiring authenticated messaging
+is unchanged. Evidence:
+Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb/PHYSICAL_RESULT.json.
+Recorded on GitHub OT-0005j: appended and read back, with status unchanged
+(In Progress).
+
+### OT-0005j console reader fixed; diagnostic opt-in defect found and corrected
+
+Owner-approved status-only probes confirmed the A console failures. The frozen
+reader reassigned the serial timeout before every byte (Windows SetCommState
+plus CDC requests), and that alone stopped both boards' USB receive path until
+re-enumeration. Fixed-timeout reads answered. The host successor configures the
+opened port once (console-gate manifest ef460c25…), and V1–V4 passed with and
+without Note20 capture load.
+
+G3 b7bbfaf5fd40422f9ce56fa4200a11aa then passed the console gate: both boards
+were idle on the first status. A refused session-start before its one-use latch,
+and the cleanup session-end was refused too. RF0, B untouched, phones closed.
+
+Source analysis found a firmware defect on every bonded reconnect.
+NVS-persisted CCCDs are restored at encryption before Ready, so the diagnostic
+lane is retired. The phone's later opt-in leaves the flags unchanged, so NimBLE
+raises no subscribe event, and the board lease never becomes valid. This
+affects A and B equally; G0's fake lease hid it.
+
+Firmware successor Trail-Diagnostic-Opt-In-Fix-20261102 changes only
+companion_nimble_gatt.cpp in the diagnostic build. An authorized Ready write
+to an already indicate-only restored CCCD now records the opt-in. Padded image
+553ece87…, span [0x10000,0xB2000), two byte-identical builds. A composed replay
+of the actual target and pinned NimBLE code passes 8/8 and reproduces the field
+refusal on 0bbf0482. At that preparation checkpoint the image was not installed;
+deployment needed a one-board-at-a-time install successor and fresh approvals.
+
+The install successor Trail-Diagnostic-Opt-In-Install-20261102 derives A and B
+from their last successful official-SDK routes. Image pins move to 553ece87…,
+and each board's pre-write reference is now its own verified 0bbf0482 full
+readback rather than a host composition. Original-recovery provenance is
+unchanged. The post-install idle health gets the confirmed stable console
+reader, and B's prerequisite is A's verified install of the new image.
+
+Validation: real admission checks pass for both boards, A caller 19/19 plus
+adapter 22/22, and B caller 20/20. Three inherited B tests had asserted that
+B.install is refused; they were corrected to B's scope. Activation tools pass
+11/11, and the real launcher-to-runtime child reaches ready and closes for both
+boards on SYNTHETIC copies. Stray bytecode written into the admitted runtime by
+a helper check was removed; the runtime matches its manifest again. Physical
+requests (A first, then B, then one G3) were prepared in PHYSICAL_AUTHORIZATION.md
+before the separate approvals recorded below.
+
+Owner-approved A install 7d6107a6314a490ca5eb5fc5ec8d7895 sequence:
+
+- The identity check matched COM10.
+- After one owner PRG/RST entry, the live full read equalled 0bbf0482.
+- One write, then verify. The full readback was 553ece87…, byte-equal to the image.
+- After one owner RST, the normal display returned.
+- Idle health through the stable reader gave CONTROL plus an all-zero STATUS, with
+  rejected=0.
+
+The operator closed and the grant was consumed; launcher and child exited 0.
+RF0, and no B, phone, retry or restore. At this checkpoint B remained on
+0bbf0482 pending its own approval.
+
+Owner-approved B install 00e8f45cb83c41dea7ffe32d407d0c8a: its A prerequisite was
+attempt 7d6107a6. The identity check matched COM3, the live full read equalled
+0bbf0482, and the readback was 553ece87…, byte-equal to the image. The owner's
+normal return and an idle all-zero STATUS followed, with closure exit 0 and RF0.
+Both boards now run 553ece87. The G3 route's retained-install prerequisites
+(message_session IMAGES/ATTEMPTS and templates) now name the two attempts.
+Console gate 15/15, rehearsal 13/13, probe 10/10 and clock 4/4 pass; the timing
+suite showed the same 7 inherited failures by name. At this checkpoint G3
+awaited owner approval; its later successful result is recorded above.
+
+### OT-0340a Reconcile frozen architecture and diagnostic recovery lineage
+
+Registered the [foundation documentation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176)
+under open OT-0340 and reconciled the portable indefinite product-development
+freeze, [architecture reading path](architecture/README.md), C4 source model and
+[protocol-selection index](protocol/README.md). The source-owner review confirms
+the distinction between canonical/dirty source, exact successful diagnostic
+overlays and the conditionally approved isolated Packet-v1 host slice. The
+November 2 fixed-status exchange remains unauthenticated diagnostic evidence;
+the separate OT-0005j record and PR #70 retain its original detailed result.
+
+Protected source/history preservation, independent file restoration and exact
+accepted-binary hashes are verified within their recorded limits. Clean source
+rebuild, independent byte equality and device/runtime restoration are not
+claimed. The current handoff preserves the older October 25 checkpoint as
+history and selects one primary diagnostic evidence route. Final integrated
+documentation and fresh-reader/PR gates remain separate. Parent recovery
+exceptions, protected/production acceptance, consumed physical grants and V1
+credit are unchanged; no product behavior or hardware operation occurred.
+
+November 2 V1 documentation continuation: added the [firmware V1 guide](firmware/README.md),
+[build/recovery comparison](firmware/BUILD_AND_RECOVERY.md) and [existing acceptance map](firmware/V1_ACCEPTANCE.md);
+reconciled shared reading routes, full product names and portable instructions without
+changing technical identifiers, versioned contracts, historical evidence or V1 scores.
+The frozen independent reconstruction receipt b0575b69d795513aed746243aee67578d50087f6aedc72b10686cb02a5ad3055
+qualifies declared-host firmware configure/build, four native suites/110 groups,
+eight SDK fact tests and eight composed scenarios. Rebuilt padded firmware
+fbc5b44ed3abd3823ca66f5b870d1bfc8c4d06523f8f37a5eba91256d66c56ce
+differs from accepted 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283
+in 164913 bytes; a source-path dependency is confirmed, full attribution remains open.
+The accepted image remains preserved. Android's 43 tests and unsigned non-signing
+payload equality do not prove signed APK equality, signer execution or runtime.
+No product build/test was repeated for documentation. Fresh integrated reading-path
+review and the exact new PR71 delta remain pending; no merge, device operation,
+product acceptance or score increase is claimed.
+
+## 2026-11-01
+
+### OT-0340 Reconcile portable continuity publication candidate
+
+Prepared a seven-file governance/documentation/checker/CI candidate from the
+published repository, without copying dirty local document postimages. The existing
+working contract now contains the portable owner/scope, interruption and closeout
+obligations; workspace policy files remain local. PR #68 retains runbook and index
+ownership. Exact changed-file scope, validation and publication sequencing remain
+in the existing task evidence. Fresh clean-checkout validation passed all 25
+documentation tests, the documentation check against the published Git base and
+whitespace checks. The exact patch also applies over PR #68 with its documentation
+check passing; PR-owned runbook/index and policies remain unchanged. No hosted
+Actions or application matrix is claimed. No commit, push, PR or merge occurred. No product,
+physical, release or whole-recovery acceptance follows.
+
+### OT-0005j Reconcile failed trial and diagnostic successor
+
+Physical attempt `6cf06a0183c44b5396d181ca53d8f544` failed at A connect_sync
+before flash reads/programming. B remained untouched; neither RF direction ran.
+Native/terminal/parent records report closed resources and consumed authority. A
+separate approved single RST returned the usual advancing Trail screen by owner
+observation; no fresh firmware readback or formal restoration receipt was created.
+The failed attempt and its zero normal-return count remain historical evidence.
+
+Diagnostic predecessor `3c99c3bd900ee055854f72f88527cac89186d6c8804f4ddd81dc6eb95ce06653`
+had 88 passing host tests but was independently rejected for missing first-refusal
+classification at SYNC-stub and USB-OTG guards. Isolated P2 transport
+`234d598312f412eebd999b64d9aa6725c95ff7585c09eae48f724aca5b104129` records
+92 passing host tests (22 focused plus 70 regressions) and 18 trace comparisons;
+its focused independent acceptance remains outstanding in this reconciled record.
+This documents verified local artifacts, not integrated or released functionality.
+The physical SYNC cause remains unknown. No physical retry or live grant is
+authorized; consumed authority is never reusable. Original protected phone-to-phone
+acceptance and security dependencies remain open. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff)
+for owner, review scope and maintainer-held evidence access.
+
 ## 2026-10-31
 
 ### OT-0266b P5 checked P1-Pro backend and target execution
@@ -52,7 +1115,6 @@
 - Evidence: `build/repeater-baseline/p5-target-bound-20261031/`. No physical
   connection/RF/reset/flash/debug/publication. Next is dedicated-unit identity/
   recovery then separately authorized RX interface validation; P4/P5 stay open.
-
 
 ## 2026-10-30
 
@@ -70,6 +1132,26 @@
   P4, real radio timing, power and broader P5 physical acceptance remain open.
 
 ## 2026-10-29
+
+### OT-0237b Close exact-lineage entropy/startup acceptance
+
+The [later source-bound acceptance](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978173) reuses October 5's actual twenty-case entropy run, 485 matching firmware pins and retained build/image/package receipts to bind October 12's guarded restart/rekey evidence. This resolves the earlier b image-lineage gate without rerunning accepted tests or claiming October 1/12 images identical. Cold-power/brownout remains expressly deferred; c/d target persistence/retirement and e production admission stay open. One bounded physical proposal identifies missing cut/oracle tooling and fresh custody/operation grants before any future execution; no hardware, reset, flash, secret or production action occurred.
+
+### OT-0237e Existing security-gate evidence reconciliation
+
+Reconciled live OT-0237b/c/d/e against the [updated recommendation](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428), existing startup/persistence/retirement host proof, later physical restart/revoke evidence and immutable admission records. Completed host slices are no longer a proposed next step. The one owner packet separates b's source-binding/acceptance question from c/d's missing exact-target interruption/cleanup proof, historical raw-custody disposition and final production selection. No validated behavioral test was repeated, no physical operation occurred, and no production/physical or V1 acceptance was inferred.
+
+### OT-0086a Pilot signing and packaging checklist
+
+Prepared the [OT-0086a-1 host checklist](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286126230) with ten cases, immutable artifact/public-signer/custody fields, the exact permission union and separate signing, device, removal and release gates. Existing unsigned/debug evidence remains bounded; the current OTAR successor/evaluator under OT-0327, signer/custody decisions, accepted signed audit procedure and two-phone freeze remain unresolved. No build, signing, installation, firmware trust or release authority is created.
+
+### OT-0089a Coherent two-pair acceptance checklist
+
+Prepared the [OT-0089a-1 host checklist](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286126665) with fourteen numbered physical cases, exact candidate/evidence freeze fields, separate device/owner gates and original-custody recovery requirements. Every physical result remains NOT RUN; candidate, current phone matrix, production admission and required bounds remain unknown until separately frozen. Historical OTAR0 validation and Trail Dev presentation evidence cannot admit a production run. No hardware, release, V1 milestone or public website acceptance changes.
+
+### OT-0266b Record optional P1-Pro build-only smoke evidence
+
+The existing [OT-0266b-5](https://github.com/orgs/Limited-Underground/projects/9?pane=issue&itemId=286304806) records the isolated SenseCAP P1-Pro build-only smoke milestone: eight unchanged P1-P3 sources compiled/linked under GNU C++17, with 68,304 of 811,008 flash bytes and 13,348 of 237,568 static-RAM bytes. These are linker sizes, not runtime measurements. Seven newlib POSIX-stub warnings were retained. Authority denies all operations, storage/ledger inputs remain unavailable, the radio does not transmit and the upload action refuses execution. Independent reviews were clear and documentation checks/18 tests passed; accepted host suites were reused, not rerun. Five retained artifact hashes were independently matched during this audit; smoke-target patch SHA-256 is `195b9532df7c85f3b5106bc35839a719f3f351bb2c883070efec5c49347cbf21`. The candidate remains unpublished and separate from Live. Actual SX1262, protected state, power/recovery and physical acceptance remain open; no hardware, RF, signing or release occurred. The subsequent October 30 adapter implementation was still active without completed test/build results at this audit cutoff.
 
 
 ### OT-0266b P1-Pro build-only target
@@ -95,6 +1177,20 @@
   commit/publication, cleanup or public V1 capability change.
 
 ## 2026-10-28
+
+### OT-0005j Validate isolated Android runtime and session binding
+
+Completed the four-file opt-in Packet-v1 runtime/session host slice, with 77 protocol, 499 Debug and 498 Release tests passing and independent security/test review. Trusted host-injected authority, current attachment/generation/nonce binding and truthful unknown outcomes were exercised; the production provider remained unavailable and profile 6 default-off. This was an isolated unpublished candidate, not production BLE or physical interoperability. The existing [OT-0005j](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977413) retains the evidence and remaining production gates.
+
+### OT-0314 Complete bounded host delivery and Messages evidence
+
+Completed [OT-0314-1](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286304474) request-correlated projection (127 focused, 77 protocol, 511 Debug and 510 Release tests) and [OT-0314-2](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342279) Recent Device Status presentation (70 focused, 77 protocol, 523 Debug and 522 Release tests), with independent review. Queue acceptance, transmission, protected peer ACK, received status, rejection and unknown outcomes remain distinct; presentation adds no sending or durable delivery history. [OT-0314-4](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342712) preserved the accepted candidate in an isolated worktree with patch round-trip and exact-source verification; [OT-0314-3](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286342508) produced two byte-identical Debug APKs, SHA-256 `d5fb0185a39862ba0a0a9498342395f6e28dfd3397125bdb2674f41fe4074ada`, plus 70 focused tests and clean Debug lint. All work remained unpublished and unintegrated; host child completion did not close the parent or production/physical/release gates.
+
+### OT-0255 Validate isolated Trail Dev packaging and partial physical UI
+
+Built the separate Trail Dev Debug package without Bluetooth permissions and with the owning service disabled; Release and V1-Test boundaries stayed unchanged. An exact owner-approved APK was subsequently installed alongside the existing base application on the Note20 Ultra. The bounded physical walkthrough verified navigation and Activity recreation, found a nonfunctional Set up later action and recorded contrast concerns. It did not exercise nonempty delivery states, TalkBack, protected communication or two-pair operation. Emulator attempts also failed stable framework/Bluetooth-isolation readiness before application installation; boot diagnostics were not rendered application acceptance.
+
+A separately approved seven-file host correction fixed the local navigation callback, permission-presentation restoration and unavailable-icon palette. Final validation passed 55 focused, 77 protocol, 529 Debug and 528 Release tests with clean lint and independent review. Corrected Trail Dev APK SHA-256 is `75b82e934caebd831c2b9f0a9f98bcc7f0fe92f2122757bf0631f136ed32a46c`; it was not installed in that correction or the subsequent October 29 integrity checkpoint. The earlier installed build therefore retained the observed defects. Existing [OT-0255](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286121766) records the reviewed evidence; full rendered/accessibility, production security, physical interoperability and release acceptance remain open. No Live integration, commit, merge, public V1 or website change was claimed.
 
 
 ### OT-0266b Host driver-contract fixture exception
@@ -268,6 +1364,16 @@ cleanup, product version or V1/public-website credit is added.
 
 ## 2026-10-27
 
+### OT-0237e Production security decision preparation
+
+Prepared the [conditional production recommendation](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428): pinned libsodium, separate signing/agreement keys, Noise XK, purpose-separated pairwise AEAD and compact Packet-v1 framing. Existing lifecycle, persistence, retirement, custody and independent-admission gates remain open. The owner decision and a bounded host-only codec slice are specified; no production selection, implementation, hardware execution or acceptance is claimed.
+
+Later on October 27, the isolated host candidate completed compact Packet-v1 codec/security proof and authenticated-session/driver facade work. Recorded gates included 46 codec checks, 140 crypto groups and the later 863-assertion armed-facade run, with synthetic transport regressions and independent security/test review. Actual driver code used host SDK/RadioLib stubs and synthetic authority; no target build, RF, hardware execution, production selection or Live integration was accepted. The existing [OT-0237e](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270978428) owns this host evidence and its still-open production admission; this later implementation checkpoint supersedes the earlier same-day proposal-only next-step wording without erasing it.
+
+### OT-0005j Validate isolated Android Packet-v1 protocol foundations
+
+Completed the six-file protocol-only candidate: 77 tests across ten suites, 119 golden rows and exhaustive semantic combinations, with independent security/test review and documentation checks. Runtime/session and physical interoperability were separate later gates; no production authority, device operation or release resulted. Evidence is retained on the existing [OT-0005j](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=270977413).
+
 ### OT-0266b P1 host replay recovery coverage
 
 The owner conditionally approved the recorded D1-D7 direction and explicitly
@@ -287,6 +1393,40 @@ remain unchanged. This is synthetic host reconstruction evidence, not physical
 power-loss, protected storage/authentication, durable frame or airtime recovery
 acceptance. OT-0266b and P2-P6 gates remain open; no hardware, target, public
 website change, V1 credit, publication, cleanup or automatic P2 continuation.
+
+## 2026-10-26
+
+### OT-0170a S24 saved-device BLE and Activity resume
+
+The updated V1-Test APK was installed on the S24 with app installation history and Nearby Devices grants retained. One bounded scan registered, received saved-peer advertisements, stopped normally, and completed GATT connection/service discovery. Two Activity reattachments and one same-instance resume preserved the connected UI without a second scan or observed disconnect. The [physical record](https://github.com/orgs/Limited-Underground/projects/8?pane=issue&itemId=286127059) identifies the exact APK, private diagnostic capture hashes, timestamps, and limitations. Automatic stale-`Blocked` recovery passed the Android host matrix but did not occur physically in this trial. OT-0170a-2 and its parent remain open; no release, V1-progress, or website credit is claimed.
+
+### OT-0304 Production-launch host prerequisite reconciliation
+
+OT-0304-1 remains open. The earlier Note20 explicit-Start stall was reproduced and corrected by [OT-0304b](testing/OT-0304b-PENDING-START-2026-10-01.md); its bounded [Note20 checkpoint](testing/OT-0304b-NOTE20-CONFIRMATION-2026-10-01.md) reached protected Ready and retained the draft through rotation, reopening and larger text. The subsequent BLE lifecycle changes touched the same owner/controller path, but the post-change Android test reports from this morning pass 477 debug, 476 release and 532 V1-Test cases with zero failures, errors or skips. This reuses current-candidate results rather than repeating accepted matrices.
+
+Host/physical matrix review: OT-0301/0302/0303 have accepted host scope for ordered setup, protected settings and saved-device recovery. Production entry/explicit Start and bounded Note20 rotation, larger text and draft retention have the evidence above. The October 26 S24 result adds saved-device discovery, GATT and connection-preserving resume, not fresh first-use or automatic Blocked recovery. The earlier original-device application read/USB restart failure was not reproduced by later guarded custody/restoration, but its hidden cause and executing original profile remain unknown. The [standard settings trial](testing/OT-0304-STANDARD-SETTINGS-PHYSICAL-2026-10-01.md) passed protected Ready and fresh name/region READ, then timed out before a durable public READ ACK. Its [automatic observation helper](testing/OT-0304-AUTOMATED-PHONE-OBSERVATION-2026-10-01.md) is host-tested against retained captures; no new physical session used it. The original control still needs the accepted second-device clock correction after control duty. Fresh first-use, full saved-state continuity, exact resident/candidate profile, public-settings ACK, warm restart and production-launch acceptance remain unverified. No new code, device operation, V1 credit or release claim resulted from this review.
+
+The same-day READ/ACK preflight located the missing protected closeout in a completed, verified restore set; its frozen manifest, observation owner, landscape Note20 APK and standard candidate match restored bytes. The currently installed Note20 V1-Test APK also matches the frozen landscape APK (12,007,386 bytes; SHA-256 F992DA1F187A533C9CAE3C1E5C368FDA9FB4B140861B3186449164288AFB80F5). The current phone helper matches its frozen SHA-256 CB60EE2D9B1052D095DBA34BF55F79F66F833BEA1DD988F02AC0CF43F920B219. USB enumeration matches the registered Trail Bench identity, but fresh isolated ROM identity verification has not occurred. Historical receipt custody is not a current one-use grant, fresh caller configuration or complete recovery readiness. The validated operator requires a temporary candidate application write and original restoration; this task's explicit no-flashing restriction excludes that operation. No capture, public READ/ACK request, device state change or substitute firmware path occurred. The public READ/ACK remains unobserved; a later trial needs exact fresh inputs, operation-bound authority and the existing recovery procedure, or a separately validated READ-only method against a proven capable resident profile.
+
+The owner subsequently authorized one temporary candidate install and original restoration, conditional on full preflight. This authorization removed the no-flashing restriction for that single session but did not establish operational readiness. Read-only preflight found the exact candidate and four historical original reference files hash-matched in protected restore custody; their historical source paths are absent from Live. Current NVS and both state halves have not been freshly captured twice, so present-state restoration and independent recovery are unproved. USB metadata matches the registered Trail Bench, but another unregistered serial device is present and the required isolated ROM identity read has not occurred. The old caller pins a different APK and historical paths; the newer tested phone helper has no execution-ready caller or fresh one-use grant. Rebinding it requires a reviewed, device-free validated integration. No flash, capture, test request, restoration or board operation was attempted. The physical attempt belongs to separate board child OT-0304-2; OT-0304-1 host tracking remains in progress. Do not use historical grants or files as current recovery authority.
+
+After the owner isolated Trail Bench and placed it in ROM mode, the approved read-only identity verifier returned `OTDEV-ID/v1 MATCHED OT-DEV-001` on the single registered USB instance; the extra unregistered serial port was absent. The same USB instance remained present after verification. No MAC or protected identity was displayed in public evidence. This match is valid only for the current uninterrupted ROM/port session; it does not carry forward through disconnect or re-enumeration. The historical operator hardcodes the older APK, registry and original-source pins, while the tested newer phone helper has no operational caller or self-grant. Repointing those constants would bypass validated checks, so no successor caller, grant, capture, custody read or firmware write was created. Current-state NVS/state capture and independent restore-only recovery remain open; the public READ/ACK was not attempted. After this read-only check, the owner tapped RESET and reported the usual Trail Bench screen returned. This is an owner-observed display result, not a fresh firmware-byte, protected-state, connection or READ/ACK verification; the ROM identity must be repeated in any later operational session.
+
+The separate current-root READ/ACK caller and independent restore-only controller are now executable software, with no hardware execution in this work. A fresh runtime capsule passed its inert probe; the origin context binds reviewed caller code, candidate, Note20 APK, registry and historical originals without a circular restore dependency. The caller and restore controller verify the same origin SHA-256 CEFA8EB45C76E7D6D40487F345088603D2AF88C8BC65C2DFC6AA21A3F20B6881. Caller SHA-256 is 9201DDBAAF2AADEEFFA9DDD1CBA9A8026B19B66A02A6CF35C38C71D14948F8FA; independent restore CLI SHA-256 is 40D92F8DDFB3421EC1ACCB180FD4EF40D28EEC411407C951D471589E9816B72F. Both pinned-runtime inert checks pass without serial or phone access. Focused synthetic suites pass 19 caller/preflight, 16 restore/authority compatibility, eight custody-validator, 42 unchanged trial-engine and 46 unchanged phone-observer tests. The original four retained images match their hashes in new private task custody; this does not prove present board equality. No fresh one-use engine or challenge-bound phone grant, current-state NVS/state capture, physical recovery proof, firmware write, public READ/ACK or device acceptance was produced. The previous ROM identity match ended with RESET; OT-0304-1 remains In Progress, and OT-0304-2/parent physical gates remain open.
+
+## 2026-10-25
+
+### OT-0170a Publish bounded setup and saved-device host evidence
+
+[PR #64](https://github.com/Limited-Underground/Trail/pull/64) published the reviewed host matrix and progress entry. Its 129-test host child remains separate from first-use, saved-state and physical parent acceptance.
+
+### OT-0177a Publish C01 synthetic host-schema evidence
+
+[PR #65](https://github.com/Limited-Underground/Trail/pull/65) published the bounded C01 schema tests/report after required checks. Synthetic schema success does not accept full checklist review, export/privacy behavior, Save/Share or physical support-export acceptance.
+
+### OT-0340 Publish portable firmware and Android pickup
+
+[PR #66](https://github.com/Limited-Underground/Trail/pull/66) published only the portable handoff documents after required checks; approved main reached `c96d93ea459a7c41cf453e27edea082985650fa6`. Unrelated local work was retained. This documentation publication did not close the recovery exceptions or add device, security, release or V1 acceptance.
 
 ## 2026-10-24
 
@@ -358,6 +1498,39 @@ feature, release, publication or V1 credit was claimed.
   validation scope and unresolved recovery task identity. Earlier documentation
   checks and final provenance checks passed, including all 18 documentation tests.
   No device, product acceptance, publication or V1 credit is claimed.
+
+## 2026-10-21
+
+### OT-0238c Implement reset_preparation predevice selection gate
+
+Micro-task OT-0238c-27 (host-only): selection gate now admits explicit
+`reset_preparation` with strict integer `group == 1`, mirroring revoke. Focused
+predevice-resume suite: 62 tests OK in 99.850s. Report:
+[OT-0238c-RESET-PREPARATION-SELECTION](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911816).
+Evidence under protected owner-held receipts. No
+package, USB, launcher, or physical acceptance. Next child OT-0238c-28 inert
+successor package admission remains separately accepted.
+
+### OT-0238c Admit inert reset_preparation successor package
+
+Micro-task OT-0238c-28 (host-only): KIND/STAGE/profile
+`ot0238f-reviewed-reset-preparation-successor` with inert package receipt
+(`launcher_created=false`). Portable successor tests: 5 OK; predevice suite
+still 62 OK. Report:
+[OT-0238f-RESET-PREPARATION-ADMISSION](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911862).
+Evidence under protected owner-held receipts. No
+USB, launcher activation, or physical acceptance. Next child OT-0238c-29
+remains separately accepted.
+
+### OT-0238c Stage reset_preparation launcher for physical attempt
+
+Micro-task OT-0238c-29 (host-only): empty session/readiness nonce dirs, staged
+owner-workflow plan, refusing session template, and staged launcher CMD
+(exit 2). Receipt keeps `usb_authorized=false` and
+`physical_authorization_required=true`. Report:
+[OT-0238f-RESET-PREPARATION-LAUNCHER-STAGING](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=278911884).
+No USB, grants, workflow execution, or physical acceptance. Owner action
+remaining: Physical Authorization Required before any USB attempt.
 
 ## 2026-10-20
 

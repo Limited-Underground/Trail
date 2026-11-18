@@ -15,6 +15,9 @@
 #include "companion_name_storage.hpp"
 #include "companion_region_storage.hpp"
 #include "enrollment_identity_nvs_storage.hpp"
+#if OPENTRAIL_LORA_LINK_TEST
+#include "pairing_nvs_storage.hpp"
+#endif
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -364,6 +367,9 @@ HeltecV4FactoryResetMarkerStorage::load() {
 DeviceFactoryResetMarkerSnapshot
 HeltecV4FactoryResetMarkerStorage::commit_intent_and_readback(
     std::uint64_t reset_receipt) {
+    // I-068: the identity storage keeps a RAM copy that is valid only within one
+    // reset generation; a reset marker about to exist ends it before NVS changes.
+    invalidate_enrollment_identity_storage_for_reset();
     const auto before = read_marker(handle_);
     if (before.error != DeviceFactoryResetPortError::none) {
         return before;
@@ -504,6 +510,10 @@ DeviceFactoryResetAbsenceSnapshot
 HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     static_assert(!kHeltecV4FactoryResetHasActiveMapPackageStorage);
     invalidate_enrollment_identity_storage_for_reset();
+#if OPENTRAIL_LORA_LINK_TEST
+    // D-086: unmount the pairing NVS instance before ot_state is erased.
+    ::opentrail::target::heltec_v4_bench::retire_pairing_storage_for_reset();
+#endif
 
     const auto owner = erase_owner_namespace_and_verify();
     if (owner.error != DeviceFactoryResetPortError::none) {

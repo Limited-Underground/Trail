@@ -288,6 +288,7 @@ internal class FakeCompanionTransport(
                 kind = request.kind,
                 disposition = CompanionActionDisposition.ADMITTED,
             ) to current.copy(revision = nextRevision, positionSharing = CompanionPositionSharingState.STOPPED)
+            CompanionActionKind.START_ENROLLMENT,
             CompanionActionKind.FACTORY_RESET -> CompanionActionResult(
                 kind = request.kind,
                 disposition = CompanionActionDisposition.REJECTED,

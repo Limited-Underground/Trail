@@ -106,8 +106,12 @@ int main(){
         std::optional<ReviewedEnrollmentIdentity> out;assert(f.owner->take_review(out));
         assert(out && out->deadline()==120000);++groups;
     }
-    for(auto deadline:{std::uint64_t{99},std::uint64_t{100},std::uint64_t{120101}}) {
+    // D-110: an inherited deadline may give the review up to 5 minutes, never more.
+    for(auto deadline:{std::uint64_t{99},std::uint64_t{100},std::uint64_t{300101}}) {
         Fixture f;assert(!f.owner->begin_until(f.pins.responder,deadline));++groups;
+    }
+    {
+        Fixture f;assert(f.owner->begin_until(f.pins.responder,300100));++groups;
     }
     {
         Fixture f;assert(f.owner->begin_until(f.pins.responder,1100));

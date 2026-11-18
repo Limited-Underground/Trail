@@ -19,9 +19,32 @@ if(OPENTRAIL_CONFIRMATION_EVALUATION)
     list(APPEND OPENTRAIL_CONFIRMATION_REQUIRES espressif__libsodium)
 endif()
 
+set(OPENTRAIL_LORA_SOURCES)
+set(OPENTRAIL_LORA_INCLUDES)
+set(OPENTRAIL_LORA_REQUIRES)
+if(OPENTRAIL_LORA_LINK_TEST)
+    set(OPENTRAIL_RADIOLIB_HAL "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_radio_diag/main")
+    # V1 F5 R2a: board pairing (session, storage, runtime) needs the same
+    # supporting sources as the confirmation evaluation (never both; see below).
+    set(OPENTRAIL_PAIRING_NOISE_ADAPTER "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_security_eval/main/noise_adapter")
+    list(APPEND OPENTRAIL_LORA_SOURCES "heltec_v4_lora.cpp" "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"
+        "pairing_nvs_storage.cpp" "board_pairing_runtime.cpp"
+        "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c"
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp")
+    list(APPEND OPENTRAIL_LORA_INCLUDES "${OPENTRAIL_RADIOLIB_HAL}" "${OPENTRAIL_PAIRING_NOISE_ADAPTER}")
+    list(APPEND OPENTRAIL_LORA_REQUIRES jgromes__radiolib esp_driver_spi)
+endif()
+if(OPENTRAIL_LORA_LINK_TEST AND OPENTRAIL_CONFIRMATION_EVALUATION)
+    message(FATAL_ERROR "OPENTRAIL_LORA_LINK_TEST and OPENTRAIL_CONFIRMATION_EVALUATION are exclusive")
+endif()
+
 idf_component_register(
     SRCS
         ${OPENTRAIL_CONFIRMATION_SOURCES}
+        ${OPENTRAIL_LORA_SOURCES}
         "app_main.cpp"
         "companion_connection_diagnostics.cpp"
         "companion_boot_self_check.cpp"
@@ -80,6 +103,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/include"
         "${OPENTRAIL_COMPONENT_ROOT}/security_evaluation/include"
         ${OPENTRAIL_CONFIRMATION_INCLUDES}
+        ${OPENTRAIL_LORA_INCLUDES}
         "${OPENTRAIL_COMPONENT_ROOT}/ui/include"
         "${OPENTRAIL_COMPONENT_ROOT}/time/include"
         "."
@@ -92,6 +116,7 @@ idf_component_register(
         bootloader_support
         efuse
         esp_adc
+        esp_app_format
         esp_partition
         esp_security
         esp_system
@@ -102,12 +127,15 @@ idf_component_register(
         esp_lcd
         mbedtls
         nvs_flash
-    PRIV_REQUIRES espressif__libsodium ${OPENTRAIL_CONFIRMATION_REQUIRES}
+        spi_flash
+    PRIV_REQUIRES espressif__libsodium ${OPENTRAIL_CONFIRMATION_REQUIRES} ${OPENTRAIL_LORA_REQUIRES}
 )
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     OPENTRAIL_CONFIRMATION_EVALUATION=$<BOOL:${OPENTRAIL_CONFIRMATION_EVALUATION}>
     OPENTRAIL_CONNECTION_DIAGNOSTICS=$<BOOL:${OPENTRAIL_CONNECTION_DIAGNOSTICS}>
-    OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=$<BOOL:${OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY}>)
+    OPENTRAIL_LORA_LINK_TEST=$<BOOL:${OPENTRAIL_LORA_LINK_TEST}>
+    OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY=$<BOOL:${OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY}>
+    OPENTRAIL_RELEASE_GENERATION=${OPENTRAIL_RELEASE_GENERATION}UL)
 if(OPENTRAIL_CONNECTION_DIAGNOSTICS)
     if(OPENTRAIL_CONFIRMATION_EVALUATION)
         message(FATAL_ERROR "Connection comparison uses the ordinary 4096-byte BLE profile")

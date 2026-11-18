@@ -700,6 +700,20 @@ $builds = @(
         )
     },
     @{
+        Name = 'Pairing storage key slots (I-058)'
+        Output = Join-Path $buildDirectory 'pairing_storage_key_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_storage_key_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Pairing slot RAM cache (I-066)'
+        Output = Join-Path $buildDirectory 'pairing_slot_cache_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_slot_cache_tests.cpp')
+        )
+    },
+    @{
         Name = 'Heltec V4 startup display state owner'
         Output = Join-Path $buildDirectory 'heltec_startup_display_tests.exe'
         Sources = @(
@@ -721,6 +735,15 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_gnss.cpp'),
             (Join-Path $projectRoot 'tests\host\heltec_v4_gnss_tests.cpp')
+        )
+    },
+    @{
+        Name = 'Heltec V4 request-time GNSS snapshot bridge'
+        Output = Join-Path $buildDirectory 'heltec_v4_gnss_snapshot_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_gnss.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_gnss_snapshot_tests.cpp')
         )
     },
     @{
@@ -825,6 +848,130 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\identity\src\group_access_controller.cpp'),
             (Join-Path $projectRoot 'tests\host\group_access_controller_tests.cpp')
+        )
+    },
+    @{
+        Name = 'group roster record and acceptance (V1 pairwise groups, step 1)'
+        Output = Join-Path $buildDirectory 'group_roster_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_roster_tests.cpp')
+        )
+    },
+    @{
+        Name = 'group pair authority, binding and epochs (V1 pairwise groups, step 2)'
+        Output = Join-Path $buildDirectory 'group_pair_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_pair_tests.cpp')
+        )
+    },
+    @{
+        Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
+        Output = Join-Path $buildDirectory 'group_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_inbox.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_frame_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable group message numbers (V1 pairwise groups, step 3b)'
+        Output = Join-Path $buildDirectory 'group_message_number_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_message_numbers.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_message_number_tests.cpp')
+        )
+    },
+    @{
+        Name = 'indexed group pair storage (V1 pairwise groups, step 3b)'
+        Output = Join-Path $buildDirectory 'group_pair_index_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_pair_index_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable group receive window (V1 pairwise groups, step 3b)'
+        Output = Join-Path $buildDirectory 'group_receive_state_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_inbox.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_receive_state.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_receive_state_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable group roster and roster-first transition (V1 pairwise groups, step 3c)'
+        Output = Join-Path $buildDirectory 'durable_group_roster_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\durable_group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\durable_group_roster_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable group pair records and lanes (V1 pairwise groups, step 3c)'
+        Output = Join-Path $buildDirectory 'group_pair_records_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\durable_group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_records.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\outbound_counter_lease_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_pair_records_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable group board receipt ACK (V1 pairwise groups, D-120)'
+        Output = Join-Path $buildDirectory 'group_ack_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_ack.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_receive_state.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_inbox.cpp'),
+            (Join-Path $projectRoot 'firmware\components\delivery\src\group_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_ack_tests.cpp')
+        )
+    },
+    @{
+        Name = 'product LoRa driver (V1 F5, R1 review F2 to F5)'
+        Output = Join-Path $buildDirectory 'heltec_v4_lora_driver_tests.exe'
+        Arguments = @('-I', (Join-Path $projectRoot 'tests\host\heltec_v4_lora_stubs'))
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_lora.cpp'),
+            (Join-Path $projectRoot 'tests\host\heltec_v4_lora_driver_tests.cpp')
+        )
+    },
+    @{
+        Name = 'bench LoRa link test beacon (V1 F5, step R1)'
+        Output = Join-Path $buildDirectory 'lora_link_test_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\lora_link_test_tests.cpp')
+        )
+    },
+    @{
+        Name = 'LoRa first-pairing frame (V1 F5, step R2a)'
+        Output = Join-Path $buildDirectory 'pairing_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_frame_tests.cpp')
+        )
+    },
+    @{
+        Name = 'LoRa first-pairing coordinator (V1 F5, step R2a)'
+        Output = Join-Path $buildDirectory 'pairing_coordinator_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\pairing_coordinator_tests.cpp')
         )
     },
     @{

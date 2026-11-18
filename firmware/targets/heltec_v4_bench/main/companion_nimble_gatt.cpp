@@ -145,7 +145,8 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
-SelectedEnrollmentRequestOwner g_selected_enrollment_requests;
+// D-110: the phone's board pairing request lasts 5 minutes.
+SelectedEnrollmentRequestOwner g_selected_enrollment_requests{SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};
 ConfigurationPhoneStatus g_phone_status;
 ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
@@ -773,17 +774,17 @@ bool definition_is_pristine() {
 
 }  // namespace
 
-bool admit_selected_enrollment_request(
+SelectedEnrollmentAdmission admit_selected_enrollment_request(
     const DeviceNameContext& context, std::uint32_t exchange_id) {
 #if OPENTRAIL_CONFIRMATION_EVALUATION
     (void)context;
     (void)exchange_id;
-    return false;
+    return SelectedEnrollmentAdmission::refused;
 #else
     GattLock lock;
     if (!lock || g_adapter == nullptr || g_configuration_dispatcher == nullptr ||
         !g_configuration_selected || g_configuration_revoked ||
-        companion_app_factory_reset_blocks_protected_access()) return false;
+        companion_app_factory_reset_blocks_protected_access()) return SelectedEnrollmentAdmission::refused;
     update_configuration_authority();
     const auto status = g_adapter->status();
     const auto tick = now_ms();
@@ -796,19 +797,47 @@ bool admit_selected_enrollment_request(
             g_phone_status.ready(g_configuration_authority,
                                  status.transport_generation),
             companion_app_factory_reset_blocks_protected_access(),
-            exchange_id, tick)) return false;
+            exchange_id, tick)) return SelectedEnrollmentAdmission::refused;
     const auto frame = decode_configuration_frame(
         lane.record.data(), lane.bytes, kSelectedConfigurationMinor);
     if (!frame.decoded() || frame.value.kind != 2 ||
         frame.value.exchange_id != exchange_id ||
-        frame.value.session_nonce != context.session_nonce) return false;
+        frame.value.session_nonce != context.session_nonce) return SelectedEnrollmentAdmission::refused;
     const auto action = decode_companion_action_request(
         {frame.value.payload.data(), frame.value.payload_bytes});
     if (!action.decoded() ||
-        action.value.kind != CompanionActionKind::start_enrollment) return false;
-    return g_selected_enrollment_requests.admit(
-        g_configuration_authority, lane.connection, lane.token, exchange_id) ==
-        SelectedEnrollmentRequestResult::admitted;
+        action.value.kind != CompanionActionKind::start_enrollment) return SelectedEnrollmentAdmission::refused;
+    // D-085: the product request carries the phone-chosen role and code.
+    switch (g_selected_enrollment_requests.admit(
+        g_configuration_authority, lane.connection, lane.token, exchange_id,
+        action.value.enrollment_role, action.value.pairing_code)) {
+        case SelectedEnrollmentRequestResult::admitted: return SelectedEnrollmentAdmission::admitted;
+        case SelectedEnrollmentRequestResult::busy: return SelectedEnrollmentAdmission::busy;
+        case SelectedEnrollmentRequestResult::invalid: return SelectedEnrollmentAdmission::invalid;
+        case SelectedEnrollmentRequestResult::retired: return SelectedEnrollmentAdmission::retired;
+    }
+    return SelectedEnrollmentAdmission::refused;
+#endif
+}
+
+bool companion_pairing_request_snapshot(
+    SelectedEnrollmentRequest& request, DeviceNameAuthority& authority) {
+    request = {};
+    authority = {};
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+    return false;
+#else
+    GattLock lock;
+    if (!lock) return false;
+    update_configuration_authority();
+    g_configuration_authority.now_ms = now_ms();
+    if (g_selected_enrollment_requests.pending())
+        (void)g_selected_enrollment_requests.observe(
+            g_configuration_authority,
+            g_selected_enrollment_requests.request().connection_handle);
+    authority = g_configuration_authority;
+    request = g_selected_enrollment_requests.request();
+    return g_selected_enrollment_requests.pending();
 #endif
 }
 

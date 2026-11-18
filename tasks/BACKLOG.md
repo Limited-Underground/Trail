@@ -1,4 +1,4 @@
-# OpenTrail Engineering Backlog
+# Limited Underground Trail engineering backlog
 
 This is the task register. Rows retain their existing identifiers, status and
 acceptance boundaries; historical evidence within a row remains tied to its
@@ -8,7 +8,26 @@ The [complete pre-cleanup backlog](../docs/history/BACKLOG_BEFORE_CLEANUP_2026-0
 preserves all removed summaries and superseded sequencing; see the
 [archive navigation map](../docs/history/README.md).
 
-## Current execution order
+## Current task selection
+
+Select current work through the [Firmware Project](https://github.com/orgs/Limited-Underground/projects/1)
+or [Android App Project](https://github.com/orgs/Limited-Underground/projects/8),
+the [working contract](../CONTRIBUTING.md#working-contract), and the
+[current handoff](../docs/PROJECT_STATUS.md#current-recovery-handoff).
+Bind the selected task to its actual source, applicable owner authority,
+dependencies and acceptance evidence. The current development rules are in the
+[working contract](../CONTRIBUTING.md#working-contract); a task row, historical next step
+or successful host check does not expand execution authority.
+
+When a task's next gate is unresolved, record the exact blocker and continue
+only an already-authorized eligible task. Completed bounded children retain
+their acceptance limits; their completion does not close an unfinished parent.
+
+## Historical execution sequence
+
+Historical: the sequence below preserves earlier checkpoints and proposed next
+steps for traceability. It is not the current work queue or an execution grant.
+Use [current task selection](#current-task-selection) for active work.
 
 The [October 9 first physical enrollment case](../tests/hardware/OT-0238c-FIRST-2026-10-09.md)
 remains passed. The [October 10 retained attempt](../tests/hardware/OT-0238c-RETAINED-2026-10-10.md)
@@ -153,7 +172,9 @@ not active release commitments and earn no V1, V1.5, or V2 progress credit.
 
 | ID | Status | Task | Acceptance evidence |
 | --- | --- | --- | --- |
-| OT-0340 | in progress; scoped source restore and host checks verified | Reconcile Trail source recovery baseline | C: ordinary source, two dirty worktrees and historical E: checkout have preserved checkpoints and D: restored hashes. The final eleven-file post-checkpoint delta superseded the earlier nine-file account and passed full 3,076-file D: reconstruction; E: delta bytes remain unverified under the storage-only rule. Protected `.private` holdings passed a full isolated D: restore; the encrypted local OneDrive copy passed integrity checks, but cloud retrieval remains open. Android and targeted firmware host matrices passed, as did the patched full Trail host wrapper with `-SkipSecurityOperators`; bounded local host-only resumption is owner-accepted; physical/product acceptance and the five recovery exceptions remain open. Refresh the delta after later edits, reconcile ignored holdings and saved-path consumers, and retain historical copies. Historical policy was dispositioned and two safeguards carried forward. See [evidence](../docs/testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md). |
+| OT-0341 | host candidate; target and Android integration pending | Device parameters for logging (V1 F11, requirement 8) | New standalone collector and strict 212-byte version-1 codec; host bounds/age/hostile decode tests. Existing bench, protected status, pairing and Android files remain outside this increment. See [component design and integration hooks](../firmware/components/device_parameters/README.md). No device or F11 completion claim. |
+| OT-0340 | open; scoped source restore and host checks verified; guidance regressions verified | Reconcile Trail source recovery baseline | C: ordinary source, two dirty worktrees and historical E: checkout have preserved checkpoints and D: restored hashes. The final eleven-file post-checkpoint delta superseded the earlier nine-file account and passed full 3,076-file D: reconstruction; E: delta bytes remain unverified under the storage-only rule. Protected `.private` holdings passed a full isolated D: restore; the encrypted local OneDrive copy passed integrity checks, but cloud retrieval remains open. Android and targeted firmware host matrices passed, as did the patched full Trail host wrapper with `-SkipSecurityOperators`; bounded local host-only resumption is owner-accepted; physical/product acceptance and the five recovery exceptions remain open. Refresh the delta after later edits, reconcile ignored holdings and saved-path consumers, and retain historical copies. Historical policy was dispositioned and two safeguards carried forward. See [evidence](../docs/testing/OT-0340-TRAIL-SOURCE-RECOVERY-2026-10-23.md). |
+| OT-0340a | complete within bounded documentation scope; adopted | Reconcile frozen architecture and diagnostic recovery lineage | [Registered foundation child](https://github.com/orgs/Limited-Underground/projects/1?pane=issue&itemId=291531176), parent OT-0340: portable indefinite freeze and architecture/protocol routes, exact diagnostic/canonical/host-candidate distinctions, and recovery continuity. Qualified reconstruction/host tests and the November 3 independent exact-image attribution review are retained; raw firmware inequality, incomplete nonloaded/debug ELF attribution and runtime/signer/device limits remain explicit in the [build/recovery guide](../docs/firmware/BUILD_AND_RECOVERY.md#reviewed-attribution-of-the-image-differences). [PR #71](https://github.com/Limited-Underground/Trail/pull/71), [PR #68](https://github.com/Limited-Underground/Trail/pull/68) and [PR #210](https://github.com/Limited-Underground/Trail/pull/210) are merged; [PR #69](https://github.com/Limited-Underground/Trail/pull/69) was closed as superseded. The [reconciliation record](../docs/PROGRESS_LOG.md#ot-0340a-reconcile-runbook-and-continuity-on-adopted-main) retains the source and review history. Parent OT-0340 remains open with its recovery exceptions. Preserve original diagnostic evidence and consumed physical grants; no product, hardware or V1-credit change. |
 | OT-247 | host correction accepted; physical timing gate failed | Audit complete flow and correct receive/host transport sequencing | Baseline five/three-status failures retained in [audit](../docs/testing/OT-247-END-TO-END-RADIO-AUDIT-2026-09-20.md). [OT-0247c](../docs/testing/OT-0247c-RADIO-WORK-CORRECTION-2026-09-21.md) passes eight statuses and cleanup in all three host profiles. |
 | OT-246 | physical diagnostic capture complete; originals restored | Capture exact failure provenance and physical stage timing | Exact B invitation expiry4ms past deadline; 28 WAIT polls after first activation TX; host guard costs measured. Both originals independently verified/restored/reset, custody closed and normal screens confirmed. [Proof and limits](../docs/testing/OT-246-FAILURE-CAPTURE-2026-09-18.md). |
 | OT-245 | host investigation complete; physical cause unproven | Replay actual bridge with independent node idle scheduling | Sixteen cases pass scheduler checks; idle adds only107–133ms in10s-delay controls.47s synthetic delay reproduces activation1 B/RFPOLL with idle on/off. Four uninstrumented controls match. [Proof and limits](../docs/testing/OT-245-INDEPENDENT-IDLE-REPLAY-2026-09-18.md). |
@@ -643,8 +664,8 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0237b | host validation passes; physical gates remain open | OT-0237a | [Actual candidate startup/entropy admission](../docs/testing/OT-0237b-ENTROPY-STARTUP-HOST-2026-10-01.md): 20 focused cases and complete 74-suite current-source security matrix pass. One fresh current-source candidate compile also passes; hardware RNG quality, target restart and cold-power/brownout remain untested. No production crypto selection or full-task completion. |
 | OT-0237c | planned | OT-0237a | Accept interrupted counter and receive persistence |
 | OT-0237d | planned | OT-0237a | Accept complete secret retirement and diagnostic privacy |
-| OT-0237e | planned | OT-0237a | Close final security evidence admission and selection |
-| OT-0005i | planned | OT-0005h | Bind selected secure transport and final production enrollment to Companion firmware after OT-0237e; revalidate affected admission evidence and finish actual enrollment/rekey/recovery/revoke/reset adapters. OT-0238a remains open until this binding is accepted. |
+| OT-0237e | host candidate admitted; parent open | OT-0237a | Selected source/profile passed independent eligible host admission. Actual-target security and production selection/acceptance remain under the original requirements; see [current host composition](../docs/PROJECT_STATUS.md#firmware-host-composition). |
+| OT-0005i | local host composition verified; parent open | OT-0005h | Real committed producer/live guards plus inactive Packet/driver/OTY0 owner-channel host composition implemented; 68 composed scenarios pass, independent behavioral review passed. Target registration/physical/security and Android admission remain open. Obtain separate source publication/adoption or next-scope authority before further execution. Actual enrollment/rekey/recovery/revoke/reset target adapters and OT-0238a acceptance remain required. See [current scope](../docs/PROJECT_STATUS.md#firmware-host-composition). |
 | OT-0005j | planned | OT-0005h | Bind protected BLE status commands and receive events |
 | OT-0168b | owner-accepted computer implementation | OT-0168a | [Actual reset-domain/receipt composition](../docs/testing/OT-0168b-RESET-COMPOSITION-2026-09-30.md) corrects seven retained optional-confirmation namespaces, preserves reset/factory state and verifies absence before access. Shared app/physical executor and real ports pass 26 new composition groups, complete 73-suite matrix, independent review and all affected reproducible build pairs. OT-0168c retains physical interruption and both trigger paths. |
 | OT-0168c | planned | OT-0168a | Accept reset interruption and both physical reset paths |
@@ -652,6 +673,7 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0101d | planned | OT-0101b | Accept battery indication and power behavior |
 | OT-0101e | in progress; partial lifecycle result | OT-0101b | [Corrected-stack physical result](../docs/testing/OT-0101e-BLE-STACK-RETEST-2026-09-28.md) and [2026-09-29 lifecycle checkpoint](../docs/testing/OT-0101e-LIFECYCLE-PROGRESS-2026-09-29.md): baseline, normal phone disconnect and visible clock advancement while disconnected passed; GPS loss inconclusive, recovery and candidate restart/reconnect not reached. Originals independently verified restored and owner-confirmed normal. Next: review separate clock/restart and environmental GPS loss/recovery plans before fresh physical authorization; retain passed retention evidence. Silent-stream physical stale and invasive power cases remain separate. No full task acceptance or V1 credit. |
 | OT-0101f | planned | OT-0101b | Accept live OLED radio and degraded status display |
+| OT-0101g | host complete | OT-0101b | [Publish device-owned coarse GNSS through protected BLE snapshots](https://github.com/Limited-Underground/Trail/issues/214): synchronized app-task observations, existing five-second freshness, six-state C++/Kotlin vectors and unchanged protected request-time transport. Physical GNSS qualification and continuous/numeric telemetry remain separate. |
 | OT-0089e | planned | OT-0089a | Accept bounded field and endurance observations |
 | OT-0089f | planned | OT-0089b | Reconcile release evidence and operator documentation |
 | OT-0089g | planned | OT-0089b | Publish approved release and verify exact remote artifacts |
@@ -662,7 +684,7 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0304 | blocked; partial physical evidence; phone helper host-ready | OT-0170a | [Actual standard trial](../docs/testing/OT-0304-STANDARD-SETTINGS-PHYSICAL-2026-10-01.md) verified fresh seven-region custody, candidate protected Ready and name/region READs. Public phase incomplete after computer deadline; supplemental absent UI does not close it. Phone Idle, exact original restoration, final equality sweep, restart and custody closure verified. [Automatic phone observation preparation](../docs/testing/OT-0304-AUTOMATED-PHONE-OBSERVATION-2026-10-01.md) passes saved-capture and immutable-owner host checks; physical timing is untested. Next one separately authorized Trail Bench/Note20 automatic READ/ACK session with fresh exact inputs and Idle-reopen grant. [Compact landscape strip](../docs/testing/OT-0304-LANDSCAPE-STATUS-STRIP-2026-10-01.md) and prior [Note20 checkpoint](../docs/testing/OT-0304b-NOTE20-CONFIRMATION-2026-10-01.md) remain artifact-bound. Actual profile/capabilities, prior USB cause, chosen settings, fresh-phone-state decision and warm-board/production acceptance remain open |
 | OT-0304a | completed; owner-accepted host scope | OT-0170a | [Existing-service observation correction](../docs/testing/OT-0304a-EXISTING-SERVICE-OBSERVATION-2026-10-01.md): replacement/reopened screens observe current owner without creating a service or cached Ready; physical continuation separate |
 | OT-0304b | completed; owner-accepted host scope | OT-0170a | [Pending Start correction](../docs/testing/OT-0304b-PENDING-START-2026-10-01.md): actual-controller discriminator fails before/passes after; pending local wait no longer suppresses explicit Start. Ownership/lifecycle/permission controls and final Android matrix pass; physical retest separate |
-| OT-0305 | planned | OT-0173a | Bind durable authenticated group profile |
+| OT-0305 | partial | OT-0173a | Bind durable authenticated group profile (V1 group design steps 1, 2 and 3a, the signed roster, the pair authority and binding, and the group frame, receiving and delivery state, implemented on the host) |
 | OT-0306 | planned | OT-0173a | Complete invitation and join workflows |
 | OT-0307 | planned | OT-0173a | Complete group administration and leave |
 | OT-0308 | planned | OT-0173a | Validate group persistence and interruption |
@@ -676,6 +698,8 @@ Planning only: the remaining approved V1 scope is decomposed below. Registration
 | OT-0316 | planned | OT-0176a | Bind authenticated location and immediate stop |
 | OT-0317 | planned | OT-0176a | Complete truthful coordinate details |
 | OT-0318 | planned | OT-0172a | Complete responsive populated production UI |
+| OT-0318a | implemented locally; APK built; app tests blocked by offline dependencies | OT-0318 | Show the app build in the status strip with a persisted local show/hide switch (D-080; issue #97). No device/protocol/firmware-version change; physical UI acceptance and publication remain separate. |
+| OT-0178a | implemented; host-tested; not yet shown on a board | OT-0178 | Show the firmware version on the startup screen (owner decision D-081): "FW <version>" (or "FW R<n> <version>" for a Loader release) on the blank bottom row of the Trail logo. Showing it in the app may wait until after V1. |
 | OT-0319 | planned | OT-0172a | Accept production usability and accessibility |
 | OT-0320 | planned | OT-0177a | Accept user-reviewed support export |
 | OT-0320a | done (owner-accepted host scope) | OT-0177a | [Verified support-region projection](../docs/testing/OT-0320a-VERIFIED-SUPPORT-REGION-2026-10-01.md): current protected positive US915 READ only; uncertainty, reset and session loss remove it. Ninety-five focused tests, 1,377 fresh app tests plus 58 cached protocol results, three lint variants and exact unsigned package audit pass. Full OT-0320 physical export/usability and existing dependencies remain unchanged; no firmware/model producer, new regions, wire or retention change. |

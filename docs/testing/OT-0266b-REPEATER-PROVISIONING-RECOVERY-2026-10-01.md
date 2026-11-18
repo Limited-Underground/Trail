@@ -2121,7 +2121,7 @@ Exact source/library/artifact hashes, initial failure outputs, incrementalpatch
 and reproduction evidence retained under build/repeater-baseline/p5-sx1262-adapter-20261030/.
 
 
-## P5 target-bound engineering result — 2026-10-31
+## P5 target-bound engineering result â€” 2026-10-31
 
 Owner's autonomous host-only engineering task continues OT-0266b-5; it does not
 accept hardware or expand direct-only endpoint V1. Candidate remains the isolated

@@ -1,7 +1,11 @@
 #include <array>
 #include <cstdint>
+#include <cstdio>
 
+#include "esp_app_desc.h"
 #include "esp_log.h"
+#include "esp_partition.h"
+#include "spi_flash_mmap.h"
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -21,6 +25,12 @@
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/companion_semantics.hpp"
+#if OPENTRAIL_LORA_LINK_TEST
+#include "esp_mac.h"
+#include "heltec_v4_lora.hpp"
+#include "lora_link_test.hpp"
+#include "board_pairing_runtime.hpp"
+#endif
 
 namespace {
 using opentrail::target::heltec_v4_bench::HeltecV4Oled;
@@ -36,8 +46,43 @@ using opentrail::target::heltec_v4_bench::HeltecEnrollmentInputArbiter;
 using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
 
 constexpr char kLogTag[] = "ot_bench";
+
+#ifndef OPENTRAIL_RELEASE_GENERATION
+#error "OPENTRAIL_RELEASE_GENERATION must be set by the build"
+#endif
+// L7 step 4: one release and health line for the Firmware Loader's boot check. It is printed
+// only after the boot self-check passed, then again with every heartbeat, so a host that
+// reopens the USB port after a reset still sees it. Built once; logging it formats one string.
+char g_release_line[112] = "generation=unknown";
+
+// Offset of the app partition this code executes from: the physical flash address of this
+// function, matched against the app partitions. 0 if it cannot be determined.
+unsigned long running_app_offset() {
+    const std::size_t here = spi_flash_cache2phys(reinterpret_cast<const void*>(&running_app_offset));
+    unsigned long offset = 0;
+    esp_partition_iterator_t it = esp_partition_find(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_ANY, nullptr);
+    while (it != nullptr) {
+        const esp_partition_t* partition = esp_partition_get(it);
+        if (here != SPI_FLASH_CACHE2PHYS_FAIL && partition != nullptr && here >= partition->address &&
+            here - partition->address < partition->size) {
+            offset = partition->address;
+        }
+        it = esp_partition_next(it);
+    }
+    return offset;
+}
+
+void prepare_release_line() {
+    const esp_app_desc_t* description = esp_app_get_description();
+    std::snprintf(g_release_line, sizeof(g_release_line),
+                  "generation=%lu version=%.32s partition=0x%lx",
+                  static_cast<unsigned long>(OPENTRAIL_RELEASE_GENERATION),
+                  description != nullptr ? description->version : "unknown",
+                  running_app_offset());
+}
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
-constexpr std::uint32_t kMinimumLogoPeriodMs = 1200;
+// D-088: long enough to read the firmware version on the logo (D-081).
+constexpr std::uint32_t kMinimumLogoPeriodMs = 5000;
 constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
 constexpr std::uint64_t kBatteryFreshForMs = 60'000;
 constexpr std::uint64_t kGnssFreshForMs = 5'000;
@@ -53,6 +98,54 @@ HeltecEnrollmentInputArbiter g_factory_reset_input{g_startup_display};
 HeltecV4Gnss g_gnss;
 opentrail::ui::compact_status_footer::Metric g_battery_percent{};
 bool g_display_failure_logged{false};
+#if OPENTRAIL_LORA_LINK_TEST
+namespace link_test = opentrail::target::heltec_v4_bench::lora_link_test;
+HeltecV4SecureRandom g_board_pairing_random;
+opentrail::target::heltec_v4_bench::HeltecV4Lora g_lora{g_board_pairing_random};
+opentrail::ui::compact_status_footer::Direction g_lora_activity{
+    opentrail::ui::compact_status_footer::Direction::none};
+std::uint64_t g_lora_activity_at_ms{0};
+constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
+// V1 F5 R2a: first board pairing over LoRa (D-085, D-086).
+opentrail::target::heltec_v4_bench::BoardPairingRuntime g_board_pairing{
+    g_factory_reset_input, g_board_pairing_random};
+// Screen line: shown while pairing, and for a minute after it ends.
+opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase g_board_pairing_last_phase{
+    opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase::idle};
+std::uint64_t g_board_pairing_changed_ms{0};
+constexpr std::uint64_t kBoardPairingShownMs = 60000;
+
+// Board tag for the link test: the low four bytes of the factory MAC.
+std::uint32_t lora_link_test_tag() {
+    std::array<std::uint8_t, 6> mac{};
+    if (esp_efuse_mac_get_default(mac.data()) != ESP_OK) return 1;
+    const std::uint32_t tag = (static_cast<std::uint32_t>(mac[2]) << 24) |
+        (static_cast<std::uint32_t>(mac[3]) << 16) |
+        (static_cast<std::uint32_t>(mac[4]) << 8) | mac[5];
+    return tag == 0 ? 1 : tag;
+}
+
+// Transmit grant asked by the driver at every launch (D-079, review F4).
+bool lora_transmit_permitted(void*) {
+    return link_test::transmit_allowed(
+        opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id);
+}
+#endif
+
+// D-081: the firmware version on the startup screen, the same version the boot
+// log reports; a Firmware Loader release adds its generation.
+void prepare_firmware_line() {
+    const esp_app_desc_t* description = esp_app_get_description();
+    const char* version = description != nullptr ? description->version : "UNKNOWN";
+    std::array<char, 40> line{};
+    if (OPENTRAIL_RELEASE_GENERATION != 0) {
+        std::snprintf(line.data(), line.size(), "FW R%lu %.32s",
+                      static_cast<unsigned long>(OPENTRAIL_RELEASE_GENERATION), version);
+    } else {
+        std::snprintf(line.data(), line.size(), "FW %.32s", version);
+    }
+    g_oled_port.set_firmware_line(line.data());
+}
 
 void observe_display_result(bool succeeded) {
     if (!succeeded && !g_display_failure_logged) {
@@ -72,6 +165,12 @@ CompactStatusSnapshot compact_status_snapshot(std::uint64_t now_ms) {
     snapshot.battery_percent = g_battery_percent;
     snapshot.freshness = {kBatteryFreshForMs, kGnssFreshForMs};
     snapshot.render_now_ms = now_ms;
+#if OPENTRAIL_LORA_LINK_TEST
+    snapshot.activity_supported = g_lora.running();
+    snapshot.activity = g_lora_activity;
+    snapshot.activity_at_ms = g_lora_activity_at_ms;
+    snapshot.activity_visible_for_ms = kLoraActivityVisibleMs;
+#endif
 
     const auto gnss = g_gnss.satellites(now_ms, kGnssFreshForMs);
     const auto fix = g_gnss.fix(now_ms, kGnssFreshForMs);
@@ -198,7 +297,17 @@ bool run_companion_codec_self_check() {
     }
 }
 
-[[noreturn]] void contain_runtime_failure() {
+[[noreturn]] void contain_runtime_failure(const char* site, unsigned code) {
+    // I-020: name the failing site and its error code before containment, so a
+    // failure stop can be diagnosed from the serial log alone.
+    ESP_LOGE(kLogTag,
+             "companion runtime FAIL site=%s code=%u runtime_phase=%u "
+             "pairing_phase=%u reset_reason=%u",
+             site, code,
+             static_cast<unsigned>(companion_nimble_runtime_status().phase),
+             static_cast<unsigned>(opentrail::target::heltec_v4_bench::
+                                       companion_pairing_window_status().phase),
+             static_cast<unsigned>(esp_reset_reason()));
     (void)opentrail::target::heltec_v4_bench::
         fault_companion_pairing_window();
     const bool ble_containment_verified =
@@ -232,6 +341,9 @@ bool run_companion_codec_self_check() {
             const auto reset_result =
                 opentrail::target::heltec_v4_bench::
                     begin_contained_companion_factory_reset_recovery();
+            ESP_LOGI(kLogTag, "factory_reset contained commit error=%u phase=%u",
+                     static_cast<unsigned>(reset_result.error),
+                     static_cast<unsigned>(reset_result.phase));
             const bool verified_intent =
                 reset_result.accepted() &&
                 reset_result.phase ==
@@ -265,9 +377,12 @@ bool run_companion_codec_self_check() {
 }  // namespace
 
 extern "C" void app_main() {
-    const auto boot_started_at_ms =
-        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    prepare_firmware_line();
     observe_display_result(g_startup_display.start());
+    // D-088: the logo dwell counts from when the logo is on screen (start() draws it
+    // after the OLED power-settle and I2C setup), not from app entry.
+    const auto logo_shown_at_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 
     if (!run_companion_codec_self_check() ||
         !opentrail::target::heltec_v4_bench::
@@ -287,15 +402,23 @@ extern "C" void app_main() {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
+    prepare_release_line();
+    ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
+    ESP_LOGI(kLogTag, "boot reset_reason=%u",
+             static_cast<unsigned>(esp_reset_reason()));
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
     if (!g_factory_reset_input.initialize()) {
-        contain_runtime_failure();
+        contain_runtime_failure("reset_input_init", 0);
     }
 #endif
     g_pairing_random.set_entropy_state(
         opentrail::security::EntropyState::ready);
+#if OPENTRAIL_LORA_LINK_TEST
+    g_board_pairing_random.set_entropy_state(
+        opentrail::security::EntropyState::ready);
+#endif
     const auto runtime_start_result =
         opentrail::target::heltec_v4_bench::start_companion_nimble_runtime(
             started_at_ms, g_pairing_window, g_pairing_random,
@@ -312,13 +435,19 @@ extern "C" void app_main() {
                  static_cast<unsigned>(
                      opentrail::target::heltec_v4_bench::
                          companion_nimble_security_failure_detail()));
-        contain_runtime_failure();
+        contain_runtime_failure("runtime_start",
+                                static_cast<unsigned>(runtime_start_result));
     }
     ESP_LOGI(kLogTag, "companion runtime started");
 
     if (!g_gnss.initialize()) {
-        ESP_LOGW(kLogTag, "GNSS unavailable; GPS status remains unknown");
+        ESP_LOGW(kLogTag, "GNSS unavailable; GPS status is unavailable");
     }
+    const auto gnss_started_ms =
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(
+        g_gnss.initialized(),
+        g_gnss.fix(gnss_started_ms, kGnssFreshForMs), gnss_started_ms);
     if (!opentrail::heltec_v4::battery_init()) {
         ESP_LOGW(kLogTag, "battery ADC unavailable; battery status remains unknown");
     }
@@ -330,6 +459,21 @@ extern "C" void app_main() {
              static_cast<unsigned>(OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY));
     std::uint32_t display_calls = 0, display_failures = 0, display_max_us = 0;
     std::uint64_t next_connection_diagnostic_ms = started_at_ms;
+#endif
+#if OPENTRAIL_LORA_LINK_TEST
+    link_test::Beaconer beaconer{lora_link_test_tag()};
+    g_lora.set_transmit_permission(&lora_transmit_permitted, nullptr);
+    if (g_lora.start()) {
+        ESP_LOGI(kLogTag, "lora_link start ok tag=%08lx period_ms=%llu",
+                 static_cast<unsigned long>(beaconer.self()),
+                 static_cast<unsigned long long>(link_test::period_ms(beaconer.self())));
+    } else {
+        ESP_LOGE(kLogTag, "lora_link start FAIL error=%u",
+                 static_cast<unsigned>(g_lora.status().last_error));
+    }
+    bool lora_fault_logged = false;
+    int lora_tx_allowed_logged = -1;
+    bool pairing_frame_queued = false;
 #endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
@@ -364,7 +508,8 @@ extern "C" void app_main() {
                 service_companion_nimble_runtime(elapsed_ms);
         if (runtime_result !=
             opentrail::companion::CompanionBleRuntimeError::none) {
-            contain_runtime_failure();
+            contain_runtime_failure("runtime_service",
+                                    static_cast<unsigned>(runtime_result));
         }
         const auto runtime_status = companion_nimble_runtime_status();
         const auto configured_name = opentrail::target::heltec_v4_bench::companion_configuration_name();
@@ -373,6 +518,10 @@ extern "C" void app_main() {
             opentrail::target::heltec_v4_bench::companion_configuration_clock(),
             opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id,
             opentrail::target::heltec_v4_bench::companion_nimble_unowned_setup_code());
+        opentrail::target::heltec_v4_bench::companion_nimble_request_bluetooth_name(
+            opentrail::ui::bluetooth_device_name(
+                reinterpret_cast<const char*>(configured_name.name.data()), configured_name.name_bytes,
+                opentrail::target::heltec_v4_bench::companion_nimble_boot_setup_code()));
         const auto pairing_service =
             opentrail::target::heltec_v4_bench::
                 service_companion_pairing_window(elapsed_ms);
@@ -381,7 +530,8 @@ extern "C" void app_main() {
             pairing_service !=
                 opentrail::companion::CompanionPairingWindowError::
                     window_expired) {
-            contain_runtime_failure();
+            contain_runtime_failure("pairing_window_service",
+                                    static_cast<unsigned>(pairing_service));
         }
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
         const auto reset_event = g_factory_reset_input.poll();
@@ -400,9 +550,15 @@ extern "C" void app_main() {
             // BLE is fully contained before reset intent is committed. Every
             // result reboots: verified intent resumes cleanup, uncertain
             // intent is reconciled, and known no-change restores old state.
+#if OPENTRAIL_LORA_LINK_TEST
+            g_board_pairing.close();
+#endif
             const auto reset_result =
                 opentrail::target::heltec_v4_bench::
                     begin_companion_factory_reset();
+            ESP_LOGI(kLogTag, "factory_reset commit error=%u phase=%u",
+                     static_cast<unsigned>(reset_result.error),
+                     static_cast<unsigned>(reset_result.phase));
             if (reset_result.accepted() &&
                 reset_result.phase ==
                     opentrail::companion::DeviceFactoryResetPhase::
@@ -413,7 +569,112 @@ extern "C" void app_main() {
             esp_restart();
         }
 #endif
+#if OPENTRAIL_LORA_LINK_TEST
+        if (g_lora.running()) {
+            const auto before = g_lora.counters();
+            g_lora.service(elapsed_ms);
+            if (g_lora.counters().tx_completed != before.tx_completed) {
+                g_lora_activity = opentrail::ui::compact_status_footer::Direction::tx;
+                g_lora_activity_at_ms = elapsed_ms;
+            }
+            const auto region_id = opentrail::target::heltec_v4_bench::
+                companion_configuration_region().selection_id;
+            const bool tx_allowed = link_test::transmit_allowed(region_id);
+            if (static_cast<int>(tx_allowed) != lora_tx_allowed_logged) {
+                ESP_LOGI(kLogTag, "lora_link transmit %s region=%u",
+                         tx_allowed ? "allowed" : "held", static_cast<unsigned>(region_id));
+                lora_tx_allowed_logged = static_cast<int>(tx_allowed);
+            }
+            // Received frames reach pairing before it is asked for a frame to send, so
+            // its quiet-after-receive rule sees them on this tick (review of I-057).
+            std::array<std::uint8_t, opentrail::target::heltec_v4_bench::HeltecV4Lora::kMtu> rx{};
+            const auto got = g_lora.receive({rx.data(), rx.size()});
+            if (got.has_frame()) {
+                g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
+                g_lora_activity_at_ms = got.metadata.received_at_ms;
+                link_test::Beacon incoming{};
+                if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
+                    beaconer.heard(incoming)) {
+                    const auto raw = g_lora.last_packet_status();
+                    ESP_LOGI(kLogTag, "lora_link pkt_status raw=%02x %02x %02x",
+                             raw[0], raw[1], raw[2]);
+                    ESP_LOGI(kLogTag,
+                             "lora_link rx from=%08lx seq=%lu they_heard=%08lx/%lu rssi=%d snr_q=%d heard_total=%lu",
+                             static_cast<unsigned long>(incoming.sender),
+                             static_cast<unsigned long>(incoming.sequence),
+                             static_cast<unsigned long>(incoming.heard_from),
+                             static_cast<unsigned long>(incoming.heard_sequence),
+                             static_cast<int>(got.metadata.rssi_dbm),
+                             static_cast<int>(got.metadata.snr_db_quarter),
+                             static_cast<unsigned long>(beaconer.heard_count()));
+                } else {
+                    g_board_pairing.on_receive(rx.data(), got.received_bytes);
+                    ESP_LOGI(kLogTag, "lora_link rx other bytes=%u",
+                             static_cast<unsigned>(got.received_bytes));
+                }
+            }
+            opentrail::protocol::pairing::FrameBuffer pairing_out{};
+            std::size_t pairing_size = 0;
+            g_board_pairing.service(elapsed_ms, tx_allowed && g_lora.running(), pairing_out, pairing_size);
+            if (pairing_frame_queued && !g_board_pairing.active()) g_lora.discard_queued();
+            // Give any received frame the poll to itself. Launch previously
+            // queued work only after pairing has serviced the receive phase.
+            if (!got.has_frame()) g_lora.launch_queued(elapsed_ms);
+            const bool pairing_dropped = pairing_frame_queued &&
+                g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
+            if (pairing_dropped) g_board_pairing.unsent();
+            if (g_lora.status().transmit_queue_depth == 0) pairing_frame_queued = false;
+            if (pairing_size != 0) {
+                // A drop changes the send count. Recompute any offer on the
+                // next poll so its first-send or retry floor is checked again.
+                const bool accepted = !pairing_dropped && tx_allowed &&
+                    g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms).accepted();
+                g_board_pairing.sent(accepted, elapsed_ms);
+                if (accepted) pairing_frame_queued = true;
+                ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u accepted=%u",
+                         static_cast<unsigned>(pairing_out[2] & 0x0f),
+                         static_cast<unsigned>(pairing_size),
+                         static_cast<unsigned>(accepted));
+            }
+            if (pairing_size == 0 && tx_allowed && !g_board_pairing.active()) {
+                link_test::Beacon outgoing{};
+                if (beaconer.due(elapsed_ms, outgoing)) {
+                    const auto frame = link_test::encode(outgoing);
+                    const auto sent = g_lora.send({frame.data(), frame.size()}, elapsed_ms);
+                    ESP_LOGI(kLogTag, "lora_link tx seq=%lu heard_from=%08lx heard_seq=%lu queued=%u",
+                             static_cast<unsigned long>(outgoing.sequence),
+                             static_cast<unsigned long>(outgoing.heard_from),
+                             static_cast<unsigned long>(outgoing.heard_sequence),
+                             static_cast<unsigned>(sent.accepted()));
+                }
+            }
+            {
+                using PairingPhase = opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase;
+                using PairingLine = opentrail::ui::oled_presentation::BoardPairing;
+                const auto phase = g_board_pairing.phase();
+                if (phase != g_board_pairing_last_phase) {
+                    g_board_pairing_last_phase = phase;
+                    g_board_pairing_changed_ms = elapsed_ms;
+                }
+                const bool recent = elapsed_ms - g_board_pairing_changed_ms < kBoardPairingShownMs;
+                g_oled_port.set_board_pairing(
+                    phase == PairingPhase::running ? PairingLine::in_progress :
+                    phase == PairingPhase::paired && recent ? PairingLine::paired_here :
+                    phase == PairingPhase::failed && recent ? PairingLine::failed :
+                    PairingLine::none);
+            }
+        } else if (!lora_fault_logged) {
+            g_board_pairing.radio_lost();
+            ESP_LOGE(kLogTag, "lora_link stopped state=%u error=%u",
+                     static_cast<unsigned>(g_lora.status().state),
+                     static_cast<unsigned>(g_lora.status().last_error));
+            lora_fault_logged = true;
+        }
+#endif
         g_gnss.service(elapsed_ms);
+        opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(
+            g_gnss.initialized(),
+            g_gnss.fix(elapsed_ms, kGnssFreshForMs), elapsed_ms);
         if (elapsed_ms >= next_gnss_diagnostic_ms) {
             const auto counts = g_gnss.diagnostics();
             ESP_LOGI(kLogTag,
@@ -441,7 +702,7 @@ extern "C" void app_main() {
         }
         const auto render_now_ms =
             static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-        if (render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs) {
+        if (render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs) {
 #if OPENTRAIL_CONNECTION_DIAGNOSTICS
             const auto display_started_us = esp_timer_get_time();
 #endif
@@ -462,6 +723,28 @@ extern "C" void app_main() {
         if (elapsed_ms >= next_heartbeat_ms) {
             ESP_LOGI(kLogTag, "heartbeat elapsed_ms=%llu",
                      static_cast<unsigned long long>(elapsed_ms));
+            ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
+#if OPENTRAIL_LORA_LINK_TEST
+            {
+                const auto served = opentrail::target::heltec_v4_bench::snapshot_served_diagnostic();
+                ESP_LOGI(kLogTag, "status_diag served=%lu refused=%lu last_gnss=%u last_revision=%lu",
+                         static_cast<unsigned long>(served.served),
+                         static_cast<unsigned long>(served.refused),
+                         static_cast<unsigned>(served.last_gnss),
+                         static_cast<unsigned long>(served.last_revision));
+                const auto c = g_lora.counters();
+                ESP_LOGI(kLogTag, "lora_link counters tx=%lu/%lu refused=%lu rx=%lu rx_err=%lu dropped=%lu heard=%lu cad_dropped=%lu prelaunch_dropped=%lu",
+                         static_cast<unsigned long>(c.tx_completed),
+                         static_cast<unsigned long>(c.tx_attempts),
+                         static_cast<unsigned long>(c.tx_refused),
+                         static_cast<unsigned long>(c.rx_frames),
+                         static_cast<unsigned long>(c.rx_errors),
+                         static_cast<unsigned long>(c.rx_dropped),
+                         static_cast<unsigned long>(beaconer.heard_count()),
+                         static_cast<unsigned long>(c.tx_busy_dropped),
+                         static_cast<unsigned long>(c.tx_prelaunch_dropped));
+            }
+#endif
             // Pinned ESP-IDF task.h defines this result in bytes, not words.
             ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
                      static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));

@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "opentrail/companion_device_name_owner.hpp"
+#include "opentrail/companion_enrollment_role.hpp"
 
 namespace opentrail::companion {
 
@@ -17,6 +18,14 @@ struct SelectedEnrollmentRequest {
     std::uint32_t exchange_id{0};
     std::uint64_t admitted_ms{0};
     std::uint64_t deadline_ms{0};
+    // D-085: chosen on the owner's own phone. A product pairing request has a
+    // role and a 1..999999 code; the code is the pair's group number. An
+    // evaluation request may carry neither (none, 0) and is never a product pair.
+    CompanionEnrollmentRole role{CompanionEnrollmentRole::none};
+    std::uint32_t pairing_code{0};
+    bool product_pairing() const {
+        return role != CompanionEnrollmentRole::none && pairing_code != 0;
+    }
 };
 
 enum class SelectedEnrollmentRequestResult : std::uint8_t {
@@ -29,11 +38,22 @@ enum class SelectedEnrollmentRequestResult : std::uint8_t {
 class SelectedEnrollmentRequestOwner final {
 public:
     static constexpr std::uint64_t kPreparationLimitMs = 120000;
+    // D-110: board pairing over LoRa (heltec_v4_bench) gives people 5 minutes to
+    // check and press on both boards; other users keep kPreparationLimitMs.
+    static constexpr std::uint64_t kBoardPairingLimitMs = 300000;
+
+    SelectedEnrollmentRequestOwner() = default;
+    explicit SelectedEnrollmentRequestOwner(std::uint64_t limit_ms)
+        : limit_ms_(limit_ms == 0 ? kPreparationLimitMs : limit_ms) {}
+    std::uint64_t limit_ms() const { return limit_ms_; }
 
     SelectedEnrollmentRequestResult admit(const DeviceNameAuthority& current,
                                           std::uint16_t connection_handle,
                                           std::uint64_t delivery_token,
-                                          std::uint32_t exchange_id) {
+                                          std::uint32_t exchange_id,
+                                          CompanionEnrollmentRole role =
+                                              CompanionEnrollmentRole::none,
+                                          std::uint32_t pairing_code = 0) {
         if (retired_) return SelectedEnrollmentRequestResult::retired;
         // Reconcile the prior request against the fresh serialized authority
         // before allowing a later attempt to replace an expired one.
@@ -42,13 +62,15 @@ public:
         if (current.phase != DeviceNamePhase::connected ||
             !valid(current.context) || connection_handle == 0xffff ||
             delivery_token == 0 || exchange_id == 0 ||
+            !pairing_fields_valid(role, pairing_code) ||
             current.now_ms > std::numeric_limits<std::uint64_t>::max() -
-                                 kPreparationLimitMs) {
+                                 limit_ms_) {
             return SelectedEnrollmentRequestResult::invalid;
         }
         request_ = {current.context, connection_handle, delivery_token,
                     exchange_id, current.now_ms,
-                    current.now_ms + kPreparationLimitMs};
+                    current.now_ms + limit_ms_,
+                    role, pairing_code};
         last_observed_ms_ = current.now_ms;
         pending_ = true;
         return SelectedEnrollmentRequestResult::admitted;
@@ -92,6 +114,14 @@ public:
     }
 
 private:
+    static bool pairing_fields_valid(CompanionEnrollmentRole role,
+                                     std::uint32_t code) {
+        if (role == CompanionEnrollmentRole::none) return code == 0;
+        return (role == CompanionEnrollmentRole::initiator ||
+                role == CompanionEnrollmentRole::responder) &&
+               code >= kCompanionPairingCodeMin &&
+               code <= kCompanionPairingCodeMax;
+    }
     static bool valid(const DeviceNameContext& c) {
         return c.device != 0 && c.runtime != 0 && c.owner != 0 &&
                c.owner_generation != 0 && c.transport_generation != 0 &&
@@ -111,7 +141,8 @@ private:
                a.delivery_token == b.delivery_token &&
                a.exchange_id == b.exchange_id &&
                a.admitted_ms == b.admitted_ms &&
-               a.deadline_ms == b.deadline_ms;
+               a.deadline_ms == b.deadline_ms &&
+               a.role == b.role && a.pairing_code == b.pairing_code;
     }
     void clear() {
         request_ = {};
@@ -123,6 +154,7 @@ private:
     std::uint64_t last_observed_ms_{0};
     bool pending_{false};
     bool retired_{false};
+    std::uint64_t limit_ms_{kPreparationLimitMs};
 };
 
 }  // namespace opentrail::companion

@@ -1,5 +1,6 @@
 """Actual isolated Windows launcher/worker admission; synthetic esptool never opens devices."""
 from pathlib import Path
+from frozen_build_source_fixture import pinned_source
 import copy
 import hashlib
 import json
@@ -56,8 +57,9 @@ class IsolatedTests(unittest.TestCase):
             'powershell':{'path':str(cls.pwsh),**pin(cls.pwsh)}}
         cls.manifest_path=cls.private/'synthetic-manifest.json';cls.manifest_path.write_bytes(encoded(cls.manifest));cls.runtime_sha=digest(cls.manifest_path.read_bytes())
         report=ROOT/bundle.REPORT
-        for name in [bundle.REPORT,*json.loads(report.read_bytes())['source_pins']]:
-            path=cls.work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((ROOT/name).read_bytes())
+        pins = json.loads(report.read_bytes())['source_pins']
+        for name in [bundle.REPORT, *pins]:
+            path=cls.work/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(report.read_bytes() if name == bundle.REPORT else pinned_source(ROOT, name, pins[name]))
     @classmethod
     def tearDownClass(cls):cls.temp.cleanup()
     def save(self,name,value):

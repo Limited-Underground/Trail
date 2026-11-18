@@ -14,6 +14,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class V1DeviceStatusStripStateTest {
+    @Test fun ageIsBasedOnLastAcceptedMonotonicRead() {
+        assertEquals("Board status updated 12 s ago", statusAgeLabel(10_000, 22_999))
+        assertEquals("Board status updated 0 s ago", statusAgeLabel(12_000, 12_000))
+        assertNull(statusAgeLabel(null, 12_000))
+        assertNull(statusAgeLabel(12_000, 11_999))
+    }
+
     @Test
     fun readyMapsOnlyObservedConnectionAndGnss() {
         val state = V1DeviceStatusStripProjector.from(bluetooth(ready(CompanionGnssState.CURRENT)))

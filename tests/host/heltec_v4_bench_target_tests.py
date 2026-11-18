@@ -139,6 +139,58 @@ def require(condition: bool, message: str) -> None:
         raise AssertionError(message)
 
 
+def without_lora_link_test(source: str) -> str:
+    # V1 F5 step R1 (D-075): LoRa code in an application source is admitted only
+    # inside blocks that open with the exact line "#if OPENTRAIL_LORA_LINK_TEST"
+    # and close with "#endif". Review F6: anything else that mentions the flag
+    # (#ifdef, #else, #elif, extended conditions such as "|| 1") and any nested
+    # conditional inside a block is refused, so the remaining text is exactly
+    # what a normal build compiles and every original check still applies to it.
+    kept, inside = [], False
+    for line in source.splitlines(keepends=True):
+        directive = line.strip()
+        if not inside:
+            if directive == "#if OPENTRAIL_LORA_LINK_TEST":
+                inside = True
+                continue
+            require("OPENTRAIL_LORA_LINK_TEST" not in line,
+                    "LoRa link test flag used outside an exact opt-in block")
+            kept.append(line)
+            continue
+        require(not directive.startswith(("#if", "#else", "#elif")),
+                "LoRa link test blocks must not nest or branch")
+        if directive.startswith("#endif"):
+            inside = False
+    require(not inside, "LoRa link test block not closed")
+    return "".join(kept)
+
+
+def test_lora_link_test_filter() -> None:
+    # Review F6 regressions: both bypasses Codex demonstrated must be refused.
+    plain = "a\n#if OPENTRAIL_LORA_LINK_TEST\nRadioLib x;\n#endif\nb\n"
+    require(without_lora_link_test(plain) == "a\nb\n", "exact opt-in block must be removed")
+    for bypass in (
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n#else\nRadioLib y;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST || 1\nSX126 z;\n#endif\n",
+        "#ifdef OPENTRAIL_LORA_LINK_TEST\nSX126 z;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\n#if 1\nx\n#endif\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n#elif 1\nRadioLib y;\n#endif\n",
+        "#if OPENTRAIL_LORA_LINK_TEST\nx\n",
+    ):
+        try:
+            without_lora_link_test(bypass)
+        except AssertionError:
+            continue
+        raise AssertionError(f"LoRa filter accepted a bypass: {bypass!r}")
+    # Review F1: with the radio enabled, the product build must use the pinned
+    # bounded RadioLib generator and replace exactly its two translation units.
+    root_cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    for needle in ('tools/pair_radio_driver_source.py"',
+                   'NOT OPENTRAIL_RADIO_REPLACED EQUAL 2',
+                   'set_property(TARGET ${OPENTRAIL_RADIO_TARGET} PROPERTY SOURCES "${OPENTRAIL_RADIO_NEW_SOURCES}")'):
+        require(needle in root_cmake, f"bounded RadioLib substitution missing: {needle}")
+
+
 def admitted_target_sources(cmake: str) -> list[str]:
     # OT-216 adds one ordinary codec plus seven strictly opt-in source units.
     root_cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
@@ -159,6 +211,21 @@ def admitted_target_sources(cmake: str) -> list[str]:
     }
     pattern = r'"([^"\n]+\.(?:cpp|c))"'
     evaluation_tokens = re.findall(pattern, evaluation)
+    # V1 F5 step R1: the opt-in LoRa link test block adds exactly two sources.
+    lora_start = ordinary.index("if(OPENTRAIL_LORA_LINK_TEST)")
+    lora_end = ordinary.index("endif()", lora_start) + len("endif()")
+    lora_tokens = re.findall(pattern, ordinary[lora_start:lora_end])
+    # V1 F5 step R2a (D-086): plus the pairing storage in ot_state.
+    require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp",
+                                 "pairing_nvs_storage.cpp", "board_pairing_runtime.cpp",
+                                 "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
+            len(lora_tokens) == 9 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            "LoRa link test sources must remain exact and opt-in")
+    ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
@@ -215,6 +282,7 @@ def test_contract() -> None:
         "main/heltec_v4_battery.hpp",
         "main/heltec_v4_gnss.cpp",
         "main/heltec_v4_gnss.hpp",
+        "main/heltec_v4_gnss_snapshot.hpp",
         "main/heltec_v4_factory_reset_input.cpp",
         "main/heltec_v4_factory_reset_input.hpp",
         "main/heltec_enrollment_input_arbiter.cpp",
@@ -258,14 +326,30 @@ def test_contract() -> None:
         "main/confirmation_nvs_backend.hpp",
         "main/confirmation_runtime_guard.hpp",
         "sdkconfig.confirmation-eval.defaults",
+        # I-051: link-test builds (board pairing) use the evaluation main-task stack.
+        "sdkconfig.lora-link-test.defaults",
         "sdkconfig.defaults",
         "target-contract.json",
+        # V1 F5 step R1: product LoRa transport and the opt-in bench link test.
+        "main/heltec_v4_lora.cpp",
+        "main/heltec_v4_lora.hpp",
+        "main/lora_link_test.hpp",
+        "main/lora_packet_status.hpp",
+        # V1 F5 step R2a: board pairing storage (D-086).
+        "main/pairing_nvs_storage.cpp",
+        "main/pairing_nvs_storage.hpp",
+        "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested
+        "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
+        "main/board_pairing_runtime.cpp",
+        "main/board_pairing_runtime.hpp",
+        "main/idf_component.yml",
+        ".gitignore",
     }
     observed_files = {
         path.relative_to(TARGET).as_posix()
         for path in TARGET.rglob("*")
         if path.is_file() and
-        path.relative_to(TARGET).parts[0] != "build" and
+        path.relative_to(TARGET).parts[0] not in {"build", "managed_components"} and
         path.relative_to(TARGET).as_posix() not in {"sdkconfig", "sdkconfig.old"}
     }
     require(observed_files == expected_files,
@@ -280,8 +364,8 @@ def test_contract() -> None:
         "version": "v6.0.2",
         "target": "esp32s3",
     }, "framework must be exactly pinned")
-    require(document["hardware"]["exact_received_revision"] is None,
-            "received revision must not be invented")
+    require(document["hardware"]["exact_received_revision"] == "HTIT-WB32LAF V4.2",
+            "received revision must match owner-approved D1 qualification")
     require(document["hardware"] == {
         "family_candidate": "Heltec WiFi LoRa 32 V4",
         "evidence_unit": "OT-DEV-001",
@@ -304,8 +388,8 @@ def test_contract() -> None:
             "build_frequency_mhz": 80,
             "physical_interface_and_frequency_verified": False,
         },
-        "exact_received_revision": None,
-        "rf_variant": None,
+        "exact_received_revision": "HTIT-WB32LAF V4.2",
+        "rf_variant": "US915",
         "display_candidate": {
             "controller": "SSD1315-compatible",
             "width": 128,
@@ -326,7 +410,7 @@ def test_contract() -> None:
             "candidate must not claim support")
     require(document["partition_layout"] == {
         "schema": "OTHP0",
-        "schema_version": 0,
+        "schema_version": 1,
         "file": "partitions.csv",
         "flash_bytes": 16777216,
         "factory_slot_bytes": 5177344,
@@ -1335,7 +1419,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
 
 
 def test_display_surface() -> None:
-    source = SOURCE.read_text(encoding="utf-8")
+    source = without_lora_link_test(SOURCE.read_text(encoding="utf-8"))
     owner_header = DISPLAY_OWNER_HEADER.read_text(encoding="utf-8")
     owner = DISPLAY_OWNER.read_text(encoding="utf-8")
     battery_header = BATTERY_HEADER.read_text(encoding="utf-8")
@@ -1432,13 +1516,22 @@ def test_display_surface() -> None:
     presentation = (TARGET / "main" / "heltec_oled_presentation.cpp").read_text(encoding="utf-8")
     render = adapter.split("bool HeltecV4Oled::render(const StartupDisplayView& view)", 1)[1].split(
         "bool HeltecV4Oled::render_pairing_pin", 1)[0]
-    require("kTrailStartupLogoSsd1306.data()" in render and
+    # D-081: the logo is drawn from a copy whose blank bottom row (row 7) carries
+    # the firmware version; the artwork itself is not altered.
+    require("auto logo = kTrailStartupLogoSsd1306;" in render and
+            "logo, ui::oled_presentation::kRows - 1," in render and
+            "kDisplayHeight, logo.data());" in render and
             "if (view.frame == StartupDisplayFrame::logo)" in render and
             "presentation_.present(view, now_ms," in render and "frame.pixels.data()" in render and
             "configuration_name_.data()" in render and "configuration_clock_" in render and
             "auto pixels" not in render and
             "HeltecOledPresentation presentation_{}" in adapter_header,
             "non-logo panel frames must use the tested presentation mapper while preserving the logo")
+    # D-081: the version row only works while the logo leaves page 7 blank.
+    logo_source = (TARGET / "main" / "trail_startup_logo.hpp").read_text(encoding="utf-8")
+    logo_bytes = [int(v, 16) for v in re.findall(r"0x([0-9A-Fa-f]{2})", logo_source)][-1024:]
+    require(len(logo_bytes) == 1024 and not any(logo_bytes[7 * 128:]),
+            "startup logo must keep its bottom row blank for the firmware version (D-081)")
     time_gate = adapter.split("bool HeltecV4Oled::admit_display_time", 1)[1].split(
         "bool HeltecV4Oled::initialize", 1)[0]
     pairing_render = adapter.split("bool HeltecV4Oled::render_pairing_pin", 1)[1].split(
@@ -1577,8 +1670,11 @@ def test_display_surface() -> None:
     require(display_start < self_check_start < pass_log < runtime_start <
             runtime_service < typed_status,
             "logo, self-check, runtime, and typed status order changed")
-    require("kMinimumLogoPeriodMs = 1200" in source and
-            "render_now_ms - boot_started_at_ms >= kMinimumLogoPeriodMs" in source,
+    require("kMinimumLogoPeriodMs = 5000" in source and
+            "render_now_ms - logo_shown_at_ms >= kMinimumLogoPeriodMs" in source and
+            source.index("observe_display_result(g_startup_display.start())") <
+            source.index("const auto logo_shown_at_ms =") and
+            "boot_started_at_ms" not in source,
             "startup logo must remain visible before typed BLE status replaces it")
     require("startup display unavailable; runtime continues" in source,
             "display failure must explicitly preserve runtime progress")
@@ -1598,15 +1694,15 @@ def test_display_surface() -> None:
     require(any(value != 0 for value in logo_bytes) and
             any(value != 0xFF for value in logo_bytes),
             "startup logo must be neither blank nor all-on")
-    require("LIMITED UNDERGROUND" in logo and "TRAIL" in logo,
-            "startup asset must retain the accepted Trail identity description")
+    require("LIMITED UNDERGROUND" in logo and "MeshTrail" in logo and "Linked Route" in logo,
+            "startup asset must describe the accepted MeshTrail identity (D-091)")
     require(hashlib.sha256(bytes(logo_bytes)).hexdigest() ==
-            "7ca7bfa0f7b96742dd459237a8b24dda0cd5ddea8ae0cdb60ed68dbaabea04e6",
+            "e6a3e6ffe9ad61aebb93a101597e3b9a4f9fd646081e50efee8921512e626227",  # D-091 Linked Route
             "startup logo bitmap changed without explicit visual admission")
 
 
 def test_application_surface() -> None:
-    source = SOURCE.read_text(encoding="utf-8")
+    source = without_lora_link_test(SOURCE.read_text(encoding="utf-8"))
     self_check = SELF_CHECK.read_text(encoding="utf-8")
 
     nimble_gatt = NIMBLE_GATT.read_text(encoding="utf-8")
@@ -2390,9 +2486,9 @@ def test_build_only_tooling() -> None:
         "CONFIG_BT_ENABLED=y",
         "CONFIG_BT_CONTROLLER_ENABLED=y",
         "CONFIG_BT_NIMBLE_ENABLED=y",
-        "CONFIG_BT_NIMBLE_ROLE_CENTRAL=n",
+        "CONFIG_BT_NIMBLE_ROLE_CENTRAL=y",
         "CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y",
-        "CONFIG_BT_NIMBLE_GATT_CLIENT=n",
+        "CONFIG_BT_NIMBLE_GATT_CLIENT=y",
         "CONFIG_BT_NIMBLE_GATT_SERVER=y",
         "CONFIG_BT_NIMBLE_MAX_CONNECTIONS=1",
         "CONFIG_BT_NIMBLE_SECURITY_ENABLE=y",
@@ -3033,7 +3129,8 @@ def test_factory_reset_surfaces() -> None:
             "contained runtime recovery must remain reset-only and use the physical-recovery executor entry")
 
     runtime_failure = app_main[
-        app_main.index("[[noreturn]] void contain_runtime_failure()"):
+        app_main.index(
+            "[[noreturn]] void contain_runtime_failure(const char* site, unsigned code)"):
         app_main.index("}  // namespace")
     ]
     require("fault_companion_pairing_window()" in runtime_failure and
@@ -3197,6 +3294,8 @@ def test_factory_reset_surfaces() -> None:
 
 def test_live_heltec_snapshot_authority_mapping() -> None:
     runtime = NIMBLE_RUNTIME.read_text(encoding="utf-8")
+    helper = (TARGET / "main/heltec_v4_gnss_snapshot.hpp").read_text(
+        encoding="utf-8")
 
     denied = re.search(
         r"class DeniedSnapshotAuthority final.*?^};",
@@ -3225,35 +3324,71 @@ def test_live_heltec_snapshot_authority_mapping() -> None:
     require(admitted is not None,
             "missing truthful Heltec snapshot authority")
     authority = admitted.group(0)
+    require("HeltecV4GnssSnapshot g_gnss_snapshot;" in runtime and
+            "portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;" in runtime,
+            "Heltec authority must bind the complete synchronized GNSS publication")
+    read = "g_gnss_snapshot.read("
+    require(authority.count(read) == 1 and
+            authority.index("portENTER_CRITICAL(&g_snapshot_mux)") <
+            authority.index(read) <
+            authority.index("portEXIT_CRITICAL(&g_snapshot_mux)") <
+            authority.index("return result;"),
+            "Heltec authority must return one locked request-time snapshot")
+    require("esp_timer_get_time() / 1000" in authority,
+            "snapshot freshness must use the target monotonic clock")
+    for forbidden in ("uart_", "adc_", "nvs_", "g_gnss."):
+        require(forbidden not in authority,
+                f"snapshot callback must not acquire sensor/storage state: {forbidden}")
+    publication = runtime.split("void publish_companion_gnss_observation(", 1)[1].split(
+        "CompanionBleRuntimeError service_companion_nimble_runtime(", 1)[0]
+    require(publication.index("portENTER_CRITICAL(&g_snapshot_mux)") <
+            publication.index("g_gnss_snapshot.publish(initialized, fix, observed_at_ms)") <
+            publication.index("portEXIT_CRITICAL(&g_snapshot_mux)") and
+            "publish_companion_gnss_observation(" in SOURCE.read_text(encoding="utf-8"),
+            "the app task must publish a complete observation under the same lock")
+    snapshot_body = helper.split(
+        "[[nodiscard]] companion::CompanionSnapshotAuthorityResult read(", 1)[1].split(
+        "private:", 1)[0]
     require(re.search(
         r"\bCompanionStatusSnapshot\s+snapshot\s*\{\s*\}\s*;",
-        authority,
+        snapshot_body,
     ) is not None, "Heltec authority must build one explicit snapshot value")
     assignments = (
-        (r"\bsnapshot\.revision\s*=\s*1(?:[uUlL]{0,3})?\b\s*;",
-         "revision 1"),
+        (r"\bsnapshot\.revision\s*=\s*revision_\s*;",
+         "coherent observation revision"),
         (r"\bsnapshot\.radio\s*=\s*"
          r"CompanionRadioState::unavailable\s*;", "radio unavailable"),
-        (r"\bsnapshot\.gnss\s*=\s*CompanionGnssState::unknown\s*;",
-         "GNSS unknown"),
+        (r"\bsnapshot\.gnss\s*=\s*state_\s*;",
+         "published coarse GNSS state"),
         (r"\bsnapshot\.power\s*=\s*CompanionPowerState::unknown\s*;",
          "power unknown"),
         (r"\bsnapshot\.position_sharing\s*=\s*"
          r"CompanionPositionSharingState::stopped\s*;",
          "position sharing stopped"),
-        (r"\bsnapshot\.queued_action_count\s*=\s*0(?:[uUlL]{0,3})?\b\s*;",
-         "empty action queue"),
-        (r"\bsnapshot\.pending_critical_alert_id\s*=\s*"
-         r"0(?:[uUlL]{0,3})?\b\s*;", "no pending critical alert"),
     )
     for pattern, description in assignments:
-        require(len(re.findall(pattern, authority)) == 1,
+        require(len(re.findall(pattern, snapshot_body)) == 1,
                 f"Heltec snapshot must assign exactly one {description}")
-    require(authority.count("snapshot.") == len(assignments),
-            "Heltec fixed snapshot must not mutate undocumented fields")
+    require(snapshot_body.count("snapshot.") == len(assignments),
+            "Heltec snapshot must not mutate undocumented fields")
+    semantics = (ROOT / "firmware/components/companion/include/opentrail/"
+                 "companion_semantics.hpp").read_text(encoding="utf-8")
+    defaults = re.search(r"struct CompanionStatusSnapshot\s*\{.*?^};",
+                         semantics, flags=re.MULTILINE | re.DOTALL)
+    require(defaults is not None, "snapshot value defaults must remain explicit")
+    for field in ("queued_action_count", "pending_critical_alert_id"):
+        require(re.search(r"\b" + field + r"\s*\{\s*0\s*\}\s*;", defaults.group(0))
+                is not None,
+                f"value-initialized snapshot must retain zero {field}")
+    require("std::uint32_t revision_{1};" in helper and
+            "if (exhausted_) return {CompanionAuthorityError::not_ready, {}};" in helper,
+            "snapshot revisions must start nonzero and fail closed at exhaustion")
+    for state in ("unknown", "unavailable", "searching", "current", "stale", "fault"):
+        require("CompanionGnssState::" + state in helper,
+                f"GNSS bridge must retain the accepted {state} mapping")
     require(re.search(
         r"return\s*\{\s*CompanionAuthorityError::none\s*,\s*snapshot\s*\}\s*;",
-        authority,
+        snapshot_body,
     ) is not None,
             "Heltec authority must return the exact populated snapshot as ready")
 
@@ -3371,12 +3506,22 @@ def test_selected_enrollment_request_route():
             "admit_selected_enrollment_request(request_context," in base and
             "#if OPENTRAIL_CONFIRMATION_EVALUATION\n                return false;" in base,
             "normal selected kind-2 action must route only to pending admission")
-    admission = gatt[gatt.index("bool admit_selected_enrollment_request("):
+    # R2a review: busy, invalid and retired get a correlated rejected result;
+    # lane and gate failures (refused) stay unanswered.
+    require("if (admission == SelectedEnrollmentAdmission::refused) return false;" in base and
+            "admission == SelectedEnrollmentAdmission::busy ? CompanionActionRejectReason::busy" in base and
+            "admission == SelectedEnrollmentAdmission::invalid ? CompanionActionRejectReason::policy_denied" in base,
+            "pairing admission reply must distinguish busy, invalid and unanswered refusals")
+    admission = gatt[gatt.index("SelectedEnrollmentAdmission admit_selected_enrollment_request("):
                      gatt.index("bool companion_nimble_gatt_definition_self_check()")]
     for gate in ("#if OPENTRAIL_CONFIRMATION_EVALUATION", "GattLock lock;",
                  "selected_enrollment_lane_admissible(", "g_phone_status.ready(",
                  "decode_configuration_frame(", "CompanionActionKind::start_enrollment",
-                 "g_selected_enrollment_requests.admit("):
+                 "g_selected_enrollment_requests.admit(",
+                 # D-085: phone-chosen role and pairing code reach the request.
+                 "action.value.enrollment_role, action.value.pairing_code",
+                 # R2a review: request-level refusals map to distinct results.
+                 "case SelectedEnrollmentRequestResult::busy: return SelectedEnrollmentAdmission::busy;"):
         require(gate in admission, f"selected enrollment admission gate missing: {gate}")
     disconnect = gatt[gatt.index("case BLE_GAP_EVENT_DISCONNECT: {"):
                       gatt.index("case BLE_GAP_EVENT_ENC_CHANGE:")]
@@ -3405,7 +3550,7 @@ def test_selected_enrollment_request_route():
 
 
 def main() -> int:
-    tests = (test_contract, test_executed_oled_startup_flash_plan,
+    tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
              test_protected_storage_candidate_plan,
              test_authorization_nvs_backend_surface,

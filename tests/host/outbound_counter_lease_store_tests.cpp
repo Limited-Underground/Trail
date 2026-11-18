@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <type_traits>
 
 #include "memory_persistent_storage.hpp"
 #include "opentrail/outbound_counter_lease_store.hpp"
@@ -11,6 +12,12 @@ namespace {
 
 using namespace opentrail::persistence;
 using namespace opentrail::persistence::test_support;
+
+// A live allocator must retain exclusive ownership of its leased cursor.
+static_assert(!std::is_copy_constructible_v<OutboundCounterAllocator>);
+static_assert(!std::is_copy_assignable_v<OutboundCounterAllocator>);
+static_assert(!std::is_move_constructible_v<OutboundCounterAllocator>);
+static_assert(!std::is_move_assignable_v<OutboundCounterAllocator>);
 
 constexpr std::uint32_t kGroupEpoch = 7;
 

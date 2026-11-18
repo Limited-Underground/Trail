@@ -102,6 +102,7 @@ public:
     static constexpr std::size_t kEventCapacity = 8;
 
     explicit DeliveryController(radio::RadioTransport& transport);
+    [[nodiscard]] bool uses_transport(const radio::RadioTransport& transport) const { return &transport_ == &transport; }
 
     EnqueueResult enqueue(
         std::uint32_t message_id,
@@ -152,3 +153,4 @@ private:
 };
 
 }  // namespace opentrail::delivery
+

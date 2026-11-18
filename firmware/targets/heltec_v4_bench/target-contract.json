@@ -44,13 +44,13 @@
       "vext_enable_level": 0,
       "exact_binding_physically_verified": true
     },
-    "exact_received_revision": null,
-    "rf_variant": null,
+    "exact_received_revision": "HTIT-WB32LAF V4.2",
+    "rf_variant": "US915",
     "supported": false
   },
   "partition_layout": {
     "schema": "OTHP0",
-    "schema_version": 0,
+    "schema_version": 1,
     "file": "partitions.csv",
     "flash_bytes": 16777216,
     "factory_slot_bytes": 5177344,

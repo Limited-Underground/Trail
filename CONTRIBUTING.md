@@ -1,6 +1,6 @@
-# Contributing to OpenTrail
+# Contributing to Limited Underground Trail
 
-OpenTrail is an early architecture and proof-of-concept project released under
+Limited Underground Trail is an early architecture and proof-of-concept project released under
 the [Apache License 2.0](LICENSE). Contributions are welcome, but every claim
 must remain proportional to its evidence and the safety boundaries of the
 project.
@@ -8,7 +8,7 @@ project.
 ## Before starting
 
 The working contract below governs the contribution guidance on this page;
-feature suggestions do not authorize work beyond the accepted host-only scope.
+feature suggestions do not by themselves start work; the owner sets priorities.
 
 For questions, use cases and early ideas, start in
 [Discussions](https://github.com/Limited-Underground/Trail/discussions).
@@ -31,21 +31,47 @@ These rules apply to human developers and any AI tool. No private chat history,
 model memory or machine-local skill is required to understand them. Tool routing
 in [AGENTS.md](AGENTS.md) retains the repository's detailed engineering, brand,
 validation and document-role rules; it does not grant additional authority.
+Start with the [firmware V1 guide](docs/firmware/README.md) or [Android guide](android/README.md).
+Use full Limited Underground product names in current prose; retain historical
+names and technical identifiers. Optional tool skills must route to these
+portable records without restoring older development or physical permissions.
 
-- **Recovery first.** The owner accepted the bounded local Trail source-recovery
-  baseline on October 23, 2026 (America/New_York) and authorized ordinary
-  host-only development from the owner-approved checkout on the recovery machine. Five exceptions remain:
+- **Current rules (owner decision, 2026-11-11).** Development is active. The
+  November 2 product freeze and its November 3 and November 4 exceptions have
+  ended. Priority: Trail Firmware, then Firmware Loader (in its separate
+  repository), then Trail Android. Work that serves an approved task may
+  proceed without asking: host implementation, tests, builds, documentation and
+  pull requests on a topic branch. The owner approves each of these first,
+  every time:
+  - a device session: flashing, resets, installation, or USB/serial/BLE/radio
+    work with a board or phone. The owner is present, and the device, port and
+    firmware are confirmed before writing;
+  - pushing to GitHub and merging;
+  - anything involving signing keys or credentials;
+  - releases and deployment.
+
+  Wio Tracker work may start; it follows the device playbook from the
+  beginning. First bind the exact task/source/evidence, preserve relevant dirty
+  overlays and use a clean isolated topic. Read the
+  [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff) and owning
+  dedicated Project; a board status or host test does not replace these approvals.
+- **Recovery first.** The historical October 23, 2026 (America/New_York) bounded
+  source-recovery acceptance then authorized ordinary host-only development.
+  It is historical; the current rules above replace it. Its five recorded exceptions were:
   unverified E: delta bytes; incomplete cloud/off-device recovery and passphrase
   custody verification; the stale saved Codex Trail project path; retained
   historical/ignored holdings; and separate device, release, security-operator
-  and publication gates. OT-0340 remains In Progress. Select each task through
-  Trail V1 and preserve and validate subsequent changes normally. OneDrive backup
-  completion remains required follow-up but never blocks local work. This does not
+  and publication gates. OT-0340 remains open; consult the current handoff for
+  current custody and evidence. Select each authorized task through its dedicated
+  Project and preserve subsequent changes. The earlier OneDrive follow-up did not
+  block local work. This historical checkpoint does not
   authorize indiscriminate deletion, a rewrite, device operations, publication
   or whole-portfolio resumption.
-- **One task authority.** [Trail V1](https://github.com/orgs/Limited-Underground/projects/1)
-  owns current scope, priority, status, dependencies and recorded owner decisions.
-  [Architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
+- **One task authority per product.** [Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+  own their current scope, priority, status, dependencies and recorded owner decisions.
+  [Concise architecture](docs/architecture/README.md), [protocol selection](docs/protocol/README.md),
+  [detailed architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
   [backlog](tasks/BACKLOG.md) retain technical constraints and acceptance criteria.
   Resolve conflicting current instructions before the affected action. Board
   status is not execution permission. Hosted Project Control, `Control-Checklist.ps1`,
@@ -86,6 +112,47 @@ validation and document-role rules; it does not grant additional authority.
   only affected records. No duplicate journal is required. After an interruption,
   reconcile actual state before retrying a mutation. Missing evidence remains
   unknown; do not reconstruct it from a success summary.
+
+### Continuity closeout gate
+
+Read the current handoff and owning Project item before work; reuse unchanged
+instructions and consult only relevant technical references. Record the responsible
+role or named worker and exact edit scope in the existing owning task. Check
+existing claims/worktrees before overlapping edits. Re-read shared records just
+before writing; preserve intervening unrelated updates. Unclear ownership blocks
+only the overlapping work. A Project assignee or CI concurrency group is not a
+file lock. On transfer, identify the receiving role and whether it has accepted;
+otherwise record that the next worker is unassigned.
+
+Update affected task records at material transitions and before yielding. Before
+completion, update the existing current-status handoff, relevant progress entry
+and owning GitHub item; independently read back remote changes or state exactly
+what remains tracking-pending. No owner reminder is required. For interruption,
+record Interrupted, last success/first failure, exact source, remaining resources,
+blocker and next safe action when possible. A crash may prevent that write; the
+next agent must reconcile actual state before mutation.
+
+The single table between the current-handoff markers in docs/PROJECT_STATUS.md
+is a pickup summary, not a second task authority. Keep its reviewed date, task,
+owner/edit scope, state, source identity, verified outcome, blocker, next action,
+restrictions, latest progress-record heading and evidence-access boundary current.
+Link the latest exact task heading in PROGRESS_LOG.md; distinguish clone-visible
+summaries from maintainer-held evidence and local unintegrated candidates.
+
+The documentation checker validates those fields, the registered task and latest
+progress reference/date. CI also checks that development or detailed-evidence
+changes include both current status and progress-log changes. It cannot verify
+unrecorded/out-of-repository work, evidence truth, agent reading, ownership or GitHub
+updates. Local checks without --base-ref are structural only; use the relevant
+base revision for the comparison check. Do not invent completion to satisfy it.
+
+GitHub Projects owns live task scope, dependencies and status. Firmware uses
+[Project #1](https://github.com/orgs/Limited-Underground/projects/1); Android uses
+[Project #8](https://github.com/orgs/Limited-Underground/projects/8). Routine evidence
+and status updates within authorized task scope belong to closeout; report failed
+updates explicitly. Board status grants no hardware or publication authority.
+These portable Trail rules contain only the applicable continuity obligations;
+workspace routing and portfolio policy remain local and are not copied here.
 
 ## CI and publication cadence
 

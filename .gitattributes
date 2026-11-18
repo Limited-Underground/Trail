@@ -1065,3 +1065,22 @@ tests/host/enrollment_candidate_operator_tests.py -text whitespace=blank-at-eol,
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_controller.py.fixture -text
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_operator.py.fixture -text
 /tests/host/fixtures/enrollment_candidate_legacy_sources/enrollment_candidate_runner.py.fixture -text
+
+# OT-0005i adoption: preserve reviewed hash-authoritative source bytes.
+firmware/components/companion/include/opentrail/committed_enrollment_authority.hpp -text
+firmware/components/companion/include/opentrail/committed_packet_session.hpp -text
+firmware/components/companion/include/opentrail/companion_gatt_authority_composition.hpp -text
+firmware/components/companion/include/opentrail/companion_gatt_authorization.hpp -text
+firmware/components/companion/include/opentrail/companion_gatt_authorization_adapter.hpp -text
+firmware/components/companion/include/opentrail/companion_packet_owner_channel.hpp -text
+firmware/components/companion/include/opentrail/companion_packet_service.hpp -text
+firmware/components/companion/include/opentrail/packet_v1_selected_core.hpp -text
+firmware/components/security_evaluation/include/opentrail/independent_authorized_policy_session.hpp -text
+firmware/components/security_evaluation/include/opentrail/independent_handshake_endpoint.hpp -text
+firmware/components/security_evaluation/include/opentrail/independent_peer_traffic_endpoint.hpp -text
+firmware/components/security_evaluation/include/opentrail/independent_policy_session.hpp -text
+firmware/components/security_evaluation/include/opentrail/product_enrollment_activation.hpp -text
+tests/host/companion_committed_authority_tests.cpp -text
+tests/host/companion_packet_service_tests.cpp -text
+tools/companion_committed_authority_host.py -text
+tools/companion_packet_service_host.py -text

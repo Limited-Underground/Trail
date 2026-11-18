@@ -60,6 +60,11 @@ CompanionFactoryResetActionAuthority::prepare_action(
                 prepared_reason_, token};
     }
 
+    if (executor_.status().phase == DeviceFactoryResetPhase::idle_unowned) {
+        // Paired since boot: re-check ownership. Failure leaves the phase
+        // unchanged and the request is rejected below.
+        (void)executor_.refresh_idle_ownership();
+    }
     const auto executor = executor_.status();
     if (executor.phase != DeviceFactoryResetPhase::idle_old_state ||
         !executor.old_state_preserved) {

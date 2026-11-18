@@ -132,6 +132,44 @@ DeviceFactoryResetResult DeviceFactoryResetExecutor::restore() {
     return {DeviceFactoryResetError::none, phase_, 0};
 }
 
+DeviceFactoryResetResult DeviceFactoryResetExecutor::refresh_idle_ownership() {
+    if (operation_active_) {
+        return reject(DeviceFactoryResetError::reentrant_call);
+    }
+    if (phase_ != DeviceFactoryResetPhase::idle_unowned &&
+        phase_ != DeviceFactoryResetPhase::idle_old_state) {
+        return reject(DeviceFactoryResetError::invalid_state);
+    }
+
+    reentry_observed_ = false;
+    ScopedOperation operation(operation_active_);
+    const auto marker = marker_.load();
+    if (reentry_observed_) {
+        return reject(DeviceFactoryResetError::reentrant_call);
+    }
+    if (access_failed(marker.error) ||
+        marker.state != DeviceFactoryResetMarkerState::absent) {
+        return reject(DeviceFactoryResetError::marker_load_failed);
+    }
+    const auto user = user_domain_.inspect_absence();
+    if (reentry_observed_) {
+        return reject(DeviceFactoryResetError::reentrant_call);
+    }
+    const auto bonds = bond_domain_.inspect_empty();
+    if (reentry_observed_) {
+        return reject(DeviceFactoryResetError::reentrant_call);
+    }
+    if (access_failed(user.error) || access_failed(bonds.error)) {
+        return reject(DeviceFactoryResetError::initial_state_unavailable);
+    }
+    if (user.verified_absent != bonds.verified_absent) {
+        return reject(DeviceFactoryResetError::initial_state_incoherent);
+    }
+    phase_ = user.verified_absent ? DeviceFactoryResetPhase::idle_unowned
+                                  : DeviceFactoryResetPhase::idle_old_state;
+    return {DeviceFactoryResetError::none, phase_, reset_receipt_};
+}
+
 DeviceFactoryResetResult DeviceFactoryResetExecutor::begin(
     std::uint64_t reset_receipt) {
     return commit_intent(DeviceFactoryResetPhase::idle_old_state,

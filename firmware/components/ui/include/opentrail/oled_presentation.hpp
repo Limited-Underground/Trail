@@ -42,6 +42,10 @@ struct PairingWindow {
 };
 
 /** Borrowed labels are replaceable display metadata, never identifiers or authority. */
+// V1 F5 R2a: first board pairing as seen on this board. paired_here means
+// this board committed; it is not proof that the other board did.
+enum class BoardPairing : std::uint8_t { none, in_progress, paired_here, failed };
+
 struct Snapshot {
     bool failure{false};
     bool reset_in_progress{false};
@@ -50,17 +54,20 @@ struct Snapshot {
     std::string_view device_name{};
     PhoneState phone{PhoneState::unknown};
     GroupState group{GroupState::unknown};
+    BoardPairing board_pairing{BoardPairing::none};
     bool location_available{false};
     bool location_on{false};
     bool region_configured{false};
     std::string_view region_label{};
     bool tx_available{false};
+    bool radio_running{false};
     Metric battery{};
     Metric satellites{};
     GpsFix gps_fix{GpsFix::unknown};
     std::uint64_t gps_sampled_at_ms{0};
     Pulse tx{};
     Pulse rx{};
+    std::uint64_t activity_visible_for_ms{kActivityPulseMs};
     // Caller obtains clock.observe(now_ms) for this coherent snapshot. The renderer
     // checks its numeric/text structure but cannot establish age from a reading.
     opentrail::time::OledClockReading clock{};
@@ -74,12 +81,18 @@ struct Frame {
     bool clipped{false};
 };
 
-// Normal rows: name, phone, group/location, region/TX, battery/satellites,
-// GPS fix, radio pulses, clock. Exclusive surfaces leave unused rows blank.
+// Normal rows: name, phone, group/location (or board pairing), region/TX, battery/satellites,
+// GPS fix, radio status, clock. Exclusive surfaces leave unused rows blank.
 // Each call creates an independent frame; caller owns its lifetime and display I/O.
 // Pure renderer requires an independently checked nondecreasing time source;
 // normal consumers use PresentationOwner to contain rollback across calls.
 [[nodiscard]] Frame render(const Snapshot& snapshot, std::uint64_t now_ms);
+
+// Draws one text row into an SSD1306 page-major 128x64 bitmap, clearing that
+// row first. Text is sanitized like every other row; text longer than one row
+// ends in '~'. Used for the startup screen's firmware version line (D-081).
+void draw_text_row(std::array<std::uint8_t, kWidth * kHeight / 8>& pixels,
+                   std::size_t row, std::string_view text);
 
 /** Retains only monotonic-time admission, never snapshots, labels or pairing digits. */
 class PresentationOwner {

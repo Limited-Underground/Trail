@@ -137,7 +137,7 @@ struct Pair {
         IndependentInvitation invitation{};a.call([&]{CHECK(a.owner->issue_invitation(invitation));});
         const auto fields=independent_invitation_detail::decode(invitation);
         CHECK(fields.epoch==epoch && fields.issued_a_ms==am.now_ms && fields.issued_b_ms==bm.now_ms);
-        CHECK(fields.window_a_ms==60000 && fields.window_b_ms==60000);
+        CHECK(fields.window_a_ms==EnrollmentCandidateSession::kInvitationWindowMs && fields.window_b_ms==EnrollmentCandidateSession::kInvitationWindowMs);
         a.call([&]{CHECK(a.owner->sign_invitation(invitation,as));});b.call([&]{CHECK(b.owner->sign_invitation(invitation,bs));});
         a.call([&]{CHECK(a.owner->begin_handshake(bs));});b.call([&]{CHECK(b.owner->begin_handshake(as));});
     }
@@ -291,7 +291,7 @@ int run(){unsigned groups=0;
     {Pair p;const auto deadline=p.a.request.request().deadline_ms;p.a.sdk.now_us=static_cast<std::int64_t>((deadline-1)*1000);
      p.a.call([&]{CHECK(p.a.owner->show_peer());});CHECK(p.a.request.request().deadline_ms==deadline);
      CHECK(!p.a.at(1,false));p.a.no_traffic();CHECK(!p.a.display.enrollment_review_status().lease);++groups;}
-    {Pair p;p.begin();p.a.advance(60000,false);HandshakeFrame frame{};frame.step=71;
+    {Pair p;p.begin();p.a.advance(EnrollmentCandidateSession::kInvitationWindowMs,false);HandshakeFrame frame{};frame.step=71;
      p.a.call([&]{CHECK(!p.a.owner->next_handshake(frame));});CHECK(frame.step==71);p.a.no_traffic();++groups;}
     // The completed draw's held sample cannot reuse time spent before visibility.
     {Pair p;bool fired=false;p.a.sdk.on_draw=[&]{if(!fired){fired=true;stub::state.now_us+=1000000;stub::state.button_level=0;}};

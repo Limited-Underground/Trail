@@ -4,7 +4,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 
 const val CONNECTED_DEVICE_NOTIFICATION_CHANNEL_ID = "trail_connected_device"
 const val CONNECTED_DEVICE_NOTIFICATION_CHANNEL_NAME = "Connected device"
-const val CONNECTED_DEVICE_NOTIFICATION_TITLE = "Limited Underground Trail"
+const val CONNECTED_DEVICE_NOTIFICATION_TITLE = "Limited Underground MeshTrail"
 const val CONNECTED_DEVICE_NOTIFICATION_TEXT = "Bluetooth device connection service is running"
 
 enum class NotificationPermissionState {
@@ -17,6 +17,7 @@ enum class ConnectedDeviceServiceUiState {
     START_REQUIRED,
     STARTING,
     RUNNING,
+    BOUND_ONLY,
     START_FAILED,
 }
 
@@ -71,6 +72,8 @@ interface ConnectedDeviceServiceConnector : AutoCloseable {
     fun bind(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding?
     /** Observe an already running owner only. Implementations must not create or start a service. */
     fun bindExisting(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? = null
+    /** Activity-scoped binding for a cold returning-owner check. This never starts a foreground service. */
+    fun bindForReturningOwner(observer: (ConnectedDeviceServiceConnection) -> Unit): ConnectedDeviceServiceBinding? = null
     fun stopService()
 }
 
@@ -83,10 +86,15 @@ interface ConnectedDeviceSessionPort {
     val state: TrailAppUiState.BluetoothDevice
 
     fun observe(observer: (TrailAppUiState.BluetoothDevice) -> Unit): ConnectedDeviceStateObservation?
+    /** Called only from a current foreground Activity's returning-owner binding. */
+    fun activateReturningOwner(): Boolean = false
     fun refreshPermissionState()
     fun scan()
+    fun retryDiscovery() = Unit
     fun authorize(endpointToken: String)
     fun disconnect()
+    fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
+    fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean = false
     fun submitAction(request: CompanionActionRequest): Boolean
     fun refreshGroupConfirmation(): Boolean = false
     fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean = false

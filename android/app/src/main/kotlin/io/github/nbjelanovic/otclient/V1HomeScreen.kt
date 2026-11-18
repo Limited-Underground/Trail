@@ -12,8 +12,19 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
@@ -26,7 +37,9 @@ internal fun V1HomeScreen(
     onConfirmGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     onCancelGroupConfirmation: (V1GroupConfirmationOffer) -> Boolean = { false },
     additionalDeviceTools: @Composable () -> Unit = {},
-    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit) -> Unit,
+    onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
+    onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
+    deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit, onSetUpLater: () -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
         save={ it.save() },restore={ V1HomeLaunchState.restore(it) }) }
@@ -39,7 +52,7 @@ internal fun V1HomeScreen(
     if (!splashFinished) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Image(painterResource(R.drawable.limited_underground_trail),
-                contentDescription = "Limited Underground Trail",
+                contentDescription = "Limited Underground MeshTrail",
                 modifier = Modifier.fillMaxWidth().padding(24.dp))
         }
         return
@@ -69,19 +82,13 @@ internal fun V1HomeScreen(
         state = V1AppNavigationState.empty().select(destination),
         onDestinationSelected = { navigation = navigation.select(it) },
         messages = { retainedPages.SaveableStateProvider("messages") {
-            V1MessagesScreen(status, onConnect = { navigation = navigation.beginSetup(currentRuntime()) })
+            V1MessagesScreen(status, onConnect = { navigation = navigation.beginSetup(currentRuntime()) },
+                quickStatus = bluetooth?.quickStatus ?: V1QuickStatusState(), onSubmitQuickStatus = onSubmitQuickStatus,
+                textMessages = bluetooth?.textMessages ?: V1TextState(), onSubmitText = onSubmitText)
         } },
         group = { retainedPages.SaveableStateProvider("group") {
             V1GroupScreen(
-                V1GroupScreenState(
-                    statusMessage = when {
-                        !connected -> "Connect your device to manage a group. V1 group setup requires the upcoming device update."
-                        confirmation == V1GroupConfirmationState.Unsupported ->
-                            "This device's current firmware does not yet support V1 group setup."
-                        else -> "Review the nearby peer before joining."
-                    },
-                    confirmation = confirmation,
-                ),
+                v1LiveGroupScreenState(connected, confirmation),
                 onAction = { action ->
                     when (action) {
                         V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
@@ -118,9 +125,12 @@ internal fun V1HomeScreen(
                         TextButton(onClick = { support = true }) { Text("Help & support") }
                         additionalDeviceTools()
                     }
-                    Box(Modifier.weight(1f)) { deviceContent { scope ->
-                        navigation = navigation.finish(scope,currentRuntime)
-                    } }
+                    Box(Modifier.weight(1f)) {
+                        deviceContent(
+                            { scope -> navigation = navigation.finish(scope, currentRuntime) },
+                            { navigation = navigation.select(V1AppDestination.MESSAGES) },
+                        )
+                    }
                     TextButton(onClick = { setupDraft = true }) { Text("Prepare setup choices") }
                 }
             }
@@ -130,24 +140,61 @@ internal fun V1HomeScreen(
 
 @Composable
 internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
-    initiallyDirect: Boolean = false, initiallyEditing: Boolean = false) {
+    initiallyDirect: Boolean = false, initiallyEditing: Boolean = false,
+    quickStatus: V1QuickStatusState = V1QuickStatusState(),
+    onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
+    textMessages: V1TextState = V1TextState(),
+    onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false }) {
     val context = LocalContext.current
-    val preferences = remember { context.getSharedPreferences("v1-local-templates", 0) }
-    var templates by remember {
-        mutableStateOf((0 until V1QuickMessages.MAX_CUSTOM).mapNotNull { index ->
-            preferences.getString("template-$index", null)?.let(V1QuickMessages::normalize)
-        }.distinct())
+    var submissionNotice by remember(quickStatus.recipient) { mutableStateOf<String?>(null) }
+    var messageDraft by remember { mutableStateOf("") }
+    fun chooseText(value: String) {
+        val recipient = textMessages.recipient
+        submissionNotice = V1TextComposer.refusal(value) ?: when {
+            recipient == null -> V1TextComposer.AUTHORITY_UNAVAILABLE
+            onSubmitText(recipient, value) -> "Request submitted; see delivery evidence."
+            else -> "Check delivery evidence before sending again; the outcome may be unknown."
+        }
     }
-    fun persist(value: List<String>) {
+    fun chooseStatus(value: String) {
+        val status = V1QuickStatusComposer.fromTemplate(value)
+        val recipient = quickStatus.recipient
+        submissionNotice = when {
+            status == null -> { chooseText(value); return }
+            recipient == null -> V1QuickStatusComposer.AUTHORITY_UNAVAILABLE
+            onSubmitQuickStatus(recipient, status) -> "Request submitted; delivery is not confirmed."
+            else -> "Request refused or outcome uncertain. Check device evidence; do not resend automatically."
+        }
+    }
+    val preferences = remember { context.getSharedPreferences("v1-local-templates", 0) }
+    val loadedTemplates = remember {
+        V1QuickMessages.load { index ->
+            check(index in (0 until V1QuickMessages.MAX_CUSTOM))
+            preferences.getString("template-$index", null)?.let(V1QuickMessages::normalize)
+        }
+    }
+    var templates by remember {
+        mutableStateOf(loadedTemplates.orEmpty())
+    }
+    var saveFailed by rememberSaveable { mutableStateOf(false) }
+    fun persist(value: List<String>): Boolean {
+        if (loadedTemplates == null) return false
         // Only this dedicated preferences file is replaced; no connection/group state is touched.
-        preferences.edit().clear().also { editor ->
-            value.forEachIndexed { index, text -> editor.putString("template-$index", text) }
-        }.apply()
-        templates = value
+        val saved = V1QuickMessages.save(value) { snapshot ->
+            preferences.edit().clear().also { editor ->
+                snapshot.forEachIndexed { index, text -> editor.putString("template-$index", text) }
+            }.commit()
+        }
+        saveFailed = !saved
+        if (saved) templates = value
+        return saved
     }
     var direct by rememberSaveable { mutableStateOf(initiallyDirect) }
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
     var text by rememberSaveable { mutableStateOf("") }
+    var editingIndex by rememberSaveable { mutableStateOf<Int?>(null) }
+    var editingOriginal by rememberSaveable { mutableStateOf<String?>(null) }
+    var editText by rememberSaveable { mutableStateOf("") }
     var nearby by rememberSaveable { mutableStateOf(false) }
     androidx.activity.compose.BackHandler(enabled = nearby) { nearby = false }
     if (nearby) {
@@ -156,7 +203,21 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             onAction = { if (it == V1PeopleUiAction.Back) nearby = false })
         return
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+    val focusManager = LocalFocusManager.current
+    val fieldFocus = remember { FocusRequester() }
+    val saveFocus = remember { FocusRequester() }
+    val cancelFocus = remember { FocusRequester() }
+    val index = editingIndex
+    val formText = if (index == null) text else editText
+    fun candidate(): List<String>? {
+        if (editingIndex != index) return null
+        return if (index == null) V1QuickMessages.add(templates, text)
+            else editingOriginal?.let { V1QuickMessages.edit(templates, index, it, editText) }
+    }
+    val canSave = loadedTemplates != null && candidate() != null
+    // Keep actions outside the scrolling content so the IME cannot push them below it.
+    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Messages", style = MaterialTheme.typography.headlineMedium)
         TextButton(onClick = onConnect) { Text(connectionStatus) }
@@ -178,31 +239,146 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Quick messages", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = { editing = !editing }) { Text(if (editing) "Done" else "Customize") }
+            TextButton(onClick = { if (editingIndex == null) editing = !editing },
+                enabled = loadedTemplates != null && editingIndex == null) {
+                Text(if (editing) "Done" else "Customize")
+            }
         }
-        Text("Prepare your messages here. Nothing is sent from this screen.", style = MaterialTheme.typography.bodySmall)
-        V1QuickMessages.builtIn.forEach { Text(it) }
+        Text("Fixed quick statuses use the current authenticated pair only. Templates remain local until explicitly selected.", style = MaterialTheme.typography.bodySmall)
+        if (quickStatus.recipient == null) Text(V1QuickStatusComposer.AUTHORITY_UNAVAILABLE)
+        submissionNotice?.let { Text(it) }
+        if (!editing) {
+            Text("Short message", style = MaterialTheme.typography.titleMedium)
+            OutlinedTextField(value = messageDraft, onValueChange = { messageDraft = it },
+                label = { Text("Write a message") }, minLines = 1, maxLines = 4, modifier = Modifier.fillMaxWidth())
+            V1TextComposer.refusal(messageDraft)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            if (textMessages.recipient == null) Text(V1TextComposer.AUTHORITY_UNAVAILABLE)
+            OutlinedButton(onClick = { chooseText(messageDraft) },
+                enabled = textMessages.recipient != null && V1TextComposer.refusal(messageDraft) == null,
+                modifier = Modifier.heightIn(min = 48.dp)) { Text("Send text") }
+        }
+        if (textMessages.recipient != null) textMessages.received?.let { Text("Received text: " + it) }
+        textMessages.outbound?.let {
+            Text((if (textMessages.currentAttachment) "Text delivery: " else "Previous connection text delivery: ") + V1QuickStatusComposer.evidence(it))
+            if (textMessages.reason != 0) Text(V1TextComposer.reason(textMessages.reason))
+        }
+        if (quickStatus.recipient != null) {
+            quickStatus.received?.let { Text("Received status: " + V1QuickStatusComposer.label(it)) }
+            quickStatus.outbound?.let { Text(V1QuickStatusComposer.evidence(it)) }
+        }
+        if (loadedTemplates == null) {
+            Text("Saved quick messages could not be read. Editing is unavailable.")
+        } else if (saveFailed) {
+            Text("Save could not be confirmed. Your draft is still here; saved state is uncertain.")
+        }
+        val choices = if (editing) V1QuickMessages.builtIn else
+            (V1QuickMessages.builtIn + io.github.nbjelanovic.otprotocol.CompanionQuickStatus.entries.map(V1QuickStatusComposer::label)).distinct()
+        choices.forEach { value ->
+            if (editing) Text(value) else V1QuickStatusChoice(value, quickStatus.recipient != null, textMessages.recipient != null) { chooseStatus(value) }
+        }
         templates.forEachIndexed { index, template ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(template)
+                    if (!editing) V1QuickStatusChoice(template, quickStatus.recipient != null, textMessages.recipient != null) { chooseStatus(template) }
                     if (editing) {
+                        TextButton(onClick = {
+                            if (editingIndex == null && templates.getOrNull(index) == template) {
+                                editingIndex = index
+                                editingOriginal = template
+                                editText = template
+                            }
+                        }, enabled = loadedTemplates != null && editingIndex == null,
+                            modifier = Modifier.semantics { contentDescription = "Edit quick message ${index + 1}" }) {
+                            Text("Edit")
+                        }
                         Row {
-                            TextButton(onClick = { persist(V1QuickMessages.move(templates, index, -1)) }, enabled = index > 0) { Text("Up") }
-                            TextButton(onClick = { persist(V1QuickMessages.move(templates, index, 1)) }, enabled = index < templates.lastIndex) { Text("Down") }
-                            TextButton(onClick = { persist(templates.filterIndexed { i, _ -> i != index }) }) { Text("Remove") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(V1QuickMessages.move(templates, index, -1))
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null && index > 0,
+                                modifier = Modifier.semantics { contentDescription = "Move quick message ${index + 1} up" }) { Text("Up") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(V1QuickMessages.move(templates, index, 1))
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null && index < templates.lastIndex,
+                                modifier = Modifier.semantics { contentDescription = "Move quick message ${index + 1} down" }) { Text("Down") }
+                            TextButton(onClick = {
+                                if (editingIndex == null && templates.getOrNull(index) == template)
+                                    persist(templates.filterIndexed { i, _ -> i != index })
+                            },
+                                enabled = loadedTemplates != null && editingIndex == null,
+                                modifier = Modifier.semantics { contentDescription = "Remove quick message ${index + 1}" }) { Text("Remove") }
                         }
                     }
                 }
             }
         }
         if (editing) {
-            OutlinedTextField(value = text, onValueChange = { if (it.length <= V1QuickMessages.MAX_CHARS) text = it },
-                label = { Text("Your quick message") }, modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("${text.length}/160 · ${templates.size}/12 custom messages") })
-            Button(onClick = { V1QuickMessages.add(templates, text)?.let { persist(it); text = "" } },
-                enabled = V1QuickMessages.add(templates, text) != null) { Text("Save quick message") }
+            val staleEdit = index != null && (index !in templates.indices || templates[index] != editingOriginal)
+            OutlinedTextField(value = formText, onValueChange = {
+                if (it.length <= V1QuickMessages.MAX_CHARS) {
+                    if (index == null) text = it else editText = it
+                }
+            }, enabled = loadedTemplates != null,
+                label = { Text(if (index == null) "Your quick message" else "Edit quick message") },
+                isError = formText.isNotEmpty() && candidate() == null,
+                // Templates reject control characters. Tab is form navigation here, not text,
+                // while the field still wraps long messages and keeps normal editing shortcuts.
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
+                modifier = Modifier.fillMaxWidth().focusRequester(fieldFocus)
+                    .focusProperties {
+                        next = if (canSave) saveFocus else if (index != null) cancelFocus else FocusRequester.Default
+                    }
+                    .onPreviewKeyEvent { event ->
+                        if (event.key == Key.Tab && !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
+                            if (event.type == KeyEventType.KeyDown) {
+                                focusManager.moveFocus(if (event.isShiftPressed) FocusDirection.Previous else FocusDirection.Next)
+                            }
+                            true
+                        } else false
+                    }, supportingText = {
+                    Text(when {
+                        staleEdit -> "This quick message changed. Cancel the edit before choosing it again."
+                        formText.isNotEmpty() && candidate() == null -> "Use a unique message of 1–160 characters without control characters."
+                        else -> "${formText.length}/160 · ${templates.size}/12 custom messages"
+                    })
+                })
         }
+    }
+    if (editing) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(modifier = Modifier.weight(1f).heightIn(min = 48.dp).focusRequester(saveFocus)
+                .focusProperties { previous = fieldFocus; next = if (index != null) cancelFocus else FocusRequester.Default },
+                onClick = {
+                candidate()?.let { value ->
+                    if (persist(value)) {
+                        if (index == null) text = "" else {
+                            editingIndex = null
+                            editingOriginal = null
+                            editText = ""
+                        }
+                    }
+                }
+            }, enabled = canSave) {
+                Text(if (index == null) "Save quick message" else "Save changes")
+            }
+            if (index != null) {
+                OutlinedButton(modifier = Modifier.weight(1f).heightIn(min = 48.dp).focusRequester(cancelFocus)
+                    .focusProperties { previous = if (canSave) saveFocus else fieldFocus },
+                    onClick = {
+                    focusManager.clearFocus()
+                    editingIndex = null
+                    editingOriginal = null
+                    editText = ""
+                }) { Text("Cancel edit") }
+            }
+        }
+    }
     }
 }
 
@@ -215,4 +391,14 @@ private fun v1SupportSnapshot(state: TrailAppUiState): V1SafeDiagnosticSnapshot 
     return V1SafeDiagnosticSnapshot(label(version), label("Not available"), label(Build.MODEL),
         label(Build.VERSION.RELEASE), label("Not available"), V1SupportRegionProjector.from(state), health.connection,
         health.radio, health.gps, health.power, null, health.lastCode)
+}
+
+/** Exact known labels keep fixed-status semantics; other templates use the strict text lane. */
+@Composable
+private fun V1QuickStatusChoice(text: String, currentRecipient: Boolean, textRecipient: Boolean, submit: () -> Unit) {
+    val mapped = V1QuickStatusComposer.fromTemplate(text) != null
+    val refusal = if (mapped) null else V1TextComposer.refusal(text)
+    OutlinedButton(onClick = submit, enabled = if (mapped) currentRecipient else textRecipient && refusal == null,
+        modifier = Modifier.heightIn(min = 48.dp)) { Text("Send: $text") }
+    refusal?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
 }

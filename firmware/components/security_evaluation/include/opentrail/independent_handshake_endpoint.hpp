@@ -13,6 +13,7 @@
 #include "opentrail/enrolled_session_observer.hpp"
 
 namespace opentrail::security_evaluation {
+class PacketSessionPort;
 class IndependentPeerTrafficEndpoint;
 class IndependentHandshakeEndpoint final {
 public:
@@ -168,6 +169,22 @@ public:
     }
 
 private:
+    friend class IndependentPeerTrafficEndpoint;
+    // Internal observation only. The peer/product owners must first complete
+    // their original current/ready checks. Never resample or expose this context
+    // on a wire: copy the last sample accepted by this endpoint's observe().
+    bool observed_clock(ConfirmationSample& output) const {
+        output = {};
+        if (busy_ || revoked_ || cleanup_started_ || !clock_seen_ ||
+            !invitation_begun_ || state_ != EndpointState::local_confirmed ||
+            !context_.transport_generation || !context_.session_nonce ||
+            last_now_ == std::numeric_limits<std::uint64_t>::max() ||
+            last_now_ < issued_ms_ || last_now_ >= deadline_ms_) return false;
+        output = {context_, last_now_};
+        return true;
+    }
+ friend class CommittedPacketSession;
+ friend class PacketSessionPort; // Dormant host-only Packet-v1 binding port.
     friend class IndependentPeerTrafficEndpoint;
     // The bounded peer-traffic composition is the only record consumer. Keep
     // signed local expiry, durable authority and Ready-context checks around

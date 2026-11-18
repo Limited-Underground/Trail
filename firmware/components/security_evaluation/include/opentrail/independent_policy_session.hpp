@@ -8,6 +8,7 @@
 #include "opentrail/independent_invitation.hpp"
 
 namespace opentrail::security_evaluation {
+class PacketSessionPort;
 class IndependentPolicySession final {
 public:
  IndependentPolicySession(security::SecureRandomSource& random,persistence::PersistentStorage& tx_storage,
@@ -88,6 +89,8 @@ public:
  bool retired()const{return phase_==Phase::retired;}
  bool secrets_cleared()const{const InvitationKey z{};return sodium_memcmp(identity_.secret,z.data(),32)==0&&tx_==z&&rx_==z&&sodium_memcmp(state_.local_static_secret,z.data(),32)==0&&sodium_memcmp(state_.local_ephemeral_secret,z.data(),32)==0&&sodium_memcmp(state_.cipher_key,z.data(),32)==0&&sodium_memcmp(state_.chaining_key,z.data(),32)==0;}
 private:
+ friend class CommittedPacketSession;
+ friend class PacketSessionPort; // Isolated host Packet-v1 port; no active target wiring.
  enum class Phase{empty,identity,handshake,confirmation,active,retired,failed};
  static bool blank(persistence::PersistentStorage& storage){
   std::array<std::uint8_t,persistence::kPersistentSlotBytes> bytes{};

@@ -10,6 +10,31 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ConnectedDeviceServiceTest {
+    @Test fun textTraversesActivityAndOwnerWithoutTruncationAndStopsOnDetach() {
+        val service=FakeServiceController();val owner=ConnectedDeviceSessionOwner(104,service);val ui=fixture()
+        val recipient=V1QuickStatusRecipient();val text="界".repeat(30)
+        assertFalse(ui.controller.submitText(recipient,text))
+        ui.controller.onLifecycleStart();ui.controller.chooseBluetoothDeviceMode();ui.controller.startBluetoothService()
+        ui.connector.emit(0,ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.submitText(recipient,text));assertEquals(listOf(recipient to text),service.texts)
+        ui.controller.onLifecycleStop();assertFalse(ui.controller.submitText(recipient,text))
+        owner.close();assertFalse(owner.submitText(recipient,text));assertEquals(1,service.texts.size)
+    }
+
+    @Test
+    fun fixedStatusHandleTraversesActivityAndOwnerOnlyWhileLive() {
+        val service=FakeServiceController();val owner=ConnectedDeviceSessionOwner(103,service);val ui=fixture()
+        val recipient=V1QuickStatusRecipient();val status=io.github.nbjelanovic.otprotocol.CompanionQuickStatus.NEED_ASSISTANCE
+        assertFalse(ui.controller.submitQuickStatus(recipient,status))
+        ui.controller.onLifecycleStart();ui.controller.chooseBluetoothDeviceMode();ui.controller.startBluetoothService()
+        ui.connector.emit(0,ConnectedDeviceServiceConnection.Connected(owner))
+        assertTrue(ui.controller.submitQuickStatus(recipient,status))
+        assertEquals(listOf(recipient to status),service.quickStatuses)
+        ui.controller.onLifecycleStop();assertFalse(ui.controller.submitQuickStatus(recipient,status))
+        owner.close();assertFalse(owner.submitQuickStatus(recipient,status))
+        assertEquals(1,service.quickStatuses.size)
+    }
+
     @Test
     fun confirmationCarriesExactHandleAndCannotForwardAfterDetachOrOwnerClose() {
         val service = FakeServiceController()
@@ -314,7 +339,9 @@ class ConnectedDeviceServiceTest {
             ConnectedDeviceServiceUiState.RUNNING,
             assertIs<TrailAppUiState.BluetoothDevice>(fixture.controller.state).serviceState,
         )
-        assertEquals(1, fixture.startupScheduler.leases.single().closeCount)
+        val startupDeadline = fixture.startupScheduler.leases.single()
+        assertEquals(10_000L, startupDeadline.delayMillis)
+        assertEquals(1, startupDeadline.closeCount)
     }
 
     @Test
@@ -326,6 +353,7 @@ class ConnectedDeviceServiceTest {
         fixture.controller.startBluetoothService()
         fixture.connector.emit(0, ConnectedDeviceServiceConnection.Connected(port))
 
+        assertEquals(10_000L, fixture.startupScheduler.leases.single().delayMillis)
         fixture.startupScheduler.fire(0)
 
         assertEquals(1, fixture.connector.stopCount)
@@ -348,7 +376,11 @@ class ConnectedDeviceServiceTest {
         val current = FakePort(71)
         fixture.connector.emit(1, ConnectedDeviceServiceConnection.Connected(current))
 
+        val deadlines = fixture.startupScheduler.leases
+        assertEquals(listOf(10_000L, 1_000L), deadlines.map { it.delayMillis })
+        assertEquals(listOf(1, 1), deadlines.map { it.closeCount })
         fixture.startupScheduler.fire(0)
+        fixture.startupScheduler.fire(1)
 
         assertEquals(0, fixture.connector.stopCount)
         assertEquals(
@@ -477,7 +509,7 @@ class ConnectedDeviceServiceTest {
 
     @Test
     fun notificationTextIsFixedAndContainsNoDynamicIdentityFields() {
-        assertEquals("Limited Underground Trail", CONNECTED_DEVICE_NOTIFICATION_TITLE)
+        assertEquals("Limited Underground MeshTrail", CONNECTED_DEVICE_NOTIFICATION_TITLE)
         assertEquals("Bluetooth device connection service is running", CONNECTED_DEVICE_NOTIFICATION_TEXT)
         val combined = "$CONNECTED_DEVICE_NOTIFICATION_TITLE $CONNECTED_DEVICE_NOTIFICATION_TEXT".lowercase()
         listOf("address", "token", "correlation", "message", "candidate").forEach {
@@ -729,15 +761,13 @@ class ConnectedDeviceServiceTest {
     private class FakeStartupScheduler : BleRuntimeScheduler {
         val leases = mutableListOf<FakeDeadline>()
 
-        override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease {
-            assertEquals(10_000L, delayMillis)
-            return FakeDeadline(callback).also(leases::add)
-        }
+        override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease =
+            FakeDeadline(delayMillis, callback).also(leases::add)
 
         fun fire(index: Int) = leases[index].callback()
     }
 
-    private class FakeDeadline(val callback: () -> Unit) : BleReconnectLease {
+    private class FakeDeadline(val delayMillis: Long, val callback: () -> Unit) : BleReconnectLease {
         var closeCount = 0
         override fun close() {
             closeCount += 1
@@ -789,6 +819,13 @@ class ConnectedDeviceServiceTest {
 
     private class FakeServiceController : TrailServiceController {
         var groupRefreshCount = 0
+        // Command-forwarding fixture only, never used as authentication/production evidence.
+        val texts=mutableListOf<Pair<V1QuickStatusRecipient,String>>()
+        override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean { texts.add(recipient to text);return true }
+        val quickStatuses=mutableListOf<Pair<V1QuickStatusRecipient,io.github.nbjelanovic.otprotocol.CompanionQuickStatus>>()
+        override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
+            quickStatuses += recipient to status; return true
+        }
         val groupOffers = mutableListOf<V1GroupConfirmationOffer>()
         override fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean {
             groupOffers += offer; return true

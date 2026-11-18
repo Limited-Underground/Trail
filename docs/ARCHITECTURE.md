@@ -1,8 +1,16 @@
-# OpenTrail Architecture
+# Limited Underground Trail architecture detail
+
+<a id="opentrail-architecture"></a>
 
 This document describes the system design and its implementation boundaries.
 For current accepted behavior and remaining gates, see [Project status](PROJECT_STATUS.md).
 Dated task updates belong in the [progress log](PROGRESS_LOG.md), not this design.
+
+Start with the [concise architecture](architecture/README.md) for the current
+system boundary, twelve arc42 sections and C4 source, and the
+[protocol selection index](protocol/README.md) for contract status. Detailed
+sections below retain their original decisions, anchors and dated evidence;
+historical paragraphs do not override the current maintained handoff.
 
 The complete pre-cleanup version is preserved in the
 [2026-09-08 archive](history/ARCHITECTURE_BEFORE_CLEANUP_2026-09-08.md).

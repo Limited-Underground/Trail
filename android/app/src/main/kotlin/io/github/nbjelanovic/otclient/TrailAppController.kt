@@ -35,6 +35,8 @@ sealed interface TrailAppUiState {
         val factoryResetConfirmationVisible: Boolean = false,
         val serviceState: ConnectedDeviceServiceUiState = ConnectedDeviceServiceUiState.START_REQUIRED,
         val notificationPermissionState: NotificationPermissionState = NotificationPermissionState.NOT_REQUIRED,
+        val quickStatus: V1QuickStatusState = V1QuickStatusState(),
+        val textMessages: V1TextState = V1TextState(),
         val serviceFailure: ConnectedDeviceServiceStartFailure? = null,
     ) : TrailAppUiState
 }
@@ -265,6 +267,18 @@ class TrailAppController(
         }
     }
 
+    override fun retryBluetoothDiscovery() {
+        requireOwnerThread()
+        if (
+            mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            canMutate() &&
+            !permissionRequestInFlight &&
+            permissionState == NearbyDevicesPermissionState.GRANTED
+        ) {
+            bluetoothRuntime.retryDiscovery()
+        }
+    }
+
     override fun selectBluetoothDevice(endpointToken: String) {
         requireOwnerThread()
         beginDeviceAuthorization(endpointToken, DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE)
@@ -277,6 +291,16 @@ class TrailAppController(
             releaseAuthorization(DeviceAuthorizationUiState.None)
             bluetoothRuntime.disconnect()
         }
+    }
+
+    override fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean {
+        requireOwnerThread()
+        return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitText(recipient, text)
+    }
+
+    override fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean {
+        requireOwnerThread()
+        return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitQuickStatus(recipient, status)
     }
 
     override fun submitBluetoothAction(request: CompanionActionRequest): Boolean {
@@ -514,6 +538,11 @@ class TrailAppController(
             bluetoothRuntime.retryFactoryResetVerification()
     }
 
+    override fun setStatusRefreshForeground(foreground: Boolean) {
+        requireOwnerThread()
+        bluetoothRuntime.setStatusRefreshForeground(foreground)
+    }
+
     override fun onLifecycleStart() {
         requireOwnerThread()
         if (closed) return
@@ -588,6 +617,8 @@ class TrailAppController(
         synchronizeGroupConfirmation(runtimeState)
         publish(
             TrailAppUiState.BluetoothDevice(
+                quickStatus = bluetoothRuntime.quickStatusState(),
+                textMessages = bluetoothRuntime.textState(),
                 runtimeState = runtimeState,
                 permissionState = permissionState,
                 permissionRequestInFlight = permissionRequestInFlight,

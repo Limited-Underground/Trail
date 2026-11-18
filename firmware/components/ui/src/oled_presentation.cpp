@@ -87,8 +87,8 @@ bool metric(const Metric& value, std::uint16_t maximum, std::uint64_t now) {
     return value.valid && value.value <= maximum && fresh(value.sampled_at_ms, now);
 }
 
-bool pulse(const Pulse& value, std::uint64_t now) {
-    return value.valid && value.at_ms <= now && now - value.at_ms < kActivityPulseMs;
+bool pulse(const Pulse& value, std::uint64_t now, std::uint64_t visible_for_ms) {
+    return value.valid && value.at_ms <= now && now - value.at_ms < visible_for_ms;
 }
 
 bool pairing(const PairingWindow& value, std::uint64_t now) {
@@ -154,6 +154,21 @@ void pixels(Frame& frame) {
 
 }  // namespace
 
+void draw_text_row(std::array<std::uint8_t, kWidth * kHeight / 8>& pixels,
+                   std::size_t row, std::string_view text) {
+    if (row >= kRows) return;
+    for (std::size_t x = 0; x < kWidth; ++x) pixels[row * kWidth + x] = 0;
+    const bool clip = text.size() > kCharacters;
+    const std::size_t count = clip ? kCharacters : text.size();
+    for (std::size_t cell = 0; cell < count; ++cell) {
+        const char value = clip && cell == kCharacters - 1 ? '~' : sanitized(text[cell]);
+        const auto glyph = glyph_for(value);
+        for (std::size_t column = 0; column < kGlyphWidth; ++column) {
+            pixels[row * kWidth + cell * kGlyphAdvance + column] = glyph[column];
+        }
+    }
+}
+
 Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
     Frame frame{};
     if (snapshot.failure) {
@@ -165,7 +180,7 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         row(frame, 1, "DO NOT REMOVE POWER");
     } else if (snapshot.reset_confirmation) {
         frame.surface = Surface::reset_confirmation;
-        row(frame, 0, "ERASE ALL TRAIL DATA?");
+        row(frame, 0, "ERASE MESHTRAIL DATA?");
         row(frame, 1, "RELEASE THEN CONFIRM");
     } else if (pairing(snapshot.pairing, now_ms)) {
         frame.surface = Surface::pairing;
@@ -189,9 +204,17 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
         row(frame, 0, snapshot.device_name.empty() ? std::string_view("DEVICE") : snapshot.device_name);
         row(frame, 1, phone(snapshot.phone));
         std::array<char, 32> line{};
-        std::snprintf(line.data(), line.size(), "GROUP %s LOC %s", group(snapshot.group),
-            snapshot.location_available ? (snapshot.location_on ? "ON" : "OFF") : "?");
-        row(frame, 2, line.data());
+        if (snapshot.board_pairing == BoardPairing::in_progress) {
+            row(frame, 2, "PAIRING...");
+        } else if (snapshot.board_pairing == BoardPairing::paired_here) {
+            row(frame, 2, "PAIRED - THIS BOARD");
+        } else if (snapshot.board_pairing == BoardPairing::failed) {
+            row(frame, 2, "PAIRING FAILED");
+        } else {
+            std::snprintf(line.data(), line.size(), "GROUP %s LOC %s", group(snapshot.group),
+                snapshot.location_available ? (snapshot.location_on ? "ON" : "OFF") : "?");
+            row(frame, 2, line.data());
+        }
 
         // Reserve width for TX status even when the non-secret region label is long.
         std::array<char, 8> region{};
@@ -220,9 +243,13 @@ Frame render(const Snapshot& snapshot, std::uint64_t now_ms) {
             else if (snapshot.gps_fix == GpsFix::no_fix) gps = "GPS NO FIX";
         }
         row(frame, 5, gps);
-        const bool tx = pulse(snapshot.tx, now_ms);
-        const bool rx = pulse(snapshot.rx, now_ms);
-        row(frame, 6, tx ? (rx ? "RADIO TX RX" : "RADIO TX") : (rx ? "RADIO RX" : "RADIO --"));
+        if (snapshot.radio_running) {
+            const bool tx = pulse(snapshot.tx, now_ms, snapshot.activity_visible_for_ms);
+            const bool rx = pulse(snapshot.rx, now_ms, snapshot.activity_visible_for_ms);
+            row(frame, 6, tx ? (rx ? "RADIO TX RX" : "RADIO TX") : (rx ? "RADIO RX" : "RADIO IDLE"));
+        } else {
+            row(frame, 6, "RADIO OFF");
+        }
         const auto clock = clock_text(snapshot.clock);
         std::snprintf(line.data(), line.size(), "TIME %s", clock.data());
         row(frame, 7, line.data());

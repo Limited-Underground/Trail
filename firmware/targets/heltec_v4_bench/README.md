@@ -24,7 +24,7 @@ The current source names the BOOT/GPIO0 input; physical Button 1/Button 2
 numbering remains UNKNOWN. This gesture is wired only in the ordinary bench
 build (`OPENTRAIL_CONFIRMATION_EVALUATION=0`). It requires initialized input and an
 available confirmation display; the prompt is refused while a pairing PIN is
-visible. The warning is `Erase all Trail data?`. Its durable
+visible. The warning is `ERASE MESHTRAIL DATA?`. Its durable
 cleanup contract removes prior-user Trail state and retains firmware,
 boot/OTA trust, hardware identity, and calibration. V1 has no phone-replacement
 path. OT-168 remains partial until the complete reset, reconnect, two-device,
@@ -351,6 +351,60 @@ layout, and the reservation cannot satisfy the denied OT-054 security preflight.
 
 The machine-readable [target contract](target-contract.json) is enforced by a
 host admission test. The build helper contains compile commands only.
+
+## Release generation and boot identity line
+
+The Firmware Loader installs only signed releases. Each release names a release
+generation, and the next release must have a higher one (workspace decision
+D-063, Loader checklist L7). The build option `OPENTRAIL_RELEASE_GENERATION`
+sets this generation. It defaults to `0`, which marks a development build and
+never a release. A release build passes `-DOPENTRAIL_RELEASE_GENERATION=<n>`,
+with `n` from 1 to 999,999,999; any other value stops the configure step.
+
+After the boot self-check passes, the application prints one identity line, and
+prints it again with every five-second heartbeat:
+
+`lu_ident generation=<n> version=<app version> partition=0x<running app offset> self_check=PASS`
+
+The repeat is deliberate. The board's USB port disappears and returns after a
+reset, so a host that reopens it late can still see the line. The line holds no
+identifier, key or user data. It reports the build's own generation and the
+offset the bootloader ran it from; it does not prove the image is authentic,
+which the Loader checks from the signature before writing.
+
+## Building from a clean checkout
+
+The target's `sdkconfig` is not in Git. In a clean checkout, run
+`idf.py set-target esp32s3` first: it generates `sdkconfig` from the committed
+`sdkconfig.defaults`, and on 2026-11-13 the result was identical, apart from
+comments, to the bench `sdkconfig` used for the Loader releases. The libsodium
+dependency under `tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components`
+is also not in Git; the ESP-IDF component manager fetches it, or it is copied
+from an existing checkout.
+
+Compiler output maps the Trail checkout folder to `/opentrail`
+(`-ffile-prefix-map`), so the same commit builds to the same image from any
+folder. Without it, the image differed in its recorded ELF SHA-256 (and the
+image checksum) because debug information held the checkout path.
+
+## LoRa link test (V1 F5, step R1)
+
+Normal builds never start the radio. A development build with
+`-DOPENTRAIL_LORA_LINK_TEST=ON` (release generation 0 only) starts the SX1262
+in receive at boot (915 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 2 dBm) and
+sends a 21-byte unauthenticated beacon about every 5 s. Each board logs
+`lora_link tx`, `lora_link rx from=... rssi=... snr_q=...` and, with the
+heartbeat, `lora_link counters`; the footer shows the LoRa TX/RX arrow. The
+beacon carries the board tag (low four bytes of the factory MAC), a sequence
+number and the last beacon it heard, so one log line shows both directions.
+It proves the radio works in the product firmware alongside Bluetooth; it is
+not messaging and has no identity or encryption.
+
+The test transmits only while region US915 (catalog id 1) is saved through the
+owner's app (owner decision D-079); with no region, or any other region, it only
+receives and logs `lora_link transmit held region=<id>`. RSSI and SNR come from
+the chip's packet status (`lora_packet_status.hpp`), not RadioLib's `getRSSI()`,
+which returns the wrong status byte in 7.7.1.
 
 ## Build gate
 

@@ -1,5 +1,6 @@
 #include "companion_public_profile_storage.hpp"
 #include "companion_nimble_runtime.hpp"
+#include "heltec_v4_gnss_snapshot.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "companion_connection_diagnostics.hpp"
 #if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
@@ -73,19 +74,34 @@ public:
     }
 };
 
+portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;
+HeltecV4GnssSnapshot g_gnss_snapshot;
+
+#if OPENTRAIL_LORA_LINK_TEST
+// Bench diagnostic: every status reply served to a phone.
+std::atomic<std::uint32_t> g_snapshot_served_count{0};
+std::atomic<std::uint32_t> g_snapshot_served_refused{0};
+std::atomic<std::uint8_t> g_snapshot_served_gnss{0xFF};
+std::atomic<std::uint32_t> g_snapshot_served_revision{0};
+#endif
+
 class HeltecV4SnapshotAuthority final : public CompanionSnapshotAuthority {
 public:
     CompanionSnapshotAuthorityResult read_snapshot() override {
-        CompanionStatusSnapshot snapshot{};
-        snapshot.revision = 1;
-        snapshot.radio = CompanionRadioState::unavailable;
-        snapshot.gnss = CompanionGnssState::unknown;
-        snapshot.power = CompanionPowerState::unknown;
-        snapshot.position_sharing =
-            CompanionPositionSharingState::stopped;
-        snapshot.queued_action_count = 0;
-        snapshot.pending_critical_alert_id = 0;
-        return {CompanionAuthorityError::none, snapshot};
+        portENTER_CRITICAL(&g_snapshot_mux);
+        const auto result = g_gnss_snapshot.read(
+            static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
+        portEXIT_CRITICAL(&g_snapshot_mux);
+#if OPENTRAIL_LORA_LINK_TEST
+        if (result.ready()) {
+            g_snapshot_served_gnss.store(static_cast<std::uint8_t>(result.snapshot.gnss));
+            g_snapshot_served_revision.store(result.snapshot.revision);
+            g_snapshot_served_count.fetch_add(1);
+        } else {
+            g_snapshot_served_refused.fetch_add(1);
+        }
+#endif
+        return result;
     }
 };
 
@@ -174,6 +190,24 @@ security::SecureRandomSource* g_setup_random{nullptr};
 std::atomic<std::uint64_t> g_boot_reset_receipt{0};
 std::atomic<bool> g_suppress_next_adv_complete{false};
 
+// Bluetooth (GAP) device name, D-056. The main loop requests a name; the host
+// task applies it, so the Device Name characteristic never changes under a read.
+static_assert(ui::kBluetoothDeviceNameMaxBytes == CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN);
+static_assert(ui::kBluetoothDeviceNameMaxBytes == companion::kDeviceNameMaxUtf8Bytes);
+portMUX_TYPE g_bluetooth_name_mux = portMUX_INITIALIZER_UNLOCKED;
+std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> g_bluetooth_name_pending{};
+std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> g_bluetooth_name_requested{};
+ble_npl_event g_bluetooth_name_event{};
+std::atomic<bool> g_bluetooth_name_host_ready{false};
+
+void apply_bluetooth_name(ble_npl_event*) {
+    std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> name{};
+    taskENTER_CRITICAL(&g_bluetooth_name_mux);
+    name = g_bluetooth_name_pending;
+    taskEXIT_CRITICAL(&g_bluetooth_name_mux);
+    if (name[0] != '\0') (void)ble_svc_gap_device_name_set(name.data());
+}
+
 std::uint64_t current_ms();
 class ConfigurationBaseAuthority final : public ConfigurationBaseHandler {
 public:
@@ -199,16 +233,25 @@ public:
 #if OPENTRAIL_CONFIRMATION_EVALUATION
                 return false;
 #else
+                // R2a: lane and gate failures stay unanswered; a request-level
+                // refusal gets a correlated rejected result the phone can show.
+                const auto admission = admit_selected_enrollment_request(request_context,
+                                                                         request.exchange_id);
+                if (admission == SelectedEnrollmentAdmission::refused) return false;
+                const bool admitted = admission == SelectedEnrollmentAdmission::admitted;
+                const auto reason =
+                    admitted ? CompanionActionRejectReason::none :
+                    admission == SelectedEnrollmentAdmission::busy ? CompanionActionRejectReason::busy :
+                    admission == SelectedEnrollmentAdmission::invalid ? CompanionActionRejectReason::policy_denied :
+                    CompanionActionRejectReason::unavailable;
                 response.kind = 0x82;
                 encoded = encode_companion_action_result(
                     {action.value.kind, action.value.quick_status, 0,
-                     CompanionActionDisposition::admitted,
-                     CompanionActionRejectReason::none},
+                     admitted ? CompanionActionDisposition::admitted
+                              : CompanionActionDisposition::rejected,
+                     reason},
                     {response.payload.data(), response.payload.size()});
-                if (!encoded.encoded() ||
-                    !admit_selected_enrollment_request(request_context,
-                                                        request.exchange_id))
-                    return false;
+                if (!encoded.encoded()) return false;
 #endif
             } else {
             if (g_factory_reset_action_authority == nullptr) return false;
@@ -283,6 +326,16 @@ SemaphoreHandle_t g_pairing_mutex = nullptr;
 StaticSemaphore_t g_factory_reset_mutex_control{};
 SemaphoreHandle_t g_factory_reset_mutex = nullptr;
 CompanionPairingWindow* g_pairing_window = nullptr;
+// I-020: window timestamps are read before PairingLock on two tasks (main
+// loop and NimBLE host callbacks), so they can arrive a few ms out of order
+// and trip the window's clock-rollback fault. esp_timer is monotonic, so
+// present the window the latest time seen. Guarded by g_pairing_mutex;
+// call only while holding PairingLock.
+std::uint64_t g_pairing_clock_ms = 0;
+std::uint64_t pairing_clock(std::uint64_t observed_ms) {
+    if (observed_ms > g_pairing_clock_ms) g_pairing_clock_ms = observed_ms;
+    return g_pairing_clock_ms;
+}
 std::uint16_t g_pairing_connection_handle{
     kCompanionBleInvalidConnectionHandle};
 std::uint64_t g_pairing_transport_generation{0};
@@ -551,6 +604,9 @@ public:
         if (!stack_initialized_ || host_started_) return false;
         ble_svc_gap_init();
         ble_svc_gatt_init();
+        // Host task not running yet: safe to set the starting name directly.
+        (void)ble_svc_gap_device_name_set("Trail");
+        ble_npl_event_init(&g_bluetooth_name_event, apply_bluetooth_name, nullptr);
         return g_callback_adapter != nullptr &&
                register_companion_nimble_gatt_service(g_callback_adapter) == 0;
     }
@@ -562,6 +618,7 @@ public:
             configMAX_PRIORITIES - 4, &host_task_, NIMBLE_CORE);
         if (result != pdPASS) return false;
         host_started_ = true;
+        g_bluetooth_name_host_ready.store(true, std::memory_order_release);
 #if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.record_created(host_task_);
 #endif
@@ -634,6 +691,7 @@ public:
         if (!close_companion_confirmation()) return false;
 #endif
         contained_ = true;
+        g_bluetooth_name_host_ready.store(false, std::memory_order_release);
         bool stop_ok = true;
         if (host_started_ && !host_run_exited_) {
             stop_ok = nimble_port_stop() == 0;
@@ -1011,7 +1069,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                     pairing_generation = candidate.transport_generation;
                     action_result = g_pairing_window->
                         handle_passkey_action_deferred_cleanup(
-                            observed, candidate,
+                            pairing_clock(observed), candidate,
                             g_pairing_passkey_port);
                     accepted = action_result ==
                                CompanionPairingWindowError::none;
@@ -1072,7 +1130,7 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                             // even if inventory or owner publication fails.
                             const auto reservation = g_pairing_window->
                                 reserve_secure_bond_terminal(
-                                    observed, candidate);
+                                    pairing_clock(observed), candidate);
                             if (reservation ==
                                 CompanionPairingWindowError::none) {
                                 const auto inventory =
@@ -1187,7 +1245,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 g_boot_pairing_attempted = true;
                 const auto opened =
                     g_pairing_window->open_unowned_boot_window(
-                        event.observed_at_ms, 1);
+                        pairing_clock(event.observed_at_ms), 1);
                 if (opened != CompanionPairingWindowError::none) {
                     return CompanionBleRuntimeError::invalid_argument;
                 }
@@ -1246,7 +1304,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                         phase != CompanionPairingWindowPhase::faulted &&
                         event.transport_generation != 0) {
                         const auto result = g_pairing_window->disconnect(
-                            event.observed_at_ms,
+                            pairing_clock(event.observed_at_ms),
                             {event.connection_handle,
                              event.transport_generation});
                         if (result != CompanionPairingWindowError::none &&
@@ -1286,7 +1344,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 return CompanionBleRuntimeError::none;
             }
             const auto result = g_pairing_window->finish_attempt(
-                event.observed_at_ms,
+                pairing_clock(event.observed_at_ms),
                 {event.connection_handle, event.transport_generation},
                 event.kind == RuntimeEventKind::pairing_completed
                     ? CompanionPairingAttemptTerminal::secure_bond_complete
@@ -1316,7 +1374,7 @@ CompanionBleRuntimeError apply_event(const RuntimeEvent& event) {
                 return CompanionBleRuntimeError::none;
             }
             const auto result = g_pairing_window->disconnect(
-                event.observed_at_ms,
+                pairing_clock(event.observed_at_ms),
                 {event.connection_handle, event.transport_generation});
             if (result == CompanionPairingWindowError::none ||
                 result == CompanionPairingWindowError::window_expired) {
@@ -1465,6 +1523,20 @@ bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
 }
 #endif
 
+#if OPENTRAIL_LORA_LINK_TEST
+SnapshotServedDiagnostic snapshot_served_diagnostic() {
+    return {g_snapshot_served_count.load(), g_snapshot_served_refused.load(),
+            g_snapshot_served_gnss.load(), g_snapshot_served_revision.load()};
+}
+#endif
+
+void publish_companion_gnss_observation(
+    bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms) {
+    portENTER_CRITICAL(&g_snapshot_mux);
+    g_gnss_snapshot.publish(initialized, fix, observed_at_ms);
+    portEXIT_CRITICAL(&g_snapshot_mux);
+}
+
 CompanionBleRuntimeError service_companion_nimble_runtime(
     std::uint64_t now_ms) {
     service_companion_configuration();
@@ -1589,6 +1661,27 @@ bool companion_nimble_phone_ready() {
         companion_nimble_gatt_phone_ready(g_owner_gatt_transport_generation));
 }
 
+ui::SetupCode companion_nimble_boot_setup_code() {
+    PairingLock lock{pdMS_TO_TICKS(50)};
+    if (!lock.locked()) return {};
+    return g_setup_label.code();
+}
+
+void companion_nimble_request_bluetooth_name(const ui::BluetoothDeviceName& name) {
+    if (name.size == 0 || name.size > ui::kBluetoothDeviceNameMaxBytes ||
+        !g_bluetooth_name_host_ready.load(std::memory_order_acquire)) {
+        return;
+    }
+    std::array<char, ui::kBluetoothDeviceNameMaxBytes + 1> wanted{};
+    for (std::size_t i = 0; i < name.size; ++i) wanted[i] = name.bytes[i];
+    if (wanted == g_bluetooth_name_requested) return;
+    g_bluetooth_name_requested = wanted;
+    taskENTER_CRITICAL(&g_bluetooth_name_mux);
+    g_bluetooth_name_pending = wanted;
+    taskEXIT_CRITICAL(&g_bluetooth_name_mux);
+    ble_npl_eventq_put(nimble_port_get_dflt_eventq(), &g_bluetooth_name_event);
+}
+
 ui::SetupCode companion_nimble_unowned_setup_code() {
     PairingLock lock{pdMS_TO_TICKS(50)};
     if (!lock.locked() || g_v1_owner_bridge == nullptr) return {};
@@ -1699,6 +1792,12 @@ DeviceFactoryResetResult begin_companion_factory_reset() {
     return {DeviceFactoryResetError::invalid_state, DeviceFactoryResetPhase::not_restored};
 #else
     FactoryResetLock reset_lock{pdMS_TO_TICKS(100)};
+    if (reset_lock.locked() && g_factory_reset_executor != nullptr &&
+        g_factory_reset_executor->status().phase ==
+            DeviceFactoryResetPhase::idle_unowned) {
+        // Paired since boot: the boot-time unowned view is stale.
+        (void)g_factory_reset_executor->refresh_idle_ownership();
+    }
     if (!reset_lock.locked() || g_factory_reset_executor == nullptr ||
         g_factory_reset_executor->status().phase !=
             DeviceFactoryResetPhase::idle_old_state) {
@@ -1762,6 +1861,7 @@ CompanionPairingWindowError service_companion_pairing_window(
         if (!lock.locked() || g_pairing_window == nullptr) {
             return CompanionPairingWindowError::window_not_available;
         }
+        now_ms = pairing_clock(now_ms);
         result = g_pairing_window->service(now_ms);
         if (result == CompanionPairingWindowError::window_expired) {
             terminate_handle = g_pairing_connection_handle;

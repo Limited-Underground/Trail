@@ -21,8 +21,11 @@ interface TrailUiController {
     fun refreshPermissionState()
     fun startBluetoothService()
     fun scanBluetoothDevices()
+    fun retryBluetoothDiscovery() = Unit
     fun selectBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
+    fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
+    fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: io.github.nbjelanovic.otprotocol.CompanionQuickStatus): Boolean = false
     fun submitBluetoothAction(request: CompanionActionRequest): Boolean
     fun refreshGroupConfirmation(): Boolean = false
     fun confirmGroupConfirmation(offer: V1GroupConfirmationOffer): Boolean = false
@@ -46,4 +49,6 @@ interface TrailLifecycleController : AutoCloseable {
 }
 
 /** Service-owned subset; implemented by the production Bluetooth controller, never the Activity host. */
-interface TrailServiceController : TrailUiController, TrailLifecycleController
+interface TrailServiceController : TrailUiController, TrailLifecycleController {
+    fun setStatusRefreshForeground(foreground: Boolean) = Unit
+}

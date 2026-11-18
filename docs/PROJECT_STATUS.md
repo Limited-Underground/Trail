@@ -1,13 +1,214 @@
-# OpenTrail Project Status
+# Limited Underground Trail project status
 
-Current recovery handoff reviewed 2026-10-25; evidence below retains its own dates
+Current handoff reviewed 2026-11-18. Dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## Android usability
+
+Android distinguishes a saved region from unreported live radio status.
+App settings scrolls at the end of Device content in first-use and connected
+views. The local D-114 correction opens Messages from Set up later, offers
+Bluetooth settings and an explicit retry, identifies the board before erasing,
+hides unavailable Group setup, and retains a submitted starter code during
+its live attempt through tab navigation and Activity recreation.
+See the [D-114 host progress entry](PROGRESS_LOG.md#ot-0170a-correct-five-android-usability-blockers-d-114)
+and the [radio presentation entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
+Phone verification remains pending.
+
+## Android reconnect and status refresh
+
+The local OT-0170a topic lets a visible app attach to an existing owner or
+recover a bonded board through the same protected claim and initial snapshot.
+First-use Nearby Devices permission now follows the Find device tap. The
+selected board profile refreshes status while the app is visible and shows the
+age of the last accepted read. These changes were on the November 15 bench build.
+That session exposed I-050 and I-052. The local correction bounds a silent service
+bind, retries the owned board after a link failure, and keeps the initiator's code
+visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
+The correction still needs phone verification.
+
+I-053 restores V1-Test compilation by recording a denied Bluetooth state read
+as its own trace reason. The host workflow checks V1-Test compilation and the
+variant's JVM tests cover log write, reload, and export.
+
+## Heltec V4 factory reset fixes
+
+On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
+and bench-verified on one board: a reset right after pairing is no longer
+refused, and the pairing window can no longer fail with `clock_rollback` after
+a reset. Details and test results are in the
+[progress log](PROGRESS_LOG.md). On 2026-11-12 the app-initiated reset and
+the refusal of the old phone after a reset also passed on board A. No release,
+signing or production acceptance is added.
+
+On 2026-11-12 the bonded phone's reconnect after a board restart was fixed on
+the same bench target: the board now confirms Android's Service Changed
+indication instead of answering with an error that emptied the phone's service
+discovery. Verified once on board A with one phone; details are in the
+[progress log](PROGRESS_LOG.md).
+
+Boards now give Android a recognizable Bluetooth name (the saved device name,
+else `Trail-XXXXXX`) instead of "nimble". Checked on board A on 2026-11-12:
+Android shows `Trail-XXXXXX` after pairing; a later rename in the app is not
+picked up by Android until the board is paired again.
+
+## Group messaging (V1)
+
+V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b is underway on the host.
+
+The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed. The fourth session got through the whole radio exchange, but ran out of the 2-minute window; the window is now 5 minutes (D-110) and storage reads are fast (I-066). The fifth session paired both boards; the remaining 26 s save and slow button polls came from repeated identity reads, now served from a verified RAM copy (I-068, I-069).
+
+The product is renamed Limited Underground MeshTrail (owner decision D-089). The Android app shows the name with the Linked Route home-screen artwork (D-091, D-092). On the board, the startup screen shows the Linked Route symbol and MeshTrail, and the reset question reads "ERASE MESHTRAIL DATA?". The application ID, signing, Bluetooth setup label and storage keys are unchanged.
+
+Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app.
+
+Step 3b reserves the sender's group message numbers durably against the full group and sender identities, and resumes above the last reserved range after a restart. See [OT-0305 Reserve durable group message numbers on the host](PROGRESS_LOG.md#ot-0305-reserve-durable-group-message-numbers-on-the-host). The [per-pair storage index](PROGRESS_LOG.md#ot-0305-index-durable-group-pair-storage-on-the-host) maps qualified peers to durable slots after the roster commits. The host candidate retains roster watermarks and issues a fresh incarnation when a pair slot is reused. The [durable receive window](PROGRESS_LOG.md#ot-0305-persist-the-group-receive-window-on-the-host) suppresses duplicates across host reopen and refuses delivery on uncertain storage. Step 3c adds the [durable roster owner](PROGRESS_LOG.md#ot-0305-persist-signed-group-rosters-and-apply-pair-changes-after-commit), [indexed pair records](PROGRESS_LOG.md#ot-0305-bind-group-pair-records-to-the-current-roster) and [D-120 board-receipt ACK](PROGRESS_LOG.md#ot-0305-acknowledge-durable-group-board-receipt) on the host. Authenticated Packet-v1 group routing, roster fragmentation and fetch, and target storage and wear verification remain open. Live lane rollback is now refused against the [retained verified image](PROGRESS_LOG.md#ot-0305-refuse-same-epoch-rollback-of-live-group-lanes). The [roster transaction workspace](PROGRESS_LOG.md#ot-0305-bound-the-group-roster-transaction-workspace) is bounded and guards callback reentry. The stock security gate now accepts a fully verified local dependency cache. The D-122 catalog is versioned and bounded to 1,413 serialized bytes. Durable D-074 replies and confirms now follow the [verified history transition](PROGRESS_LOG.md#ot-0305-persist-verified-group-catch-up-before-reply) and fresh owners hydrate validated roster consent and pair epochs before starting.
+
+## Device parameters for logging
+
+The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android polling, logging, age display and text export remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
+
+## MeshTrail Repeater pre-device work
+
+The seven RadioLib command-header warning sites on the P1-Pro receive path have a source-bound bounds proof and host checks (I-011 closed for this exact candidate). The branch also documents keyless Repeater admission for current Trail frames, a conditional US915 review profile (transmission still refused, I-012), the battery planning target and a receive-only power session kit. No device was touched; the bench power measurement needs a separate owner-approved session. See the [bounds review entry](PROGRESS_LOG.md#ot-0266b-limited-underground-meshtrail-repeater-radiolib-bounds-review-i-011).
+## Capture runner host verification
+
+The I-027/I-048 change reduces path verification work by reading Windows file
+attributes once per component. The security matrix gives each of two capture test
+groups its own 300-second limit. Every request still rechecks its ancestors,
+and a parent replaced by a junction is refused even when it leads to the same
+file. See the [capture runner progress entry](PROGRESS_LOG.md#ot-0238c-speed-up-capture-runner-verification-i-027-i-048).
+This change does not add device evidence.
+
+## Development rules
+
+On 2026-11-11 the owner ended the November 2 product freeze and its November 3
+and November 4 exceptions. Development is active; device sessions, pushing,
+merging, signing and releases each need the owner's approval first. The
+[working contract](../CONTRIBUTING.md#working-contract) has the current rules.
+
+## Reproducible bench build
+
+On 2026-11-13 the bench build was made independent of the checkout folder
+(`-ffile-prefix-map`), and the clean-checkout steps were written down in the
+[target README](../firmware/targets/heltec_v4_bench/README.md#building-from-a-clean-checkout).
+
+## Firmware Loader release support
+
+The bench target now reports a release generation (build option `OPENTRAIL_RELEASE_GENERATION`, 0 for development builds) and prints a `lu_ident` identity and health line after the boot self-check and with every heartbeat, for the Firmware Loader's first signed release (workspace decision D-063). See the [target README](../firmware/targets/heltec_v4_bench/README.md#release-generation-and-boot-identity-line). Built, not yet run on a board.
+
+## Group design
+
+Groups use pairwise delivery: each group message is sent once to each other
+member over that pair's own protected link, with at most 6 members and no
+group key. A new member pairs in person with the group admin only; the
+admin-signed roster lets the other pairs set themselves up. The
+[pairwise group design](security/GROUP_PAIRWISE_V1.md) passed an independent
+security review with required changes, which revision 2 adds (automatic
+rekey after reboot, tamper-evident rosters, member acceptance, stolen-admin
+protection, storage limits, 80-byte group texts); nothing is implemented.
+
+## Target qualification applicability
+
+The owner-approved D1 metadata correction records `HTIT-WB32LAF V4.2`, bounded
+`US915` applicability and the existing `OTHP0/v1` layout in the
+[bench target contract](../firmware/targets/heltec_v4_bench/target-contract.json),
+consistent with the [target audit](testing/OT-0101c-TARGET-CONFIGURATION-AUDIT-2026-09-21.md)
+and [partition CSV](../firmware/targets/heltec_v4_bench/partitions.csv).
+This is qualification applicability only: `supported=false`, experimental status
+and every capability, write and recovery boundary remain unchanged. It supplies
+no operational support, certification, installation or RF authority.
+
+The Firmware owner prepared only the contract's three values, their matching
+host-test expectations and required continuity notes on
+`fix/d1-target-contract-r6-2-20261110`. Nineteen target-admission groups pass.
+Draft review/CI and a separate owner merge decision remain; the Loader inspection
+pin is unchanged and any later repin is a separate Loader task. Full concrete
+production-input acceptance remains open on
+[LUF-0008b](https://github.com/Limited-Underground/Firmware-Loader/issues/37);
+[OT-0101c](https://github.com/Limited-Underground/Trail/issues/191) retains its
+original completed evidence scope. No physical or release acceptance is added.
+
+## Firmware host composition
+
+[OT-0005i](https://github.com/Limited-Underground/Trail/issues/75) has a local,
+uncommitted host candidate on isolated topic
+`host/ot0005i-committed-authority-20261109`, based on
+`1cc2c4f09428b120e504fc2ace665eda2ced2b88`. The existing Firmware owner owns
+the implementation/test/runner scope; Foundation owns shared documents.
+The selected [Packet-v1 host profile](security/PACKET-V1-HOST-PROFILE.md)
+passed eligible OT-0237e host-candidate admission. Full target/security and
+production acceptance remain open under their original requirements.
+
+The [committed-enrollment producer](../firmware/components/companion/include/opentrail/committed_enrollment_authority.hpp)
+checks the real committed owner, durable journal/membership, full Ed25519
+identities, group64, exact epoch and current generation for every query/command
+check. Its original signed deadline uses that owner's validated clock/context.
+The [Packet service](../firmware/components/companion/include/opentrail/companion_packet_service.hpp)
+now composes private selected session keys, durable counter/replay interfaces,
+exact-byte retry/protected ACK handling and the actual Heltec driver lifecycle.
+Four distinct fresh stores are required. Cleanup retains retirement uncertainty
+and touches only resources actually acquired by this service. One undrained
+plaintext slot backpressures further data admission; the caller must drain it.
+An already-arrived authenticated ACK is resolved before a due retry.
+
+The inactive [owner-channel export](../firmware/components/companion/include/opentrail/companion_packet_owner_channel.hpp)
+implements the frozen OTY0 query/response using the same concrete GATT callback
+and persistent authority, actual promoted controller/inner-session state, live
+reauthorization, current committed enrollment and actual service/driver state.
+It refuses malformed, stale, changed, reentered or uncertain state instead of
+reviving cached authority. No target registers this handler or activates the
+production profile; Android remains unchanged.
+
+The [composed host suite](../tests/host/companion_packet_service_tests.cpp)
+passes 68 scenarios, including cleanup failures, unacquired-resource preservation,
+two-message receive-slot ownership and ACK-at-retry ordering. Thirty accepted
+objects and source/dependency identities are checked before and after execution.
+Independent behavioral review passed for this local host composition. The earlier
+producer proof retains its own 14-family, eight-cancellation-boundary and 28-paired-
+context scope. The tests use real state machines with isolated storage/hardware
+I/O, fixture issuer/protected store and a fixture peer; they do not establish a
+target issuer, physical driver behavior, BLE identity pin or Android acceptance.
+
+The reviewed local candidate is ready for a separate publication/adoption decision.
+Full OT-0005i, OT-0312 and c/d/e target/production requirements remain open; do not
+release Android authenticated messaging from this host result. OT-0168c custom
+diagnostics remain paused by owner direction. Physical operations, production
+activation, signing, source publication and merge require separate authority.
+
 ## Current recovery handoff
+
+<!-- current-handoff:start -->
+| Field | Current pickup state |
+| --- | --- |
+| Reviewed | 2026-11-18 |
+| Task | OT-0341 — MeshTrail device parameters for logging (V1 F11, requirement 8). |
+| Owner | Codex owns the standalone collector/codec, new host suites and local closeout on feat/f11-device-parameters. |
+| Scope | Collect timestamped parameters into a bounded versioned record in new files; document separate target, protected transport and Android integration hooks. |
+| State | Local unwired F11 host candidate for review. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Source | F11 worktree in D:/LimitedUnderground/Build/worktrees/trl-f11, base 4b7e5d5 (PR #277). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | New codec passed seven groups and collector ten groups; bench admission passed 20 groups; offline security passed 83 suites / 613 commands, with all 1,241 source pins matching. Separate Xtensa compilation and the unchanged link-test build pass without warnings. The baseline image excludes this module; the local report binds evidence and admission limits. |
+| Blocker | Task scope excludes edits to the existing bench/status/pairing and Android paths needed for live acquisition and transport. |
+| Next action | Review the collector/codec and coordinate the documented source publication and protected response hook with the status and Android owners. Hardware validation remains separately authorized. |
+| Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
+| Latest record | [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-6.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
+<!-- current-handoff:end -->
+
+The current reading path is [architecture](architecture/README.md) and
+[protocol selection](protocol/README.md). Source/history retrieval, exact binary
+retrieval, source rebuild, rebuild equality and runtime/data restore are distinct
+claims. No documentation build or review increases product acceptance.
+
+### Historical recovery checkpoint — October 25, 2026
+
+The checkpoint below is preserved as dated history. Its host-development
+permission and next-action wording are superseded by the current working contract;
+its recorded evidence and unresolved exceptions remain intact.
 
 **Checked October 25, 2026.** Trail firmware and the Android app share this
 repository. The owner accepted a bounded source-recovery baseline on October 23
@@ -471,6 +672,15 @@ binds the completed corpus and identifies the remaining target/product lifecycle
 gates. Libsodium remains the evaluation recommendation; Phase3 and production
 crypto/wire selection remain withheld. No V1 credit.
 
+The outbound counter allocator now prohibits copying and moving its live lease
+cursor. The existing host lease suite enforces exclusive ownership at compile
+time; counter reservation and storage formats are unchanged. Historical operator
+fixtures use the exact original build input rather than current counter source;
+their runtime integrity checks and evidence pins are unchanged. See the
+[host correction record](PROGRESS_LOG.md#ot-0237c-preserve-exclusive-outbound-counter-lease-ownership).
+Full OT-0237c target interruption, replay/retirement and production security
+admission remain open.
+
 The [OT-235 host candidate](testing/OT-235-PEER-TRAFFIC-INTEGRATION-2026-09-15.md)
 composes independent local confirmation, authenticated peer activation, durable
 activation readback and encrypted fixed-status exchange. Fresh-only receipt and
@@ -555,6 +765,18 @@ measurements. Owner review is pending; no candidate or operating limit is select
 
 ## Current GNSS and protected connection investigation
 
+The OT-0101g host bridge now publishes the app-owned coarse GNSS observation
+through the existing protected request-time snapshot. The unchanged Android
+codec and status consumer accept UNKNOWN, UNAVAILABLE, SEARCHING, CURRENT,
+STALE and FAULT using shared C++/Kotlin vectors. Expiry remains five seconds;
+callbacks perform no sensor acquisition. OTN0/v0, authorization and reserved
+bytes are unchanged; power remains unknown. This is a host candidate, not an
+installed-device result, continuous telemetry or numeric sensor support.
+See the [snapshot bridge](../firmware/targets/heltec_v4_bench/main/heltec_v4_gnss_snapshot.hpp)
+and [shared vectors](../tests/fixtures/heltec_v4_gnss_snapshots.txt).
+The original physical GNSS, reset and security acceptance requirements below
+remain open.
+
 OT-0101e remains in progress. The [one diagnostic A trial](../tests/hardware/OT-0101e-2026-09-25.md)
 showed GPS:6 / GPS FIX, then detected an `ot_ble_host` stack overflow and panic
 reboot during protected phone connection. The updated S24 app reached protected
@@ -617,6 +839,8 @@ unsigned. Physical fresh post-reset behavior of the latest navigation marker and
 normal/large-font candidate visibility remain untested by that update.
 
 ## Next meaningful capability
+
+The [OT-0175a acceptance checklist](testing/OT-175-MESSAGING-ACCEPTANCE-CHECKLIST.md) covers [Trail #158](https://github.com/Limited-Underground/Trail/issues/158). Defines typed and quick-status host and future device cases, evidence fields and refusal/recovery criteria. No case was run; parent and device acceptance remain open.
 
 The durable invitation authority is now integrated with isolated target NVS and
 trusted startup. The [actual target host proof](testing/OT-208-INVITATION-TARGET-HOST-2026-09-12.md)
@@ -779,6 +1003,8 @@ checks and delayed-completion fallback. Host evidence is owner-accepted;
 physical activation/status acceptance remains open.
 
 ## Remaining acceptance and decisions
+
+The [OT-0176a acceptance checklist](testing/OT-176-LOCATION-SHARING-ACCEPTANCE-CHECKLIST.md) covers [Trail #159](https://github.com/Limited-Underground/Trail/issues/159). Covers requirements 6 and 7 and records open design/code differences. No design change or device execution; parent and device acceptance remain open.
 
 The [compact landscape status strip](testing/OT-0304-LANDSCAPE-STATUS-STRIP-2026-10-01.md)
 now builds and passes the affected Android tests/lint. It removes the extra
