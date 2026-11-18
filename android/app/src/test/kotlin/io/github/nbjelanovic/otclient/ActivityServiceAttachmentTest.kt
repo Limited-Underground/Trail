@@ -7,6 +7,67 @@ import kotlin.test.*
 /** Real controller/runtime/owner composition; Android binding and GATT I/O are controlled host seams. */
 class ActivityServiceAttachmentTest {
     @Test
+    fun explicitBluetoothRetryReachesTheOwnerWithoutChangingDiscoveryRoutes() {
+        for (returningOwner in listOf(false, true)) {
+            val service = ServiceGraph()
+            service.facade.allowReturningOwnerScan = returningOwner
+            service.runtime.onLifecycleStop()
+            service.facade.blocker = BleRuntimeBlock.BLUETOOTH_DISABLED
+            service.runtime.onLifecycleStart()
+            if (!returningOwner) service.controller.scanBluetoothDevices()
+            val activity = service.activity()
+            activity.onLifecycleStart()
+            activity.chooseBluetoothDeviceMode()
+            activity.startBluetoothService()
+            assertIs<BleRuntimeState.Blocked>(bluetooth(activity).runtimeState)
+
+            activity.retryBluetoothDiscovery()
+            assertTrue(service.facade.scans.isEmpty())
+            assertTrue(service.facade.returningOwnerScans.isEmpty())
+            service.facade.blocker = null
+            activity.retryBluetoothDiscovery()
+
+            assertEquals(if (returningOwner) 1 else 0, service.facade.returningOwnerScans.size)
+            assertEquals(if (returningOwner) 0 else 1, service.facade.scans.size)
+            if (returningOwner) assertIs<BleRuntimeState.FindingReturningOwner>(service.runtime.state)
+            else assertIs<BleRuntimeState.Scanning>(service.runtime.state)
+            assertEquals(0, service.counted.scans)
+            assertEquals(0, service.authorization.claims)
+            assertTrue(service.facade.connections.isEmpty())
+            activity.retryBluetoothDiscovery()
+            assertEquals(1, service.facade.scans.size + service.facade.returningOwnerScans.size)
+            activity.close()
+            service.owner.close()
+        }
+    }
+
+    @Test
+    fun explicitBluetoothRetryIsRefusedAfterPermissionLossOrOwnerClosure() {
+        val service = ServiceGraph()
+        service.runtime.onLifecycleStop()
+        service.facade.allowReturningOwnerScan = true
+        service.facade.blocker = BleRuntimeBlock.BLUETOOTH_DISABLED
+        service.runtime.onLifecycleStart()
+        val activity = service.activity()
+        activity.onLifecycleStart()
+        activity.chooseBluetoothDeviceMode()
+        activity.startBluetoothService()
+        service.permissions.value = NearbyDevicesPermissionState.MISSING
+        activity.refreshPermissionState()
+        service.facade.blocker = null
+
+        activity.retryBluetoothDiscovery()
+        assertTrue(service.facade.returningOwnerScans.isEmpty())
+        assertTrue(service.facade.scans.isEmpty())
+        service.owner.close()
+        service.permissions.value = NearbyDevicesPermissionState.GRANTED
+        service.owner.retryDiscovery()
+        assertTrue(service.facade.returningOwnerScans.isEmpty())
+        assertTrue(service.facade.scans.isEmpty())
+        activity.close()
+    }
+
+    @Test
     fun pendingExistingLeaseCannotSuppressOneExplicitStartOrAcceptRetiredCallbacks() {
         val service = returningService()
         val ready = assertIs<BleRuntimeState.Ready>(service.owner.state.runtimeState)
@@ -1080,7 +1141,8 @@ class ActivityServiceAttachmentTest {
         val returningOwnerScans = mutableListOf<Scan>()
         val connections = mutableListOf<Gatt>()
         var allowReturningOwnerScan = false
-        override fun preflight() = BlePreflight()
+        var blocker: BleRuntimeBlock? = null
+        override fun preflight() = BlePreflight(blocker)
         override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease = Scan(observer).also(scans::add)
         override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
             if (allowReturningOwnerScan) Scan(observer).also(returningOwnerScans::add) else null

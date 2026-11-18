@@ -669,7 +669,7 @@ unsigned test_recovery_rejects_mixed_public_bank(bool foreign) {
     if(a.session->start_pairing_recovery(a.role,123456)) {
         a.adapter.emplace(*a.session);b.recover(211);Limits recovery{};recovery.recovery_completion=true;
         const auto result=drive(a,b,-1,-1,123456,TailFault::none,recovery);
-        std::cout << "M1 real " << (foreign?"foreign":"corrupt")
+        std::cerr << "M1 real " << (foreign?"foreign":"corrupt")
                   << " ready=" << result.ready_a << " committed=" << result.committed_a
                   << " journal_changed=" << (persistent_bytes(a.journal)!=journal)
                   << " membership_changed=" << (persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))!=membership) << '\n';
@@ -699,7 +699,7 @@ unsigned test_recovery_rejects_aborted_public_state() {
     if(a.session->start_pairing_recovery(a.role,123456)) {
         a.adapter.emplace(*a.session);b.recover(211);Limits recovery{};recovery.recovery_completion=true;
         const auto result=drive(a,b,-1,-1,123456,TailFault::none,recovery);
-        std::cout << "M1 real aborted committed=" << result.committed_a
+        std::cerr << "M1 real aborted committed=" << result.committed_a
                   << " journal_changed=" << (persistent_bytes(a.journal)!=journal)
                   << " membership_changed=" << (persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))!=membership) << '\n';
         CHECK(!result.ready_a && result.committed_a==0);

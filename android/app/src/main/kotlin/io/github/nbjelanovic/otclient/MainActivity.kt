@@ -7,6 +7,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -130,6 +131,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     var deviceSettingsAuthority by remember { mutableStateOf<DeviceSettingsAuthority?>(null) }
     val context = LocalContext.current
     val activity = LocalActivity.current
+    val pairingCodes = rememberBoardPairingCodeRetention()
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val displayPreferences = remember(context) { AppDisplayPreferences(context) }
     var showBuildLabel by remember { mutableStateOf(displayPreferences.showBuildLabel()) }
@@ -148,10 +150,14 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { controller.refreshPermissionState() }
-    DisposableEffect(controller) {
-        controller.observe { state = it }
+    DisposableEffect(controller, pairingCodes) {
+        controller.observe { next ->
+            pairingCodes.observe(next, SystemClock.elapsedRealtime())
+            state = next
+        }
         onDispose { controller.observe(null) }
     }
+    ExpireBoardPairingCode(pairingCodes)
 
     val requestNearbyPermissions = {
         if (controller.beginNearbyDevicesPermissionRequest()) {
@@ -198,7 +204,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
       androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
       Surface(modifier = Modifier.fillMaxSize()) {
         if (bluetooth?.factoryResetConfirmationVisible == true) {
-            FactoryResetConfirmationScreen(controller)
+            FactoryResetConfirmationScreen(readySession, controller)
             return@Surface
         }
         if (settingsSession != null) {
@@ -226,12 +232,14 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
             additionalDeviceTools = { if (landscape) additionalTools() },
-        ) { onSetupComplete ->
+        ) { onSetupComplete, onSetUpLater ->
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
                     "Connect below to read your device name and radio-region settings."),
-                onAction = {},
+                onAction = { action ->
+                    if (action == V1OnboardingUiAction.Back) onSetUpLater()
+                },
                 footer = appSettings,
                 connectionContent = {
                     Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
@@ -585,6 +593,14 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Blocked -> {
             StatusCard("Bluetooth unavailable", state.reason.publicText())
+            if (state.reason == BleRuntimeBlock.BLUETOOTH_DISABLED) {
+                Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open Bluetooth settings")
+                }
+                OutlinedButton(onClick = controller::retryBluetoothDiscovery, modifier = Modifier.fillMaxWidth()) {
+                    Text("Try again")
+                }
+            }
             if (
                 state.reason == BleRuntimeBlock.SCAN_PERMISSION_MISSING ||
                 state.reason == BleRuntimeBlock.CONNECT_PERMISSION_MISSING
@@ -785,10 +801,6 @@ internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
         "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
         "the window closes."
 
-internal const val APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT =
-    "This permanently erases the paired phone, device name, settings, groups, messages, saved locations, and offline maps. " +
-        "Firmware and factory hardware data remain. This cannot be undone."
-
 internal data class AndroidSystemPairingInstructions(
     val beforeActionTitle: String,
     val beforeActionBody: String,
@@ -833,7 +845,16 @@ private fun BluetoothReadyPanel(
     SnapshotSummary("Device status", session.snapshot)
     if (session.boardPairing != null) {
         androidx.compose.runtime.key(session.companion.endpointToken, session.sessionNonce, session.configuration.editorSessionId) {
-            V1BoardPairingPanel(session.boardPairing) { request ->
+            val pairingCodes = rememberBoardPairingCodeRetention()
+            val scope = BoardPairingCodeScope(session.companion.endpointToken, session.sessionNonce)
+            V1BoardPairingPanel(
+                session.boardPairing,
+                retainedInitiatorCode = pairingCodes.current(scope, session.boardPairing, SystemClock.elapsedRealtime()),
+                onInitiatorCodeSubmitted = { code ->
+                    if (code == null) pairingCodes.clear()
+                    else pairingCodes.retain(scope, code, SystemClock.elapsedRealtime())
+                },
+            ) { request ->
                 val current = ((controller.state as? TrailAppUiState.BluetoothDevice)
                     ?.runtimeState as? BleRuntimeState.Ready)?.session
                 current != null && current.sessionNonce == session.sessionNonce &&
@@ -913,13 +934,13 @@ private fun DeviceSettingsScreen(
 }
 
 @Composable
-private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
+private fun FactoryResetConfirmationScreen(session: BleActiveSession?, controller: TrailUiController) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("Erase all MeshTrail data?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("Erase ${factoryResetBoardName(session)}?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
                 "Keep the device nearby",
@@ -927,8 +948,8 @@ private fun FactoryResetConfirmationScreen(controller: TrailUiController) {
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(onClick = { controller.confirmFactoryReset() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Erase all MeshTrail data")
+            Button(onClick = { controller.confirmFactoryReset() }, enabled = session != null, modifier = Modifier.fillMaxWidth()) {
+                Text("Erase this board")
             }
             OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")

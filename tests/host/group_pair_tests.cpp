@@ -934,6 +934,9 @@ void test_review3_fixes() {
     EXPECT(c7.g.pair_commit(kB, i1 + 1) == PairOutcome::wrong_state);
     EXPECT(c7.g.pair_commit(kB, i1) == PairOutcome::ok);
     activate(b7);
+    c7.g.restart();
+    EXPECT(st(c7).binding == PairStep::none && st(c7).binding_id == 0);
+    EXPECT(st(c7).committed_epoch == 1 && st(c7).used_epoch == 1 && st(c7).history);
     Run second7 = exchange(c7, b7, 100000);
     EXPECT(complete(second7) && second7.init_verified->id() != i1);
     EXPECT(c7.g.pair_activation_possible(kB, second7.init_verified->id()) == PairOutcome::ok);

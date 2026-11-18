@@ -225,6 +225,7 @@ class TrailActivityController(
     }
 
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
+    override fun retryBluetoothDiscovery() = bluetoothOnly { it.retryDiscovery() }
     override fun refreshGroupConfirmation(): Boolean {
         requireOwnerThread()
         return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&

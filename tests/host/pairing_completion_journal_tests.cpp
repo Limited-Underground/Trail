@@ -143,7 +143,7 @@ void m2_refuses_unchanged(Storage& media, const char* label) {
     const bool accepted = journal.initialize();
     const bool unchanged = before == media_bytes(media);
     const auto changed = mutations(media);
-    std::cout << "M2 " << label << " accepted=" << accepted << " unchanged=" << unchanged
+    std::cerr << "M2 " << label << " accepted=" << accepted << " unchanged=" << unchanged
               << " mutations=" << changed << std::endl;
     CHECK(unchanged && changed == 0);
     if (accepted || journal.snapshot().phase != Phase::uncertain) ++m2_refusal_failures;

@@ -65,7 +65,11 @@ storage compatibility.
 
 Recovery classifies both public-journal banks before any membership or journal
 mutation. The selected record must match the signed binding, generation/parity
-and positive-completion stage, with room for all remaining counter advances.
+and requested recovery intent. Positive completion needs its permitted stage
+and room for every remaining advance. Exact negative cleanup uses a separate
+entry point: already-aborted state is a no-write retry, including at the counter
+limit; a staged record needs one remaining advance. Completed state cannot
+enter negative cleanup.
 The other bank must be blank, the allowed retired predecessor, or an exact
 recognized interrupted transition for this binding. Unknown/corrupt/foreign
 bytes remain untouched. Classification replays the actual erase/payload/header/

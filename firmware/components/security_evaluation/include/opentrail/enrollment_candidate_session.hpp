@@ -968,7 +968,7 @@ private:
             // descriptor replaces this Abort. Retry only an already complete,
             // strictly loaded tombstone; never mutate an older generation.
             if (!journal.initialize() || journal.state() != EnrollmentJournalState::aborted) return false;
-        } else if (!journal.initialize_pairing_recovery(*binding, expected.generation)) return false;
+        } else if (!journal.initialize_pairing_abort_recovery(*binding, expected.generation)) return false;
         const auto bytes = enrollment_identity_signing_bytes(binding->identities(), invitation);
         InvitationKey digest{};
         if (!journal.read_public(context) || context.session_generation != expected.generation ||

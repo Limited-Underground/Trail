@@ -39,6 +39,13 @@ public:
                                  const VerifiedIdentityBinding& binding,std::uint64_t generation) {
         return journal.initialize_pairing_recovery(binding,generation);
     }
+    static bool pairing_abort_recovery(EnrollmentCommitCoordinator& journal,
+                                       const VerifiedIdentityBinding& binding,std::uint64_t generation) {
+        return journal.initialize_pairing_abort_recovery(binding,generation);
+    }
+    static bool abort_pairing_recovery(EnrollmentCommitCoordinator& journal,const EnrollmentCommitContext& context) {
+        return journal.abort_pairing_public(context,[](void*){return true;},nullptr);
+    }
     static bool rekey(EnrollmentCommitCoordinator& c,const VerifiedIdentityBinding& b,std::uint64_t generation,
                       const std::array<std::uint8_t,16>& op,std::optional<PreparedEnrollmentReceipt>& output) {
         return c.prepare_rekey(b,generation,op,output);
@@ -102,7 +109,7 @@ static auto journal_bytes(const Storage& storage) {
         bytes[d*2+bank]=storage.memory.slot_bytes(static_cast<Domain>(d),bank);
     return bytes;
 }
-static unsigned mixed_recovery_bank(bool foreign) {
+static unsigned mixed_recovery_bank(bool foreign,bool aborting=false) {
     const auto verified=binding();
     Storage media;EnrollmentCommitCoordinator journal(media);
     std::optional<PreparedEnrollmentReceipt> receipt;
@@ -124,8 +131,9 @@ static unsigned mixed_recovery_bank(bool foreign) {
     }
     const auto before=journal_bytes(media);media.clear();
     EnrollmentCommitCoordinator recovered(media);
-    const bool admitted=ProductEnrollmentActivation::pairing_recovery(recovered,verified,1);
-    std::cout << "M1 " << (foreign?"foreign":"corrupt") << " admitted=" << admitted
+    const bool admitted=aborting?ProductEnrollmentActivation::pairing_abort_recovery(recovered,verified,1):
+                                 ProductEnrollmentActivation::pairing_recovery(recovered,verified,1);
+    std::cerr << "M1 " << (foreign?"foreign":"corrupt") << " admitted=" << admitted
               << " journal_changed=" << (journal_bytes(media)!=before) << '\n';
     CHECK(!admitted);
     CHECK(journal_bytes(media)==before && media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
@@ -140,7 +148,7 @@ static unsigned uncompletable_pairing_counter(unsigned variant) {
     ProductEnrollmentActivation::public_state_fixture(media,receipt->context(),generation,stage);
     const auto before=journal_bytes(media);media.clear();EnrollmentCommitCoordinator recovery(media);
     const bool admitted=ProductEnrollmentActivation::pairing_recovery(recovery,verified,1);
-    std::cout << "M1 capacity variant=" << variant << " admitted=" << admitted << '\n';
+    std::cerr << "M1 capacity variant=" << variant << " admitted=" << admitted << '\n';
     CHECK(!admitted && journal_bytes(media)==before);
     CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);return 1;
 }
@@ -156,6 +164,32 @@ static unsigned pairing_counter_exact_headroom() {
         EnrollmentCommitCoordinator final(media);CHECK(final.initialize() && final.state()==EnrollmentJournalState::active_committed);++groups;
     }
     return groups;
+}
+static unsigned pairing_abort_intent_capacity() {
+    const auto verified=binding();const auto limit=std::numeric_limits<std::uint64_t>::max();unsigned groups=0;
+    for(unsigned variant=0;variant<6;++variant) {
+        Storage media;EnrollmentCommitCoordinator first(media);std::optional<PreparedEnrollmentReceipt> receipt;
+        CHECK(first.initialize() && first.prepare(verified,1,op(),receipt));
+        const auto stage=static_cast<std::uint8_t>(variant<2?1:variant<4?2:variant==4?4:3);
+        const auto generation=(variant==1 || variant==3)?limit-1:limit;
+        const bool expected=variant==1 || variant==3 || variant==4;
+        ProductEnrollmentActivation::public_state_fixture(media,receipt->context(),generation,stage);
+        const auto before=journal_bytes(media);media.clear();EnrollmentCommitCoordinator recovery(media);
+        const bool admitted=ProductEnrollmentActivation::pairing_abort_recovery(recovery,verified,1);
+        CHECK(admitted==expected && journal_bytes(media)==before);
+        CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+        if(admitted) {
+            CHECK(ProductEnrollmentActivation::abort_pairing_recovery(recovery,receipt->context()));
+            CHECK(recovery.state()==EnrollmentJournalState::aborted);
+            if(stage==4) CHECK(journal_bytes(media)==before && media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+            else {
+                CHECK(media.count('w')>0);EnrollmentCommitCoordinator final(media);
+                CHECK(final.initialize() && final.state()==EnrollmentJournalState::aborted);
+            }
+        }
+        ++groups;
+    }
+    return groups+mixed_recovery_bank(false,true)+mixed_recovery_bank(true,true);
 }
 static unsigned pairing_recovery_torn_transition_sweep() {
     const auto verified=binding();unsigned groups=0;
@@ -193,6 +227,10 @@ static unsigned pairing_recovery_torn_transition_sweep() {
 int main(int argc,char** argv) {
     if(argc==2) {
         const std::string name=argv[1];
+        if(name=="m1-abort-intent") {
+            const auto count=pairing_abort_intent_capacity();
+            std::cout << "PASS " << count << " enrollment commit journal groups\n";return 0;
+        }
         if(name.rfind("m1-capacity-",0)==0) {
             CHECK(name.size()==13 && name.back()>='0' && name.back()<='3');
             const auto count=uncompletable_pairing_counter(static_cast<unsigned>(name.back()-'0'));
@@ -398,5 +436,6 @@ int main(int argc,char** argv) {
     }
     groups+=mixed_recovery_bank(false)+mixed_recovery_bank(true)+pairing_recovery_torn_transition_sweep()+pairing_counter_exact_headroom();
     for(unsigned variant=0;variant<4;++variant) groups+=uncompletable_pairing_counter(variant);
+    groups+=pairing_abort_intent_capacity();
     std::cout << "PASS " << groups << " enrollment commit journal groups (no peer-commit or traffic authority)\n";
 }

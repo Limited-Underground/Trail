@@ -122,10 +122,18 @@ private:
         guard_context_ = nullptr;
         return ok;
     }
+    enum class PairingRecoveryIntent { complete, abort };
+    // Negative cleanup is called only after the session verifies its retained
+    // Abort descriptor and archive. Its tombstone needs one advance, or none
+    // for an already-aborted exact public record.
+    bool initialize_pairing_abort_recovery(const VerifiedIdentityBinding& binding,std::uint64_t generation) {
+        return initialize_pairing_recovery(binding,generation,PairingRecoveryIntent::abort);
+    }
     // Matching signed D-112 votes permit repairing a torn public-journal
     // transition from its highest intact predecessor. This restores metadata
     // only and retains the exact identities, invitation digest and generation.
-    bool initialize_pairing_recovery(const VerifiedIdentityBinding& binding, std::uint64_t generation) {
+    bool initialize_pairing_recovery(const VerifiedIdentityBinding& binding, std::uint64_t generation,
+                                     PairingRecoveryIntent intent=PairingRecoveryIntent::complete) {
         return operation([&] {
             if (initialized_) return false;
             initialized_ = true;
@@ -157,7 +165,7 @@ private:
                 context.identities.responder!=binding.identities().responder ||
                 context.group!=fields.group || context.epoch!=fields.epoch ||
                 context.session_generation!=generation || context.evidence_digest!=digest ||
-                !pairing_completion_capacity(selected)) return refuse();
+                !pairing_recovery_capacity(selected,intent)) return refuse();
             const auto other=1-selected_slot;
             if (valid_bank[other]) {
                 // A complete other bank must be the retired exact predecessor,
@@ -179,8 +187,9 @@ private:
                               bool (*guard)(void*), void* guard_context) {
         const bool ok=operation([&] {
             if (!initialized_ || empty_ || !exact() || !equal(context,record_.context) ||
-                !guard || record_.stage==3 || record_.generation==std::numeric_limits<std::uint64_t>::max()) return false;
+                !guard || record_.stage==3) return false;
             if (record_.stage==4) return true;
+            if (record_.generation==std::numeric_limits<std::uint64_t>::max()) return false;
             guard_=guard;guard_context_=guard_context;
             return commit({context,record_.generation+1,4});
         });
@@ -272,6 +281,11 @@ private:
         const auto limit=std::numeric_limits<std::uint64_t>::max();
         return r.generation!=0 && (r.stage==3 ||
             (r.stage==1 && r.generation<=limit-2) || (r.stage==2 && r.generation<limit));
+    }
+    static bool pairing_recovery_capacity(const Record& r,PairingRecoveryIntent intent) {
+        if(intent==PairingRecoveryIntent::complete) return pairing_completion_capacity(r);
+        return r.generation!=0 && (r.stage==4 ||
+            ((r.stage==1 || r.stage==2) && r.generation<std::numeric_limits<std::uint64_t>::max()));
     }
     static bool follows(const Record& prior,const Record& current) {
         return (prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||

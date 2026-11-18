@@ -85,6 +85,10 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
+            // Robolectric Activity/Compose state must not leak between independent test classes.
+            if (it.name == "testDebugUnitTest") {
+                it.forkEvery = 1
+            }
             it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
             it.systemProperty("user.home", System.getProperty("user.home"))
         }

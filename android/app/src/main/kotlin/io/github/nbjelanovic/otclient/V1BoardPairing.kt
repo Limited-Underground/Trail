@@ -87,6 +87,8 @@ internal fun V1BoardPairingPanel(
     state: BoardPairingState,
     generateCode: () -> Int = ::newPairingCode,
     clockMillis: () -> Long = SystemClock::elapsedRealtime,
+    retainedInitiatorCode: String? = null,
+    onInitiatorCodeSubmitted: ((String?) -> Unit)? = null,
     submit: (CompanionActionRequest) -> Boolean,
 ) {
     var role by remember { mutableStateOf<CompanionEnrollmentRole?>(null) }
@@ -113,7 +115,8 @@ internal fun V1BoardPairingPanel(
     }
 
     Text("Pair two boards", style = MaterialTheme.typography.titleMedium)
-    if (attemptActive) submittedInitiatorCode?.let { code ->
+    val visibleInitiatorCode = if (onInitiatorCodeSubmitted != null) retainedInitiatorCode else submittedInitiatorCode
+    if (attemptActive) visibleInitiatorCode?.let { code ->
         Text(code, style = MaterialTheme.typography.displaySmall)
     }
     when (state) {
@@ -180,12 +183,13 @@ internal fun V1BoardPairingPanel(
                 val submittedCode = codeText
                 codeText = ""
                 role = null
+                val starterCode = submittedCode.takeIf { selectedRole == CompanionEnrollmentRole.INITIATOR }
+                onInitiatorCodeSubmitted?.invoke(starterCode)
                 sendFailed = !submit(CompanionActionRequest(
                     CompanionActionKind.START_ENROLLMENT, enrollmentRole = selectedRole, pairingCode = checkNotNull(code),
                 ))
-                submittedInitiatorCode = submittedCode.takeIf {
-                    !sendFailed && selectedRole == CompanionEnrollmentRole.INITIATOR
-                }
+                submittedInitiatorCode = starterCode.takeIf { !sendFailed && onInitiatorCodeSubmitted == null }
+                if (sendFailed) onInitiatorCodeSubmitted?.invoke(null)
             }, enabled = code != null) { Text("Send to my board") }
             TextButton(onClick = {
                 codeText = ""
