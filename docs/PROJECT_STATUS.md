@@ -7,11 +7,16 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
-## Android radio and Device presentation
+## Android usability
 
-The local Android UX topic distinguishes a saved region from unreported live
-radio status. App settings scrolls at the end of the Device content in first-use
-and connected views. See the [November 16 progress entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
+Android distinguishes a saved region from unreported live radio status.
+App settings scrolls at the end of Device content in first-use and connected
+views. The local D-114 correction opens Messages from Set up later, offers
+Bluetooth settings and an explicit retry, identifies the board before erasing,
+hides unavailable Group setup, and retains a submitted starter code during
+its live attempt through tab navigation and Activity recreation.
+See the [D-114 host progress entry](PROGRESS_LOG.md#ot-0170a-correct-five-android-usability-blockers-d-114)
+and the [radio presentation entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
 Phone verification remains pending.
 
 ## Android reconnect and status refresh
