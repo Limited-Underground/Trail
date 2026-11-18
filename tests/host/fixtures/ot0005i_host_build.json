@@ -4057,7 +4057,7 @@
   "source_pins": {
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/pairing_recovery_route.hpp": "1239963be7ca9b44b62686b961f4f3281c39158a59316d8a224a4525dabf2085",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/pairing_completion_archive.hpp": "0ba5468840ad1dc7ec447345995bd8d09bc8053f206c803a5f3ea91f137c6450",
-    "${ROOT}/firmware/components/security_evaluation/include/opentrail/pairing_completion_journal.hpp": "da0e2fc5ebd3f49e0530a15208b6626668f70abc00c182fea70029cd652d3a35",
+    "${ROOT}/firmware/components/security_evaluation/include/opentrail/pairing_completion_journal.hpp": "3a93a3c9e41aa6ec23b4c0bcc16be376898421b6511f2f6a1f9cad2593426de7",
     "${ROOT}/tests/host/companion_packet_service_tests.cpp": "ad0e5c9f80a4fd13416e6488e7407e7429fd5e7654b93d1477e946a2574aafe1",
     "${ROOT}/tests/host/product_enrollment_fixture.hpp": "840f796d45a50689762d44228a8a7a6061961308e511247427ed4e9912bd1e9e",
     "${ROOT}/tests/host/security_peer_traffic_fixture.hpp": "f94fca4f71ef3b05add137ae45c25f47ff1cf97d61123e860592db6ef23b848f",
@@ -4151,7 +4151,7 @@
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/peer_activation_store.hpp": "47d9d424dc05d7beb923c34abfe524ad7bb5b27e5ac2c433de3c5939c6f371ea",
     "${ROOT}/firmware/components/security/test_support/fake_secure_random.hpp": "81a044a0fc771b4c581fdfc3f8c1aae65c702a0866fc7661dab49805c0dd0741",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/product_enrollment_activation.hpp": "faeadebd60203db324b66f6cb97219e6175e85a87abd68c7056790d4828292e8",
-    "${ROOT}/firmware/components/security_evaluation/include/opentrail/enrollment_commit_coordinator.hpp": "fdb7b208f7956280a713d43aac16d0bd7f0003f681cc7b20647b1061cc2d13e9",
+    "${ROOT}/firmware/components/security_evaluation/include/opentrail/enrollment_commit_coordinator.hpp": "f2d296b38da52f5176d433e0e943840c4b34d265dd636a994796f46ebe06bacc",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/enrollment_identity_binding.hpp": "6668127d70457034fdc0bbc1dbf316f95436845f8b2f756918a1a9db730c99a9",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/peer_membership_store.hpp": "35b2e4efba037e6e1b32f99e6e07b6c2415418eb09e222946ad94b117172bfec",
     "${ROOT}/firmware/components/security_evaluation/include/opentrail/enrollment_preparation_owner.hpp": "3a05b64596aaac8013b41b7af10786577b0417661c4798f03ed72751f198d0fe",

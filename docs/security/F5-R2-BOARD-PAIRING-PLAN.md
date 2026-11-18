@@ -61,6 +61,24 @@ explicit inventory, budget, reset and compatibility review. Older firmware
 rejects the added inventory; restoring an image alone does not establish
 storage compatibility.
 
+## Recovery journal containment (review M1/M2)
+
+Recovery classifies both public-journal banks before any membership or journal
+mutation. The selected record must match the signed binding, generation/parity
+and positive-completion stage, with room for all remaining counter advances.
+The other bank must be blank, the allowed retired predecessor, or an exact
+recognized interrupted transition for this binding. Unknown/corrupt/foreign
+bytes remain untouched. Classification replays the actual erase/payload/header/
+marker order in RAM and does not repair storage by guessing.
+
+Completion initialization likewise requires canonical OTPC first-record fields,
+sequence, unvoted phase/flags, reserved bytes and write order. An installed marker
+byte proves that all 316 payload bytes must already be canonical; an erased or
+partly retired marker alone never makes arbitrary bytes empty. Bound successor
+and predecessor interruption checks preserve genuine fault recovery while
+unrecognizable state remains uncertain. Storage format, key numbering and budget
+are unchanged. Exact regression and integration evidence is in REPORT-5.md.
+
 ## Queued launch eligibility (I-073)
 
 Queue acceptance reserves one copy; it is not a radio launch. The coordinator
@@ -95,7 +113,9 @@ unchanged V0 protected Ready bootstrap, the app opts into OTX1/OTN1 status.
 The 40-byte snapshot preserves ordinary telemetry and adds state/reason,
 the confirmed peer suffix, originating action exchange/nonce and an independent
 result revision. Discovery contains no outcome; a result read requires the
-current authorized Ready owner. A result cannot establish Ready or grant trust.
+current authorized Ready owner. A result cannot establish Ready or grant trust. Every handed-off pairing action
+sets a new result-origin fence before platform write, including refused or
+uncertain outcomes; an old result cannot replace that attempt's refusal.
 
 The runtime captures the exact admitted ticket before consuming its session
 request and publishes before teardown. Only successful session/coordinator

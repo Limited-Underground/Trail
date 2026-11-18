@@ -1772,6 +1772,55 @@ class BleCompanionRuntimeTest {
         assertEquals(bothWrites + 1, f.gatt.commands.size)
     }
 
+    @Test fun oldLocalPairingResultCannotReplaceNewRefusal() {
+        assertOldPairingResultCannotReplaceNewRefusal(CompanionPairingState.PAIRED_LOCAL)
+    }
+
+    @Test fun oldBothPairingResultCannotReplaceNewRefusal() {
+        assertOldPairingResultCannotReplaceNewRefusal(CompanionPairingState.PAIRED_BOTH)
+    }
+
+    private fun assertOldPairingResultCannotReplaceNewRefusal(previousState: CompanionPairingState) {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val previousOrigin = f.last().exchangeId.toLong()
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val previous = CompanionPairingResult(
+            previousState, peerShortId = 0x34ab, originExchangeId = previousOrigin,
+            originSessionNonce = f.nonce.toLong(), revision = 5,
+        )
+        f.pairingStatus(previous)
+        assertEquals(previous, assertIs<BoardPairingState.Result>(f.pairingState()).result)
+        assertFalse(assertIs<BoardPairingState.Result>(f.pairingState()).historical)
+
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val refusedOrigin = f.last().exchangeId
+        assertNotEquals(previousOrigin, refusedOrigin.toLong())
+        val refusal = CompanionActionResult(
+            CompanionActionKind.START_ENROLLMENT,
+            disposition = CompanionActionDisposition.REJECTED,
+            rejectReason = CompanionActionRejectReason.BUSY,
+        )
+        f.respond(0x82, checkNotNull(CompanionSemanticCodec.encodeActionResult(refusal).value))
+        val rejected = BoardPairingState.Rejected(CompanionActionRejectReason.BUSY)
+        assertEquals(rejected, f.pairingState())
+        val pollDelay = if (previousState == CompanionPairingState.PAIRED_LOCAL)
+            PAIRING_STATUS_REFRESH_INTERVAL_MILLIS else STATUS_REFRESH_INTERVAL_MILLIS
+        val writesBeforePoll = f.gatt.commands.size
+        f.scheduler.advanceBy(pollDelay)
+        assertEquals(writesBeforePoll + 1, f.gatt.commands.size)
+        assertEquals(1, f.last().kind)
+        assertTrue(f.last().exchangeId > refusedOrigin)
+        assertContentEquals(CompanionSemanticCodec.encodePairingSnapshotRequest(), f.last().payload)
+        assertEquals(rejected, f.pairingState())
+        // This fresh read's envelope is current; only the pairing result origin belongs to E1.
+        f.pairingStatus(previous)
+        assertEquals(rejected, f.pairingState(), "Old success must not become the result of a refused new request")
+    }
+
     @Test fun pairingStatusRejectsWrongAttemptAndStaleOrConflictingRevisions() {
         val f = ConfigurationFixture(profile = 5, pairingResults = true)
         f.name(); f.clock()

@@ -1256,6 +1256,11 @@ class BleCompanionRuntime(
         }
         val submittedOrigin=if(isPacket) packetOrigin else null
         if (isPacket) submittedOrigin?.handedOff=true
+        if (isPairing) {
+            // Every handed-off attempt owns its result fence, including refusal or uncertain write.
+            pairingOrigin = PairingOrigin(pending.exchangeId, ready.session.sessionNonce)
+            lastPairingResult = null
+        }
         val written = if (isPacket || isPairing) {
             try { lease.writeCommandWithResponse(encoded) } catch (_: Exception) { false }
         } else lease.writeCommandWithResponse(encoded)
@@ -2696,8 +2701,6 @@ class BleCompanionRuntime(
         if (pending.pairingDeadlineMillis != null) {
             val admitted = result.disposition == CompanionActionDisposition.ADMITTED
             val pairing = if (admitted) {
-                pairingOrigin = PairingOrigin(pending.exchangeId, activeSessionNonce)
-                lastPairingResult = null
                 BoardPairingState.Ready(pending.pairingDeadlineMillis)
             } else BoardPairingState.Rejected(result.rejectReason)
             publish(BleRuntimeState.Ready(session.copy(boardPairing = pairing)))

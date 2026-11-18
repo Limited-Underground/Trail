@@ -44,11 +44,7 @@ public:
                 if(decode(retained_[slot],committed,current) && decode(retained_[1-slot],transitioning,prior) &&
                    current.generation>1 && prior.generation==current.generation-1 &&
                    slot==(current.generation-1)%2 &&
-                   ((prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
-                    (prior.stage==4 && current.stage==1 && current.context.session_generation>prior.context.session_generation &&
-                     current.context.operation!=prior.context.operation) ||
-                    (prior.stage<3 && (current.stage==prior.stage+1 || current.stage==4) &&
-                     equal(current.context,prior.context)))) {
+                    follows(prior,current)) {
                     record_=current; current_slot_=slot; restarted_=true; return true;
                 }
             }
@@ -114,7 +110,8 @@ private:
     bool complete_pairing_public(const EnrollmentCommitContext& context,
                                  bool (*guard)(void*), void* guard_context) {
         const bool ok = operation([&] {
-            if (!initialized_ || empty_ || !exact() || !equal(context, record_.context) || !guard) return false;
+            if (!initialized_ || empty_ || !exact() || !equal(context, record_.context) || !guard ||
+                !pairing_completion_capacity(record_)) return false;
             guard_ = guard;
             guard_context_ = guard_context;
             if (record_.stage == 3) return true;
@@ -133,18 +130,24 @@ private:
             if (initialized_) return false;
             initialized_ = true;
             if (!snapshot(retained_)) return false;
-            Record selected{};
-            std::size_t selected_slot = 0;
-            bool found = false;
-            for (std::size_t slot=0; slot<2; ++slot) {
-                Record candidate{};
-                if (!decode(retained_[slot],committed,candidate) &&
-                    !decode(retained_[slot],transitioning,candidate)) continue;
-                if (!found || candidate.generation>selected.generation) {
-                    selected=candidate;selected_slot=slot;found=true;
+            Record records[2]{};
+            bool valid_bank[2]{}, retired[2]{};
+            std::size_t selected_slot=0;
+            bool found=false;
+            for (std::size_t slot=0;slot<2;++slot) {
+                valid_bank[slot]=decode(retained_[slot],committed,records[slot]);
+                if (!valid_bank[slot]) {
+                    retired[slot]=decode(retained_[slot],transitioning,records[slot]);
+                    valid_bank[slot]=retired[slot];
+                }
+                if (!valid_bank[slot]) continue;
+                if (slot!=(records[slot].generation-1)%2) return refuse();
+                if (!found || records[slot].generation>records[selected_slot].generation) {
+                    selected_slot=slot;found=true;
                 }
             }
-            if (!found) return false;
+            if (!found) return refuse();
+            const auto& selected=records[selected_slot];
             const auto fields=independent_invitation_detail::decode(binding.invitation());
             const auto bytes=enrollment_identity_signing_bytes(binding.identities(),binding.invitation());
             InvitationKey digest{};
@@ -153,7 +156,21 @@ private:
             if (context.identities.initiator!=binding.identities().initiator ||
                 context.identities.responder!=binding.identities().responder ||
                 context.group!=fields.group || context.epoch!=fields.epoch ||
-                context.session_generation!=generation || context.evidence_digest!=digest) return false;
+                context.session_generation!=generation || context.evidence_digest!=digest ||
+                !pairing_completion_capacity(selected)) return refuse();
+            const auto other=1-selected_slot;
+            if (valid_bank[other]) {
+                // A complete other bank must be the retired exact predecessor,
+                // not merely any lower decodable transaction.
+                if (!retired[other] || selected.generation<=1 ||
+                    records[other].generation!=selected.generation-1 ||
+                    !follows(records[other],selected)) return refuse();
+            } else if (!blank(retained_[other])) {
+                // No target erase/write happens before the current marker is
+                // retired. Replay only this binding's known next transition in
+                // RAM; unknown bytes never authorize journal or member writes.
+                if (!retired[selected_slot] || !interrupted_pairing_write(selected,retained_[other])) return refuse();
+            }
             record_=selected;current_slot_=selected_slot;empty_=false;restarted_=true;
             return true;
         });
@@ -248,6 +265,56 @@ private:
         return prior.identities.initiator==next.identities.initiator && prior.identities.responder==next.identities.responder &&
             prior.group==next.group && prior.epoch!=std::numeric_limits<std::uint32_t>::max() && next.epoch==prior.epoch+1 &&
             next.session_generation>prior.session_generation && prior.evidence_digest!=next.evidence_digest && prior.operation!=next.operation;
+    }
+    // Pairing recovery installs membership only after proving that this public
+    // record can finish without wrapping its internal journal generation.
+    static bool pairing_completion_capacity(const Record& r) {
+        const auto limit=std::numeric_limits<std::uint64_t>::max();
+        return r.generation!=0 && (r.stage==3 ||
+            (r.stage==1 && r.generation<=limit-2) || (r.stage==2 && r.generation<limit));
+    }
+    static bool follows(const Record& prior,const Record& current) {
+        return (prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
+            (prior.stage==4 && current.stage==1 && current.context.session_generation>prior.context.session_generation &&
+             current.context.operation!=prior.context.operation) ||
+            (prior.stage<3 && (current.stage==prior.stage+1 || current.stage==4) && equal(current.context,prior.context));
+    }
+    // Observed interrupted writes must be an exact byte prefix of one actual
+    // write operation. This mutates only a temporary bank, never storage.
+    static bool write_prefix(Bank& state,const Bank& observed,std::size_t domain,
+                             std::size_t offset,const std::uint8_t* bytes,std::size_t count) {
+        for(std::size_t n=0;n<=count;++n) {
+            if(state==observed) return true;
+            if(n<count) state[domain][offset+n]=bytes[n];
+        }
+        return false;
+    }
+    static bool interrupted_write_from(Bank state,const Bank& observed,const Record& next) {
+        if(state==observed) return true;
+        // erase_slot removes a whole slot; write_slot can leave a byte prefix.
+        for(std::size_t d=0;d<5;++d) {
+            state[d].fill(0xff);
+            if(state==observed) return true;
+        }
+        const auto encoded=encode(next,committed);
+        for(std::size_t d=1;d<5;++d)
+            if(write_prefix(state,observed,d,0,encoded[d].data(),64)) return true;
+        return write_prefix(state,observed,0,0,encoded[0].data(),60) ||
+               write_prefix(state,observed,0,60,encoded[0].data()+60,4);
+    }
+    static bool interrupted_pairing_write(const Record& selected,const Bank& observed) {
+        if(selected.stage>=3 || selected.generation==std::numeric_limits<std::uint64_t>::max()) return false;
+        Bank erased{};for(auto& bytes:erased)bytes.fill(0xff);
+        for(const auto stage:{static_cast<std::uint8_t>(selected.stage+1),std::uint8_t{4}}) {
+            const Record next{selected.context,selected.generation+1,stage};
+            if(interrupted_write_from(erased,observed,next)) return true;
+            // A stage-2 predecessor has this exact stage-1 target before erase.
+            // For an earlier unrelated history, only the fully erased/write
+            // suffix above is recognizable; unbound partial erases stay closed.
+            if(selected.stage==2 && selected.generation>1 &&
+               interrupted_write_from(encode({selected.context,selected.generation-1,1},transitioning),observed,next)) return true;
+        }
+        return false;
     }
     template<class Action> bool operation(Action action) const {
         if (busy_ || reentered_) { reentered_=true; return refuse(); }

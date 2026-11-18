@@ -2,6 +2,33 @@
 
 ## 2026-11-18
 
+### OT-0005i Contain recovery banks and fence new pairing outcomes
+
+Review findings M1-M3 are corrected locally. Public recovery classifies both
+banks against the signed binding and exact interrupted write order before any
+membership change. Nonterminal counters require enough remaining advances;
+aborted public state cannot enter positive completion. The completion journal
+accepts only canonical unvoted first-write/retirement prefixes and bound history;
+installed marker bytes require the complete canonical payload. A new phone
+action installs its result-origin fence before handoff for every outcome, so
+an old success cannot replace a new refusal.
+
+Tests first reproduced both mixed public-bank admissions and actual membership
+mutation, 12 hostile completion layouts, nine additional marker-order cases,
+counter/aborted-state admission failures, and both old-local/old-bilateral phone
+success overwrites. Corrected public primitives pass 4,447 groups with 86 genuine
+interruption cases; completion primitives pass 16 groups and 1,288 canonical
+prefix cases; both Android refusal regressions pass with actual old OTN1 delivery.
+Current actual-session negative probes leave journal/membership unchanged.
+Earlier 47-group adapter evidence is intermediate; the final merged suite has
+48 groups and will run with both final headers. Both changed composition pins
+are updated and all 91 ROOT pins match. Final integrated gates belong in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-5.md.
+
+This fix increment follows 1ef64090 on the local pairing branch. TASK-5 explicitly
+authorizes fetching and merging current main next; no push, PR, signing, device
+work or physical/V1 acceptance is added. The future PR remains Part of #232.
+
 ### OT-0005i Recheck queued pairing copies at transmit (I-073)
 
 A pairing frame accepted at its floor could age in the queue or CAD and launch

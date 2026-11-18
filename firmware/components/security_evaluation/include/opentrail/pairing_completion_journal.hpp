@@ -67,17 +67,13 @@ public:
             for (unsigned slot = 0; slot < 2; ++slot) {
                 valid[slot] = decode(retained_[slot], records[slot], sequences[slot]) &&
                               (sequences[slot] - 1) % 2 == slot;
-                // A completed bank whose integrity is broken cannot be treated
-                // as an interrupted future write and replaced by an older vote.
-                if (!valid[slot] && !blank(retained_[slot]) &&
-                    !uncommitted_marker(marker(retained_[slot]))) return refuse();
             }
             if (!valid[0] && !valid[1]) {
-                // The first installation is Confirmed or an unvoted Abort,
-                // before any C1/Prepared. With the untouched second bank,
-                // a canonical incomplete first write therefore contains no vote.
-                // Preserve its raw bytes until a normal replacement begin().
-                if (blank(retained_[1]) && uncommitted_marker(marker(retained_[0]))) {
+                // Marker state alone says nothing about an unknown payload.
+                // Only an ordered prefix of the two unvoted first records can
+                // be logical empty; preserve every observed byte until begin().
+                if (blank(retained_[1]) && incomplete_marker(marker(retained_[0])) &&
+                    canonical_prefix(retained_[0], nullptr, 1, required_payload(marker(retained_[0])))) {
                     empty_ = true;
                     return true;
                 }
@@ -89,6 +85,8 @@ public:
             if (valid[older] &&
                 (sequences[latest] != sequences[older] + 1 ||
                  !follows(records[older], records[latest]))) return refuse();
+            if (!valid[older] && !blank(retained_[older]) &&
+                !interrupted_bank(retained_[older], records[latest], sequences[latest])) return refuse();
             record_ = records[latest];
             sequence_ = sequences[latest];
             current_slot_ = latest;
@@ -266,16 +264,6 @@ private:
         return bytes;
     }
     static std::uint32_t marker(const Bank& bank) { return static_cast<std::uint32_t>(get(bank[4].data() + 60, 4)); }
-    static bool uncommitted_marker(std::uint32_t value) {
-        if (value == 0 || value == std::numeric_limits<std::uint32_t>::max()) return true;
-        // Interrupted marker installation writes a prefix over erased bytes.
-        // Interrupted target retirement clears a prefix of the previous marker.
-        for (unsigned bytes = 1; bytes < 4; ++bytes) {
-            const auto mask = (std::uint32_t{1} << (bytes * 8)) - 1;
-            if (value == ((kMarker & mask) | ~mask) || value == (kMarker & ~mask)) return true;
-        }
-        return false;
-    }
     static bool blank(const Bank& bank) {
         for (const auto& slot : bank) for (const auto byte : slot) if (byte != 0xff) return false;
         return true;
@@ -387,6 +375,182 @@ private:
             if (crypto_sign_verify_detached(signature.data(), signed_bytes.data(), signed_bytes.size(), candidate.peer.data()) != 0) return false;
         }
         record = candidate;
+        return true;
+    }
+    static Record unpack(const std::array<std::uint8_t, 320>& bytes) {
+        Record record{};
+        record.role = static_cast<InvitationRole>(bytes[5]);
+        record.phase = static_cast<PairingCompletionPhase>(bytes[6]); record.flags = bytes[7];
+        record.group = get(bytes.data() + 16, 8); record.generation = get(bytes.data() + 24, 8);
+        record.epoch = static_cast<std::uint32_t>(get(bytes.data() + 32, 4));
+        std::memcpy(record.transaction.data(), bytes.data() + 48, 32);
+        std::memcpy(record.peer.data(), bytes.data() + 80, 32);
+        std::memcpy(record.transcript.data(), bytes.data() + 112, 32);
+        std::memcpy(record.decision.data(), bytes.data() + 144, 32);
+        std::memcpy(record.peer_prepared_signature.data(), bytes.data() + 176, 64);
+        std::memcpy(record.peer_committed_signature.data(), bytes.data() + 240, 64);
+        return record;
+    }
+    static bool installed_prefix(std::uint32_t value) {
+        for (unsigned bytes = 0; bytes < 4; ++bytes) {
+            const auto mask = bytes ? (std::uint32_t{1} << (bytes * 8)) - 1 : 0;
+            if (value == ((kMarker & mask) | ~mask)) return true;
+        }
+        return false;
+    }
+    static bool incomplete_marker(std::uint32_t value) {
+        if (installed_prefix(value)) return true;
+        // Retrying an incomplete candidate first retires its existing marker.
+        for (unsigned installed = 0; installed < 4; ++installed) {
+            const auto mask = installed ? (std::uint32_t{1} << (installed * 8)) - 1 : 0;
+            const auto before = (kMarker & mask) | ~mask;
+            for (unsigned cleared = 1; cleared <= 4; ++cleared) {
+                const auto clear = cleared == 4 ? ~std::uint32_t{0} :
+                                   (std::uint32_t{1} << (cleared * 8)) - 1;
+                if (value == (before & ~clear)) return true;
+            }
+        }
+        return false;
+    }
+    static unsigned required_payload(std::uint32_t value) {
+        // Only an erased marker, or its retirement prefix, can follow a short
+        // payload. Any retained installed byte proves all 316 payload bytes
+        // and their checksum had already passed readback before marker I/O.
+        for (unsigned cleared = 0; cleared <= 4; ++cleared) {
+            const auto mask = cleared == 4 ? ~std::uint32_t{0} :
+                              cleared ? (std::uint32_t{1} << (cleared * 8)) - 1 : 0;
+            if (value == ~mask) return 0;
+        }
+        return 316;
+    }
+    static bool finish_nonzero(std::array<std::uint8_t, 320>& bytes,
+                               unsigned at, unsigned count, unsigned prefix) {
+        for (unsigned i = at; i < at + count; ++i) if (bytes[i]) return true;
+        const auto unknown = prefix > at ? prefix : at;
+        if (unknown >= at + count) return false;
+        bytes[unknown] = 1;
+        return true;
+    }
+    static bool canonical_prefix(const Bank& bank, const Record* previous, std::uint64_t sequence,
+                                 unsigned payload_floor) {
+        const auto observed = flatten(bank);
+        unsigned minimum = payload_floor;
+        for (unsigned i = 0; i < 316; ++i) if (observed[i] != 0xff && minimum < i + 1) minimum = i + 1;
+        for (unsigned prefix = minimum; prefix <= 316; ++prefix) {
+            // Fixed header bytes reject foreign layouts before any hash work.
+            constexpr std::array<std::uint8_t, 5> header{'O','T','P','C',1};
+            bool fixed = true;
+            for (unsigned i = 0; i < header.size() && i < prefix; ++i)
+                if (observed[i] != header[i]) fixed = false;
+            for (unsigned i = 8; i < 16 && i < prefix; ++i)
+                if (observed[i] != static_cast<std::uint8_t>(sequence >> ((i - 8) * 8))) fixed = false;
+            for (unsigned i = 36; i < 48 && i < prefix; ++i) if (observed[i]) fixed = false;
+            if (!fixed) continue;
+            // Same-binding updates, or an unvoted new descriptor only after
+            // the previous terminal record. Unknown suffixes confer no vote.
+            for (unsigned mode = 0; mode < (previous ? 2U : 1U); ++mode) {
+                const bool fresh = !previous || mode == 1;
+                if (previous && fresh && previous->phase != PairingCompletionPhase::aborted &&
+                    previous->phase != PairingCompletionPhase::peer_confirmed) continue;
+                for (unsigned role = 1; role <= 2; ++role) {
+                    if (previous && !fresh && static_cast<unsigned>(previous->role) != role) continue;
+                    for (unsigned phase = 1; phase <= 6; ++phase) for (unsigned flags = 0; flags < 32; ++flags) {
+                        if (fresh && !((phase == static_cast<unsigned>(PairingCompletionPhase::confirmed) && flags == 0) ||
+                            (phase == static_cast<unsigned>(PairingCompletionPhase::aborted) && flags == kLocalAborted &&
+                             (!previous || previous->phase == PairingCompletionPhase::aborted)))) continue;
+                        if ((prefix > 5 && observed[5] != role) || (prefix > 6 && observed[6] != phase) ||
+                            (prefix > 7 && observed[7] != flags)) continue;
+                        Record seed{};
+                        if (!fresh) seed = *previous;
+                        else {
+                            seed.transaction.fill(1); seed.peer.fill(1); seed.transcript.fill(1); seed.decision.fill(1);
+                            seed.group = 1; seed.generation = previous ? previous->generation + 1 : 1; seed.epoch = 1;
+                        }
+                        seed.role = static_cast<InvitationRole>(role);
+                        seed.phase = static_cast<PairingCompletionPhase>(phase); seed.flags = static_cast<std::uint8_t>(flags);
+                        if (!(flags & (kPeerPrepared | kPeerAborted))) seed.peer_prepared_signature.fill(0);
+                        else if (!nonzero(seed.peer_prepared_signature)) seed.peer_prepared_signature.fill(1);
+                        if (!(flags & kPeerCommitted)) seed.peer_committed_signature.fill(0);
+                        else if (!nonzero(seed.peer_committed_signature)) seed.peer_committed_signature.fill(1);
+                        auto completed = flatten(encode(seed, sequence));
+                        std::memcpy(completed.data(), observed.data(), prefix);
+                        if (fresh) {
+                            bool fields = finish_nonzero(completed, 16, 8, prefix) &&
+                                          finish_nonzero(completed, 24, 8, prefix) &&
+                                          finish_nonzero(completed, 32, 4, prefix);
+                            for (const auto offset : {48U, 80U, 112U, 144U})
+                                fields = finish_nonzero(completed, offset, 32, prefix) && fields;
+                            if (!fields) continue;
+                            if (previous && get(completed.data() + 24, 8) <= previous->generation) {
+                                for (unsigned i = prefix > 24 ? prefix : 24; i < 32; ++i) completed[i] = 0xff;
+                            }
+                        }
+                        const auto candidate = unpack(completed);
+                        if (!valid_record(candidate) || (previous && (!follows(*previous, candidate) ||
+                            (fresh ? candidate.generation <= previous->generation : !same_descriptor(*previous, candidate))))) continue;
+                        if (!valid_signatures(candidate, prefix)) continue;
+                        const auto encoded = flatten(encode(candidate, sequence));
+                        if (std::memcmp(encoded.data(), observed.data(), prefix) == 0) return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    static bool retired_prefix(const Bank& observed, const Bank& original) {
+        auto expected = original;
+        for (unsigned cleared = 1; cleared <= 4; ++cleared) {
+            expected = original;
+            std::memset(expected[4].data() + 60, 0, cleared);
+            if (observed == expected) return true;
+        }
+        // erase_slot operates in domain order, after complete retirement.
+        for (unsigned erased = 0; erased < 5; ++erased) {
+            expected[erased].fill(0xff);
+            if (observed == expected) return true;
+        }
+        return false;
+    }
+    static bool interrupted_bank(const Bank& bank, const Record& current, std::uint64_t sequence) {
+        if (sequence != std::numeric_limits<std::uint64_t>::max() && incomplete_marker(marker(bank)) &&
+            canonical_prefix(bank, &current, sequence + 1, required_payload(marker(bank)))) return true;
+        if (sequence <= 1) return false;
+        // An intact predecessor with only its marker retired is self-proving.
+        auto repaired = bank;
+        put(repaired[4].data() + 60, kMarker, 4);
+        Record predecessor{}; std::uint64_t prior_sequence = 0;
+        if (decode(repaired, predecessor, prior_sequence) && prior_sequence + 1 == sequence &&
+            follows(predecessor, current) && retired_prefix(bank, repaired)) return true;
+        // If erase removed its header, reconstruct only exact same-binding
+        // predecessors from the durable current record. Foreign tails stay put.
+        for (unsigned phase = 1; phase <= 6; ++phase) for (unsigned flags = 0; flags < 32; ++flags) {
+            auto prior = current;
+            prior.phase = static_cast<PairingCompletionPhase>(phase); prior.flags = static_cast<std::uint8_t>(flags);
+            if (!(flags & (kPeerPrepared | kPeerAborted))) prior.peer_prepared_signature.fill(0);
+            if (!(flags & kPeerCommitted)) prior.peer_committed_signature.fill(0);
+            if (valid_record(prior) && follows(prior, current) &&
+                retired_prefix(bank, encode(prior, sequence - 1))) return true;
+        }
+        return false;
+    }
+    static bool valid_signatures(const Record& candidate, unsigned prefix) {
+        for (const auto kind : {PairingCompletionKind::prepared, PairingCompletionKind::committed}) {
+            const unsigned end = kind == PairingCompletionKind::prepared ? 240 : 304;
+            const bool exists = kind == PairingCompletionKind::prepared ?
+                (candidate.flags & (kPeerPrepared | kPeerAborted)) != 0 : (candidate.flags & kPeerCommitted) != 0;
+            if (!exists || prefix < end) continue;
+            PairingCompletionReceipt receipt{};
+            receipt[0] = 1;
+            receipt[1] = static_cast<std::uint8_t>(kind == PairingCompletionKind::prepared && candidate.flags & kPeerAborted ?
+                                                PairingCompletionKind::aborted : kind);
+            receipt[2] = static_cast<std::uint8_t>(candidate.role == InvitationRole::initiator ?
+                                                 InvitationRole::responder : InvitationRole::initiator);
+            std::memcpy(receipt.data() + 4, candidate.transaction.data(), 32);
+            const auto signed_bytes = pairing_receipt_signing_bytes(receipt);
+            const auto& signature = kind == PairingCompletionKind::prepared ?
+                candidate.peer_prepared_signature : candidate.peer_committed_signature;
+            if (crypto_sign_verify_detached(signature.data(), signed_bytes.data(), signed_bytes.size(), candidate.peer.data()) != 0) return false;
+        }
         return true;
     }
     bool observable() const { return initialized_ && !empty_ && !failed_ && !busy_; }

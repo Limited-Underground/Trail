@@ -127,8 +127,172 @@ struct Attempt {
 bool same_snapshot(const PairingCompletionSnapshot& a, const PairingCompletionSnapshot& b) {
     return a.phase == b.phase && a.transaction == b.transaction && a.peer == b.peer && a.generation == b.generation;
 }
+
+using MediaBytes = std::array<std::array<std::array<std::uint8_t, 64>, 2>, 5>;
+MediaBytes media_bytes(const Storage& media) {
+    MediaBytes result{};
+    for (unsigned d = 0; d < 5; ++d) for (unsigned bank = 0; bank < 2; ++bank)
+        result[d][bank] = media.memory.slot_bytes(static_cast<Domain>(d), bank);
+    return result;
 }
-int main() {
+unsigned m2_refusal_failures = 0;
+void m2_refuses_unchanged(Storage& media, const char* label) {
+    const auto before = media_bytes(media);
+    media.trace.clear();
+    Journal journal(media);
+    const bool accepted = journal.initialize();
+    const bool unchanged = before == media_bytes(media);
+    const auto changed = mutations(media);
+    std::cout << "M2 " << label << " accepted=" << accepted << " unchanged=" << unchanged
+              << " mutations=" << changed << std::endl;
+    CHECK(unchanged && changed == 0);
+    if (accepted || journal.snapshot().phase != Phase::uncertain) ++m2_refusal_failures;
+}
+void m2_wrong_first_magic() {
+    Storage media;
+    media.memory.corrupt_byte(static_cast<Domain>(0), 0, 0, 0xff ^ 'X');
+    m2_refuses_unchanged(media, "wrong-first-magic");
+}
+std::array<std::uint8_t, 320> m2_first_bytes(Pair& pair) {
+    std::array<std::uint8_t, 320> result{};
+    for (unsigned d = 0; d < 5; ++d) {
+        const auto& slot = pair.media_a.memory.slot_bytes(static_cast<Domain>(d), 0);
+        std::memcpy(result.data() + d * 64, slot.data(), 64);
+    }
+    return result;
+}
+void m2_checksum(std::array<std::uint8_t, 320>& bytes) {
+    InvitationKey hash{}; crypto_hash_sha256(hash.data(), bytes.data(), 304);
+    std::memcpy(bytes.data() + 304, hash.data(), 12);
+}
+void m2_payload(Storage& media, unsigned bank, const std::array<std::uint8_t, 320>& bytes,
+                unsigned prefix = 316) {
+    for (unsigned d = 0; d < 5 && d * 64 < prefix; ++d) {
+        const auto remaining = prefix - d * 64;
+        const auto count = remaining < 64 ? remaining : 64;
+        CHECK(media.memory.write_slot(static_cast<Domain>(d), bank, 0,
+              {bytes.data() + d * 64, count}) == Error::none);
+    }
+}
+void m2_mixed_bank() {
+    {
+        Pair pair;
+        pair.media_a.memory.corrupt_byte(static_cast<Domain>(0), 1, 0, 0xff ^ 'X');
+        m2_refuses_unchanged(pair.media_a, "valid-older-plus-unrelated-invalid");
+    }
+    for (const bool latest_second : {false, true}) {
+        Pair pair, foreign;
+        if (latest_second) pair.prepare();
+        auto bytes = m2_first_bytes(foreign);
+        bytes[8] = latest_second ? 3 : 2; // exact next-bank parity, unrelated binding
+        bytes[48] ^= 1;
+        m2_checksum(bytes);
+        const unsigned bank = latest_second ? 0 : 1;
+        for (unsigned d = 0; d < 5; ++d) CHECK(pair.media_a.memory.erase_slot(static_cast<Domain>(d), bank) == Error::none);
+        m2_payload(pair.media_a, bank, bytes);
+        m2_refuses_unchanged(pair.media_a, latest_second ? "valid-newer-plus-foreign-prefix" :
+                                                          "valid-older-plus-foreign-prefix");
+    }
+}
+void m2_hostile_first_shapes() {
+    Pair pair;
+    const auto canonical = m2_first_bytes(pair);
+    for (unsigned scenario = 0; scenario < 8; ++scenario) {
+        auto bytes = canonical;
+        if (scenario == 0) bytes[4] ^= 1; // schema
+        if (scenario == 1) bytes[8] = 2;  // first sequence
+        if (scenario == 2) { bytes[6] = static_cast<std::uint8_t>(Phase::prepared); bytes[7] = Journal::kLocalPrepared; }
+        if (scenario == 3) bytes[5] = 7;  // role
+        if (scenario == 4) bytes[36] = 1; // reserved
+        if (scenario == 5) bytes[176] = 1; // an unvoted first descriptor has no peer signature
+        if (scenario == 6) bytes[304] ^= 1; // complete payload with wrong checksum
+        if (scenario == 7) std::memset(bytes.data(), 0xff, 64); // write-order gap
+        Storage media; m2_payload(media, 0, bytes);
+        const auto label = std::string("hostile-first-shape-") + std::to_string(scenario);
+        m2_refuses_unchanged(media, label.c_str());
+    }
+}
+void m2_marker_progress() {
+    constexpr std::array<std::uint8_t, 4> marker{0x44, 0x50, 0x43, 0x32};
+    for (unsigned scenario = 0; scenario < 9; ++scenario) {
+        const bool mixed = scenario >= 6;
+        const auto style = mixed ? scenario - 6 : scenario;
+        Pair pair(!mixed ? false : true);
+        const unsigned bank = mixed ? 1 : 0;
+        const std::uint8_t first = 'O';
+        CHECK(pair.media_a.memory.write_slot(static_cast<Domain>(0), bank, 0, {&first, 1}) == Error::none);
+        auto partial = marker;
+        unsigned installed = style < 3 ? style + 1 : 3;
+        if (style == 3) installed = 2;
+        CHECK(pair.media_a.memory.write_slot(static_cast<Domain>(4), bank, 60,
+              {partial.data(), installed}) == Error::none);
+        if (style >= 3) {
+            const std::array<std::uint8_t, 2> zeros{};
+            const unsigned clear = style == 5 ? 2 : 1;
+            CHECK(pair.media_a.memory.write_slot(static_cast<Domain>(4), bank, 60,
+                  {zeros.data(), clear}) == Error::none);
+        }
+        const auto label = std::string("early-marker-") + std::to_string(scenario);
+        m2_refuses_unchanged(pair.media_a, label.c_str());
+    }
+}
+void m2_retired_candidate_prefixes() {
+    for (const bool mixed : {false, true}) for (unsigned cleared = 1; cleared <= 4; ++cleared) {
+        Pair pair(mixed);
+        const unsigned bank = mixed ? 1 : 0;
+        const std::uint8_t first = 'O'; const std::array<std::uint8_t, 4> zeros{};
+        CHECK(pair.media_a.memory.write_slot(static_cast<Domain>(0), bank, 0, {&first, 1}) == Error::none);
+        CHECK(pair.media_a.memory.write_slot(static_cast<Domain>(4), bank, 60, {zeros.data(), cleared}) == Error::none);
+        const auto before = media_bytes(pair.media_a); pair.media_a.trace.clear();
+        Journal journal(pair.media_a);
+        CHECK(journal.initialize());
+        CHECK(journal.snapshot().phase == (mixed ? Phase::confirmed : Phase::none));
+        CHECK(media_bytes(pair.media_a) == before && mutations(pair.media_a) == 0);
+    }
+}
+void m2_first_write_prefixes() {
+    Pair pair;
+    for (const unsigned role : {1U, 2U}) for (const bool aborted : {false, true}) {
+        auto bytes = m2_first_bytes(pair);
+        bytes[5] = static_cast<std::uint8_t>(role);
+        bytes[6] = static_cast<std::uint8_t>(aborted ? Phase::aborted : Phase::confirmed);
+        bytes[7] = aborted ? Journal::kLocalAborted : 0;
+        m2_checksum(bytes);
+        for (unsigned prefix = 0; prefix <= 316; ++prefix) {
+            Storage media; m2_payload(media, 0, bytes, prefix);
+            const auto before = media_bytes(media);
+            Journal journal(media);
+            CHECK(journal.initialize() && journal.snapshot().phase == Phase::none);
+            CHECK(media_bytes(media) == before && mutations(media) == 0);
+        }
+        for (unsigned marker_prefix = 1; marker_prefix < 4; ++marker_prefix) {
+            Storage media; m2_payload(media, 0, bytes);
+            CHECK(media.memory.write_slot(static_cast<Domain>(4), 0, 60,
+                  {bytes.data() + 316, marker_prefix}) == Error::none);
+            const auto before = media_bytes(media);
+            Journal journal(media);
+            CHECK(journal.initialize() && journal.snapshot().phase == Phase::none);
+            CHECK(media_bytes(media) == before && mutations(media) == 0);
+        }
+    }
+}
+
+
+}
+int main(int argc, char** argv) {
+    if (argc == 2) {
+        const std::string name = argv[1];
+        if (name == "wrong-first-magic") m2_wrong_first_magic();
+        else if (name == "mixed-bank") m2_mixed_bank();
+        else if (name == "hostile-first-shapes") m2_hostile_first_shapes();
+        else if (name == "first-write-prefixes") m2_first_write_prefixes();
+        else if (name == "marker-progress") m2_marker_progress();
+        else if (name == "retired-candidate-prefixes") m2_retired_candidate_prefixes();
+        else return 2;
+        CHECK(m2_refusal_failures == 0);
+        std::cout << "PASS named " << name << "\n";
+        return 0;
+    }
     unsigned groups = 0;
     {
         Pair pair;
@@ -398,6 +562,13 @@ int main() {
         }
         ++groups;
     }
+    m2_wrong_first_magic(); ++groups;
+    m2_mixed_bank(); ++groups;
+    m2_hostile_first_shapes(); ++groups;
+    m2_marker_progress(); ++groups;
+    m2_retired_candidate_prefixes(); ++groups;
+    m2_first_write_prefixes(); ++groups;
+    CHECK(m2_refusal_failures == 0);
     std::cout << "PASS " << groups << " pairing completion journal groups\n";
     return 0;
 }

@@ -641,6 +641,72 @@ unsigned test_recovery_rejects_other_transaction_journal() {
     return 1;
 }
 
+unsigned test_recovery_rejects_mixed_public_bank(bool foreign) {
+    Board a(InvitationRole::initiator,1,100),b(InvitationRole::responder,81,50100);
+    const auto initial=drive(a,b,-1,-1,123456,TailFault::save_failure_a);
+    CHECK(initial.fault_fired && !initial.ready_a && !initial.ready_b);
+    const auto selected=a.journal.inner.memory.slot_bytes(Domain::configuration,1);
+    CHECK(selected[5]==2 && authority_detail::get(selected.data()+8,8)==2);
+    if(foreign) {
+        Board other_a(InvitationRole::initiator,1,100),other_b(InvitationRole::responder,81,50100);
+        other_a.refill(41);other_b.refill(121);
+        const auto other=drive(other_a,other_b,-1,-1,123456,TailFault::save_failure_a);
+        CHECK(other.fault_fired && other.completion_a.transaction!=initial.completion_a.transaction);
+        for(unsigned d=0;d<5;++d) {
+            const auto domain=static_cast<Domain>(d);auto bytes=other_a.journal.inner.memory.slot_bytes(domain,0);
+            if(d==0) bytes[60]=0x17; // Complete canonical stage-1 bank, not its retired marker.
+            CHECK(a.journal.inner.memory.erase_slot(domain,0)==Error::none &&
+                  a.journal.inner.memory.write_slot(domain,0,0,{bytes.data(),bytes.size()})==Error::none);
+        }
+    } else {
+        auto bytes=a.journal.inner.memory.slot_bytes(Domain::configuration,0);bytes[0]='X';
+        CHECK(a.journal.inner.memory.erase_slot(Domain::configuration,0)==Error::none &&
+              a.journal.inner.memory.write_slot(Domain::configuration,0,0,{bytes.data(),bytes.size()})==Error::none);
+    }
+    const auto journal=persistent_bytes(a.journal);
+    const auto membership=persistent_bytes(a.backend.at(0,EvaluationNamespace::membership));
+    a.open_request(171);
+    if(a.session->start_pairing_recovery(a.role,123456)) {
+        a.adapter.emplace(*a.session);b.recover(211);Limits recovery{};recovery.recovery_completion=true;
+        const auto result=drive(a,b,-1,-1,123456,TailFault::none,recovery);
+        std::cout << "M1 real " << (foreign?"foreign":"corrupt")
+                  << " ready=" << result.ready_a << " committed=" << result.committed_a
+                  << " journal_changed=" << (persistent_bytes(a.journal)!=journal)
+                  << " membership_changed=" << (persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))!=membership) << '\n';
+        CHECK(!result.ready_a && result.committed_a==0);
+    }
+    CHECK(persistent_bytes(a.journal)==journal);
+    CHECK(persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))==membership);
+    return 1;
+}
+
+unsigned test_recovery_rejects_aborted_public_state() {
+    Board a(InvitationRole::initiator,1,100),b(InvitationRole::responder,81,50100);
+    const auto initial=drive(a,b,-1,-1,123456,TailFault::save_failure_a);CHECK(initial.fault_fired);
+    auto header=a.journal.inner.memory.slot_bytes(Domain::configuration,1);CHECK(header[5]==2);header[5]=4;
+    std::array<std::uint8_t,272> data{};std::memcpy(data.data(),header.data(),16);
+    for(unsigned d=1;d<5;++d) {
+        const auto bytes=a.journal.inner.memory.slot_bytes(static_cast<Domain>(d),1);
+        std::memcpy(data.data()+16+(d-1)*64,bytes.data(),64);
+    }
+    crypto_hash_sha256(header.data()+16,data.data(),data.size());
+    authority_detail::put(header.data()+56,authority_detail::checksum(header),4);
+    CHECK(a.journal.inner.memory.erase_slot(Domain::configuration,1)==Error::none &&
+          a.journal.inner.memory.write_slot(Domain::configuration,1,0,{header.data(),header.size()})==Error::none);
+    EnrollmentCommitCoordinator ordinary(a.journal);CHECK(ordinary.initialize() && ordinary.state()==EnrollmentJournalState::aborted);
+    const auto journal=persistent_bytes(a.journal);const auto membership=persistent_bytes(a.backend.at(0,EvaluationNamespace::membership));
+    a.open_request(171);
+    if(a.session->start_pairing_recovery(a.role,123456)) {
+        a.adapter.emplace(*a.session);b.recover(211);Limits recovery{};recovery.recovery_completion=true;
+        const auto result=drive(a,b,-1,-1,123456,TailFault::none,recovery);
+        std::cout << "M1 real aborted committed=" << result.committed_a
+                  << " journal_changed=" << (persistent_bytes(a.journal)!=journal)
+                  << " membership_changed=" << (persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))!=membership) << '\n';
+        CHECK(!result.ready_a && result.committed_a==0);
+    }
+    CHECK(persistent_bytes(a.journal)==journal && persistent_bytes(a.backend.at(0,EvaluationNamespace::membership))==membership);return 1;
+}
+
 unsigned test_pending_pairing_blocks_retained_entrypoints() {
     unsigned groups = 0;
     for (const bool recovery_entrypoint : {false, true}) {
@@ -771,6 +837,14 @@ int main(int argc, char** argv) {
             std::cout << "PASS " << count << " pairing session adapter groups\n";
             return 0;
         }
+        if(name=="m1-aborted") {
+            const auto count=pairing_adapter_test::test_recovery_rejects_aborted_public_state();
+            std::cout << "PASS " << count << " pairing session adapter groups\n";return 0;
+        }
+        if(name=="m1-corrupt" || name=="m1-foreign") {
+            const auto count=pairing_adapter_test::test_recovery_rejects_mixed_public_bank(name=="m1-foreign");
+            std::cout << "PASS " << count << " pairing session adapter groups\n";return 0;
+        }
         if (name == "launch-gate") {
             const auto count = pairing_adapter_test::test_real_session_queued_launch_gates();
             std::cout << "PASS " << count << " pairing session adapter groups\n";
@@ -898,6 +972,9 @@ int main(int argc, char** argv) {
     groups += test_initial_descriptor_save_failure();
     groups += test_repeated_descriptor_save_failure();
     groups += test_recovery_rejects_other_transaction_journal();
+    groups += test_recovery_rejects_mixed_public_bank(false);
+    groups += test_recovery_rejects_mixed_public_bank(true);
+    groups += test_recovery_rejects_aborted_public_state();
     groups += test_pending_pairing_blocks_retained_entrypoints();
     groups += test_failed_recovery_does_not_publish_saved_result();
     groups += test_real_session_queued_launch_gates();
