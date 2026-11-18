@@ -1,6 +1,6 @@
 # Limited Underground Trail project status
 
-Current handoff reviewed 2026-11-15. Dated checkpoints retain their own dates
+Current handoff reviewed 2026-11-18. Dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -62,6 +62,10 @@ The product is renamed Limited Underground MeshTrail (owner decision D-089). The
 Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-order), the signed roster with its acceptance and conflict rules, is implemented on the host and covered by `tests/host/group_roster_tests.cpp` (2026-11-13). Its independent review found seven issues, all fixed in the same change. Step 2 (one owner per pair, the binding both identities sign, epochs and interruption rules) followed on 2026-11-13; four versions were rejected in independent review, it was redesigned around a single group state (owner decisions D-072, D-073, D-074), and the fifth review accepted it (PR #249). Step 3a (group frame header, receiving rules and delivery state) followed on the host. Neither uses a selected signature algorithm or key derivation yet, and neither is wired to storage, radio or the app.
 
 The first step 3b storage increment is a local host candidate. It reserves the sender's group message numbers durably against the full group and sender identities, and resumes above the last reserved range after a restart. See [OT-0305 Reserve durable group message numbers on the host](PROGRESS_LOG.md#ot-0305-reserve-durable-group-message-numbers-on-the-host). The [per-pair storage index](PROGRESS_LOG.md#ot-0305-index-durable-group-pair-storage-on-the-host) maps qualified peers to durable slots after the roster commits. The host candidate retains roster watermarks and issues a fresh incarnation when a pair slot is reused. The [durable receive window](PROGRESS_LOG.md#ot-0305-persist-the-group-receive-window-on-the-host) suppresses duplicates across host reopen and refuses delivery on uncertain storage. Remaining step 3 boundaries include durable roster and pair-record composition, group ACK and authenticated routing, retention/reset policy and write-wear validation. The Heltec target and Android path remain open.
+
+## Device parameters for logging
+
+The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android polling, logging, age display and text export remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
 
 ## Capture runner host verification
 
@@ -173,18 +177,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-17 |
-| Task | OT-0005i — MeshTrail bench pairing radio drop feedback (V1 F5 R2a, I-061). |
-| Owner | Codex owns the pre-launch drop feedback, focused host checks and local closeout on feat/i061-listen-before-talk-v2. |
-| Scope | Route a confirmed drop from the bench radio queue to the pairing coordinator and re-offer within the same request and send floors. |
-| State | Local host candidate for review. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
-| Source | Local v2 worktree in D:/LimitedUnderground/Build/worktrees/trl-lbt-v2. Base b4c843bb (PR #271) and queued comparison 007f002. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | Coordinator and seeded queue replay passed 23 groups, the LoRa driver passed 10 groups, and bench admission passed 20 groups. See the local task report for link-test build evidence. |
-| Blocker | Physical radio and pairing validation waits for a separately authorized owner-present two-board session. |
-| Next action | Review the local v2 change and link-test image evidence. Use a separately authorized board session for radio behavior and two-sided completion. |
+| Reviewed | 2026-11-18 |
+| Task | OT-0341 — MeshTrail device parameters for logging (V1 F11, requirement 8). |
+| Owner | Codex owns the standalone collector/codec, new host suites and local closeout on feat/f11-device-parameters. |
+| Scope | Collect timestamped parameters into a bounded versioned record in new files; document separate target, protected transport and Android integration hooks. |
+| State | Local unwired F11 host candidate for review. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
+| Source | F11 worktree in D:/LimitedUnderground/Build/worktrees/trl-f11, base 4b7e5d5 (PR #277). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | New codec passed seven groups and collector ten groups; bench admission passed 20 groups; offline security passed 83 suites / 613 commands, with all 1,241 source pins matching. Separate Xtensa compilation and the unchanged link-test build pass without warnings. The baseline image excludes this module; the local report binds evidence and admission limits. |
+| Blocker | Task scope excludes edits to the existing bench/status/pairing and Android paths needed for live acquisition and transport. |
+| Next action | Review the collector/codec and coordinate the documented source publication and protected response hook with the status and Android owners. Hardware validation remains separately authorized. |
 | Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0005i Listen before talk updated to current main (I-061, I-063, I-064)](PROGRESS_LOG.md#ot-0005i-listen-before-talk-updated-to-current-main-i-061-i-063-i-064). |
-| Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-4.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
+| Latest record | [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-6.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

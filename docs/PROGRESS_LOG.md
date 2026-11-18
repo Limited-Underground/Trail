@@ -1,5 +1,14 @@
 # OpenTrail Progress Log
 
+## 2026-11-18
+
+### OT-0341 Device parameters collector and codec for logging (F11)
+
+The new MeshTrail component collects typed, timestamped observations and encodes a strict 212-byte version-1 record. Twelve independent availability groups distinguish missing data from valid zero and retain source age. Collection and serving refuse clock rollback, source timestamps from the future and sequence exhaustion. The record contains no device/peer identifiers, coordinates or private payloads.
+
+The host candidate passes seven codec groups (including all 1,696 single-bit mutations) and ten collector groups. The 20-group bench admission check and documentation checks pass. The full offline security matrix passed all 83 suites and 613 commands; all 1,241 source pins and the new suite pins match the final sources. Both new sources compile separately with strict Xtensa warning flags. The unchanged link-test target builds without warnings (814,192 bytes); it does not include this component. The local task report retains commands, hashes and the cached-dependency admission limit. The collector is deliberately unwired because TASK-6 reserves the existing bench and status files for other work. The [component design](../firmware/components/device_parameters/README.md) gives the source-owner, coherent publication, protected two-fragment response and separate Android logging/export hooks. I-045 remains open until firmware acquisition and Android age display are integrated. No board, app, release or physical acceptance is added.
+
+
 ## 2026-11-17
 
 ### OT-0238c Speed up capture runner verification (I-027, I-048)
