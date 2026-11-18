@@ -1,12 +1,12 @@
 # F5 R2: first board pairing in the product firmware (plan)
 
-Status: plan, 2026-11-14. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (pairing starts from the phone app).
+Status: local host/build candidate, 2026-11-18. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (phone admission), D-112 (recoverable pairing). Physical acceptance and independent review before merge remain open.
 
 ## What already exists
 
 The whole enrollment sequence exists and is host-tested. It was also run on two real boards through the USB evaluation target `heltec_v4_enrollment_candidate_eval`, where a PC relayed every message between the boards:
 
-1. `EnrollmentCandidateSession::start(role, group)` captures the admitted request and creates the board identity if absent (`EnrollmentIdentityStore::initialize`, real entropy). It also allocates a fresh session generation.
+1. `EnrollmentCandidateSession::start_pairing(role, group)` routes a saved decision into recovery; with no saved decision it captures the admitted request and creates the board identity if absent (`EnrollmentIdentityStore::initialize`, real entropy). It also allocates a fresh session generation.
 2. `export_candidate` and `receive_candidate` exchange public identities. A received identity is an untrusted candidate.
 3. The fingerprint review shows the board's own key, then the peer's key (all 64 hex digits). A 1-3 s press on each board confirms. `HeltecEnrollmentInputArbiter` already owns the BOOT button and the OLED for this.
 4. `finish_review` then:
@@ -15,10 +15,12 @@ The whole enrollment sequence exists and is host-tested. It was also run on two 
    - device-issued invitation;
    - handshake;
    - transcript confirmation;
-   - controls;
-   - `commit`.
+   - authenticated confirmation controls;
+   - durable Prepared receipts;
+   - exact local public commit;
+   - signed Committed receipts and peer-proof finish.
 
-The product target (`heltec_v4_bench`) already admits the phone's start-enrollment request (action 6) into `SelectedEnrollmentRequestOwner`, with a 5-minute window (D-110; 120 s under D-087) that is cancelled on disconnect. Nothing consumes the request yet.
+The product target (`heltec_v4_bench`) already admits the phone's start-enrollment request (action 6) into `SelectedEnrollmentRequestOwner`, with a 5-minute window (D-110; 120 s under D-087) that is cancelled on disconnect. The app-task board runtime consumes each exact admitted request once and rechecks its original link and deadline throughout the attempt.
 
 ## What R2a adds
 
@@ -27,7 +29,34 @@ The product target (`heltec_v4_bench`) already admits the phone's start-enrollme
 - **Product storage.** Product NVS namespaces for identity, journal, binding and boot, included in factory reset.
 - **Screen.** The OLED shows a pairing status line and the review pages.
 
-R3 (committed membership reported to the phone) and R4 (Packet-v1 DATA) follow.
+Protected phone results are the D-111 increment. Retained fresh-session Packet-v1 traffic is a separate candidate; recovered pairing never restores traffic keys.
+
+## Recoverable pairing decision (D-112)
+
+The dedicated double-bank completion journal records the exact transaction,
+verified peer identity, original role/group/generation/epoch and signed decisions.
+It stores no traffic keys. A locally Prepared vote survives disconnect, expiry and
+restart; a missing final radio copy cannot turn it into a clean refusal. A fresh
+phone request with the original Start/Join role and a new matching routing code
+runs a fresh-nonce recovery exchange for that saved transaction. The code does
+not replace the saved group or peer authority.
+
+Both Prepared decisions complete the exact public commit; an authenticated
+negative decision before a positive vote undoes the uncommitted pairing. When
+the peer is absent, an unresolved decision remains recoverable and cannot admit
+traffic or a fresh generation. A verified terminal negative receipt is archived
+per generation before cleanup so an older pending peer can still obtain it after
+a later attempt. Unknown transactions and malformed or conflicting stores fail
+closed. Initial descriptor/save and cleanup interruptions have an explicit
+negative-only recovery path; they never invent a positive vote.
+
+The target uses completion tuple namespace 11 (generation 0 for the current
+journal and 1..32 for signed terminal history), under the existing reset-covered
+`ot_pair`/`ot_state` store. Its worst-case budget is 2,364 NVS entries, below one
+eighth of the partition. The separately reviewed D-113 candidate also uses
+names 11..15: the two branches require one reconciled mapping, inventory, budget
+and compatibility policy before integration. Older firmware rejects the added
+inventory; restoring an image alone does not establish storage compatibility.
 
 ## Role and group (decided: D-085, option A)
 
@@ -57,7 +86,10 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - different hello intervals for the two roles (above);
    - the joiner holds each new frame 0.6 s and resends other frames every 2.3 s instead of 3 s;
    - neither board transmits until 0.5 s after it last heard the peer, so it never answers into the rest of the peer's burst (a simple stand-in for listen-before-talk).
-   The final exchange is A control 1, B control 1, A control 2, B control 2; the responder commits once its control 2 is accepted by its radio, the initiator once it receives it. A board produces its first control only with 15 s left and each later control only with 10 s left, measured to the earlier of its own 5-minute window, the original phone request (which can be admitted before the board starts), and its session's deadlines (its copy of the request, and the signed invitation's 180 s from the board's clock mark). While the attempt is running, a control frame goes to the radio only with time left for its answer: its first copy with at least 6.5 s left (room for that copy and one resend 3 s later; the radio may have refused offers for a while, so the first copy can go out long after the frame was made), a resend with at least 3 s (a lossless round trip takes about 1.4 s; a shorter floor let a late resend collide with the peer's held final reply). A running attempt ends as soon as transmit is no longer allowed (the saved region changed), instead of waiting out the hold: host sweeps found that no send floor makes a long hold plus a lost final reply safe. After a board has committed it still answers the peer's repeats during its short linger, without these limits. So a board that sends a control can still receive the answer it needs, and a board too late to finish fails before the other can commit: a late confirmation fails both boards instead of pairing one (host-tested timing cases; not a guarantee under every fault). In practice the second phone should start within a few minutes of the first, and each person should confirm well before the window ends. Known limits, tracked for a proper design (owner decision D-108): nothing confirms that the initiator received the responder's last control, so if every copy of it is lost the responder is paired and the initiator is not (I-059); and if the responder's save fails after that frame reached the radio, the initiator is paired and the responder is not (I-062). A frame already in the radio queue can still launch in the same poll that picks up a received frame (I-063). Listen-before-talk with the SX1262's channel activity detection (Semtech AN1200.48) is the standard way to avoid the collisions themselves; it is planned after the next board test (I-061).
+   The product uses version 2 completion frames. After both people confirm the exact transcript, authenticated controls precede the durable Prepared exchange. Each board commits the exact public write set only after both Prepared votes, then sends a signed Committed receipt. Finish requires a verified peer Committed receipt. The original 22-step version 1 script remains available to existing callers; it is not the product completion path.
+
+   The first final frame requires 15 s remaining and later final frames require 10 s at creation. Control, Prepared and Committed offers retain the 6.5 s first-copy and 3 s resend floors, including a refunded pre-launch copy. The first positive vote rechecks the signed invitation and original phone deadline after payload readback, immediately before the durable decision marker. No later live send can extend those deadlines. The outer request/attempt remains 300 s, the board-issued signed invitation 180 s, the hello limit 70 and other accepted sends 4. A queued frame's eventual launch-floor defect, I-073, is a separate inherited board-session prerequisite.
+
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
 5. Target composition in `heltec_v4_bench`, in steps:
    - 5a (done). `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.

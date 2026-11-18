@@ -1,5 +1,38 @@
 # OpenTrail Progress Log
 
+## 2026-11-18
+
+### OT-0005i Recover interrupted MeshTrail board pairing (D-112)
+
+The product pairing path now records the exact confirmed transaction and durable
+Prepared votes before public commit. Signed Committed receipts distinguish a
+local save from verified peer completion. A fresh, owner-admitted request recovers
+an interrupted decision in its original generation with fresh nonce-bound peer
+proof. It restores public records without restoring old traffic keys. Verified
+terminal negative history survives later attempts. Cleanup releases only the
+exact ended phone admission after the session and final-response linger finish.
+
+Real-session regressions pass 43 groups, including save failure, request
+withdrawal, all Prepared or Committed copies lost, late confirmation, restart,
+initial descriptor and cleanup interruptions, and torn membership installation.
+The exact membership suite passes 278 groups; completion journal and archive
+fault suites each pass 10. Independent source review found no unresolved findings
+after the recovery fixes. Existing deadlines, creation reserves, send floors,
+hello retries and other send limits remain in force. The final combined security,
+composition, target-build and documentation gates are recorded in the local task
+report at D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-3.md.
+Two fresh combined link-test builds each pass with zero warnings and produce
+the same 841,840-byte image. Both D-112-only target translation units also
+compile against the base companion semantics with zero warnings. The offline
+CMake target dependency correction makes a fresh RadioLib/SPI build work without
+component acquisition.
+
+This is a local host/build candidate on feat/d112-d111-pairing-completion from
+4b7e5d5. No devices, signing, publication, release or V1 score change. D-111 is the
+next local increment. Before a combined D-113 trial, reconcile its tuple names
+11..15 with completion namespace 11; older-image storage compatibility and the
+inherited I-073 launch-floor defect remain board-session prerequisites.
+
 ## 2026-11-17
 
 ### OT-0238c Speed up capture runner verification (I-027, I-048)

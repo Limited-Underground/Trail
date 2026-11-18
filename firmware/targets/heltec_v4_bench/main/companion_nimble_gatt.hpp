@@ -37,6 +37,8 @@ void invalidate_companion_configuration(bool revoke = false);
 [[nodiscard]] bool companion_pairing_request_snapshot(
     companion::SelectedEnrollmentRequest& request,
     companion::DeviceNameAuthority& authority);
+// Releases only the exact ended admission after app-task cleanup.
+void companion_pairing_request_complete(const companion::SelectedEnrollmentRequest&);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 [[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();

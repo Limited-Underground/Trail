@@ -24,7 +24,7 @@ private:
     explicit PreparedEnrollmentReceipt(EnrollmentCommitContext c):context_(c) {}
     EnrollmentCommitContext context_;
 };
-enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, active_committed, reconcile };
+enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, active_committed, reconcile, aborted };
 class EnrollmentCommitCoordinator final {
 public:
     explicit EnrollmentCommitCoordinator(persistence::PersistentStorage& storage):storage_(storage) {}
@@ -45,7 +45,10 @@ public:
                    current.generation>1 && prior.generation==current.generation-1 &&
                    slot==(current.generation-1)%2 &&
                    ((prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
-                    (prior.stage<3 && current.stage==prior.stage+1 && equal(current.context,prior.context)))) {
+                    (prior.stage==4 && current.stage==1 && current.context.session_generation>prior.context.session_generation &&
+                     current.context.operation!=prior.context.operation) ||
+                    (prior.stage<3 && (current.stage==prior.stage+1 || current.stage==4) &&
+                     equal(current.context,prior.context)))) {
                     record_=current; current_slot_=slot; restarted_=true; return true;
                 }
             }
@@ -57,7 +60,7 @@ public:
         if(!operation([&] {
             if(!initialized_ || !exact()) return refuse();
             result=empty_ ? EnrollmentJournalState::empty : record_.stage==3 ? EnrollmentJournalState::active_committed :
-                restarted_ ? EnrollmentJournalState::reconcile :
+                record_.stage==4 ? EnrollmentJournalState::aborted : restarted_ ? EnrollmentJournalState::reconcile :
                 record_.stage==1 ? EnrollmentJournalState::prepared : EnrollmentJournalState::activation_possible;
             return true;
         })) return EnrollmentJournalState::unavailable;
@@ -75,10 +78,12 @@ public:
         const auto bytes=enrollment_identity_signing_bytes(c.identities,binding.invitation());
         crypto_hash_sha256(c.evidence_digest.data(),bytes.data(),bytes.size());
         const bool ok=operation([&] {
-            if(!initialized_ || !exact() || !empty_ || !valid(c)) return refuse();
-            return commit({c,1,1});
+            if(!initialized_ || !exact() || !valid(c) || (!empty_ &&
+                (record_.stage!=4 || c.session_generation<=record_.context.session_generation ||
+                 c.operation==record_.context.operation))) return refuse();
+            return commit({c,empty_?1:record_.generation+1,1});
         });
-        if(ok) output=PreparedEnrollmentReceipt(c);
+        if(ok) { restarted_=false; output=PreparedEnrollmentReceipt(c); }
         return ok;
     }
     // Only proves the LOCAL intent was durably read back before a send. It is
@@ -105,6 +110,66 @@ public:
 private:
     friend class ProductEnrollmentActivation;
     friend class EnrollmentRecoveryOwner;
+    friend class EnrollmentCandidateSession;
+    bool complete_pairing_public(const EnrollmentCommitContext& context,
+                                 bool (*guard)(void*), void* guard_context) {
+        const bool ok = operation([&] {
+            if (!initialized_ || empty_ || !exact() || !equal(context, record_.context) || !guard) return false;
+            guard_ = guard;
+            guard_context_ = guard_context;
+            if (record_.stage == 3) return true;
+            if (record_.stage == 1 && !commit({context, record_.generation + 1, 2})) return false;
+            return record_.stage == 2 && commit({context, record_.generation + 1, 3});
+        });
+        guard_ = nullptr;
+        guard_context_ = nullptr;
+        return ok;
+    }
+    // Matching signed D-112 votes permit repairing a torn public-journal
+    // transition from its highest intact predecessor. This restores metadata
+    // only and retains the exact identities, invitation digest and generation.
+    bool initialize_pairing_recovery(const VerifiedIdentityBinding& binding, std::uint64_t generation) {
+        return operation([&] {
+            if (initialized_) return false;
+            initialized_ = true;
+            if (!snapshot(retained_)) return false;
+            Record selected{};
+            std::size_t selected_slot = 0;
+            bool found = false;
+            for (std::size_t slot=0; slot<2; ++slot) {
+                Record candidate{};
+                if (!decode(retained_[slot],committed,candidate) &&
+                    !decode(retained_[slot],transitioning,candidate)) continue;
+                if (!found || candidate.generation>selected.generation) {
+                    selected=candidate;selected_slot=slot;found=true;
+                }
+            }
+            if (!found) return false;
+            const auto fields=independent_invitation_detail::decode(binding.invitation());
+            const auto bytes=enrollment_identity_signing_bytes(binding.identities(),binding.invitation());
+            InvitationKey digest{};
+            crypto_hash_sha256(digest.data(),bytes.data(),bytes.size());
+            const auto& context=selected.context;
+            if (context.identities.initiator!=binding.identities().initiator ||
+                context.identities.responder!=binding.identities().responder ||
+                context.group!=fields.group || context.epoch!=fields.epoch ||
+                context.session_generation!=generation || context.evidence_digest!=digest) return false;
+            record_=selected;current_slot_=selected_slot;empty_=false;restarted_=true;
+            return true;
+        });
+    }
+    bool abort_pairing_public(const EnrollmentCommitContext& context,
+                              bool (*guard)(void*), void* guard_context) {
+        const bool ok=operation([&] {
+            if (!initialized_ || empty_ || !exact() || !equal(context,record_.context) ||
+                !guard || record_.stage==3 || record_.generation==std::numeric_limits<std::uint64_t>::max()) return false;
+            if (record_.stage==4) return true;
+            guard_=guard;guard_context_=guard_context;
+            return commit({context,record_.generation+1,4});
+        });
+        guard_=nullptr;guard_context_=nullptr;return ok;
+    }
+
     // Candidate recovery may inspect a complete durable stage without treating
     // restarted PREPARED/ACTIVATION_POSSIBLE as traffic authority.
     bool recovery_snapshot(EnrollmentCommitContext& context,std::uint8_t& stage) const {
@@ -239,7 +304,7 @@ private:
         r.context.session_generation=authority_detail::get(b.data()+76,8);
         std::memcpy(r.context.evidence_digest.data(),b.data()+84,32);
         std::memcpy(r.context.operation.data(),b.data()+116,16);
-        if(!r.generation || r.stage!=(r.generation-1)%3+1 || !valid(r.context) || in!=encode(r,marker)) return false;
+        if(!r.generation || r.stage<1 || r.stage>4 || !valid(r.context) || in!=encode(r,marker)) return false;
         output=r; return true;
     }
     bool write(std::size_t d,std::size_t s,std::size_t offset,const std::uint8_t* bytes,std::size_t size) {

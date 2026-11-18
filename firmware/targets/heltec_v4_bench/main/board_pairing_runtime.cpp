@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "heltec_enrollment_identity_owner.hpp"
+#include "opentrail/pairing_recovery_route.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -71,16 +72,16 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
                      storage_->external(PairingNvsStorage::Store::journal),
                      storage_->external(PairingNvsStorage::Store::binding), *storage_,
                      PairingNvsStorage::kCapacity, kClockDomain,
-                     &storage_->external(PairingNvsStorage::Store::boot));
+                     &storage_->external(PairingNvsStorage::Store::boot), nullptr,
+                     &storage_->external(PairingNvsStorage::Store::completion), &*storage_);
     // D-110: board pairing signs and expects the longer invitation window.
     if (!session_->set_invitation_window(security_evaluation::kBoardPairingInvitationWindowMs)) {
         ESP_LOGW(kTag, "start refused: invitation window");
         return false;
     }
     const bool initiator = phone.role == companion::CompanionEnrollmentRole::initiator;
-    // First enrollment only. If retained records from an earlier attempt exist,
-    // the session refuses; this owner never erases or retries them (review R2A-5).
-    if (!session_->start(initiator ? InvitationRole::initiator : InvitationRole::responder,
+    // Recover the saved transaction before admitting any fresh generation.
+    if (!session_->start_pairing(initiator ? InvitationRole::initiator : InvitationRole::responder,
                          phone.pairing_code)) {
         // I-055: name the exact check. 1 repeated, 2 no_request, 3 invalid_setup,
         // 4 retained_preflight, 5 journal_not_empty, 6 retained_records,
@@ -95,7 +96,10 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
     // The original phone request governs every tick; its deadline bounds the
     // final exchange too (review of I-057).
     adapter_.emplace(*session_, phone.deadline_ms);
-    coordinator_.emplace(*adapter_, initiator, phone.pairing_code);
+    protocol::pairing::Limits limits{};
+    limits.peer_confirmed_completion = true;
+    limits.recovery_completion = adapter_->recovery_mode();
+    coordinator_.emplace(*adapter_, initiator, phone.pairing_code, limits);
     return coordinator_->begin(now_ms);
 }
 
@@ -126,6 +130,7 @@ void BoardPairingRuntime::end(Phase result) {
     device_.reset();
     identity_.reset();
     if (request_.pending()) (void)request_.cancel_exact(request_.request());
+    if (have_phone_) companion_pairing_request_complete(phone_);
     if (phase_ != Phase::closed) phase_ = result;
 }
 
@@ -213,6 +218,32 @@ void BoardPairingRuntime::unsent() {
 void BoardPairingRuntime::on_receive(const std::uint8_t* data, std::size_t size) {
     if (busy_ || !active() || !coordinator_) return;
     busy_ = true;
+    protocol::pairing::Frame frame{};
+    if (protocol::pairing::decode(data, size, phone_.pairing_code, frame,
+                                 protocol::pairing::kCompletionVersion) == protocol::pairing::DecodeResult::ok) {
+        if (session_) {
+            const auto route = security_evaluation::route_pairing_archive_challenge(*session_, frame, [&] {
+                coordinator_.reset();
+                adapter_.reset();
+                adapter_.emplace(*session_, phone_.deadline_ms);
+                protocol::pairing::Limits limits{};
+                limits.peer_confirmed_completion = true;
+                limits.recovery_completion = true;
+                coordinator_.emplace(*adapter_,
+                    phone_.role == companion::CompanionEnrollmentRole::initiator, phone_.pairing_code, limits);
+                return coordinator_->begin(last_ms_);
+            });
+            if (route == security_evaluation::PairingArchiveRoute::ignored) {
+                busy_ = false;
+                return;
+            }
+            if (route == security_evaluation::PairingArchiveRoute::failed) {
+                end(Phase::failed);
+                busy_ = false;
+                return;
+            }
+        }
+    }
     coordinator_->on_receive(data, size);
     busy_ = false;
 }

@@ -13,10 +13,9 @@
 // frame; the person compares fingerprints and the transcript on each board and
 // presses the button (BOOT arbiter, which also preempts for factory reset).
 //
-// After local commit this owner keeps answering the peer's repeats for
-// kLingerMs (review R2A-1), so a lost final control frame can still be
-// recovered. Local "paired" means this board committed; it is not proof that
-// the other board did.
+// D-112 finishes only after durable peer proof, then answers repeats for
+// kLingerMs. Interrupted decisions recover in their saved transaction on a
+// fresh phone request. Terminal negative history remains available to peers.
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -36,8 +35,8 @@ public:
     enum class Phase : std::uint8_t {
         idle,         // no attempt
         running,      // exchanging frames or waiting for a press
-        paired,       // this board committed (peer not proven)
-        failed,       // attempt ended without pairing on this board
+        paired,       // durable local commit and verified peer commit
+        failed,       // attempt ended; durable pending/local state may remain
         closed,       // terminal (factory reset)
     };
     static constexpr std::uint64_t kLingerMs = 15000;

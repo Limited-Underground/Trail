@@ -841,6 +841,14 @@ bool companion_pairing_request_snapshot(
 #endif
 }
 
+void companion_pairing_request_complete(const SelectedEnrollmentRequest& request) {
+    GattLock lock;
+    if (!lock) return;
+    // Completion releases only its exact admission. The independently owned
+    // result survives; a stale completion cannot cancel a newer request.
+    (void)g_selected_enrollment_requests.cancel_exact(request);
+}
+
 bool companion_nimble_gatt_definition_self_check() {
     const auto info = decode_companion_authorization_protocol_info(
         {kAuthorizationProtocolInfo.data(), kAuthorizationProtocolInfo.size()});

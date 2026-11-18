@@ -111,6 +111,29 @@ void test_decode_refusals() {
     const std::uint8_t beacon[] = {'O', 'T', 'L', 'T', 1, 0, 0, 0, 1, 0, 0, 0, 1};
     EXPECT(decode(beacon, sizeof(beacon), 42, f) == DecodeResult::not_pairing);
 }
+void test_completion_wire_requires_explicit_version() {
+    for (const auto type : {FrameType::prepared, FrameType::committed,
+                            FrameType::recovery_challenge, FrameType::recovery_response}) {
+        const auto payload = payload_for(type);
+        FrameBuffer bytes{};
+        std::size_t size = 0;
+        EXPECT(!encode(type, 42, payload.data(), payload.size(), bytes, size));
+        EXPECT(encode(type, 42, payload.data(), payload.size(), bytes, size, kCompletionVersion));
+        EXPECT(size <= kMaxFrameBytes);
+        Frame frame{};
+        EXPECT(decode(bytes.data(), size, 42, frame) == DecodeResult::bad_version);
+        EXPECT(decode(bytes.data(), size, 42, frame, kCompletionVersion) == DecodeResult::ok);
+        EXPECT(frame.type == type && frame.size == payload.size());
+        EXPECT(decode(bytes.data(), size - 1, 42, frame, kCompletionVersion) == DecodeResult::bad_size);
+        EXPECT(decode(bytes.data(), size, 43, frame, kCompletionVersion) == DecodeResult::other_attempt);
+    }
+    const auto candidate = payload_for(FrameType::candidate);
+    FrameBuffer bytes{};
+    std::size_t size = 0;
+    Frame frame{};
+    EXPECT(encode(FrameType::candidate, 42, candidate.data(), candidate.size(), bytes, size));
+    EXPECT(decode(bytes.data(), size, 42, frame, kCompletionVersion) == DecodeResult::bad_version);
+}
 }  // namespace
 
 int main() {
@@ -118,10 +141,11 @@ int main() {
     test_every_type_fits_the_radio();
     test_encode_refusals();
     test_decode_refusals();
+    test_completion_wire_requires_explicit_version();
     if (failures != 0) {
         std::cerr << failures << " pairing frame check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 4 pairing frame scenario groups\n";
+    std::cout << "PASS: 5 pairing frame scenario groups\n";
     return EXIT_SUCCESS;
 }

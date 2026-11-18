@@ -33,7 +33,7 @@ std::size_t old_index(const char* k) {
 int main() {
     unsigned groups = 0;
     const auto size = key::table_size(kCapacity);
-    CHECK(size == 33u * 11u * 5u * 2u);
+    CHECK(size == 33u * 12u * 5u * 2u);
     // Every key the storage can write maps to its own slot inside the table.
     {
         std::set<std::size_t> seen;
@@ -41,7 +41,7 @@ int main() {
             for (unsigned n = 0; n < key::kNamespaces; ++n)
                 for (unsigned d = 0; d < key::kDomains; ++d)
                     for (unsigned s = 0; s < key::kSlots; ++s) {
-                        if (n >= 7 && g) continue;  // generation 0 only
+                        if (n >= 7 && n != 11 && g) continue;  // generation 0 only
                         char k[16]{};
                         make(g, n, d, s, k);
                         const auto i = key::slot(k, kCapacity);
@@ -71,14 +71,14 @@ int main() {
         char k[16]{};
         char f[16]{};
         CHECK(!key::format(kCapacity + 1, 0, 0, 0, kCapacity, f));
-        CHECK(!key::format(1, 11, 0, 0, kCapacity, f));
+        CHECK(!key::format(0, 12, 0, 0, kCapacity, f));
         CHECK(!key::format(1, 7, 0, 0, kCapacity, f));  // namespaces 7-10: generation 0 only
         CHECK(!key::format(1, 0, 5, 0, kCapacity, f));
         CHECK(!key::format(1, 0, 0, 2, kCapacity, f));
         CHECK(key::format(0, 10, 4, 1, kCapacity, f));
         raw(kCapacity + 1, 0, 0, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
-        raw(1, 11, 0, 0, k);
+        raw(0, 12, 0, 0, k);
         CHECK(key::slot(k, kCapacity) == size);
         raw(1, 7, 0, 0, k);  // namespaces 7-10: generation 0 only, as format() writes
         CHECK(key::slot(k, kCapacity) == size);
@@ -91,6 +91,24 @@ int main() {
             char buf[16]{};
             for (int i = 0; i < 15 && b[i]; ++i) buf[i] = b[i];
             CHECK(key::slot(buf, kCapacity) == size);
+        }
+        ++groups;
+    }
+    // D-112 current completion uses generation zero; immutable decision archives
+    // use the same namespace in each reserved nonzero generation.
+    {
+        for (unsigned d = 0; d < key::kDomains; ++d) {
+            for (unsigned s = 0; s < key::kSlots; ++s) {
+                key::Key completion{}, boot{};
+                make(0, 11, d, s, completion);
+                make(0, 10, d, s, boot);
+                CHECK(key::slot(completion, kCapacity) != key::slot(boot, kCapacity));
+                key::Key archive{};
+                make(1, 11, d, s, archive);
+                CHECK(key::slot(archive, kCapacity) != key::slot(completion, kCapacity));
+                raw(kCapacity + 1, 11, d, s, archive);
+                CHECK(key::slot(archive, kCapacity) == size);
+            }
         }
         ++groups;
     }

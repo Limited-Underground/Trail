@@ -9,6 +9,7 @@
 #include "opentrail/enrollment_preparation_owner.hpp"
 #include "opentrail/enrollment_evidence_store.hpp"
 #include "opentrail/enrollment_binding_store.hpp"
+#include "opentrail/pairing_completion_journal.hpp"
 
 namespace opentrail::companion { class CommittedEnrollmentAuthority; }
 namespace opentrail::security_evaluation {
@@ -48,6 +49,17 @@ public:
                    !binding_store_.read(invitation,prior_) || !membership_.read(member) ||
                    member.state!=MembershipState::active || member.binding!=prior_context_.evidence_digest)return false;
                 prior_member_generation_=member.generation;
+            } else if (state==EnrollmentJournalState::aborted) {
+                EnrollmentCommitContext context{};
+                IndependentInvitation invitation{};
+                std::optional<VerifiedIdentityBinding> binding;
+                if (!membership_.empty() || !journal_.read_public(context) || !evidence_.read(invitation) ||
+                    !binding_store_.read(invitation,binding) || !binding) return false;
+                const auto bytes=enrollment_identity_signing_bytes(binding->identities(),invitation);
+                InvitationKey digest{};
+                crypto_hash_sha256(digest.data(),bytes.data(),bytes.size());
+                if (digest!=context.evidence_digest || binding->identities().initiator!=context.identities.initiator ||
+                    binding->identities().responder!=context.identities.responder) return false;
             } else return false;
             if(!endpoint_.prepare_identity())return false;
             prepared_=true; return true;
@@ -240,6 +252,60 @@ public:
     }
     bool secrets_cleared() const { return endpoint_.secrets_cleared(); }
 private:
+    friend class EnrollmentCandidateSession;
+    bool stage_pairing(PairingCompletionRecord& record) {
+        return operation([&] {
+            if (!binding_ || !receipt_ || !confirmation_ || !displayed_ ||
+                !evidence_.replace(binding_->invitation()) || !binding_store_.replace(*binding_)) return false;
+            record.transcript = confirmation_->transcript();
+            record.peer = role_ == InvitationRole::initiator ? binding_->identities().responder :
+                                                              binding_->identities().initiator;
+            record.group = receipt_->context().group;
+            record.epoch = receipt_->context().epoch;
+            record.generation = generation_;
+            record.role = role_;
+            record.phase = PairingCompletionPhase::confirmed;
+            return true;
+        });
+    }
+    bool pairing_confirmed() {
+        return operation([&] {
+            return receipt_ && intent_ && journal_.state() == EnrollmentJournalState::activation_possible &&
+                   endpoint_.pairing_confirmed();
+        });
+    }
+    bool commit_pairing(PairingCompletionJournal& completion) {
+        return operation([&] {
+            PairingCompletionRecord record{};
+            if (!receipt_ || !binding_ || !completion.load(record) ||
+                !completion.locally_prepared() || !completion.has_peer_prepared() ||
+                record.generation != generation_ || record.group != receipt_->context().group ||
+                record.epoch != receipt_->context().epoch ||
+                !endpoint_.pairing_confirmed() || !completion.mark_completing(&pairing_guard, this)) return false;
+            PeerMembership member{};
+            if (membership_.empty()) {
+                if (!membership_.enroll(receipt_->context().evidence_digest)) return false;
+            } else if (!membership_.read(member) || member.state != MembershipState::active ||
+                       member.binding != receipt_->context().evidence_digest) return false;
+            if (!retained_exact() || !journal_.mark_active_committed(*receipt_, &pairing_guard, this) ||
+                !retained_exact() || !completion.mark_committed(&pairing_guard, this)) return false;
+            committed_ = true;
+            return true;
+        });
+    }
+    bool finish_pairing(PairingCompletionJournal& completion) {
+        return operation([&] {
+            if (!committed_ || !completion.has_peer_committed() ||
+                !completion.mark_peer_confirmed(&pairing_guard, this) ||
+                !retained_exact() || !endpoint_.admit_completed_pairing()) return false;
+            return true;
+        });
+    }
+    static bool pairing_guard(void* context) {
+        auto& self = *static_cast<ProductEnrollmentActivation*>(context);
+        return !self.reentered_ && self.lifecycle_current() && self.source_ &&
+               self.source_->active_generation_current() && !self.reentered_;
+    }
  friend class opentrail::companion::CommittedEnrollmentAuthority;
     bool observed_clock(ConfirmationSample& output) const {
         return endpoint_.observed_clock(output);

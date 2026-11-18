@@ -78,6 +78,55 @@ public:
     bool failed() const { return failed_; }
 
 private:
+    friend class EnrollmentCandidateSession;
+    // Only the D-112 session, after authenticating both durable Prepared votes,
+    // may reconstruct this exact first public membership. No traffic authority
+    // is restored, and existing membership/revocation history is never recycled.
+    bool initialize_pairing_recovery(const InvitationKey& binding,
+                                     bool (*guard)(void*), void* context) {
+        if (!guard || initialized_ || busy_ || reentered_) return refuse();
+        const InvitationKey candidate = binding;
+        guard_ = guard;
+        guard_context_ = context;
+        const bool ok = operation([&] {
+            initialized_ = true;
+            if (!invitation_detail::nonzero(candidate) || !snapshot(retained_) ||
+                !blank(retained_[1])) return refuse();
+            const PeerMembership next{candidate, 1, MembershipState::active};
+            const auto bytes = encode(next, committed);
+            if (retained_[0] != bytes) {
+                // A torn initial body may only contain expected bytes or erased
+                // bytes. The marker must be a prefix of its first installation.
+                bool canonical_marker = false;
+                for (unsigned prefix = 0; prefix < 4; ++prefix) {
+                    bool matches = true;
+                    for (unsigned i = 0; i < 4; ++i)
+                        matches = matches && retained_[0][60 + i] ==
+                            (i < prefix ? bytes[60 + i] : 0xff);
+                    canonical_marker = canonical_marker || matches;
+                }
+                if (!canonical_marker) return refuse();
+                for (unsigned i = 0; i < 60; ++i)
+                    if (retained_[0][i] != 0xff && retained_[0][i] != bytes[i]) return refuse();
+                // A marker prefix follows a fully synchronized body.
+                if (retained_[0][60] != 0xff &&
+                    std::memcmp(retained_[0].data(), bytes.data(), 60) != 0) return refuse();
+                auto expected = retained_;
+                std::memcpy(expected[0].data(), bytes.data(), 60);
+                if (!write(0, 0, bytes.data(), 60) || !sync(0) || !verify(expected)) return refuse();
+                expected[0] = bytes;
+                if (!write(0, 60, bytes.data() + 60, 4) || !sync(0) || !verify(expected)) return refuse();
+                retained_ = expected;
+            }
+            member_ = next;
+            current_slot_ = 0;
+            empty_ = false;
+            return live();
+        });
+        guard_ = nullptr;
+        guard_context_ = nullptr;
+        return ok;
+    }
     static constexpr std::uint32_t committed = 0x2381CA17U;
     static constexpr std::uint32_t transitioning = 0x2381CA16U;
     static_assert((committed & transitioning) == transitioning);
@@ -91,7 +140,7 @@ private:
         busy_ = false;
         return result && !failed_ && !reentered_;
     }
-    bool live() const { return !failed_ && !reentered_; }
+    bool live() const { return !failed_ && !reentered_ && (!guard_ || guard_(guard_context_)) && !failed_ && !reentered_; }
     bool refuse() const { failed_ = true; return false; }
     bool snapshot(authority_detail::Snapshot& output) const {
         for (std::size_t slot = 0; slot < 2; ++slot) {
@@ -186,5 +235,7 @@ private:
     std::size_t current_slot_{0};
     bool initialized_{false}, empty_{false};
     mutable bool failed_{false}, busy_{false}, reentered_{false};
+    bool (*guard_)(void*){};
+    void* guard_context_{};
 };
 } // namespace opentrail::security_evaluation

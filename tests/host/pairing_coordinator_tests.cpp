@@ -39,8 +39,8 @@ struct FakeSession {
     int confirm_ticks{2};
     std::uint64_t review_at_ms{0}, confirm_at_ms{0};  // optional absolute times for phased polls
     bool refuse_consume{false};
-    int produced[11]{};
-    int consumed[11]{};
+    int produced[15]{};
+    int consumed[15]{};
     std::vector<int> log;  // positive: produced type, negative: consumed type
     int review_waited{0}, confirm_waited{0};
     bool committed{false};
@@ -1010,6 +1010,67 @@ void test_refunded_control_obeys_the_paired_send_floor() {
     }
 }
 
+// D-112 Prepared and Committed copies obey the original exact send floors.
+void test_completion_tail_offer_floors(bool refunded) {
+    for (const auto target : {FrameType::prepared, FrameType::committed}) {
+        for (const bool resend : {false, true}) {
+            for (const bool enough : {false, true}) {
+                FakeSession a{1, 2}, b{2, 1};
+                Limits limits{};
+                limits.peer_confirmed_completion = true;
+                limits.quiet_after_rx_ms = 0;
+                limits.responder_turn_delay_ms = 0;
+                PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+                PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+                EXPECT(ca.begin(0) && cb.begin(0));
+                unsigned accepted = 0;
+                bool checked = false;
+                for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+                    FrameBuffer out{};
+                    std::size_t size = 0;
+                    if (ca.service(now, out, size)) {
+                        if (Run::frame_type(out) != target) {
+                            ca.sent(true, now);
+                            cb.on_receive(out.data(), size);
+                        } else if (refunded) {
+                            ca.sent(true, now);
+                            if (++accepted == (resend ? 2U : 1U)) {
+                                EXPECT(ca.unsent());
+                                const auto retry_at = now + 100;
+                                const auto floor = resend ? limits.final_send_floor_ms :
+                                                            limits.final_first_send_floor_ms;
+                                a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                                FrameBuffer retry{};
+                                std::size_t retry_size = 0;
+                                EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                                EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                                checked = true;
+                            }
+                        } else {
+                            ca.sent(resend, now);
+                            const auto retry_at = now + (resend ? limits.resend_after_ms : 100);
+                            const auto floor = resend ? limits.final_send_floor_ms :
+                                                        limits.final_first_send_floor_ms;
+                            a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                            FrameBuffer retry{};
+                            std::size_t retry_size = 0;
+                            EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                            EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                            checked = true;
+                        }
+                        // Lose every accepted target copy so a repeat is eligible.
+                    }
+                    if (!checked && cb.service(now, out, size)) {
+                        cb.sent(true, now);
+                        ca.on_receive(out.data(), size);
+                    }
+                }
+                EXPECT(checked);
+            }
+        }
+    }
+}
+
 void test_cad_drop_can_spend_the_last_pairing_copy() {
     struct Target {
         const char* name;
@@ -1168,6 +1229,8 @@ int main() {
     test_unsent_invalidates_an_offer_made_before_the_drop();
     test_refunded_control_obeys_the_running_send_floor();
     test_refunded_control_obeys_the_paired_send_floor();
+    test_completion_tail_offer_floors(false);
+    test_completion_tail_offer_floors(true);
     test_cad_drop_can_spend_the_last_pairing_copy();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
@@ -1181,6 +1244,6 @@ int main() {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 23 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 25 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

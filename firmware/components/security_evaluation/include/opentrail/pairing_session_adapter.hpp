@@ -125,9 +125,13 @@ public:
     // can start after the phone request was admitted, so the session's own copy
     // of the request ends later). 0: none beyond the session's.
     explicit PairingSessionAdapter(EnrollmentCandidateSession& session, std::uint64_t outer_deadline_ms = 0)
-        : session_(session), outer_deadline_ms_(outer_deadline_ms) {}
+        : session_(session), outer_deadline_ms_(outer_deadline_ms) {
+        session_.set_pairing_outer_deadline(outer_deadline_ms);
+    }
     PairingSessionAdapter(const PairingSessionAdapter&) = delete;
     PairingSessionAdapter& operator=(const PairingSessionAdapter&) = delete;
+
+    bool recovery_mode() const { return session_.pairing_recovery(); }
 
     bool produce(FrameType t, std::uint8_t* out) {
         using namespace pairing_codec;
@@ -170,6 +174,26 @@ public:
             case FrameType::control: {
                 EvaluationRecord v{};
                 return session_.next_control(v) && fits(t, put(out, v));
+            }
+            case FrameType::prepared:
+            case FrameType::committed: {
+                PairingCompletionReceipt receipt{};
+                const auto kind = t == FrameType::prepared ? PairingCompletionKind::prepared : PairingCompletionKind::committed;
+                if (!session_.export_pairing_receipt(kind, receipt)) return false;
+                copy(receipt, out);
+                return true;
+            }
+            case FrameType::recovery_challenge: {
+                std::array<std::uint8_t,48> challenge{};
+                if (!session_.export_pairing_challenge(challenge)) return false;
+                copy(challenge, out);
+                return true;
+            }
+            case FrameType::recovery_response: {
+                std::array<std::uint8_t,164> response{};
+                if (!session_.export_pairing_recovery_response(response)) return false;
+                copy(response, out);
+                return true;
             }
             case FrameType::status:
                 return false;  // not used during pairing
@@ -220,6 +244,23 @@ public:
                 EvaluationRecord v{};
                 return fits(t, get(in, v)) && session_.receive_control(v);
             }
+            case FrameType::prepared:
+            case FrameType::committed: {
+                PairingCompletionReceipt receipt{};
+                copy(in, receipt);
+                const auto expected = t == FrameType::prepared ? PairingCompletionKind::prepared : PairingCompletionKind::committed;
+                return receipt[1] == static_cast<std::uint8_t>(expected) && session_.receive_pairing_receipt(receipt);
+            }
+            case FrameType::recovery_challenge: {
+                std::array<std::uint8_t,48> challenge{};
+                copy(in, challenge);
+                return session_.receive_pairing_challenge(challenge);
+            }
+            case FrameType::recovery_response: {
+                std::array<std::uint8_t,164> response{};
+                copy(in, response);
+                return session_.receive_pairing_recovery_response(response);
+            }
             case FrameType::status:
                 return false;
         }
@@ -229,6 +270,10 @@ public:
     LocalResult local(LocalStep step, std::uint64_t /*now_ms*/) {
         if (step == LocalStep::review) return review();
         if (step == LocalStep::confirm) return confirm();
+        if (session_.recoverable_pairing()) {
+            const bool done = step == LocalStep::finish ? session_.finish_pairing() : session_.commit_pairing();
+            return done ? LocalResult::done : LocalResult::failed;
+        }
         return session_.commit() && session_.ready() ? LocalResult::done : LocalResult::failed;
     }
 
@@ -287,7 +332,10 @@ private:
 
     LocalResult confirm() {
         const auto r = observe(EnrollmentReviewPurpose::code, 3, Prompt::transcript, code_started_, code_confirmed_);
-        if (r == LocalResult::done) prompt_ = Prompt::none;
+        if (r == LocalResult::done) {
+            prompt_ = Prompt::none;
+            if (!session_.stage_pairing_record()) return LocalResult::failed;
+        }
         return r;
     }
 

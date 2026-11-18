@@ -9,11 +9,13 @@
 // The storage logic follows the board-tested enrollment evaluation storage
 // (heltec_v4_enrollment_candidate_eval/main/candidate_nvs_storage.hpp): sparse
 // 64-byte tuples keyed by generation/namespace/domain/slot, one staged mutation
-// committed and read back, an inventory check on open, and the same 204-entry
+// committed and read back, an inventory check on open, and the bounded NVS-entry
 // ceiling for the pairing records. One serialized owner owns every tuple.
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include "opentrail/pairing_completion_archive.hpp"
 
 #include "nvs.h"
 #include "esp_partition.h"
@@ -24,7 +26,8 @@
 
 namespace opentrail::target::heltec_v4_bench {
 
-class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend {
+class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend,
+                              public security_evaluation::PairingCompletionArchive {
 public:
     // I-066 diagnostics: slot reads served from RAM, and reads that reached NVS.
     // Counted since the last reset_read_stats() (each pairing attempt): slot reads
@@ -47,7 +50,7 @@ public:
     using Namespace = security_evaluation::EvaluationNamespace;
     using Domain = persistence::StorageDomain;
     using Error = persistence::StorageError;
-    enum class Store : unsigned { identity = 7, journal, binding, boot };
+    enum class Store : unsigned { identity = 7, journal, binding, boot, completion = 11 };
     // I-055: every pairing attempt, even a failed or interrupted one, permanently
     // consumes one session generation. Capacity 2 blocked both bench boards after
     // two attempts. 32 allows routine retries; a factory reset restores it.
@@ -58,11 +61,11 @@ public:
     static constexpr std::uint32_t kPartitionBytes = 0x100000;
     // 256 pages x 126 entries in ot_state.
     static constexpr std::size_t kTotalEntries = 256 * 126;
-    // Worst case for the pairing records: 37 fixed slots plus 7 per generation,
-    // 4 NVS entries per 64-byte slot (F5-R2 plan budget). 1,044 at capacity 32,
-    // about 3% of ot_state.
-    static constexpr std::size_t kPairingEntries = (37 + 7 * kCapacity) * 4;
-    static_assert(kPairingEntries == 1044 && kPairingEntries < kTotalEntries / 8);
+    // Worst case for the pairing records: 47 fixed slots plus 17 per generation,
+    // 4 NVS entries per 64-byte slot (F5-R2 plan budget). 2,364 at capacity 32,
+    // about 7.3% of ot_state, below one eighth.
+    static constexpr std::size_t kPairingEntries = (47 + 17 * kCapacity) * 4;
+    static_assert(kPairingEntries == 2364 && kPairingEntries < kTotalEntries / 8);
 
     PairingNvsStorage();
     ~PairingNvsStorage() override;
@@ -75,6 +78,13 @@ public:
     persistence::PersistentStorage& external(Store store) {
         return views_[static_cast<unsigned>(store) - 7];
     }
+    persistence::PersistentStorage* archive_storage(std::uint64_t generation) override {
+        if (!good_ || generation == 0 || generation > kCapacity) return nullptr;
+        auto& view = archive_views_[static_cast<std::size_t>(generation - 1)];
+        if (!view) view.emplace(*this, Store::completion, generation);
+        return &*view;
+    }
+    std::uint64_t archive_capacity() const override { return kCapacity; }
     bool budget_ok();
     // Closes the handle and unmounts the NVS instance. Terminal.
     void retire();
@@ -89,23 +99,25 @@ public:
 private:
     class View final : public persistence::PersistentStorage {
     public:
-        View(PairingNvsStorage& owner, Store store) : owner_(owner), store_(store) {}
+        View(PairingNvsStorage& owner, Store store, std::uint64_t generation = 0)
+            : owner_(owner), store_(store), generation_(generation) {}
         persistence::StorageReadResult read_slot(Domain d, std::size_t s,
                                                  persistence::MutableStorageByteView out) override {
-            return owner_.read_tuple(0, static_cast<unsigned>(store_), d, s, out);
+            return owner_.read_tuple(generation_, static_cast<unsigned>(store_), d, s, out);
         }
         Error erase_slot(Domain d, std::size_t s) override {
-            return owner_.erase_tuple(0, static_cast<unsigned>(store_), d, s);
+            return owner_.erase_tuple(generation_, static_cast<unsigned>(store_), d, s);
         }
         Error write_slot(Domain d, std::size_t s, std::size_t o, persistence::StorageByteView in) override {
-            return owner_.write_tuple(0, static_cast<unsigned>(store_), d, s, o, in);
+            return owner_.write_tuple(generation_, static_cast<unsigned>(store_), d, s, o, in);
         }
         Error sync_slot(Domain d, std::size_t s) override {
-            return owner_.sync_tuple(0, static_cast<unsigned>(store_), d, s);
+            return owner_.sync_tuple(generation_, static_cast<unsigned>(store_), d, s);
         }
     private:
         PairingNvsStorage& owner_;
         Store store_;
+        std::uint64_t generation_;
     };
     using Bytes = std::array<std::uint8_t, persistence::kPersistentSlotBytes>;
 
@@ -134,7 +146,8 @@ private:
     std::uint64_t nvs_read_us_{0}, budget_us_{0};
     std::array<char, 16> pending_key_{};
     Bytes pending_bytes_{};
-    std::array<View, 4> views_;
+    std::array<View, 5> views_;
+    std::array<std::optional<View>, kCapacity> archive_views_;
     // One entry per possible key for generations 0..kCapacity, plus a guard slot.
     std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
 };
