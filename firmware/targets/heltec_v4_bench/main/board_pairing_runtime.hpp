@@ -56,6 +56,8 @@ public:
     // Whether the radio accepted the frame the last service() offered.
     void sent(bool accepted, std::uint64_t now_ms);
     void unsent();
+    // The last accepted copy is still owned by the radio queue, before launch.
+    bool queued_launch_allowed(std::uint64_t now_ms);
     // Received LoRa bytes. Non-pairing traffic is ignored by the coordinator.
     void on_receive(const std::uint8_t* data, std::size_t size);
     // The radio stopped: an attempt in progress ends.

@@ -3656,6 +3656,41 @@ def test_pairing_result_protected_route():
             "production next-contact recovery must use the durable store and exact archived-transaction route")
 
 
+
+def test_pairing_queued_launch_behavior():
+    app = SOURCE.read_text(encoding="utf-8")
+    grant = app[app.index("bool lora_transmit_permitted("):app.index("\n}\n", app.index("bool lora_transmit_permitted(")) + 2]
+    require(grant.index("link_test::transmit_allowed(") < grant.index("queued_launch_allowed(") and
+            "if (!g_pairing_frame_queued) return true;" in grant and
+            "esp_timer_get_time() / 1000" in grant,
+            "every queued pairing launch must retain region permission and sample a fresh clock")
+    require(app.count("bool g_pairing_frame_queued = false;") == 1 and
+            "if (accepted) g_pairing_frame_queued = true;" in app and
+            "if (pairing_dropped) g_board_pairing.unsent();" in app,
+            "the app task must tag exact queue ownership and refund only a prelaunch drop")
+    pairing = (TARGET / "main/board_pairing_runtime.cpp").read_text(encoding="utf-8")
+    start = pairing.index("bool BoardPairingRuntime::queued_launch_allowed(")
+    guard = pairing[start:pairing.index("\n}\n", start) + 2]
+    require("busy_ || !active() || !coordinator_" in guard and
+            "current().phase != companion::DeviceNamePhase::connected" in guard and
+            guard.index("current().phase") < guard.index("esp_timer_get_time() / 1000") and
+            "fresh_ms < now_ms || fresh_ms < last_ms_" in guard and
+            "fresh_ms >= linger_until_ms_" in guard and
+            "coordinator_->queued_launch_allowed(fresh_ms)" in guard,
+            "runtime must validate the original request and use a post-authority clock sample")
+    # Exercise the actual app callback and real transport/coordinator; SDK/chip
+    # and session I/O remain simulated. Keep each run's complete command log.
+    import importlib.util
+    import time
+    spec = importlib.util.spec_from_file_location(
+        "heltec_v4_pairing_launch_tests", ROOT / "tests/host/heltec_v4_pairing_launch_tests.py")
+    require(spec is not None and spec.loader is not None, "launch regression loader missing")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    result = module.run(ROOT / "build" / "i073-bench-admission-launch" / str(time.time_ns()))
+    require(result["result"] == "PASS", f"actual queued-launch path failed: {result['output_root']}")
+
+
 def main() -> int:
     tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3671,7 +3706,8 @@ def main() -> int:
              test_automatic_termination_acceptance_surface,
              test_factory_reset_surfaces, test_secure_random_surface,
              test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
-             test_selected_enrollment_request_route, test_pairing_result_protected_route)
+             test_selected_enrollment_request_route, test_pairing_result_protected_route,
+             test_pairing_queued_launch_behavior)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

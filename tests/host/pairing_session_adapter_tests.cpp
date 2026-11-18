@@ -178,6 +178,7 @@ struct Result {
     unsigned frames_a{}, frames_b{}, presses_a{}, presses_b{};
     unsigned prepared_a{}, prepared_b{}, committed_a{}, committed_b{};
     bool ready_a{}, ready_b{}, fault_fired{};
+    std::array<std::array<unsigned, 15>, 2> launch_checks{};
     PairingCompletionSnapshot completion_a{}, completion_b{};
 };
 
@@ -203,7 +204,7 @@ auto persistent_bytes(const StoragePort& storage) {
 
 Result drive(Board& a, Board& b, int drop_a = -1, int drop_b = -1,
              std::uint32_t code_b = 123456, TailFault fault = TailFault::none,
-             Limits limits = {}) {
+             Limits limits = {}, bool check_launch = false) {
     if (!limits.recovery_completion) limits.peer_confirmed_completion = true;
     PairingCoordinator<PairingSessionAdapter> ca(*a.adapter, true, 123456, limits);
     PairingCoordinator<PairingSessionAdapter> cb(*b.adapter, false, code_b, limits);
@@ -275,11 +276,23 @@ Result drive(Board& a, Board& b, int drop_a = -1, int drop_b = -1,
         if (ca.service(t, buf, n) && n) {
             const bool accepted = queued[0].size == 0;
             ca.sent(accepted, t);
+            if (accepted && check_launch) {
+                // The same fresh test clock reaches the actual coordinator and
+                // real session adapter immediately before simulated RF delivery.
+                CHECK(ca.queued_launch_allowed(t));
+                ++r.launch_checks[0][static_cast<unsigned>(buf[2] & 0x0f)];
+            }
             if (accepted) accept(true, buf, n, t);
         }
         if (cb.service(t, buf, n) && n) {
             const bool accepted = queued[1].size == 0;
             cb.sent(accepted, t);
+            if (accepted && check_launch) {
+                // The same fresh test clock reaches the actual coordinator and
+                // real session adapter immediately before simulated RF delivery.
+                CHECK(cb.queued_launch_allowed(t));
+                ++r.launch_checks[1][static_cast<unsigned>(buf[2] & 0x0f)];
+            }
             if (accepted) accept(false, buf, n, t);
         }
         // Capture the real success predicate at publication time. Waiting for
@@ -684,6 +697,26 @@ unsigned test_recovery_freshness() {
     }
     return groups;
 }
+unsigned test_real_session_queued_launch_gates() {
+    using opentrail::protocol::pairing::FrameType;
+    Board a(InvitationRole::initiator, 1, 100), b(InvitationRole::responder, 81, 50100);
+    const auto r = drive(a, b, -1, -1, 123456, TailFault::none, Limits{}, true);
+    CHECK(r.a == Outcome::paired && r.b == Outcome::paired);
+    CHECK(r.ready_a && r.ready_b && r.presses_a == 3 && r.presses_b == 3);
+    CHECK(r.completion_a.phase == PairingCompletionPhase::peer_confirmed &&
+          r.completion_b.phase == PairingCompletionPhase::peer_confirmed);
+    for (unsigned side = 0; side < 2; ++side) {
+        unsigned queried = 0;
+        for (const auto count : r.launch_checks[side]) queried += count;
+        CHECK(queried == (side == 0 ? r.frames_a : r.frames_b));
+        for (const auto type : {FrameType::candidate, FrameType::control,
+                                FrameType::prepared, FrameType::committed}) {
+            CHECK(r.launch_checks[side][static_cast<unsigned>(type)] > 0);
+        }
+    }
+    return 1;
+}
+
 unsigned test_failed_recovery_does_not_publish_saved_result() {
     using State = opentrail::companion::CompanionPairingState;
     using Reason = opentrail::companion::CompanionPairingReason;
@@ -735,6 +768,11 @@ int main(int argc, char** argv) {
             if (name == "vote-deadline") count = pairing_adapter_test::test_vote_deadline_reservation();
             if (name == "journal-mismatch") count = pairing_adapter_test::test_recovery_rejects_other_transaction_journal();
             if (name == "pending-entrypoints") count = pairing_adapter_test::test_pending_pairing_blocks_retained_entrypoints();
+            std::cout << "PASS " << count << " pairing session adapter groups\n";
+            return 0;
+        }
+        if (name == "launch-gate") {
+            const auto count = pairing_adapter_test::test_real_session_queued_launch_gates();
             std::cout << "PASS " << count << " pairing session adapter groups\n";
             return 0;
         }
@@ -862,6 +900,7 @@ int main(int argc, char** argv) {
     groups += test_recovery_rejects_other_transaction_journal();
     groups += test_pending_pairing_blocks_retained_entrypoints();
     groups += test_failed_recovery_does_not_publish_saved_result();
+    groups += test_real_session_queued_launch_gates();
     std::cout << "PASS " << groups << " pairing session adapter groups\n";
     return 0;
 }

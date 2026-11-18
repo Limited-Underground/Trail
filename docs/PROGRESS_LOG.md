@@ -2,6 +2,39 @@
 
 ## 2026-11-18
 
+### OT-0005i Recheck queued pairing copies at transmit (I-073)
+
+A pairing frame accepted at its floor could age in the queue or CAD and launch
+below that floor. The coordinator now retains the exact accepted copy's original
+budget and pre-increment first/resend floor. The existing pre/post-CAD region
+grant also checks pairing eligibility with a fresh monotonic sample. The runtime
+revalidates the original phone authority and samples again after its lookup.
+A provably unlaunched drop returns one send reservation; uncertain TX-start
+failure never does. D-106, D-107 and the 15/10 s creation reserves are unchanged.
+
+Tests-first evidence records all 32 named coordinator delay cases failing, then
+passing. The actual baseline app callback launches below the floor in all 64
+negative composed cases; its 64 equality cases pass. The corrected composed
+bench path passes 132 cases, and genuine-session validation passes 45 groups
+with every accepted copy checked before delivery. Bench admission passes 22.
+The requested full offline matrix, two fresh warning-free matching builds and
+documentation gate details are recorded in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-4.md.
+
+The only other product queue producer is the diagnostic beacon; it has no
+per-copy expiry/floor. D-111 status is BLE-only and Packet-v1/D-113 traffic is not
+wired to this queue. The bounded offline matrix route from main b0d0f49 is
+backported without changing this branch's suite registrations; its 18 dependency
+admission tests pass. All 91 composition pins are unchanged, so the verified
+68-scenario companion result is reused. Tuple namespace 11 remains current
+completion at generation 0 and negative history at 1..32; its charged budget is
+2,364 NVS entries. I-074 assigns the D-113 renumbering to Messaging.
+
+This is the third local increment after D-112 2cb16e7 and D-111 96c333fb on the
+4b7e5d5 task base. One independent review of all three commits precedes any
+separately owner-approved publication or board session. No devices, downloads,
+GitHub writes, signing, public website status or V1 score change.
+
 ### OT-0005i Show protected MeshTrail pairing results (D-111)
 
 The protected opt-in status now reports the exact admitted pairing attempt.

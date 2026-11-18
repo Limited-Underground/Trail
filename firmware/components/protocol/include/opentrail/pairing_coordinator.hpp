@@ -280,7 +280,8 @@ public:
         offered_ = 0;
         if (!accepted) return;
         auto& o = sent_[offered - 1];
-        last_accepted_ = {offered, o.last_ms, o.wait_ms};
+        last_accepted_ = {offered, o.last_ms, o.wait_ms, now_ms,
+                          static_cast<std::uint8_t>(o.sends + 1), offered_budget_};
         ++o.sends;
         o.last_ms = now_ms;
         o.wait_ms = interval(o);
@@ -302,6 +303,33 @@ public:
         last_accepted_ = {};
         offered_ = 0;
         return true;
+    }
+
+    // Query only the exact most recently accepted queue copy. The caller must
+    // still own that unlaunched entry; no offer, script step or refund occurs.
+    // In particular sends==1 is not a resend: its pre-increment floor is saved.
+    bool queued_launch_allowed(std::uint64_t now_ms) {
+        if (!begun_ || outcome_ == Outcome::failed || last_accepted_.index == 0 ||
+            now_ms < start_ms_ || now_ms < now_ms_ ||
+            now_ms < last_launch_check_ms_ || now_ms < last_accepted_.accepted_ms) return false;
+        last_launch_check_ms_ = now_ms;  // monotonic observation watermark only
+        const auto& copy = last_accepted_;
+        const auto& frame = sent_[copy.index - 1];
+        if (frame.sends != copy.sends || frame.received || heard_ ||
+            (heard_any_ && now_ms - heard_ms_ < limits_.quiet_after_rx_ms) ||
+            now_ms - start_ms_ >= limits_.attempt_limit_ms ||
+            !copy.budget.valid || now_ms < copy.budget.checked_ms) return false;
+        const auto used = now_ms - copy.budget.checked_ms;
+        if (used >= copy.budget.left_ms) return false;
+        auto left = copy.budget.left_ms - used;
+        if (outcome_ == Outcome::running) {
+            std::uint64_t live = 0;
+            if (!remaining(now_ms, live) || live == 0) return false;
+            if (live < left) left = live;
+        }
+        // After public commit the adapter can retire its completion budget.
+        // Only this copy's aged original live window survives for the linger.
+        return left >= copy.budget.floor_ms;
     }
 
     Outcome outcome() const { return outcome_; }
@@ -330,10 +358,20 @@ private:
         std::uint64_t wait_ms{};  // until the next timed resend          // the peer's later frames prove it has this one               // resend requested by a peer repeat
     };
 
+    struct LaunchBudget {
+        std::uint64_t checked_ms{};
+        std::uint64_t left_ms{};
+        std::uint64_t floor_ms{};
+        bool valid{};
+    };
+
     struct AcceptedSend {
         std::size_t index{};
         std::uint64_t previous_ms{};
         std::uint64_t previous_wait_ms{};
+        std::uint64_t accepted_ms{};
+        std::uint8_t sends{};
+        LaunchBudget budget{};
     };
 
     // D-106: the candidate hello uses its own limits; every other frame keeps D-087.
@@ -541,24 +579,30 @@ private:
     // reports that the radio accepted it (sent(true, ...)); D-087.
     bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
         const auto& o = sent_[k];
-        if (final_frame(o.type)) {
-            const auto floor = o.sends == 0 ? limits_.final_first_send_floor_ms
-                                            : limits_.final_send_floor_ms;
-            if (outcome_ == Outcome::running) {
-                std::uint64_t left = 0;
-                if (!remaining(now_ms_, left) || left < floor) return false;
+        const bool final = final_frame(o.type);
+        const auto floor = final ? (o.sends == 0 ? limits_.final_first_send_floor_ms
+                                                : limits_.final_send_floor_ms) : 0;
+        LaunchBudget budget{};
+        if (outcome_ == Outcome::running) {
+            std::uint64_t left = 0;
+            const bool live = remaining(now_ms_, left);
+            if (final && (!live || left < floor)) return false;
+            budget = {now_ms_, left, floor, live && left != 0};
+            if (final) {
                 final_budget_checked_ms_ = now_ms_;
                 final_budget_left_ms_ = left;
-            } else if (o.retry_unsent) {
-                // After local commit the adapter no longer supplies a completion
-                // budget. Age the last live window for this refunded control.
-                if (now_ms_ < final_budget_checked_ms_) return false;
-                const auto used = now_ms_ - final_budget_checked_ms_;
-                if (used > final_budget_left_ms_ || final_budget_left_ms_ - used < floor) {
-                    return false;
-                }
             }
+        } else if (final && now_ms_ >= final_budget_checked_ms_) {
+            // A paired reply can use only the last observed live window.
+            const auto used = now_ms_ - final_budget_checked_ms_;
+            if (used < final_budget_left_ms_) {
+                budget = {now_ms_, final_budget_left_ms_ - used, floor, true};
+            }
+            if (o.retry_unsent && (!budget.valid || budget.left_ms < floor)) return false;
+        } else if (final && o.retry_unsent) {
+            return false;
         }
+        offered_budget_ = budget;
         out = o.bytes;
         out_size = o.size;
         offered_ = k + 1;
@@ -594,6 +638,8 @@ private:
     std::size_t sent_count_{0};
     std::size_t offered_{0};  // 1-based index of the frame last offered
     AcceptedSend last_accepted_{};
+    LaunchBudget offered_budget_{};
+    std::uint64_t last_launch_check_ms_{0};
     std::uint64_t final_budget_checked_ms_{0};
     std::uint64_t final_budget_left_ms_{0};
     std::uint64_t start_ms_{0};

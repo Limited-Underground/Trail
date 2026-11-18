@@ -53,10 +53,40 @@ negative-only recovery path; they never invent a positive vote.
 The target uses completion tuple namespace 11 (generation 0 for the current
 journal and 1..32 for signed terminal history), under the existing reset-covered
 `ot_pair`/`ot_state` store. Its worst-case budget is 2,364 NVS entries, below one
-eighth of the partition. The separately reviewed D-113 candidate also uses
-names 11..15: the two branches require one reconciled mapping, inventory, budget
-and compatibility policy before integration. Older firmware rejects the added
-inventory; restoring an image alone does not establish storage compatibility.
+eighth of the partition. This branch keeps tuple name 11 and integrates first;
+Messaging moves the conflicting D-113 F5/data records to 12 and above (I-074).
+The current key has one hexadecimal namespace digit: 12..15 fit that format,
+while 16+ requires a format/parser change. Any added names still require an
+explicit inventory, budget, reset and compatibility review. Older firmware
+rejects the added inventory; restoring an image alone does not establish
+storage compatibility.
+
+## Queued launch eligibility (I-073)
+
+Queue acceptance reserves one copy; it is not a radio launch. The coordinator
+captures that exact accepted copy's original remaining window and its
+pre-increment first/resend floor. Its launch query ages the captured budget,
+rechecks live session deadlines while running, and retains only the original
+budget during completed-session linger. It also rejects retired/proven-received
+copies, clock rollback, pending receive processing and the receive quiet window.
+The query neither advances the script nor changes the retry/refund token.
+
+The existing radio permission callback retains the independent region check and
+adds the queued pairing owner check. It samples the monotonic clock on each
+call, including the driver's check immediately after CAD. The runtime rechecks
+the original phone authority and samples again after that potentially blocking
+lookup. The one app task owns the queue tag and copy token. A failed permission
+check uses the existing provably-prelaunch discard counter; its exact copy is
+refunded once before another admission. TX-start failure remains uncertain and
+receives no refund. D-106/D-107 limits, 15/10 s creation reserves, and 6.5/3 s
+first/resend floors remain unchanged.
+
+Tests cover queue wait, CAD back-offs 1/2/3 and time crossed within CAD, for v1
+controls and v2 controls/Prepared/Committed, with equality checks and real-session
+integration. The composed bench test compiles the actual app callback, driver
+and coordinator against simulated SDK/chip/session seams. It does not establish
+physical CAD or RF acceptance. Exact results and the three-commit review handoff
+are in D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-4.md.
 
 ## Protected phone outcome (D-111)
 
@@ -123,7 +153,7 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - neither board transmits until 0.5 s after it last heard the peer, so it never answers into the rest of the peer's burst (a simple stand-in for listen-before-talk).
    The product uses version 2 completion frames. After both people confirm the exact transcript, authenticated controls precede the durable Prepared exchange. Each board commits the exact public write set only after both Prepared votes, then sends a signed Committed receipt. Finish requires a verified peer Committed receipt. The original 22-step version 1 script remains available to existing callers; it is not the product completion path.
 
-   The first final frame requires 15 s remaining and later final frames require 10 s at creation. Control, Prepared and Committed offers retain the 6.5 s first-copy and 3 s resend floors, including a refunded pre-launch copy. The first positive vote rechecks the signed invitation and original phone deadline after payload readback, immediately before the durable decision marker. No later live send can extend those deadlines. The outer request/attempt remains 300 s, the board-issued signed invitation 180 s, the hello limit 70 and other accepted sends 4. A queued frame's eventual launch-floor defect, I-073, is a separate inherited board-session prerequisite.
+   The first final frame requires 15 s remaining and later final frames require 10 s at creation. Control, Prepared and Committed offers retain the 6.5 s first-copy and 3 s resend floors, including a refunded pre-launch copy. The first positive vote rechecks the signed invitation and original phone deadline after payload readback, immediately before the durable decision marker. No later live send can extend those deadlines. The outer request/attempt remains 300 s, the board-issued signed invitation 180 s, the hello limit 70 and other accepted sends 4. At actual launch, I-073 now requires a fresh coordinator check before and after CAD, including each back-off; see the queued-launch section above. Independent review and hardware acceptance remain open.
 
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
 5. Target composition in `heltec_v4_bench`, in steps:

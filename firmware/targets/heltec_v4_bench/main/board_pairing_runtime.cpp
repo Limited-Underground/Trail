@@ -263,6 +263,17 @@ void BoardPairingRuntime::unsent() {
     (void)coordinator_->unsent();
 }
 
+bool BoardPairingRuntime::queued_launch_allowed(std::uint64_t now_ms) {
+    if (busy_ || !active() || !coordinator_) return false;
+    // Keep the original phone owner/request valid even during completion linger.
+    if (current().phase != companion::DeviceNamePhase::connected) return false;
+    // Authority lookup can wait for the GATT lock: sample again after it.
+    const auto fresh_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    if (fresh_ms < now_ms || fresh_ms < last_ms_ ||
+        (lingering_ && fresh_ms >= linger_until_ms_)) return false;
+    return coordinator_->queued_launch_allowed(fresh_ms);
+}
+
 void BoardPairingRuntime::on_receive(const std::uint8_t* data, std::size_t size) {
     if (busy_ || !active() || !coordinator_) return;
     busy_ = true;
