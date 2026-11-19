@@ -57,6 +57,20 @@ struct Runtime {
     }
 };
 Runtime g_board_pairing;
+struct MessagingLaunchRuntime {
+    bool owns{};
+    std::uint64_t deadline{};
+    unsigned queries{};
+    bool authority{true};
+    bool owns_radio() const { return owns; }
+    // The pinned D-113 app only queried the arm for pre-Packet controls.
+    bool transmit_permitted(std::uint64_t now) const { return now < 60100; }
+    bool queued_launch_allowed(std::uint64_t now) {
+        ++queries;
+        return authority && now < deadline;
+    }
+};
+MessagingLaunchRuntime g_board_messaging;
 bool g_pairing_frame_queued=false;
 unsigned g_region_id=1;
 namespace opentrail::target::heltec_v4_bench {
@@ -173,7 +187,36 @@ void uncertain_launch() {
     radio.launch_queued(now);CHECK(mock::count("start_tx")==1 && radio.counters().tx_prelaunch_dropped==0);
     CHECK(!radio.running());g_pairing_frame_queued=false;g_board_pairing.coordinator=nullptr;
 }
-int main() {
+void messaging_launch_cases() {
+    for (unsigned condition = 0; condition < 3; ++condition) {
+        ++groups;
+        mock::reset();
+        Random random;
+        HeltecV4Lora radio{random};
+        g_region_id = 1;
+        g_pairing_frame_queued = false;
+        g_board_messaging = {true, 101, 0};
+        const std::array<std::uint8_t, 4> frame{'O', 'T', 'F', '5'};
+        radio.set_transmit_permission(&lora_transmit_permitted, nullptr);
+        CHECK(radio.start());
+        CHECK(radio.send({frame.data(), frame.size()}, 100).accepted());
+        mock::now_us = 100000;
+        mock::callback = [condition](const std::string& operation) {
+            if (operation != "cad_result") return;
+            if (condition == 1) mock::now_us = 101000;
+            if (condition == 2) g_board_messaging.authority = false;
+        };
+        radio.launch_queued(100);
+        CHECK(g_board_messaging.queries > 0);
+        CHECK((mock::count("start_tx") != 0) == (condition == 0));
+        CHECK(radio.counters().tx_prelaunch_dropped == (condition == 0 ? 0U : 1U));
+        mock::callback = {};
+        radio.stop();
+        g_board_messaging = {};
+    }
+}
+int main(int argc, char**) {
+    if (argc == 1) {
     for(const bool version2:{false,true})
       for(const auto target:{FrameType::control,FrameType::prepared,FrameType::committed}) {
         if(!version2 && target!=FrameType::control)continue;
@@ -182,6 +225,8 @@ int main() {
             case_floor(target,version2,resend,backoffs,scan,enough);
       }
     region_cases();uncertain_launch();
+    }
+    messaging_launch_cases();
     if(failures){std::cerr<<failures<<" failed checks in "<<groups<<" composed launch cases\n";return 1;}
     std::cout<<"PASS "<<groups<<" composed pairing launch groups\n";return 0;
 }

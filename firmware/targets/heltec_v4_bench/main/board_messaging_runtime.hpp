@@ -7,16 +7,19 @@
 #include "pairing_nvs_storage.hpp"
 #include "enrollment_identity_nvs_storage.hpp"
 #include "opentrail/f5_rekey_session.hpp"
+#include "opentrail/f5_pairing_trust.hpp"
 #include "opentrail/f5_status_session.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 class BoardMessagingRuntime final {
 public:
-    enum class Phase : std::uint8_t { not_started, absent, rekey, exchanging, complete, failed, closed };
+    enum class Phase : std::uint8_t { not_started, absent, rekey, exchanging, complete, unarmed, failed, closed };
     BoardMessagingRuntime(HeltecV4Lora& radio, security::SecureRandomSource& random)
         : radio_(radio), random_(random), packet_radio_(*this) {}
     // Probe once before first-pairing runtime owns storage. No provisioning.
     void begin(std::uint64_t now_ms);
+    void begin_after_pairing(std::uint64_t now_ms);
+    bool queued_launch_allowed(std::uint64_t now_ms);
     bool owns_radio() const { return phase_ != Phase::not_started && phase_ != Phase::absent; }
     bool transmit_permitted(std::uint64_t now_ms);
     void on_receive(const std::uint8_t* bytes, std::size_t size, std::uint64_t now_ms);
@@ -54,6 +57,11 @@ private:
         BoardMessagingRuntime& owner_;
     };
     static std::uint64_t clock(void*);
+    static bool read_trust(void*, security_evaluation::InvitationKey&);
+    static bool seed_allowed(void*);
+    static bool trust_guard(void*);
+    bool base_permitted(std::uint64_t now_ms);
+    void retire_packet_queue();
     radio::SendResult send(radio::ByteView frame, std::uint64_t now_ms, bool data, bool rekey = false);
     void observe_transmit();
     void fail();
@@ -65,13 +73,15 @@ private:
     std::optional<PairingNvsStorage> storage_;
     std::optional<targets::heltec_v4_bench::EnrollmentIdentityNvsStorage> identity_;
     std::optional<RetainedView> membership_, evidence_;
+    std::optional<security_evaluation::F5PairingTrustView> trust_view_;
     std::optional<Rekey> rekey_;
     std::optional<companion::F5StatusSession> packets_;
-    Rekey::Frame pending_{};
+    Rekey::Frame pending_{}, queued_frame_{};
     std::uint64_t deadline_ms_{0}, next_offer_ms_{0}, packet_ready_ms_{0};
+    std::uint64_t packet_lease_{0}, packet_allocation_{0}, queued_lease_{0}, queued_latest_ms_{0}, phase_completed_ms_{0};
     std::uint32_t attempts_before_{0}, completions_before_{0}, drops_before_{0};
     unsigned accepted_offers_{0};
-    bool tracked_{false}, tracked_data_{false}, tracked_rekey_{false}, radio_permitted_{false}, status_sent_{false}, complete_retired_{false};
+    bool tracked_{false}, tracked_data_{false}, tracked_rekey_{false}, radio_permitted_{false}, status_sent_{false}, phase_completed_{false};
     Phase phase_{Phase::not_started};
 };
 } // namespace opentrail::target::heltec_v4_bench

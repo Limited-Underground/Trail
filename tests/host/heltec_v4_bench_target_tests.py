@@ -218,12 +218,16 @@ def admitted_target_sources(cmake: str) -> list[str]:
     # V1 F5 step R2a (D-086): plus the pairing storage in ot_state.
     require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp",
                                  "pairing_nvs_storage.cpp", "board_pairing_runtime.cpp",
+                                 "board_messaging_runtime.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp",
                                  "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c",
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
-            len(lora_tokens) == 9 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            len(lora_tokens) == 13 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
@@ -342,6 +346,8 @@ def test_contract() -> None:
         "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
         "main/board_pairing_runtime.cpp",
         "main/board_pairing_runtime.hpp",
+        "main/board_messaging_runtime.cpp",
+        "main/board_messaging_runtime.hpp",
         "main/board_pairing_result.hpp",  # D-111: guarded pure result projection, real-session tested
         "main/idf_component.yml",
         ".gitignore",
@@ -3691,6 +3697,31 @@ def test_pairing_queued_launch_behavior():
     require(result["result"] == "PASS", f"actual queued-launch path failed: {result['output_root']}")
 
 
+def test_f5_messaging_runtime_surface() -> None:
+    app = SOURCE.read_text(encoding="utf-8")
+    owner = (TARGET / "main/board_messaging_runtime.cpp").read_text(encoding="utf-8")
+    storage = (TARGET / "main/pairing_nvs_storage.hpp").read_text(encoding="utf-8")
+    gate = app[app.index("bool lora_transmit_permitted("):app.index("#endif", app.index("bool lora_transmit_permitted("))]
+    require("g_board_messaging.queued_launch_allowed(" in gate and "esp_timer_get_time()" in gate and
+            "g_board_pairing.queued_launch_allowed(" in gate,
+            "F5 and pairing must retain exact-copy fresh-time launch checks")
+    loop = app[app.index("if (g_lora.running()) {"):]
+    require(loop.index("g_lora.receive(") < loop.index("g_board_messaging.service(") < loop.index("g_lora.launch_queued("),
+            "RX must be processed before service and queued launch")
+    require("!g_board_messaging.owns_radio()" in loop,
+            "a retained F5 owner must exclude unauthenticated beacon fallback")
+    require("rekey_->frame_eligible(queued_frame_)" in owner and "packets_->frame_eligible(" in owner and
+            "fresh<=queued_latest_ms_" in owner and "phase_completed_ms_+kRetryMs" in owner,
+            "each queued class needs phase/deadline authority after CAD and actual phase quiet spacing")
+    require("self.trust_view_->read(scope)" in owner and "Rekey::Trust{&read_trust,this,&seed_allowed,&trust_guard}" in owner,
+            "raw local R2 commit cannot bypass D-112 peer-confirmed trust")
+    require("bind_packet_generation" not in storage and "packet_storage(" in storage and "generation_" in storage,
+            "successor packet borrowers require immutable allocation views")
+    retire = owner[owner.index("void BoardMessagingRuntime::fail()"):]
+    require(retire.index("radio_.discard_queued()") < retire.index("packets_.reset()") < retire.index("rekey_->close()"),
+            "retirement cancels queued work before closing packet and key owners")
+
+
 def main() -> int:
     tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3708,6 +3739,7 @@ def main() -> int:
              test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
              test_selected_enrollment_request_route, test_pairing_result_protected_route,
              test_pairing_queued_launch_behavior)
+    tests = (*tests, test_f5_messaging_runtime_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

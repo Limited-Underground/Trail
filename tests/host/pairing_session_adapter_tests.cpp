@@ -824,6 +824,7 @@ unsigned test_failed_recovery_does_not_publish_saved_result() {
 }
 }  // namespace pairing_adapter_test
 
+#ifndef OPENTRAIL_PAIRING_ADAPTER_FIXTURE_ONLY
 int main(int argc, char** argv) {
     // Named regressions allow each current one-sided outcome to be observed
     // independently while the completion protocol is under implementation.
@@ -981,3 +982,4 @@ int main(int argc, char** argv) {
     std::cout << "PASS " << groups << " pairing session adapter groups\n";
     return 0;
 }
+#endif

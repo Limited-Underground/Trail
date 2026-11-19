@@ -1,6 +1,7 @@
 #pragma once
 // D-113 link-test composition. Four bindings come only from the fresh committed
 // F5 rekey owner; transport queue admission is never a transmitted receipt.
+#include <algorithm>
 #include <optional>
 #include "opentrail/packet_v1_selected_core.hpp"
 #include "opentrail/quick_status_codec.hpp"
@@ -11,6 +12,7 @@ class F5StatusSession final {
     using Node = protocol::v1::selected_packet_detail::Node;
     using Frame = protocol::v1::selected_packet_detail::Frame;
     using Outcome = protocol::v1::selected_packet_detail::Outcome;
+    static constexpr std::uint32_t kDeliveryMs = 30000;
     class GuardedTransport final : public radio::RadioTransport {
     public:
         explicit GuardedTransport(F5StatusSession& owner) : owner_(owner) {}
@@ -18,7 +20,15 @@ class F5StatusSession final {
         radio::TransportStatus status() const override { return owner_.radio_.status(); }
         radio::SendResult send(radio::ByteView value, std::uint64_t now) override {
             if (!owner_.live(now) || value.size > mtu()) return {radio::RadioError::not_ready, 0};
-            return owner_.radio_.send(value, now);
+            if (!value.data || value.size < 4 || value.size > owner_.queued_frame_.bytes.size()) {
+                return {radio::RadioError::invalid_argument, 0};
+            }
+            const auto result = owner_.radio_.send(value, now);
+            if (result.accepted() && result.accepted_bytes == value.size) {
+                std::copy_n(value.data, value.size, owner_.queued_frame_.bytes.data());
+                owner_.queued_frame_.size = value.size;
+            }
+            return result;
         }
         radio::ReceiveResult receive(radio::MutableByteView value) override { return owner_.radio_.receive(value); }
         // The application owns service/RX/queued-launch order on the shared radio.
@@ -62,14 +72,15 @@ public:
             !start_replay(data_replay_,*bindings_[2]) || !start_replay(ack_replay_,*bindings_[3])) return fail();
         node_.emplace(*bindings_[0],*bindings_[1],*bindings_[2],*bindings_[3],
             data_counter_,ack_counter_,data_replay_,ack_replay_,delivery_,nullptr,nullptr,
-            delivery::DeliveryPolicy{true,2,4000,30000});
+            delivery::DeliveryPolicy{true,2,4000,kDeliveryMs}, &admit_status, this);
         return live(now);
     }
     bool send_status(std::uint32_t id, std::uint64_t now) {
-        if (!node_ || sent_ || !live(now) || deadline_-now < 30000) return false;
+        if (!node_ || sent_ || !live(now)) return false;
         std::array<std::uint8_t,protocol::kQuickStatusPayloadBytes> plain{};
         const auto encoded=protocol::encode_quick_status({protocol::QuickStatusKind::ok},{plain.data(),plain.size()});
         if (!encoded.encoded() || !node_->send(id,{plain.data(),plain.size()},now)) return fail();
+        data_deadline_ = now + std::min<std::uint64_t>(kDeliveryMs, deadline_ - now);
         sent_=true; state_=State::queued; return true;
     }
     bool receive(radio::ByteView bytes, std::uint64_t now) {
@@ -106,6 +117,26 @@ public:
         node_->service(now);
         (void)live(now);
     }
+    // Deadline of the exact copy accepted by the one-entry driver. The
+    // target also rechecks this bound after delegated proof reads.
+    std::uint64_t frame_deadline(radio::ByteView frame) const {
+        if (!node_ || closed_ || !frame.data || frame.size < 4 ||
+            frame.size != queued_frame_.size ||
+            std::memcmp(frame.data, queued_frame_.bytes.data(), frame.size) != 0) return 0;
+        const auto type = static_cast<protocol::v1::Type>(frame.data[3]);
+        if (type == protocol::v1::Type::ack) return deadline_;
+        if (type == protocol::v1::Type::data &&
+            (state_ == State::queued || state_ == State::transmitted)) return data_deadline_;
+        return 0;
+    }
+    bool frame_eligible(radio::ByteView frame, std::uint64_t now) const {
+        if (now < last_now_ || now >= frame_deadline(frame)) return false;
+        for (auto* binding : bindings_) {
+            if (!binding->active || !binding->validity ||
+                !binding->validity(binding->validity_context, now)) return false;
+        }
+        return true;
+    }
     // Runtime calls only for this DATA frame's hardware TxDone, never ACK or rekey.
     void on_data_transmitted() { if (state_==State::queued && !closed_) state_=State::transmitted; }
     State state() const { return state_; }
@@ -119,9 +150,15 @@ public:
         if (data_replay_.ready()) (void)data_replay_.retire();
         if (ack_replay_.ready()) (void)ack_replay_.retire();
         sodium_memzero(&pending_ack_,sizeof pending_ack_);
+        sodium_memzero(&queued_frame_,sizeof queued_frame_);
         if (state_!=State::acknowledged) state_=State::failed;
     }
 private:
+    static bool admit_status(void* context, protocol::v1::View plain) {
+        const auto& self = *static_cast<F5StatusSession*>(context);
+        return !self.closed_ && self.received_ == 0 &&
+            protocol::decode_quick_status({plain.data, plain.size}).decoded();
+    }
     static bool start_replay(security_eval::EvaluationReplayStore& store,const Binding& b) {
         security_eval::EvaluationReplayStore::Context context{};
         std::copy(b.domain.begin(),b.domain.end(),context.begin());
@@ -147,10 +184,11 @@ private:
     delivery::DeliveryController delivery_;
     std::optional<Node> node_;
     Frame pending_ack_{};
+    Frame queued_frame_{};
     State state_{State::idle};
     protocol::QuickStatusKind received_status_{protocol::QuickStatusKind::ok};
     unsigned received_{};
-    std::uint64_t deadline_{},last_now_{};
+    std::uint64_t deadline_{},data_deadline_{},last_now_{};
     bool started_{},closed_{},sent_{};
 };
 } // namespace opentrail::companion

@@ -1,18 +1,24 @@
 #pragma once
-// D-113 link-test owner: retained exact outside-group conversation -> fresh
-// volatile keys. R2 provenance remains read-only. This is a development carrier,
-// not production admission. One serialized application owner and disjoint stores
-// are required; reset must erase this state and all Packet-v1 stores together.
+// D-124/I-072: public recovery history never reconstructs a traffic lease.
+// One serialized conversation owner holds a candidate and immutable old/current
+// lease slots. Target composition supplies D-112 trust and independent RF arm.
 #include "opentrail/evaluation_confirmation_owner.hpp"
 #include "opentrail/enrollment_recovery_owner.hpp"
+#include "opentrail/f5_rekey_journal.hpp"
 #include "opentrail/packet_v1_selected_core.hpp"
 #include <sodium/crypto_kdf_hkdf_sha256.h>
 #include <sodium/crypto_scalarmult_curve25519.h>
+#include <algorithm>
+#include <array>
+#include <limits>
 
 namespace opentrail::security_evaluation {
 class F5RekeySession final {
 public:
     using Binding=protocol::v1::selected_packet_detail::Binding;
+    using Journal=F5RekeyJournal;
+    using Phase=Journal::Phase;
+    using ProofKind=Journal::ProofKind;
     struct Stores {
         persistence::PersistentStorage& identity;
         persistence::PersistentStorage& journal;
@@ -20,273 +26,462 @@ public:
         persistence::PersistentStorage& evidence;
         persistence::PersistentStorage& binding;
         persistence::PersistentStorage& state;
+        persistence::PersistentStorage& state_tail;
     };
-    struct Frame { std::array<std::uint8_t,255> bytes{};std::size_t size{}; };
+    // The target read-view verifies the current D-112 peer-confirmed transaction,
+    // including real retained identity/proof. Both boards return its same digest.
+    // seed_allowed checks actual packet inventory before absent/incomplete BASE.
+    struct Trust {
+        bool(*read)(void*,InvitationKey&){};
+        void* context{};
+        bool(*seed_allowed)(void*){};
+        bool(*guard)(void*){};
+    };
+    struct Frame {std::array<std::uint8_t,255> bytes{};std::size_t size{};};
+    static constexpr std::uint64_t kAttemptMs=60000,kCapacity=32;
     F5RekeySession(Stores stores,security::SecureRandomSource& random,std::uint64_t conversation,
-                   std::uint64_t(*clock)(void*),void* context)
-        :stores_(stores),random_(random),identity_(stores.identity,random),conversation_(conversation),clock_(clock),clock_context_(context){}
+                   std::uint64_t(*clock)(void*),void* context,Trust trust={nullptr,nullptr,nullptr,nullptr})
+        :stores_(stores),random_(random),identity_(stores.identity,random),journal_(stores.state,stores.state_tail),
+         conversation_(conversation),clock_(clock),clock_context_(context),trust_(trust){}
     ~F5RekeySession(){close();}
     F5RekeySession(const F5RekeySession&)=delete;
     F5RekeySession& operator=(const F5RekeySession&)=delete;
-    // Reads actual R2 committed provenance, then reserves a durable session
-    // incarnation. A partial/uncertain F5 journal is never repaired here.
+
     bool initialize(){
         Guard guard(*this);if(!guard)return false;
-        if(initialized_ || !clock_ || !conversation_)return fail();
+        if(initialized_ || !clock_ || !conversation_ || !trust_.read || !trust_.guard)return fail();
         initialized_=true;
-        std::array<persistence::PersistentStorage*,6> owners{&stores_.identity,&stores_.journal,&stores_.membership,&stores_.evidence,&stores_.binding,&stores_.state};
+        std::array<persistence::PersistentStorage*,7> owners{&stores_.identity,&stores_.journal,&stores_.membership,&stores_.evidence,&stores_.binding,&stores_.state,&stores_.state_tail};
         for(unsigned i=0;i<owners.size();++i)for(unsigned j=0;j<i;++j)if(owners[i]==owners[j])return fail();
+        InvitationKey before{};if(!source_fingerprint(before))return fail();
         if(identity_.load_existing()!=EnrollmentIdentityStore::LoadResult::ready || !identity_.public_key(local_))return fail();
-        EnrollmentCommitCoordinator journal(stores_.journal);EnrollmentCommitContext record{};
-        if(!journal.initialize() || journal.state()!=EnrollmentJournalState::active_committed || !journal.read_public(record))return fail();
-        if(local_==record.identities.initiator)role_=InvitationRole::initiator;
-        else if(local_==record.identities.responder)role_=InvitationRole::responder;
+        EnrollmentCommitCoordinator original(stores_.journal);EnrollmentCommitContext r{};
+        if(!original.initialize() || original.state()!=EnrollmentJournalState::active_committed || !original.read_public(r))return fail();
+        if(local_==r.identities.initiator)member_=1;
+        else if(local_==r.identities.responder)member_=2;
         else return fail();
-        peer_=initiator()?record.identities.responder:record.identities.initiator;
+        peer_=member_==1?r.identities.responder:r.identities.initiator;
+        role_=member_==1?InvitationRole::initiator:InvitationRole::responder;
         if(!EnrollmentRecoveryOwner::inspect(stores_.journal,stores_.membership,stores_.evidence,stores_.binding,
-            role_,local_,conversation_,retained_) || retained_.stage!=3 || retained_.layout!=3)return fail();
-        // The complete persistent keys define the identities. Explicit domain
-        // separation prevents a numerically equal group ID selecting this pair.
-        constexpr char label[]="OpenTrail F5 outside conversation v1";
-        std::array<std::uint8_t,sizeof(label)-1+32+32+8> name{};
-        std::memcpy(name.data(),label,sizeof(label)-1);
-        std::memcpy(name.data()+sizeof(label)-1,record.identities.initiator.data(),32);
-        std::memcpy(name.data()+sizeof(label)-1+32,record.identities.responder.data(),32);
-        put(name.data()+name.size()-8,conversation_,8);
-        crypto_hash_sha256(conversation_digest_.data(),name.data(),name.size());
-        if(!load_journal())return fail();
-        if(stage_!=3 || epoch_==std::numeric_limits<std::uint32_t>::max() || generation_==std::numeric_limits<std::uint64_t>::max())return fail();
-        ++generation_;
-        if(!persist(3,epoch_))return fail();
-        last_now_=clock_(clock_context_);
+            role_,local_,conversation_,retained_) || retained_.stage!=3 || retained_.layout!=3 ||
+            !trust_.read(trust_.context,trust_scope_) || !nonzero(trust_scope_))return fail();
+        constexpr char label[]="OpenTrail F5 outside conversation v2";
+        std::array<std::uint8_t,sizeof(label)-1+32+32+8+32+32> bytes{};std::size_t at=0;
+        auto append=[&](const std::uint8_t* p,std::size_t n){std::memcpy(bytes.data()+at,p,n);at+=n;};
+        append(reinterpret_cast<const std::uint8_t*>(label),sizeof(label)-1);
+        append(r.identities.initiator.data(),32);append(r.identities.responder.data(),32);
+        put(bytes.data()+at,conversation_,8);at+=8;append(trust_scope_.data(),32);append(r.evidence_digest.data(),32);
+        crypto_hash_sha256(scope_.data(),bytes.data(),bytes.size());
+        baseline_.phase=Phase::history;baseline_.kind=ProofKind::base;baseline_.used=r.epoch;
+        baseline_.proof_size=64;std::memcpy(baseline_.proof.data(),scope_.data(),32);
+        std::memcpy(baseline_.proof.data()+32,r.evidence_digest.data(),32);
+        if(!source_fingerprint(source_digest_) || source_digest_!=before)return fail();
+        last_now_=clock_(clock_context_);source_ready_=true;
+        if(!journal_.initialize(baseline_,&validate_record,this,&journal_guard,this,&validate_partial))return fail();
+        journal_ready_=true;
+        if(journal_.empty() && (!trust_.seed_allowed || !trust_.seed_allowed(trust_.context) || !journal_.seed(&journal_guard,this)))return fail();
+        if(!journal_.load(record_))return fail();
         return current();
     }
+    // A repeated unanswered local start returns identical bytes/allocation and
+    // preserves the original deadline. Either persistent member can initiate.
     bool start(Frame& output){
-        output={};Guard guard(*this);if(!guard)return false;
-        if(!initialized_ || failed_ || started_ || !current())return false;
-        started_=true;
-        if(!initiator())return true;
-        if(!fresh_material() || !make_offer(1,{},start_))return fail();
-        phase_=1;output=start_;return true;
+        output={};Guard guard(*this);if(!guard || !current())return false;
+        expire();
+        if(candidate_.present && candidate_.phase==1 && candidate_.initiating_member==member_){output=candidate_.start;return true;}
+        if(candidate_.present && candidate_.phase!=7)return false;
+        return begin_start(output);
     }
-    // Duplicate records replay cached exact bytes without another signature,
-    // allocation or persistence operation. New peer records never select roots.
+    bool service(Frame& output){
+        output={};Guard guard(*this);if(!guard || !current())return false;
+        expire();
+        if(nudge_ && last_now_>=next_nudge_){
+            nudge_=false;
+            if(last_now_>std::numeric_limits<std::uint64_t>::max()-1000)return fail();
+            next_nudge_=last_now_+1000;
+            if(candidate_.present && candidate_.phase==1 && is_attempt_initiator()){
+                output=candidate_.start;return true;
+            }
+            discard_candidate();return begin_start(output);
+        }
+        return true;
+    }
     bool receive(const Frame& input,Frame& output){
-        const Frame frame=input;output={};Guard guard(*this);if(!guard)return false;
-        if(!started_ || failed_ || !current() || frame.size<8 || frame.size>frame.bytes.size())return false;
-        if(same(frame,last_input_)){output=last_output_;return true;}
-        Frame staged{};bool accepted=false;
-        const auto kind=frame.bytes[5];
-        if(!header(frame,kind))return false;
-        if(!initiator() && phase_==0 && kind==1){
-            if(!verify_offer(frame,1,{},peer_))return false;
-            start_=frame;
-            if(!fresh_material() || !make_offer(2,hash(start_),reply_))return fail();
-            phase_=2;staged=reply_;accepted=true;
-        }else if(initiator() && phase_==1 && kind==2){
-            if(!verify_offer(frame,2,hash(start_),peer_))return false;
-            reply_=frame;
-            if(!prepare_binding() || !make_control(3,staged))return fail();
-            phase_=3;accepted=true;
-        }else if(!initiator() && phase_==2 && kind==3){
-            reply_digest();
+        const Frame frame=input;output={};Guard guard(*this);
+        if(!guard || !current() || frame.size>frame.bytes.size() || frame.size<8)return false;
+        expire();
+        if(candidate_.present && same(frame,candidate_.last_input)){
+            output=candidate_.last_output;return !output.size || frame_eligible_internal(output);
+        }
+        if(header(frame,1))return receive_start(frame,output);
+        if(!candidate_.present || !candidate_current() || !header(frame,frame.bytes[5]) || frame.bytes[6]!=candidate_.initiating_member)return false;
+        Frame staged{};const auto kind=frame.bytes[5];bool accepted=false;
+        if(is_attempt_initiator() && candidate_.phase==1 && kind==2){
+            if(!verify_offer(frame,2,candidate_.initiating_member,hash(candidate_.start)) || offer_epoch(frame)!=candidate_.target)return false;
+            candidate_.reply=frame;transcript(candidate_);
+            Frame confirm{};if(!make_control(3,confirm) || !prepare_binding(confirm))return fail();
+            candidate_.phase=3;staged=confirm;accepted=true;
+        }else if(!is_attempt_initiator() && candidate_.phase==2 && kind==3){
+            transcript(candidate_);
             if(!verify_control(frame,3))return false;
-            if(!prepare_binding() || !persist(2,epoch_) || !make_control(4,staged))return fail();
-            phase_=4;accepted=true;
-        }else if(initiator() && phase_==3 && kind==4){
+            if(!prepare_binding(frame) || !save_phase(Phase::activation_possible) || !make_control(4,staged))return fail();
+            candidate_.phase=4;accepted=true;
+        }else if(is_attempt_initiator() && candidate_.phase==3 && kind==4){
             if(!verify_control(frame,4))return false;
-            if(!persist(2,epoch_) || !make_control(5,staged))return fail();
-            phase_=5;accepted=true;
-        }else if(!initiator() && phase_==4 && kind==5){
+            if(!save_phase(Phase::activation_possible) || !make_control(5,staged))return fail();
+            candidate_.phase=5;accepted=true;
+        }else if(!is_attempt_initiator() && candidate_.phase==4 && kind==5){
             if(!verify_control(frame,5))return false;
-            if(!persist(3,epoch_) || !make_control(6,staged))return fail();
-            phase_=6;accepted=true;
-        }else if(initiator() && phase_==5 && kind==6){
+            if(!save_phase(Phase::committed) || !make_control(6,staged))return fail();
+            candidate_.phase=6;accepted=true;
+        }else if(is_attempt_initiator() && candidate_.phase==5 && kind==6){
             if(!verify_control(frame,6))return false;
-            if(!persist(3,epoch_) || !make_control(7,staged) || !bind_packets())return fail();
-            phase_=7;ready_=true;accepted=true;
-        }else if(!initiator() && phase_==6 && kind==7){
-            if(!verify_control(frame,7) || !bind_packets())return false;
-            phase_=7;ready_=true;accepted=true;
+            if(!save_phase(Phase::committed) || !make_control(7,staged) || !bind_packets())return fail();
+            candidate_.phase=7;accepted=true;
+        }else if(!is_attempt_initiator() && candidate_.phase==6 && kind==7){
+            if(!verify_control(frame,7))return false;
+            if(!bind_packets())return fail();
+            candidate_.phase=7;accepted=true;
         }
         if(!accepted)return false;
-        last_input_=frame;last_output_=staged;output=staged;return current();
+        candidate_.last_input=frame;candidate_.last_output=staged;candidate_.outgoing=staged;
+        if(!current() || !candidate_current())return false;
+        output=staged;return true;
     }
-    bool ready(){Guard guard(*this);return guard && ready_ && current();}
-    bool initiator()const{return role_==InvitationRole::initiator;}
-    std::uint64_t generation()const{return generation_;}
-    std::uint32_t epoch()const{return epoch_;}
+    bool ready(){Guard guard(*this);return guard && current() && active_lease()!=nullptr;}
+    bool initiator()const{return candidate_.present?candidate_.initiating_member==member_:member_==1;}
+    bool failed()const{return failed_;}
+    bool candidate_active()const{return candidate_.present && candidate_.phase!=7;}
+    bool can_start()const{return initialized_ && !failed_ && !candidate_active() && active_lease_const()==nullptr;}
+    std::uint64_t generation()const{return record_.allocation;}
+    std::uint64_t active_generation()const{const auto* l=active_lease_const();return l?l->allocation:0;}
+    std::uint64_t lease_id()const{const auto* l=active_lease_const();return l?l->id:0;}
+    std::uint32_t used_epoch()const{return record_.used;}
+    std::uint32_t committed_epoch()const{return record_.committed;}
+    std::uint32_t epoch()const{const auto* l=active_lease_const();return l?l->epoch:candidate_.present?candidate_.target:record_.used;}
+    std::uint64_t attempt_deadline()const{return candidate_.present?candidate_.deadline:0;}
     std::uint64_t conversation()const{return conversation_;}
-    Binding& data_tx(){return data_tx_;}Binding& ack_tx(){return ack_tx_;}
-    Binding& data_rx(){return data_rx_;}Binding& ack_rx(){return ack_rx_;}
-    void close(){failed_=true;ready_=false;identity_.retire();wipe();}
+    Binding& data_tx(){auto* l=active_lease();return l?l->bindings[0]:empty_[0];}
+    Binding& ack_tx(){auto* l=active_lease();return l?l->bindings[1]:empty_[1];}
+    Binding& data_rx(){auto* l=active_lease();return l?l->bindings[2]:empty_[2];}
+    Binding& ack_rx(){auto* l=active_lease();return l?l->bindings[3]:empty_[3];}
+    // Call only after destroying all borrowers of retired slots. Their frozen
+    // callbacks must not survive this explicit release/reuse boundary.
+    void release_retired_leases(){
+        if(busy_){fail();return;}
+        for(auto& l:leases_)if(l.occupied && l.retired){wipe_lease(l);l=Lease{};}
+    }
+    // Independent local RF-arm loss retires volatile traffic without losing
+    // the trusted public conversation. Peer input cannot call or reverse this.
+    void retire_traffic(){
+        if(busy_){fail();return;}
+        discard_candidate();nudge_=false;for(auto& lease:leases_)retire(lease);
+    }
+    bool frame_eligible(const Frame& f){Guard guard(*this);return guard && current() && frame_eligible_internal(f);}
+    bool packet_eligible(std::uint64_t id,std::uint64_t allocation){Guard guard(*this);auto* l=active_lease();return guard && current() && l && l->id==id && l->allocation==allocation;}
+    void close(){failed_=true;discard_candidate();for(auto& l:leases_)retire(l);identity_.retire();journal_.retire();}
 private:
+    struct Candidate {
+        bool present{};unsigned phase{},initiating_member{};std::uint32_t target{};std::uint64_t allocation{},deadline{};
+        InvitationKey secret{},shared{},ephemeral{},challenge{},transcript{};
+        std::array<std::uint8_t,16> boot{};
+        Frame start{},reply{},confirm{},last_input{},last_output{},outgoing{};
+    };
+    struct LeaseToken {F5RekeySession* owner{};std::uint64_t id{};unsigned slot{};};
+    struct Lease {
+        F5RekeySession* owner{};bool occupied{},retired{};std::uint64_t id{},allocation{};std::uint32_t epoch{};
+        InvitationKey transcript{};std::array<Binding,4> bindings{};
+    };
     class Guard {
     public:
-        explicit Guard(F5RekeySession& owner):owner_(owner){
-            if(owner_.busy_){owner_.fail();return;}
-            if(owner_.failed_)return;
-            owner_.busy_=true;admitted_=true;
-        }
+        explicit Guard(F5RekeySession& s):owner_(s){if(s.busy_){s.fail();return;}if(s.failed_)return;s.busy_=true;admitted_=true;}
         ~Guard(){if(admitted_)owner_.busy_=false;}
         explicit operator bool()const{return admitted_;}
     private:F5RekeySession& owner_;bool admitted_{};
     };
-    using Bytes=std::array<std::uint8_t,64>;
-    using Bank=std::array<Bytes,5>;
     static void put(std::uint8_t* p,std::uint64_t v,unsigned n){for(unsigned i=0;i<n;++i)p[n-1-i]=static_cast<std::uint8_t>(v>>(8*i));}
     static std::uint64_t get(const std::uint8_t* p,unsigned n){std::uint64_t v=0;for(unsigned i=0;i<n;++i)v=(v<<8)|p[i];return v;}
-    static InvitationKey hash(const Frame& f){InvitationKey result{};crypto_hash_sha256(result.data(),f.bytes.data(),f.size);return result;}
+    template<std::size_t N>static bool nonzero(const std::array<std::uint8_t,N>& b){for(auto c:b)if(c)return true;return false;}
     static bool same(const Frame& a,const Frame& b){return a.size && a.size==b.size && sodium_memcmp(a.bytes.data(),b.bytes.data(),a.size)==0;}
-    static bool blank(const Bank& b){for(const auto& s:b)for(auto c:s)if(c!=0xff)return false;return true;}
-    bool snapshot(std::array<Bank,2>& out){
-        for(unsigned s=0;s<2;++s)for(unsigned d=0;d<5;++d){auto r=stores_.state.read_slot(static_cast<persistence::StorageDomain>(d),s,{out[s][d].data(),64});if(!r.read() || r.bytes_read!=64)return false;}
-        return true;
+    static InvitationKey hash(const Frame& f){InvitationKey h{};crypto_hash_sha256(h.data(),f.bytes.data(),f.size);return h;}
+    static bool header(const Frame& f,unsigned kind){return f.size>=8 && f.bytes[0]=='O' && f.bytes[1]=='T' && f.bytes[2]=='F' && f.bytes[3]=='5' && f.bytes[4]==2 && f.bytes[5]==kind && (f.bytes[6]==1 || f.bytes[6]==2) && f.bytes[7]==0;}
+    static std::uint32_t offer_epoch(const Frame& f){return static_cast<std::uint32_t>(get(f.bytes.data()+16,4));}
+    const InvitationKey& member_key(unsigned member)const{return member==1?retained_.record.identities.initiator:retained_.record.identities.responder;}
+    bool is_attempt_initiator()const{return candidate_.initiating_member==member_;}
+    bool sample_clock(){
+        const auto now=clock_(clock_context_);if(now<last_now_)return fail();last_now_=now;return !failed_;
     }
-    bool decode(const Bank& b,std::uint64_t& seq,std::uint64_t& generation,std::uint32_t& epoch,std::uint8_t& stage){
-        std::array<std::uint8_t,320> bytes{};for(unsigned d=0;d<5;++d)std::memcpy(bytes.data()+d*64,b[d].data(),64);
-        InvitationKey digest{};crypto_hash_sha256(digest.data(),bytes.data(),284);
-        if(std::memcmp(bytes.data(),"OTF5",4)!=0 || bytes[4]!=1 || bytes[5]>3 ||
-           std::memcmp(bytes.data()+316,"DONE",4)!=0 || sodium_memcmp(digest.data(),bytes.data()+284,32)!=0 ||
-           sodium_memcmp(bytes.data()+28,conversation_digest_.data(),32)!=0)return false;
-        for(unsigned i=92;i<284;++i)if(bytes[i])return false;
-        seq=get(bytes.data()+8,8);generation=get(bytes.data()+16,8);epoch=static_cast<std::uint32_t>(get(bytes.data()+24,4));stage=bytes[5];
-        return seq && generation && epoch>=retained_.record.epoch;
-    }
-    bool load_journal(){
-        if(!snapshot(journal_snapshot_))return false;
-        const bool a=blank(journal_snapshot_[0]),b=blank(journal_snapshot_[1]);
-        if(a&&b){stage_=3;epoch_=retained_.record.epoch;return true;}
-        std::array<std::uint64_t,2> seq{},gen{};std::array<std::uint32_t,2> epochs{};std::array<std::uint8_t,2> stages{};
-        for(unsigned i=0;i<2;++i)if(!blank(journal_snapshot_[i]) && !decode(journal_snapshot_[i],seq[i],gen[i],epochs[i],stages[i]))return false;
-        const unsigned newest=seq[1]>seq[0]?1:0;
-        const unsigned prior=1-newest;
-        if(seq[prior] && (seq[newest]!=seq[prior]+1 || gen[newest]<gen[prior] || epochs[newest]<epochs[prior]))return false;
-        sequence_=seq[newest];generation_=gen[newest];epoch_=epochs[newest];stage_=stages[newest];slot_=newest;
-        return stage_==3;
-    }
-    bool persist(std::uint8_t stage,std::uint32_t epoch){
-        if(sequence_==std::numeric_limits<std::uint64_t>::max())return false;
-        std::array<Bank,2> current{};if(!snapshot(current) || current!=journal_snapshot_)return false;
-        std::array<std::uint8_t,320> bytes{};std::memcpy(bytes.data(),"OTF5",4);bytes[4]=1;bytes[5]=stage;
-        put(bytes.data()+8,sequence_+1,8);put(bytes.data()+16,generation_,8);put(bytes.data()+24,epoch,4);
-        std::memcpy(bytes.data()+28,conversation_digest_.data(),32);std::memcpy(bytes.data()+60,transcript_.data(),32);
-        crypto_hash_sha256(bytes.data()+284,bytes.data(),284);std::memcpy(bytes.data()+316,"DONE",4);
-        const unsigned target=sequence_?1-slot_:0;
-        for(unsigned d=0;d<5;++d){
-            auto domain=static_cast<persistence::StorageDomain>(d);
-            if(stores_.state.erase_slot(domain,target)!=persistence::StorageError::none ||
-               stores_.state.write_slot(domain,target,0,{bytes.data()+d*64,64})!=persistence::StorageError::none ||
-               stores_.state.sync_slot(domain,target)!=persistence::StorageError::none)return false;
-            std::memcpy(current[target][d].data(),bytes.data()+d*64,64);
+    bool source_fingerprint(InvitationKey& out){
+        crypto_hash_sha256_state state{};if(crypto_hash_sha256_init(&state)!=0)return false;
+        std::array<persistence::PersistentStorage*,5> stores{&stores_.identity,&stores_.journal,&stores_.membership,&stores_.evidence,&stores_.binding};
+        std::array<std::uint8_t,64> bytes{};
+        for(auto* store:stores)for(unsigned d=0;d<5;++d)for(unsigned slot=0;slot<2;++slot){
+            const auto r=store->read_slot(static_cast<persistence::StorageDomain>(d),slot,{bytes.data(),bytes.size()});
+            if(failed_ || !r.read() || r.bytes_read!=bytes.size()){
+                sodium_memzero(bytes.data(),bytes.size());sodium_memzero(&state,sizeof state);return false;
+            }
+            crypto_hash_sha256_update(&state,bytes.data(),bytes.size());
         }
-        std::array<Bank,2> verify{};if(!snapshot(verify) || verify!=current)return false;
-        journal_snapshot_=verify;++sequence_;slot_=target;stage_=stage;epoch_=epoch;return true;
+        sodium_memzero(bytes.data(),bytes.size());const bool ok=crypto_hash_sha256_final(&state,out.data())==0;
+        sodium_memzero(&state,sizeof state);return ok && !failed_;
     }
-    bool current(){
-        if(failed_ || !initialized_)return false;
-        const auto now=clock_(clock_context_);
-        if(now<last_now_ || (deadline_ && now>=deadline_))return fail();
-        last_now_=now;
-        EnrollmentRecoveryState state{};
-        std::array<Bank,2> observed{};
-        if(!identity_.public_key(local_check_) || local_check_!=local_ ||
-           !EnrollmentRecoveryOwner::inspect(stores_.journal,stores_.membership,stores_.evidence,stores_.binding,
-               role_,local_,conversation_,state) || !EnrollmentRecoveryOwner::equal(state,retained_) ||
-           !snapshot(observed) || observed!=journal_snapshot_)return fail();
+    bool current(bool with_journal=true){
+        if(failed_ || !source_ready_ || !sample_clock())return false;
+        if(!trust_.guard(trust_.context))return fail();
+        if(with_journal){
+            InvitationKey actual{},trusted{};
+            if(!source_fingerprint(actual) || actual!=source_digest_ || !trust_.read(trust_.context,trusted) ||
+                trusted!=trust_scope_ || (journal_ready_ && !journal_.exact()))return fail();
+        }
+        if(!sample_clock())return false;
+        if(!trust_.guard(trust_.context))return fail();
         return !failed_;
     }
+    static bool journal_guard(void* p){auto& s=*static_cast<F5RekeySession*>(p);return s.current(false) && (!s.candidate_.present || s.last_now_<s.candidate_.deadline);}
+    bool save(const Journal::Record& r){if(!current() || !journal_.update(r,&journal_guard,this) || !journal_.load(record_))return false;return current();}
+    bool reserve(){if(record_.allocation>=kCapacity)return false;auto next=record_;++next.allocation;return save(next);}
+    bool candidate_current(){return candidate_.present && last_now_<candidate_.deadline && candidate_.target>=record_.used && candidate_.allocation<=record_.allocation;}
+    void discard_candidate(){sodium_memzero(candidate_.secret.data(),32);sodium_memzero(candidate_.shared.data(),32);candidate_=Candidate{};}
+    void expire(){if(candidate_.present && last_now_>=candidate_.deadline)discard_candidate();}
     bool fresh_material(){
-        if(!current() || random_.state()!=security::EntropyState::ready || last_now_>std::numeric_limits<std::uint64_t>::max()-60000)return false;
-        deadline_=last_now_+60000;
-        std::array<std::uint8_t,80> material{};
-        for(unsigned offset=0;offset<material.size();offset+=32){
-            const auto size=std::min<std::size_t>(32,material.size()-offset);
-            const auto r=random_.fill(material.data()+offset,size);
-            if(!r.ok() || r.bytes_written!=size || random_.state()!=security::EntropyState::ready){sodium_memzero(material.data(),material.size());return false;}
+        if(random_.state()!=security::EntropyState::ready)return false;
+        for(auto part: {std::pair<std::uint8_t*,std::size_t>{candidate_.secret.data(),32},{candidate_.challenge.data(),32},{candidate_.boot.data(),16}}){
+            const auto r=random_.fill(part.first,part.second);if(!r.ok() || r.bytes_written!=part.second || random_.state()!=security::EntropyState::ready)return false;
         }
-        std::memcpy(secret_.data(),material.data(),32);std::memcpy(challenge_.data(),material.data()+32,32);std::memcpy(boot_.data(),material.data()+64,16);
-        sodium_memzero(material.data(),material.size());
-        if(!invitation_detail::nonzero(challenge_) || !invitation_detail::nonzero(boot_))return false;
-        return crypto_scalarmult_curve25519_base(ephemeral_.data(),secret_.data())==0 && current();
+        return nonzero(candidate_.challenge) && nonzero(candidate_.boot) && crypto_scalarmult_curve25519_base(candidate_.ephemeral.data(),candidate_.secret.data())==0 && current();
     }
-    bool header(const Frame& f,unsigned kind)const{
-        return f.size>=8 && std::memcmp(f.bytes.data(),"OTF5",4)==0 && f.bytes[4]==1 && f.bytes[5]==kind && f.bytes[6]==0 && f.bytes[7]==0;
+    bool begin_start(Frame& output){
+        if(record_.used==std::numeric_limits<std::uint32_t>::max() || !reserve())return fail();
+        discard_candidate();candidate_.present=true;candidate_.phase=1;candidate_.initiating_member=member_;candidate_.target=record_.used+1;
+        candidate_.allocation=record_.allocation;
+        if(last_now_>std::numeric_limits<std::uint64_t>::max()-kAttemptMs)return fail();
+        candidate_.deadline=last_now_+kAttemptMs;
+        if(!fresh_material() || !make_offer(1,{},candidate_.start))return fail();
+        candidate_.outgoing=candidate_.start;output=candidate_.start;return true;
     }
     bool make_offer(unsigned kind,const InvitationKey& prior,Frame& f){
-        f={};f.size=236;auto* b=f.bytes.data();std::memcpy(b,"OTF5",4);b[4]=1;b[5]=static_cast<std::uint8_t>(kind);
-        put(b+8,conversation_,8);put(b+16,epoch_+1,4);put(b+20,generation_,8);
-        std::memcpy(b+28,conversation_digest_.data(),32);std::memcpy(b+60,prior.data(),32);
-        std::memcpy(b+92,ephemeral_.data(),32);std::memcpy(b+124,boot_.data(),16);std::memcpy(b+140,challenge_.data(),32);
-        std::array<std::uint8_t,64> signature{};
-        if(!identity_.sign(b,172,signature))return false;
-        std::memcpy(b+172,signature.data(),64);return current();
+        f={};f.size=236;auto* b=f.bytes.data();std::memcpy(b,"OTF5",4);b[4]=2;b[5]=static_cast<std::uint8_t>(kind);b[6]=static_cast<std::uint8_t>(candidate_.initiating_member);
+        put(b+8,conversation_,8);put(b+16,candidate_.target,4);put(b+20,candidate_.allocation,8);
+        std::memcpy(b+28,scope_.data(),32);std::memcpy(b+60,prior.data(),32);std::memcpy(b+92,candidate_.ephemeral.data(),32);
+        std::memcpy(b+124,candidate_.boot.data(),16);std::memcpy(b+140,candidate_.challenge.data(),32);
+        std::array<std::uint8_t,64> signature{};if(!identity_.sign(b,172,signature))return false;
+        std::memcpy(b+172,signature.data(),64);return current() && candidate_current();
     }
-    bool verify_offer(const Frame& f,unsigned kind,const InvitationKey& prior,const InvitationKey& peer){
-        const auto* b=f.bytes.data();
-        return f.size==236 && header(f,kind) && get(b+8,8)==conversation_ && get(b+16,4)==std::uint64_t(epoch_)+1 && get(b+20,8)!=0 &&
-            sodium_memcmp(b+28,conversation_digest_.data(),32)==0 && sodium_memcmp(b+60,prior.data(),32)==0 &&
-            crypto_sign_verify_detached(b+172,b,172,peer.data())==0;
+    bool verify_offer(const Frame& f,unsigned kind,unsigned initiating,const InvitationKey& prior,bool signature=true)const{
+        const auto* b=f.bytes.data();const auto signer=kind==1?initiating:3-initiating;
+        return f.size==236 && header(f,kind) && b[6]==initiating && get(b+8,8)==conversation_ && offer_epoch(f)!=0 &&
+            get(b+20,8)>0 && get(b+20,8)<=kCapacity && sodium_memcmp(b+28,scope_.data(),32)==0 &&
+            sodium_memcmp(b+60,prior.data(),32)==0 && nonzero_bytes(b+92,32) && nonzero_bytes(b+124,16) && nonzero_bytes(b+140,32) &&
+            (!signature || crypto_sign_verify_detached(b+172,b,172,member_key(signer).data())==0);
     }
-    void reply_digest(){
-        std::array<std::uint8_t,64> joined{};const auto a=hash(start_),b=hash(reply_);
-        std::memcpy(joined.data(),a.data(),32);std::memcpy(joined.data()+32,b.data(),32);crypto_hash_sha256(transcript_.data(),joined.data(),joined.size());
+    static bool nonzero_bytes(const std::uint8_t* p,std::size_t n){for(std::size_t i=0;i<n;++i)if(p[i])return true;return false;}
+    bool receive_start(const Frame& frame,Frame& output){
+        const auto received_at=last_now_;
+        const auto initiating=frame.bytes[6];
+        if(initiating!=3-member_ || !verify_offer(frame,1,initiating,{}))return false;
+        const auto e=offer_epoch(frame);
+        if(e<=record_.used){
+            if(!same(frame,last_stale_)){last_stale_=frame;nudge_=true;}
+            return true;
+        }
+        if(std::uint64_t(e)>std::uint64_t(record_.used)+2)return false;
+        if(candidate_.present && candidate_.phase==1 && is_attempt_initiator()){
+            if(candidate_.target>e || (candidate_.target==e &&
+                std::lexicographical_compare(local_.begin(),local_.end(),peer_.begin(),peer_.end())))return false;
+        }
+        if(candidate_.present && candidate_.phase==2 && candidate_.target==e &&
+            candidate_.initiating_member==initiating && get(frame.bytes.data()+20,8)<=get(candidate_.start.bytes.data()+20,8))return false;
+        if(last_now_<next_answer_)return false;
+        // Keep the active lease through an ordinary START and this public write.
+        // U+2 is signed D-074 evidence: burn its intermediate number durably
+        // before a reply can escape, and retire any overtaken old lane.
+        if(received_at>std::numeric_limits<std::uint64_t>::max()-kAttemptMs || record_.allocation>=kCapacity)return fail();
+        discard_candidate();candidate_.present=true;candidate_.phase=2;candidate_.initiating_member=initiating;
+        candidate_.target=e;candidate_.deadline=received_at+kAttemptMs;candidate_.start=frame;
+        if(!reserve())return fail();
+        candidate_.allocation=record_.allocation;
+        auto observed=record_;observed.phase=Phase::observed;observed.kind=ProofKind::start;
+        observed.used=e-1;observed.proof_size=236;observed.proof.fill(0);
+        std::memcpy(observed.proof.data(),frame.bytes.data(),236);
+        if(observed.used>record_.used)retire_active();
+        if(!save(observed) || !fresh_material() || !make_offer(2,hash(frame),candidate_.reply))return fail();
+        next_answer_=last_now_>std::numeric_limits<std::uint64_t>::max()-1000?std::numeric_limits<std::uint64_t>::max():last_now_+1000;
+        candidate_.last_input=frame;candidate_.last_output=candidate_.reply;candidate_.outgoing=candidate_.reply;
+        output=candidate_.reply;return true;
+    }
+    static void transcript(Candidate& c){
+        std::array<std::uint8_t,64> joined{};const auto a=hash(c.start),b=hash(c.reply);
+        std::memcpy(joined.data(),a.data(),32);std::memcpy(joined.data()+32,b.data(),32);
+        crypto_hash_sha256(c.transcript.data(),joined.data(),joined.size());
+    }
+    static Frame control_bytes(unsigned kind,unsigned initiating,const InvitationKey& digest){
+        Frame out{};out.size=104;std::memcpy(out.bytes.data(),"OTF5",4);out.bytes[4]=2;
+        out.bytes[5]=static_cast<std::uint8_t>(kind);out.bytes[6]=static_cast<std::uint8_t>(initiating);
+        std::memcpy(out.bytes.data()+8,digest.data(),32);return out;
     }
     bool make_control(unsigned kind,Frame& out){
-        out={};out.size=104;std::memcpy(out.bytes.data(),"OTF5",4);out.bytes[4]=1;out.bytes[5]=static_cast<std::uint8_t>(kind);
-        std::memcpy(out.bytes.data()+8,transcript_.data(),32);std::array<std::uint8_t,64> sig{};
-        if(!identity_.sign(out.bytes.data(),40,sig))return false;
-        std::memcpy(out.bytes.data()+40,sig.data(),64);return current();
+        out=control_bytes(kind,candidate_.initiating_member,candidate_.transcript);
+        std::array<std::uint8_t,64> sig{};if(!identity_.sign(out.bytes.data(),40,sig))return false;
+        std::memcpy(out.bytes.data()+40,sig.data(),64);return current() && candidate_current();
     }
-    bool verify_control(const Frame& in,unsigned kind){
-        return in.size==104 && header(in,kind) && sodium_memcmp(in.bytes.data()+8,transcript_.data(),32)==0 &&
+    bool verify_control(const Frame& in,unsigned kind)const{
+        return in.size==104 && header(in,kind) && in.bytes[6]==candidate_.initiating_member &&
+            sodium_memcmp(in.bytes.data()+8,candidate_.transcript.data(),32)==0 &&
             crypto_sign_verify_detached(in.bytes.data()+40,in.bytes.data(),40,peer_.data())==0;
     }
-    bool prepare_binding(){
-        reply_digest();
-        const auto& remote=initiator()?reply_:start_;
-        if(crypto_scalarmult_curve25519(shared_.data(),secret_.data(),remote.bytes.data()+92)!=0)return false;
-        sodium_memzero(secret_.data(),secret_.size());
-        return persist(1,epoch_+1) && current();
+    bool prepare_binding(const Frame& confirm){
+        transcript(candidate_);candidate_.confirm=confirm;
+        if(candidate_.target<=record_.used || std::uint64_t(candidate_.target)!=std::uint64_t(record_.used)+1)return false;
+        const auto& remote=is_attempt_initiator()?candidate_.reply:candidate_.start;
+        if(crypto_scalarmult_curve25519(candidate_.shared.data(),candidate_.secret.data(),remote.bytes.data()+92)!=0)return false;
+        sodium_memzero(candidate_.secret.data(),candidate_.secret.size());
+        auto prepared=record_;prepared.phase=Phase::prepared;prepared.kind=ProofKind::binding;
+        prepared.used=candidate_.target;prepared.proof_size=536;prepared.proof.fill(0);
+        std::memcpy(prepared.proof.data(),candidate_.start.bytes.data(),236);
+        std::memcpy(prepared.proof.data()+236,candidate_.reply.bytes.data(),236);
+        std::memcpy(prepared.proof.data()+472,confirm.bytes.data()+40,64);
+        // Fresh proof, rather than an unauthenticated/replayed offer, is the
+        // handoff boundary. No old frame may newly launch beyond this point.
+        retire_active();return save(prepared);
     }
-    bool derive(Binding& b,const InvitationKey& split,const InvitationKey& sender,const InvitationKey& recipient,unsigned direction,protocol::v1::Type purpose){
+    bool save_phase(Phase phase){
+        if(!candidate_current() || record_.kind!=ProofKind::binding || record_.used!=candidate_.target ||
+            std::memcmp(record_.proof.data(),candidate_.start.bytes.data(),236)!=0 ||
+            std::memcmp(record_.proof.data()+236,candidate_.reply.bytes.data(),236)!=0 ||
+            std::memcmp(record_.proof.data()+472,candidate_.confirm.bytes.data()+40,64)!=0)return false;
+        auto next=record_;next.phase=phase;if(phase==Phase::committed)next.committed=next.used;
+        return save(next);
+    }
+    static bool validate_record(void* p,const Journal::Record& r){return static_cast<F5RekeySession*>(p)->valid_record(r);}
+    static bool validate_partial(void* p,const Journal::Record& r,unsigned known){
+        auto& s=*static_cast<F5RekeySession*>(p);
+        if(r.kind==ProofKind::base)return true;
+        Frame a{},b{};a.size=236;
+        if(known>=236){
+            std::memcpy(a.bytes.data(),r.proof.data(),236);
+            if(!s.verify_offer(a,1,a.bytes[6],{}))return false;
+        }
+        if(r.kind==ProofKind::binding && known>=472){
+            b.size=236;std::memcpy(b.bytes.data(),r.proof.data()+236,236);
+            if(!s.verify_offer(b,2,a.bytes[6],hash(a)) || offer_epoch(a)!=offer_epoch(b))return false;
+        }
+        return known<r.proof_size || s.valid_record(r);
+    }
+    bool valid_record(const Journal::Record& r)const{
+        if(r.allocation>kCapacity || r.used<retained_.record.epoch || r.committed>r.used || r.flags)return false;
+        if(r.kind==ProofKind::base){
+            return r.phase==Phase::history && r.used==baseline_.used && r.committed==0 && r.proof_size==64 &&
+                std::memcmp(r.proof.data(),baseline_.proof.data(),64)==0;
+        }
+        Frame a{},b{};a.size=236;std::memcpy(a.bytes.data(),r.proof.data(),236);
+        const auto initiating=a.bytes[6];
+        if(initiating!=1 && initiating!=2)return false;
+        const bool known=proof_cached(r);
+        if(!verify_offer(a,1,initiating,{},!known))return false;
+        const auto e=offer_epoch(a);
+        if(r.kind==ProofKind::start){
+            const bool ok=r.phase==Phase::observed && r.proof_size==236 && r.allocation>0 && initiating==3-member_ &&
+                e>0 && std::uint64_t(r.used)+1==e;
+            if(ok && !known)remember_proof(r);
+            return ok;
+        }
+        if(r.kind!=ProofKind::binding || r.proof_size!=536 || r.allocation==0 || r.used!=e ||
+            (r.phase!=Phase::prepared && r.phase!=Phase::activation_possible && r.phase!=Phase::committed))return false;
+        b.size=236;std::memcpy(b.bytes.data(),r.proof.data()+236,236);
+        if(!verify_offer(b,2,initiating,hash(a),!known) || offer_epoch(b)!=e)return false;
+        const auto& local_offer=member_==initiating?a:b;
+        if(get(local_offer.bytes.data()+20,8)>r.allocation)return false;
+        Candidate proof{};proof.start=a;proof.reply=b;transcript(proof);
+        auto confirm=control_bytes(3,initiating,proof.transcript);
+        if(!known && crypto_sign_verify_detached(r.proof.data()+472,confirm.bytes.data(),40,member_key(initiating).data())!=0)return false;
+        const bool ok=r.phase==Phase::committed?r.committed==r.used:r.committed<r.used;
+        if(ok && !known)remember_proof(r);
+            return ok;
+    }
+    struct ProofCache {bool used{};ProofKind kind{};std::uint16_t size{};std::array<std::uint8_t,536> proof{};};
+    bool proof_cached(const Journal::Record& r)const{
+        for(const auto& cached:verified_proofs_)if(cached.used && cached.kind==r.kind && cached.size==r.proof_size && cached.proof==r.proof)return true;
+        return false;
+    }
+    void remember_proof(const Journal::Record& r)const{
+        auto& cached=verified_proofs_[next_proof_++%verified_proofs_.size()];
+        cached.used=true;cached.kind=r.kind;cached.size=r.proof_size;cached.proof=r.proof;
+    }
+    bool derive(Lease& lease,Binding& b,const InvitationKey& split,const InvitationKey& sender,const InvitationKey& recipient,unsigned direction,protocol::v1::Type purpose){
         constexpr char label[]="OpenTrail Packet-v1 session binding HKDF-SHA256 v1";
         std::array<std::uint8_t,sizeof(label)-1+32+32+32+8+4+1+1> info{};std::size_t at=0;
         auto append=[&](const std::uint8_t* p,std::size_t n){std::memcpy(info.data()+at,p,n);at+=n;};
-        append(reinterpret_cast<const std::uint8_t*>(label),sizeof(label)-1);append(conversation_digest_.data(),32);append(sender.data(),32);append(recipient.data(),32);
-        put(info.data()+at,conversation_,8);at+=8;put(info.data()+at,epoch_,4);at+=4;info[at++]=static_cast<std::uint8_t>(direction);info[at++]=static_cast<std::uint8_t>(purpose);
+        append(reinterpret_cast<const std::uint8_t*>(label),sizeof(label)-1);append(scope_.data(),32);append(sender.data(),32);append(recipient.data(),32);
+        put(info.data()+at,conversation_,8);at+=8;put(info.data()+at,lease.epoch,4);at+=4;
+        info[at++]=static_cast<std::uint8_t>(direction);info[at++]=static_cast<std::uint8_t>(purpose);
         InvitationKey prk{};std::array<std::uint8_t,52> material{};
-        const bool ok=crypto_kdf_hkdf_sha256_extract(prk.data(),transcript_.data(),32,split.data(),32)==0 &&
+        const bool ok=crypto_kdf_hkdf_sha256_extract(prk.data(),lease.transcript.data(),32,split.data(),32)==0 &&
             crypto_kdf_hkdf_sha256_expand(material.data(),material.size(),reinterpret_cast<const char*>(info.data()),info.size(),prk.data())==0;
-        if(ok){b.context.sender=sender;b.context.recipient=recipient;b.context.transcript=transcript_;b.context.sender_alias=get(sender.data(),8);b.context.recipient_alias=get(recipient.data(),8);
-            b.context.group=conversation_;b.context.epoch=epoch_;b.context.direction=static_cast<std::uint8_t>(direction);b.purpose=purpose;
-            std::memcpy(b.key.data(),material.data(),32);std::memcpy(b.domain.data(),material.data()+32,16);b.lease_domain=b.domain;std::memcpy(b.prefix.data(),material.data()+48,4);
-            b.active=true;b.validity=&gate;b.validity_context=this;b.close_owner=&close_gate;}
-        sodium_memzero(prk.data(),prk.size());sodium_memzero(material.data(),material.size());return ok;
+        if(ok){
+            b.context.sender=sender;b.context.recipient=recipient;b.context.transcript=lease.transcript;
+            b.context.sender_alias=get(sender.data(),8);b.context.recipient_alias=get(recipient.data(),8);
+            b.context.group=conversation_;b.context.epoch=lease.epoch;b.context.direction=static_cast<std::uint8_t>(direction);b.purpose=purpose;
+            std::memcpy(b.key.data(),material.data(),32);std::memcpy(b.domain.data(),material.data()+32,16);b.lease_domain=b.domain;
+            std::memcpy(b.prefix.data(),material.data()+48,4);b.active=true;b.validity=&lease_gate;b.validity_context=&tokens_[lease.allocation-1];b.close_owner=&close_lease;
+        }
+        sodium_memzero(prk.data(),32);sodium_memzero(material.data(),material.size());return ok;
     }
     bool bind_packets(){
+        if(record_.phase!=Phase::committed || record_.used!=candidate_.target || record_.committed!=candidate_.target ||
+            lease_counter_==std::numeric_limits<std::uint64_t>::max())return false;
+        Lease* next=nullptr;for(auto& l:leases_)if(!l.occupied){next=&l;break;}if(!next)return false;
+        next->owner=this;next->occupied=true;next->id=++lease_counter_;next->allocation=candidate_.allocation;
+        next->epoch=candidate_.target;next->transcript=candidate_.transcript;
+        auto& token=tokens_[next->allocation-1];
+        if(token.owner)return false;
+        token={this,next->id,static_cast<unsigned>(next-leases_.data())};
         InvitationKey prk{},ab{},ba{};
-        constexpr char l1[]="OpenTrail F5 outside conversation A to B v1",l2[]="OpenTrail F5 outside conversation B to A v1";
-        const bool ok=crypto_kdf_hkdf_sha256_extract(prk.data(),transcript_.data(),32,shared_.data(),32)==0 &&
+        constexpr char l1[]="OpenTrail F5 outside conversation initiating to answering v2";
+        constexpr char l2[]="OpenTrail F5 outside conversation answering to initiating v2";
+        const bool i=is_attempt_initiator();
+        const bool ok=crypto_kdf_hkdf_sha256_extract(prk.data(),candidate_.transcript.data(),32,candidate_.shared.data(),32)==0 &&
             crypto_kdf_hkdf_sha256_expand(ab.data(),32,l1,sizeof(l1)-1,prk.data())==0 &&
             crypto_kdf_hkdf_sha256_expand(ba.data(),32,l2,sizeof(l2)-1,prk.data())==0 &&
-            derive(data_tx_,initiator()?ab:ba,local_,peer_,initiator()?0:1,protocol::v1::Type::data) &&
-            derive(ack_tx_,initiator()?ab:ba,local_,peer_,initiator()?0:1,protocol::v1::Type::ack) &&
-            derive(data_rx_,initiator()?ba:ab,peer_,local_,initiator()?1:0,protocol::v1::Type::data) &&
-            derive(ack_rx_,initiator()?ba:ab,peer_,local_,initiator()?1:0,protocol::v1::Type::ack);
-        sodium_memzero(prk.data(),32);sodium_memzero(ab.data(),32);sodium_memzero(ba.data(),32);sodium_memzero(shared_.data(),32);
-        return ok;
+            derive(*next,next->bindings[0],i?ab:ba,local_,peer_,member_-1,protocol::v1::Type::data) &&
+            derive(*next,next->bindings[1],i?ab:ba,local_,peer_,member_-1,protocol::v1::Type::ack) &&
+            derive(*next,next->bindings[2],i?ba:ab,peer_,local_,2-member_,protocol::v1::Type::data) &&
+            derive(*next,next->bindings[3],i?ba:ab,peer_,local_,2-member_,protocol::v1::Type::ack);
+        sodium_memzero(prk.data(),32);sodium_memzero(ab.data(),32);sodium_memzero(ba.data(),32);sodium_memzero(candidate_.shared.data(),32);
+        if(!ok){retire(*next);return false;}
+        if(!current() || !candidate_current()){retire(*next);return false;}
+        active_index_=static_cast<unsigned>(next-leases_.data());next_answer_=0;return true;
     }
-    static bool gate(void* c,std::uint64_t){return static_cast<F5RekeySession*>(c)->ready();}
-    static void close_gate(void* c){static_cast<F5RekeySession*>(c)->close();}
-    bool fail(){failed_=true;ready_=false;wipe();return false;}
-    void wipe(){sodium_memzero(secret_.data(),32);sodium_memzero(shared_.data(),32);sodium_memzero(&data_tx_,sizeof data_tx_);sodium_memzero(&ack_tx_,sizeof ack_tx_);sodium_memzero(&data_rx_,sizeof data_rx_);sodium_memzero(&ack_rx_,sizeof ack_rx_);}
-    Stores stores_;security::SecureRandomSource& random_;EnrollmentIdentityStore identity_;
-    std::uint64_t conversation_{},(*clock_)(void*){},last_now_{},deadline_{},sequence_{},generation_{};void* clock_context_{};
-    std::uint32_t epoch_{};unsigned slot_{},phase_{};std::uint8_t stage_{};InvitationRole role_{};
-    bool initialized_{},started_{},failed_{},ready_{},busy_{};
-    EnrollmentRecoveryState retained_{};InvitationKey local_{},local_check_{},peer_{},conversation_digest_{},transcript_{},secret_{},shared_{},ephemeral_{},challenge_{};
-    std::array<std::uint8_t,16> boot_{};std::array<Bank,2> journal_snapshot_{};
-    Frame start_{},reply_{},last_input_{},last_output_{};Binding data_tx_{},ack_tx_{},data_rx_{},ack_rx_{};
+    Lease* active_lease(){return active_index_<leases_.size() && leases_[active_index_].occupied && !leases_[active_index_].retired?&leases_[active_index_]:nullptr;}
+    const Lease* active_lease_const()const{return active_index_<leases_.size() && leases_[active_index_].occupied && !leases_[active_index_].retired?&leases_[active_index_]:nullptr;}
+    static void wipe_lease(Lease& l){for(auto& b:l.bindings)sodium_memzero(&b,sizeof b);}
+    static void retire(Lease& l){l.retired=true;wipe_lease(l);}
+    void retire_active(){if(auto* l=active_lease())retire(*l);}
+    static Lease* token_lease(LeaseToken& token){
+        if(!token.owner || token.slot>=token.owner->leases_.size())return nullptr;
+        auto& lease=token.owner->leases_[token.slot];
+        return lease.occupied && lease.id==token.id?&lease:nullptr;
+    }
+    static void close_lease(void* p){
+        if(!p)return;
+        if(auto* lease=token_lease(*static_cast<LeaseToken*>(p)))retire(*lease);
+    }
+    static bool lease_gate(void* p,std::uint64_t){
+        if(!p)return false;
+        auto& token=*static_cast<LeaseToken*>(p);
+        auto* lease=token_lease(token);if(!lease)return false;
+        auto& s=*token.owner;Guard guard(s);
+        return guard && !lease->retired && s.current() && !lease->retired && lease->id==token.id && lease->epoch>=s.record_.used;
+    }
+    bool frame_eligible_internal(const Frame& f)const{
+        return candidate_.present && last_now_<candidate_.deadline && candidate_.target>=record_.used && same(f,candidate_.outgoing);
+    }
+    bool fail(){failed_=true;discard_candidate();for(auto& l:leases_)retire(l);return false;}
+    Stores stores_;security::SecureRandomSource& random_;EnrollmentIdentityStore identity_;Journal journal_;
+    std::uint64_t conversation_{},(*clock_)(void*){},last_now_{},next_answer_{},next_nudge_{},lease_counter_{};
+    void* clock_context_{};Trust trust_;unsigned member_{},active_index_{2};InvitationRole role_{};
+    bool initialized_{},source_ready_{},journal_ready_{},failed_{},busy_{},nudge_{};
+    EnrollmentRecoveryState retained_{};InvitationKey local_{},peer_{},trust_scope_{},scope_{},source_digest_{};
+    mutable std::array<ProofCache,4> verified_proofs_{};mutable unsigned next_proof_{};
+    Journal::Record baseline_{},record_{};Frame last_stale_{};Candidate candidate_{};std::array<Lease,2> leases_{};std::array<LeaseToken,kCapacity> tokens_{};std::array<Binding,4> empty_{};
 };
 } // namespace opentrail::security_evaluation
