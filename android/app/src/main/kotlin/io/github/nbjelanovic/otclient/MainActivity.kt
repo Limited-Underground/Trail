@@ -83,6 +83,7 @@ open class MainActivity : ComponentActivity() {
         )
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
 
+        MeshTrailOperationLogging.from(applicationContext).appOpened()
         setContent { TrailTheme { TrailApp(appController) { AdditionalTools() } } }
     }
 
@@ -151,7 +152,9 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
         ActivityResultContracts.RequestPermission(),
     ) { controller.refreshPermissionState() }
     DisposableEffect(controller, pairingCodes) {
+        val logObservation = MeshTrailOperationLogging.from(context).appObservation()
         controller.observe { next ->
+            logObservation.observeApp(next)
             pairingCodes.observe(next, SystemClock.elapsedRealtime())
             state = next
         }

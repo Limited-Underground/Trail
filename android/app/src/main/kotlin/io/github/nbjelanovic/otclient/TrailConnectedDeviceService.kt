@@ -124,7 +124,8 @@ class TrailConnectedDeviceService : Service() {
             val observation = runCatching {
                 (application as? ConnectedDeviceSessionObservationProvider)?.createObservation(generation)
             }.getOrNull()
-            ConnectedDeviceSessionOwner(generation, createdController, observation)
+            val logObservation = MeshTrailOperationLogging.from(applicationContext).serviceObservation(observation)
+            ConnectedDeviceSessionOwner(generation, createdController, logObservation)
         } catch (error: RuntimeException) {
             try {
                 if (controller != null) controller.close() else facade.close()

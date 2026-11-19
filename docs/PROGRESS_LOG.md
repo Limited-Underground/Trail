@@ -2,6 +2,22 @@
 
 ## 2026-11-18
 
+### OT-0177a Add the Android operation log and text export
+
+The local A8/A9 topic records typed app and Bluetooth owner transitions,
+including pairing and refusal reasons, outside the existing support report.
+Two app-private 32 KiB segments rotate oldest first and stay outside the
+share provider and backups. A readback check skips corrupt records.
+The Help & support action offers a UTF-8 .txt through Android's chooser,
+using the existing eight-file, 24-hour share cache.
+
+Android decodes a strict F11 record and retains approved typed measurements,
+availability and age. Free text, device and peer identifiers, names, codes,
+keys, precise location, raw frames, and the firmware version token stay out.
+The byte-exact C++ fixture and Android tests provide host evidence. Live F11
+producer and protected delivery, Android phone checks, and full OT-0320
+physical support-export acceptance remain open.
+
 ### OT-0341 Device parameters collector and codec for logging (F11)
 
 The new MeshTrail component collects typed, timestamped observations and encodes a strict 212-byte version-1 record. Twelve independent availability groups distinguish missing data from valid zero and retain source age. Collection and serving refuse clock rollback, source timestamps from the future and sequence exhaustion. The record contains no device/peer identifiers, coordinates or private payloads.
