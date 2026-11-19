@@ -2,6 +2,25 @@
 
 ## 2026-11-18
 
+### OT-0005i Recover a fresh MeshTrail session after one board restarts
+
+TASK-4 and its review addendum integrate the F5 candidate on the main that
+contains pairing PR #283. D-112 keeps its generation-zero completion and
+per-generation archives at tuple name 11. F5 uses names 12–17 and a separate
+key spelling within the existing partition. The combined allocation budget
+is 7,564 entries at capacity 32. D-124 makes incompatible inventories refuse
+while preserving their bytes.
+
+F5 saves public epoch and allocation history and verifies the saved evidence
+on restart. A fresh attempt uses new traffic keys. It records the verified
+D-074 catch-up before releasing a reply, checks the exact queued control and
+its deadline before and after CAD, and rejects unsupported status content
+before replay or ACK storage changes. First pairing remains governed by the
+D-112 completion owner. This remains a link-test development candidate and
+requires an owner-present board session to measure timing and verify delivery.
+The maintainer-local TASK-4 report records the source, regressions, target
+build results and remaining limits.
+
 ### OT-0005i Integrate pairing review fixes with current main
 
 TASK-5 authorizes the incoming merge of current main 67607f9 after review-fix
@@ -184,6 +203,46 @@ next local increment. Before a combined D-113 trial, reconcile its tuple names
 inherited I-073 launch-floor defect remain board-session prerequisites.
 
 ## 2026-11-17
+
+### OT-0005i Wire the retained status candidate into Heltec
+
+The link-test target now probes the retained pair before first-pairing acquires
+storage, uses the new rekey and protected-status owners on the actual Heltec
+radio interface, and attributes transmitted only to the exact owned DATA TxDone.
+Receive processing precedes service and queued launch. Failure/expiry retires
+keys and queued traffic; no beacon fallback occurs. The existing reset-covered
+ot_state namespace holds bounded new F5 journal and per-generation packet views.
+Its 64-slot cache covers the expanded verification working set. The previous
+firmware rejects new tuple names, so rollback compatibility needs review with
+the D-112 pairing change. No forbidden pairing file or phone code changed.
+Bench admission passes 21 groups, storage-key admission passes 3, and the final
+ESP-IDF v6.0.2 link-test image is 835,392 bytes with no warnings; SHA-256
+84f992067af72e828588a4a1d59e0960b007c72273e98fe66bd70cf5607f8ea4.
+The image was built from the source overlay at base 4b7e5d5 (dirty build label).
+The full offline security matrix passed all 83 suite results and 613 commands
+without timeouts. All 733 expanded dependency files matched both admission
+inventories; official ZIP admission was not repeated. Documentation comparison
+and 48 repository-doc tests passed. Both peers must start together; one-peer
+restart and interrupted rekey recovery remain open. No hardware session or V1 score change. See the [lifecycle notes](testing/OT-0005i-F5-STATUS-STEP1.md)
+and maintainer-local codex-messaging-plan/out/REPORT-2.md for review and board steps.
+
+
+### OT-0005i Retained-pair fresh session and protected status candidate
+
+D-113 adds a local link-test-only F5 owner that verifies actual committed R2
+records, binds the retained ID to both complete identities in an outside-group
+domain, performs fresh signed rekey and exchanges one protected OTQ0 status each
+way. DATA and ACK use isolated durable counter/replay stores. Queued, hardware
+DATA TxDone and authenticated ACK remain separate states. The focused 17-group
+host suite and existing 68-scenario companion suite pass. Bench source admission
+passes 21 groups; the offline link-test build has no warnings. Full matrix and
+final documentation results are recorded in the local task report at closeout.
+The original pairing coordinator/runtime/adapter and Android were not edited.
+This is a development carrier needing review, with one exchange per boot and
+both boards started together. Single-peer restart/catch-up, uncertain-state
+reconciliation, phone messaging and hardware acceptance remain open. No V1 score
+or public website status changes. See [candidate lifecycle and validation](testing/OT-0005i-F5-STATUS-STEP1.md).
+
 
 ### OT-0305 Persist verified group catch-up before reply
 
