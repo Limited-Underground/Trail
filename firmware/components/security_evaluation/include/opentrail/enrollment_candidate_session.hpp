@@ -5,6 +5,7 @@
 #include "opentrail/enrollment_candidate_preparation.hpp"
 #include "opentrail/product_enrollment_activation.hpp"
 #include "opentrail/enrollment_recovery_owner.hpp"
+#include "opentrail/pairing_completion_archive.hpp"
 #include "opentrail/device_factory_reset_executor.hpp"
 
 namespace opentrail::security_evaluation {
@@ -136,12 +137,14 @@ public:
         security::SecureRandomSource& random, persistence::PersistentStorage& identity,
         persistence::PersistentStorage& journal, persistence::PersistentStorage& binding,
         EvaluationGenerationBackend& backend, std::uint64_t capacity, std::uint64_t clock_domain,
-        persistence::PersistentStorage* durable_boot=nullptr,EnrollmentSessionResetGate* reset_gate=nullptr)
+        persistence::PersistentStorage* durable_boot=nullptr,EnrollmentSessionResetGate* reset_gate=nullptr,
+        persistence::PersistentStorage* pairing_completion=nullptr,
+        PairingCompletionArchive* pairing_archive=nullptr)
         :request_owner_(request),authority_(authority),device_(device),random_(random),
          identity_storage_(identity),journal_storage_(journal),binding_storage_(binding),
          backend_(backend),durable_boot_(durable_boot),clock_domain_(clock_domain),identity_(identity,random),ledger_(backend),
          allocator_(ledger_,backend,capacity),local_authority_(*this),clock_(*this),reset_gate_(reset_gate),
-         reset_incarnation_(reset_gate?reset_gate->incarnation():0) {}
+         reset_incarnation_(reset_gate?reset_gate->incarnation():0),pairing_storage_(pairing_completion),pairing_archive_(pairing_archive) {}
     EnrollmentCandidateSession(const EnrollmentCandidateSession&)=delete;
     EnrollmentCandidateSession& operator=(const EnrollmentCandidateSession&)=delete;
     ~EnrollmentCandidateSession() { (void)close();if(reset_gate_)reset_gate_->session_destroyed(*this); }
@@ -179,6 +182,256 @@ public:
         out=now.now_ms>=deadline?0:deadline-now.now_ms;return true;
     }
     // Trusted LOCAL owner action only. Received records never call/select this.
+
+    // D-112 state is an immutable public observation, independent of volatile keys.
+    PairingCompletionSnapshot pairing_completion() const {
+        return completion_ ? completion_->snapshot() : PairingCompletionSnapshot{};
+    }
+    void set_pairing_outer_deadline(std::uint64_t deadline) {
+        if (!pairing_outer_deadline_ || (deadline && deadline < pairing_outer_deadline_))
+            pairing_outer_deadline_ = deadline;
+    }
+    bool recoverable_pairing() const { return pairing_storage_ != nullptr; }
+    // Read-only routing occurs before a start consumes the request or identity.
+    bool start_pairing(InvitationRole role, std::uint64_t group) {
+        if (!pairing_storage_) return start(role, group);
+        PairingCompletionJournal probe(*pairing_storage_);
+        if (!probe.initialize()) return cancel();
+        if (probe.snapshot().phase == PairingCompletionPhase::none) {
+            if (!prepare_fresh_unvoted()) return cancel();
+            return start(role, group);
+        }
+        PairingCompletionRecord record{};
+        if (!probe.load(record)) return cancel();
+        if (record.phase == PairingCompletionPhase::aborted) {
+            EnrollmentCommitCoordinator public_state(journal_storage_);
+            EnrollmentCommitContext context{};
+            std::uint8_t stage{};
+            const bool newer_unvoted = public_state.initialize() &&
+                public_state.recovery_snapshot(context, stage) && stage == 1 &&
+                context.session_generation > record.generation;
+            if (!(newer_unvoted ? prepare_fresh_unvoted(&record) : prepare_fresh_after_abort(record))) return cancel();
+            return start(role, group);
+        }
+        if (record.role != role) return cancel();
+        // The new code routes recovery radio frames. The saved invitation keeps its group.
+        return start_pairing_recovery(role, record.group);
+    }
+    bool pairing_recovery() const { return pairing_recovery_; }
+    bool pairing_archive_recovery() const { return archive_mode_; }
+    InvitationKey pairing_recovery_transaction() const {
+        InvitationKey transaction{};
+        if (archive_mode_ && archive_entry_)
+            std::memcpy(transaction.data(), archive_entry_->receipt.data() + 4, transaction.size());
+        else if (completion_) transaction = completion_->snapshot().transaction;
+        return transaction;
+    }
+
+    bool select_pairing_archive(const InvitationKey& transaction) {
+        if (!pairing_archive_ || busy_ || active_ || pairing_finished_ || failed_) return false;
+        // A routing miss is untrusted radio input, not a failed enrollment
+        // operation. It must not consume or cancel the current owner request.
+        std::optional<PairingCompletionArchiveEntry> selected;
+        for (std::uint64_t generation = 1; generation <= pairing_archive_->archive_capacity(); ++generation) {
+            auto* storage = pairing_archive_->archive_storage(generation);
+            if (!storage) return false;
+            PairingCompletionArchiveRecord archive(*storage);
+            PairingCompletionArchiveEntry entry{};
+            if (!archive.initialize() || archive.empty() || !archive.load(entry)) continue;
+            if (std::memcmp(entry.receipt.data() + 4, transaction.data(), transaction.size()) == 0) {
+                selected = entry;
+                break;
+            }
+        }
+        if (!selected) return false;
+        return operation([&] {
+            const auto& entry = *selected;
+            InvitationKey own{};
+            if (!identity_.public_key(own) || own != local_key_ || entry.own != own ||
+                entry.receipt[2] != static_cast<std::uint8_t>(role_)) return false;
+            // Abandon only volatile work. Current transaction metadata and
+            // the historical negative proof remain durably independent.
+            if (endpoint_ && !endpoint_->close()) return false;
+            trusted_.reset(); preparation_.reset(); compared_.reset(); comparison_.reset();
+            endpoint_.reset(); reviewed_.reset(); possession_.reset(); handoff_.reset();
+            if (context_bound_ && !device_.release_context(review_context_)) return false;
+            context_bound_ = false;
+            archive_entry_ = entry;
+            archive_mode_ = pairing_recovery_ = true;
+            peer_key_ = entry.peer;
+            recovery_peer_nonce_set_ = recovery_proved_ = false;
+            recovery_peer_nonce_.fill(0);
+            const auto random = random_.fill(recovery_nonce_.data(), recovery_nonce_.size());
+            return random.ok() && random.bytes_written == recovery_nonce_.size() &&
+                   invitation_detail::nonzero(recovery_nonce_);
+        });
+    }
+
+
+    bool stage_pairing_record() {
+        if (!pairing_storage_) return true;
+        return operation([&] {
+            if (completion_) return completion_->snapshot().phase == PairingCompletionPhase::confirmed;
+            PairingCompletionRecord record{};
+            if (!trusted_ || !endpoint_->stage_pairing(record)) return false;
+            if (!pairing_transaction(trusted_->binding(), record.transcript, record.transaction)) return false;
+            std::array<std::uint8_t, 32> decision{};
+            authority_detail::put(decision.data(), request_.delivery_token, 8);
+            authority_detail::put(decision.data() + 8, request_.exchange_id, 8);
+            authority_detail::put(decision.data() + 16, request_.admitted_ms, 8);
+            authority_detail::put(decision.data() + 24, request_.deadline_ms, 8);
+            crypto_hash_sha256(record.decision.data(), decision.data(), decision.size());
+            completion_.emplace(*pairing_storage_);
+            return completion_->initialize() && completion_->begin(record, &pairing_guard, this);
+        });
+    }
+    bool export_pairing_receipt(PairingCompletionKind kind, PairingCompletionReceipt& out) {
+        PairingCompletionReceipt staged{};
+        const bool ok = operation([&] {
+            if (!completion_ || !pairing_identity_current()) return false;
+            if (kind == PairingCompletionKind::prepared && !completion_->locally_prepared()) {
+                if (pairing_recovery_ || !endpoint_ || !endpoint_->pairing_confirmed() ||
+                    !completion_->prepare(&pairing_guard, this, &pairing_vote_reservation)) return false;
+            }
+            if (!completion_->export_receipt(kind, identity_, staged)) return false;
+            // A previously reserved positive decision survives expiry, but its
+            // first live export still requires the original signed window.
+            return pairing_recovery_ || kind != PairingCompletionKind::prepared || pairing_vote_reservation(this);
+        });
+        if (ok) out = staged;
+        return ok;
+    }
+    bool receive_pairing_receipt(const PairingCompletionReceipt& input) {
+        const auto candidate = input;
+        return operation([&] {
+            if (!completion_ || (pairing_recovery_ && !recovery_proved_)) return false;
+            return completion_->accept_peer(candidate, &pairing_guard, this);
+        });
+    }
+    bool commit_pairing() {
+        return operation([&] {
+            if (archive_mode_) return false;
+            if (!completion_) return false;
+            PairingCompletionRecord record{};
+            if (!completion_->load(record)) return false;
+            if (record.phase == PairingCompletionPhase::aborted) {
+                (void)finish_pairing_abort(record);
+                return false;
+            }
+            if (!completion_->locally_prepared() || !completion_->has_peer_prepared()) return false;
+            if (pairing_recovery_) return recover_pairing_public();
+            return endpoint_ && endpoint_->commit_pairing(*completion_);
+        });
+    }
+    bool finish_pairing() {
+        const bool ok = operation([&] {
+            if (!completion_ || !completion_->has_peer_committed()) return false;
+            return pairing_recovery_ ? completion_->mark_peer_confirmed(&pairing_guard, this) :
+                                      endpoint_->finish_pairing(*completion_);
+        });
+        if (!ok || !request_owner_.cancel_exact(request_)) return cancel();
+        // Restored public proof never recreates a traffic endpoint or old keys.
+        active_ = !pairing_recovery_;
+        pairing_finished_ = true;
+        return true;
+    }
+    bool start_pairing_recovery(InvitationRole role, std::uint64_t group) {
+        if (attempted_ || busy_ || !pairing_storage_ || !request_owner_.pending()) return cancel();
+        attempted_ = true;
+        captured_ = true;
+        request_ = request_owner_.request();
+        role_ = role;
+        group_ = group;
+        pairing_recovery_ = true;
+        return operation([&] {
+            completion_.emplace(*pairing_storage_);
+            PairingCompletionRecord record{};
+            if (!completion_->initialize() || !completion_->load(record) || record.role != role ||
+                record.group != group || record.phase == PairingCompletionPhase::none ||
+                record.phase == PairingCompletionPhase::uncertain ||
+                identity_.load_existing() != EnrollmentIdentityStore::LoadResult::ready ||
+                !identity_.public_key(local_key_)) return false;
+            generation_ = record.generation;
+            if (!allocator_.initialize() || !allocator_.restore_pairing_generation(generation_)) return false;
+            started_ = true;
+            peer_key_ = record.peer;
+            epoch_ = record.epoch;
+            if (!load_pairing_binding(recovery_binding_) || !pairing_identity_current()) return false;
+            // A descriptor carries no vote. A later request can only vote Abort for it.
+            if (record.phase == PairingCompletionPhase::confirmed &&
+                !completion_->abort(&pairing_guard, this)) return false;
+            if (random_.state() != security::EntropyState::ready) return false;
+            const auto entropy = random_.fill(recovery_nonce_.data(), recovery_nonce_.size());
+            return entropy.ok() && entropy.bytes_written == recovery_nonce_.size() &&
+                   invitation_detail::nonzero(recovery_nonce_);
+        });
+    }
+    bool export_pairing_challenge(std::array<std::uint8_t, 48>& output) {
+        return operation([&] {
+            PairingCompletionRecord record{};
+            if (!pairing_recovery_) return false;
+            if (archive_mode_) {
+                if (!archive_entry_) return false;
+                std::memcpy(output.data(), archive_entry_->receipt.data() + 4, 32);
+            } else {
+                if (!completion_->load(record)) return false;
+                std::memcpy(output.data(), record.transaction.data(), 32);
+            }
+            std::memcpy(output.data() + 32, recovery_nonce_.data(), 16);
+            return true;
+        });
+    }
+    bool receive_pairing_challenge(const std::array<std::uint8_t, 48>& input) {
+        const auto candidate = input;
+        return operation([&] {
+            PairingCompletionRecord record{};
+            if (!pairing_recovery_ || recovery_peer_nonce_set_) return false;
+            if (archive_mode_) {
+                if (!archive_entry_ || std::memcmp(candidate.data(), archive_entry_->receipt.data() + 4, 32) != 0) return false;
+            } else if (!completion_->load(record) ||
+                       std::memcmp(candidate.data(), record.transaction.data(), 32) != 0) return false;
+            std::memcpy(recovery_peer_nonce_.data(), candidate.data() + 32, 16);
+            recovery_peer_nonce_set_ = invitation_detail::nonzero(recovery_peer_nonce_) &&
+                                       recovery_peer_nonce_ != recovery_nonce_;
+            return recovery_peer_nonce_set_;
+        });
+    }
+    bool export_pairing_recovery_response(std::array<std::uint8_t, 164>& output) {
+        return operation([&] {
+            if (!pairing_recovery_ || !recovery_peer_nonce_set_ || !pairing_identity_current()) return false;
+            PairingCompletionReceipt receipt{};
+            if (archive_mode_) {
+                if (!archive_entry_) return false;
+                receipt = archive_entry_->receipt;
+            } else {
+                const auto kind = completion_->locally_prepared() ? PairingCompletionKind::prepared :
+                                                                   PairingCompletionKind::aborted;
+                if (!completion_->export_receipt(kind, identity_, receipt)) return false;
+            }
+            const auto bytes = recovery_signing_bytes(receipt);
+            std::array<std::uint8_t, 64> signature{};
+            if (!identity_.sign(bytes.data(), bytes.size(), signature)) return false;
+            std::memcpy(output.data(), receipt.data(), receipt.size());
+            std::memcpy(output.data() + receipt.size(), signature.data(), signature.size());
+            return true;
+        });
+    }
+    bool receive_pairing_recovery_response(const std::array<std::uint8_t, 164>& input) {
+        const auto candidate = input;
+        return operation([&] {
+            if (!pairing_recovery_ || !recovery_peer_nonce_set_ || recovery_proved_) return false;
+            PairingCompletionReceipt receipt{};
+            std::memcpy(receipt.data(), candidate.data(), receipt.size());
+            const auto bytes = recovery_signing_bytes(receipt);
+            if (crypto_sign_verify_detached(candidate.data() + receipt.size(), bytes.data(), bytes.size(),
+                                            peer_key_.data()) != 0 ||
+                !(archive_mode_ ? archived_peer_receipt(receipt) :
+                                  completion_->accept_peer(receipt, &pairing_guard, this))) return false;
+            recovery_proved_ = true;
+            return true;
+        });
+    }
+
     bool start(InvitationRole role,std::uint64_t group) {
         return start_attempt(role,group,false);
     }
@@ -193,6 +446,12 @@ public:
         if(!request_owner_.pending())return cancel();
         request_=request_owner_.request();captured_=true;role_=role;group_=group;rekey_=true;
         return operation([&]{
+            if (pairing_storage_) {
+                PairingCompletionJournal pending(*pairing_storage_);
+                if (!pending.initialize()) return false;
+                const auto phase = pending.snapshot().phase;
+                if (phase != PairingCompletionPhase::none) return false;
+            }
             if(!durable_boot_ || !clock_domain_ || !group_ ||
                 (role_!=InvitationRole::initiator && role_!=InvitationRole::responder) ||
                 &identity_storage_==&journal_storage_ || &identity_storage_==&binding_storage_ ||
@@ -266,13 +525,26 @@ private:
                 &journal_storage_==&binding_storage_ ||
                 (durable_boot_ && (durable_boot_==&identity_storage_ || durable_boot_==&journal_storage_ ||
                     durable_boot_==&binding_storage_))) {start_refusal_=StartRefusal::invalid_setup;return false;}
+            if (pairing_storage_ && (pairing_storage_ == &identity_storage_ ||
+                pairing_storage_ == &journal_storage_ || pairing_storage_ == &binding_storage_ ||
+                pairing_storage_ == durable_boot_)) return false;
+            if (pairing_storage_) {
+                PairingCompletionJournal pending(*pairing_storage_);
+                if (!pending.initialize()) return false;
+                const auto phase = pending.snapshot().phase;
+                // Legacy retained flows do not advance the D-112 completion
+                // ledger. Its selected recovery must finish before allocating.
+                if (phase != PairingCompletionPhase::none &&
+                    (rekey_ || phase != PairingCompletionPhase::aborted)) return false;
+            }
             if(rekey_) {
                 if(!preflight_retained()){start_refusal_=StartRefusal::retained_preflight;return false;}
             } else {
                 EnrollmentCommitCoordinator prior(journal_storage_);
-                if(!prior.initialize() || prior.state()!=EnrollmentJournalState::empty)
+                if(!prior.initialize() || (prior.state()!=EnrollmentJournalState::empty &&
+                                           prior.state()!=EnrollmentJournalState::aborted))
                     {start_refusal_=StartRefusal::journal_not_empty;return false;}
-                if(!blank_retained()){start_refusal_=StartRefusal::retained_records;return false;}
+                if(prior.state()!=EnrollmentJournalState::aborted && !blank_retained()){start_refusal_=StartRefusal::retained_records;return false;}
                 if(!fresh()){start_refusal_=StartRefusal::stale_request;return false;}
                 if(!identity_.initialize() || !identity_.public_key(local_key_))
                     {start_refusal_=StartRefusal::identity;return false;}
@@ -567,6 +839,304 @@ public:
     bool quiescent() const {return !busy_ && cleaned_ && !endpoint_ && secrets_cleared();}
     bool belongs_to_reset_gate(const EnrollmentSessionResetGate& gate) const{return reset_gate_==&gate;}
 private:
+
+
+    bool prepare_fresh_unvoted(const PairingCompletionRecord* prior_abort = nullptr) {
+        // An interrupted initial descriptor has no durable vote. Its exact
+        // public journal must still be at stage1 (before C1); otherwise fail
+        // closed. The peer therefore cannot have reserved Prepared either.
+        EnrollmentCommitCoordinator prior(journal_storage_);
+        if (!prior.initialize()) return false;
+        const auto state = prior.state();
+        if (state == EnrollmentJournalState::empty || state == EnrollmentJournalState::aborted) return true;
+        EnrollmentCommitContext context{};
+        std::uint8_t stage{};
+        if (!prior.recovery_snapshot(context, stage) || stage != 1 || !request_owner_.pending()) return false;
+        request_ = request_owner_.request();
+        captured_ = true;
+        EnrollmentIdentityStore existing(identity_storage_, random_);
+        InvitationKey own{}, digest{};
+        GenerationLedgerStorage ledger(backend_);
+        PeerMembershipStore allocation(ledger);
+        PeerMembership latest{};
+        RetainedView members(backend_, EvaluationNamespace::membership), evidence_view(backend_, EvaluationNamespace::enrollment);
+        PeerMembershipStore membership(members);
+        EnrollmentEvidenceStore evidence(evidence_view);
+        EnrollmentBindingStore bindings(binding_storage_);
+        IndependentInvitation invitation{};
+        std::optional<VerifiedIdentityBinding> binding;
+        if (!fresh() || existing.load_existing() != EnrollmentIdentityStore::LoadResult::ready ||
+            !existing.public_key(own) || !allocation.initialize() || !allocation.read(latest) ||
+            latest.state != MembershipState::active || latest.generation != context.session_generation ||
+            latest.binding != SessionGenerationAllocator::token(context.session_generation) ||
+            !membership.initialize() || !membership.empty() || !evidence.initialize() || !evidence.read(invitation) ||
+            !bindings.initialize() || !bindings.read(invitation, binding) || !binding ||
+            (own != context.identities.initiator && own != context.identities.responder) ||
+            context.identities.initiator != binding->identities().initiator ||
+            context.identities.responder != binding->identities().responder) return false;
+        const auto fields = independent_invitation_detail::decode(invitation);
+        const auto bytes = enrollment_identity_signing_bytes(binding->identities(), invitation);
+        if (fields.group != context.group || fields.epoch != context.epoch ||
+            crypto_hash_sha256(digest.data(), bytes.data(), bytes.size()) != 0 ||
+            digest != context.evidence_digest) return false;
+        // Reserve the negative cleanup before mutating the public journal.
+        // If that later write fails, this terminal descriptor and its archive
+        // authorize the existing exact-binding repair on the next request.
+        // No C1 was issued, so a synthetic cleanup transaction never carries a
+        // peer vote or a positive decision and cannot be used to pair.
+        PairingCompletionRecord cleanup{};
+        cleanup.transcript = digest;
+        cleanup.decision = context.evidence_digest;
+        cleanup.role = own == context.identities.initiator ? InvitationRole::initiator : InvitationRole::responder;
+        cleanup.peer = cleanup.role == InvitationRole::initiator ? context.identities.responder : context.identities.initiator;
+        cleanup.group = context.group;
+        cleanup.generation = context.session_generation;
+        cleanup.epoch = context.epoch;
+        cleanup.phase = PairingCompletionPhase::aborted;
+        cleanup.flags = PairingCompletionJournal::kLocalAborted;
+        if (!pairing_transaction(*binding, cleanup.transcript, cleanup.transaction)) return false;
+        if (prior_abort && !retain_pairing_abort(*prior_abort, existing)) return false;
+        completion_.emplace(*pairing_storage_);
+        if (!completion_->initialize() || !completion_->reserve_unvoted_abort(cleanup, &pairing_guard, this) ||
+            !retain_pairing_abort(cleanup, existing) || !tombstone_pairing_candidate(cleanup, own)) return false;
+        completion_.reset();
+        return fresh();
+    }
+
+    bool retain_pairing_abort(const PairingCompletionRecord& record, EnrollmentIdentityStore& identity) {
+        if (!pairing_archive_ || record.phase != PairingCompletionPhase::aborted) return false;
+        PairingCompletionArchiveEntry entry{};
+        entry.peer = record.peer;
+        entry.group = record.group;
+        entry.generation = record.generation;
+        entry.epoch = record.epoch;
+        if (!identity.public_key(entry.own)) return false;
+        const auto kind = record.flags & PairingCompletionJournal::kLocalAborted ?
+                          PairingCompletionKind::aborted : PairingCompletionKind::prepared;
+        PairingCompletionJournal terminal(*pairing_storage_);
+        PairingCompletionRecord terminal_record{};
+        if (!terminal.initialize() || !terminal.load(terminal_record) ||
+            terminal_record.transaction != record.transaction || terminal_record.generation != record.generation ||
+            terminal_record.phase != PairingCompletionPhase::aborted ||
+            !terminal.export_receipt(kind, identity, entry.receipt)) return false;
+        auto* storage = pairing_archive_->archive_storage(record.generation);
+        if (!storage) return false;
+        PairingCompletionArchiveRecord archive(*storage);
+        if (!archive.initialize()) return archive.repair_exact(entry, &pairing_guard, this);
+        return archive.retain(entry, &pairing_guard, this);
+    }
+    bool tombstone_pairing_candidate(const PairingCompletionRecord& expected, const InvitationKey& own) {
+        if (!pairing_archive_ || expected.phase != PairingCompletionPhase::aborted) return false;
+        PairingCompletionJournal current(*pairing_storage_);
+        PairingCompletionRecord observed{};
+        if (!current.initialize() || !current.load(observed) ||
+            observed.phase != PairingCompletionPhase::aborted || observed.transaction != expected.transaction ||
+            observed.generation != expected.generation || observed.peer != expected.peer) return false;
+        auto* archived_storage = pairing_archive_->archive_storage(expected.generation);
+        if (!archived_storage) return false;
+        PairingCompletionArchiveRecord archive(*archived_storage);
+        PairingCompletionArchiveEntry proof{};
+        if (!archive.initialize() || !archive.load(proof) || proof.own != own ||
+            proof.peer != expected.peer || proof.group != expected.group || proof.epoch != expected.epoch ||
+            proof.generation != expected.generation ||
+            std::memcmp(proof.receipt.data() + 4, expected.transaction.data(), 32) != 0) return false;
+        GenerationLedgerStorage ledger(backend_);
+        PeerMembershipStore allocation(ledger);
+        PeerMembership latest{};
+        RetainedView member_view(backend_, EvaluationNamespace::membership);
+        PeerMembershipStore member(member_view);
+        if (!allocation.initialize() || !allocation.read(latest) ||
+            latest.state != MembershipState::active || latest.generation < expected.generation ||
+            latest.binding != SessionGenerationAllocator::token(latest.generation) ||
+            !member.initialize() || !member.empty() || !fresh()) return false;
+        RetainedView evidence_view(backend_, EvaluationNamespace::enrollment);
+        EnrollmentEvidenceStore evidence(evidence_view);
+        EnrollmentBindingStore bindings(binding_storage_);
+        IndependentInvitation invitation{};
+        std::optional<VerifiedIdentityBinding> binding;
+        InvitationKey transaction{};
+        if (!evidence.initialize() || !evidence.read(invitation) ||
+            !bindings.initialize() || !bindings.read(invitation, binding) || !binding ||
+            !pairing_transaction(*binding, expected.transcript, transaction) ||
+            transaction != expected.transaction ||
+            own != (expected.role == InvitationRole::initiator ? binding->identities().initiator :
+                                                               binding->identities().responder)) return false;
+        EnrollmentCommitCoordinator journal(journal_storage_);
+        EnrollmentCommitContext context{};
+        if (latest.generation > expected.generation) {
+            // A fresh attempt may consume a generation and stop before its
+            // descriptor replaces this Abort. Retry only an already complete,
+            // strictly loaded tombstone; never mutate an older generation.
+            if (!journal.initialize() || journal.state() != EnrollmentJournalState::aborted) return false;
+        } else if (!journal.initialize_pairing_abort_recovery(*binding, expected.generation)) return false;
+        const auto bytes = enrollment_identity_signing_bytes(binding->identities(), invitation);
+        InvitationKey digest{};
+        if (!journal.read_public(context) || context.session_generation != expected.generation ||
+            context.group != expected.group || context.epoch != expected.epoch ||
+            context.identities.initiator != binding->identities().initiator ||
+            context.identities.responder != binding->identities().responder ||
+            crypto_hash_sha256(digest.data(), bytes.data(), bytes.size()) != 0 || digest != context.evidence_digest) return false;
+        return (latest.generation > expected.generation ||
+                journal.abort_pairing_public(context, &pairing_guard, this)) &&
+               journal.state() == EnrollmentJournalState::aborted && fresh();
+    }
+    bool finish_pairing_abort(const PairingCompletionRecord& record) {
+        InvitationKey own{};
+        return recovery_proved_ && pairing_identity_current() && identity_.public_key(own) &&
+               retain_pairing_abort(record, identity_) && tombstone_pairing_candidate(record, own);
+    }
+    bool prepare_fresh_after_abort(const PairingCompletionRecord& record) {
+        // This new owner request permits a fresh attempt after the old negative
+        // decision has been archived. It never changes that decision.
+        if (!request_owner_.pending() || !pairing_archive_) return false;
+        request_ = request_owner_.request();
+        captured_ = true;
+        EnrollmentIdentityStore existing(identity_storage_, random_);
+        InvitationKey own{};
+        if (existing.load_existing() != EnrollmentIdentityStore::LoadResult::ready || !existing.public_key(own) ||
+            !retain_pairing_abort(record, existing) || !tombstone_pairing_candidate(record, own)) return false;
+        return true;
+    }
+    bool archived_peer_receipt(const PairingCompletionReceipt& receipt) const {
+        if (!archive_entry_ || receipt[0] != 1 || receipt[3] != 0 ||
+            receipt[2] != static_cast<std::uint8_t>(role_ == InvitationRole::initiator ?
+                                                   InvitationRole::responder : InvitationRole::initiator) ||
+            (receipt[1] != static_cast<std::uint8_t>(PairingCompletionKind::prepared) &&
+             receipt[1] != static_cast<std::uint8_t>(PairingCompletionKind::aborted)) ||
+            std::memcmp(receipt.data() + 4, archive_entry_->receipt.data() + 4, 32) != 0) return false;
+        const auto bytes = pairing_receipt_signing_bytes(receipt);
+        return crypto_sign_verify_detached(receipt.data() + 36, bytes.data(), bytes.size(), peer_key_.data()) == 0;
+    }
+
+    static bool pairing_transaction(const VerifiedIdentityBinding& binding, const InvitationKey& transcript,
+                                    InvitationKey& output) {
+        constexpr std::array<std::uint8_t,16> domain{'O','T','-','P','A','I','R','-','T','X',0,0,0,0,0,2};
+        const auto bytes = enrollment_identity_signing_bytes(binding.identities(), binding.invitation());
+        crypto_hash_sha256_state hash{};
+        return crypto_hash_sha256_init(&hash) == 0 &&
+               crypto_hash_sha256_update(&hash, domain.data(), domain.size()) == 0 &&
+               crypto_hash_sha256_update(&hash, bytes.data(), bytes.size()) == 0 &&
+               crypto_hash_sha256_update(&hash, binding.proof().initiator_signature.data(), 64) == 0 &&
+               crypto_hash_sha256_update(&hash, binding.proof().responder_signature.data(), 64) == 0 &&
+               crypto_hash_sha256_update(&hash, transcript.data(), transcript.size()) == 0 &&
+               crypto_hash_sha256_final(&hash, output.data()) == 0;
+    }
+    static bool pairing_vote_reservation(void* context) {
+        auto& self = *static_cast<EnrollmentCandidateSession*>(context);
+        companion::DeviceNameAuthority now{};
+        if (!self.fresh() || !self.observe_clock(now)) return false;
+        std::uint64_t deadline = self.request_.deadline_ms;
+        if (self.pairing_outer_deadline_ && self.pairing_outer_deadline_ < deadline)
+            deadline = self.pairing_outer_deadline_;
+        if (self.local_mark_) {
+            const auto signed_deadline = self.local_mark_->now_ms + self.invitation_window_ms_;
+            if (signed_deadline < deadline) deadline = signed_deadline;
+        }
+        return now.now_ms < deadline && self.fresh();
+    }
+    static bool pairing_guard(void* context) {
+        auto& self = *static_cast<EnrollmentCandidateSession*>(context);
+        return self.fresh();
+    }
+    bool load_pairing_binding(std::optional<VerifiedIdentityBinding>& binding) {
+        RetainedView view(backend_, EvaluationNamespace::enrollment);
+        EnrollmentEvidenceStore evidence(view);
+        EnrollmentBindingStore bindings(binding_storage_);
+        IndependentInvitation invitation{};
+        PairingCompletionRecord record{};
+        InvitationKey transaction{};
+        return completion_ && completion_->load(record) && evidence.initialize() && evidence.read(invitation) &&
+               bindings.initialize() && bindings.read(invitation, binding) && binding &&
+               pairing_transaction(*binding, record.transcript, transaction) && transaction == record.transaction;
+    }
+    bool pairing_identity_current() {
+        PairingCompletionRecord record{};
+        InvitationKey local{};
+        if (!identity_.public_key(local) || local != local_key_) return false;
+        if (archive_mode_) return archive_entry_ && archive_entry_->own == local &&
+                                  archive_entry_->peer == peer_key_;
+        if (!completion_ || !completion_->load(record)) return false;
+        const auto* binding = pairing_recovery_ ? (recovery_binding_ ? &*recovery_binding_ : nullptr) :
+                                                 (trusted_ ? &trusted_->binding() : nullptr);
+        if (!binding) return false;
+        const auto& pins = binding->identities();
+        return local == (initiator() ? pins.initiator : pins.responder) &&
+               record.peer == (initiator() ? pins.responder : pins.initiator) &&
+               record.generation == generation_ && record.role == role_ && record.group == group_;
+    }
+    std::array<std::uint8_t,148> recovery_signing_bytes(const PairingCompletionReceipt& receipt) const {
+        std::array<std::uint8_t,148> bytes{};
+        constexpr std::array<std::uint8_t,16> domain{'O','T','-','P','A','I','R','-','R','E','C',0,0,0,0,2};
+        std::memcpy(bytes.data(), domain.data(), domain.size());
+        const auto& a = initiator() ? recovery_nonce_ : recovery_peer_nonce_;
+        const auto& b = initiator() ? recovery_peer_nonce_ : recovery_nonce_;
+        std::memcpy(bytes.data() + 16, a.data(), a.size());
+        std::memcpy(bytes.data() + 32, b.data(), b.size());
+        std::memcpy(bytes.data() + 48, receipt.data(), receipt.size());
+        return bytes;
+    }
+    class PairingRetainedView final : public persistence::PersistentStorage {
+    public:
+        PairingRetainedView(EnrollmentCandidateSession& session, EvaluationNamespace space)
+            : session_(session), space_(space) {}
+        persistence::StorageReadResult read_slot(persistence::StorageDomain domain, std::size_t slot,
+                                                 persistence::MutableStorageByteView out) override {
+            if (!session_.fresh()) return {persistence::StorageError::io_failure, 0};
+            return session_.backend_.read(0, space_, domain, slot, out);
+        }
+        persistence::StorageError erase_slot(persistence::StorageDomain domain, std::size_t slot) override {
+            if (!session_.fresh()) return persistence::StorageError::io_failure;
+            return session_.backend_.erase(0, space_, domain, slot);
+        }
+        persistence::StorageError write_slot(persistence::StorageDomain domain, std::size_t slot,
+            std::size_t offset, persistence::StorageByteView bytes) override {
+            if (!session_.fresh()) return persistence::StorageError::io_failure;
+            return session_.backend_.write(0, space_, domain, slot, offset, bytes);
+        }
+        persistence::StorageError sync_slot(persistence::StorageDomain domain, std::size_t slot) override {
+            if (!session_.fresh()) return persistence::StorageError::io_failure;
+            return session_.backend_.sync(0, space_, domain, slot);
+        }
+    private:
+        EnrollmentCandidateSession& session_;
+        EvaluationNamespace space_;
+    };
+    bool recover_pairing_public() {
+        if (!recovery_proved_ || !pairing_identity_current()) return false;
+        PairingCompletionRecord record{};
+        if (!completion_->load(record) || record.phase == PairingCompletionPhase::aborted) return false;
+        PairingRetainedView members(*this, EvaluationNamespace::membership);
+        PeerMembershipStore membership(members);
+        EnrollmentCommitCoordinator journal(journal_storage_);
+        EnrollmentCommitContext context{};
+        const auto evidence = enrollment_identity_signing_bytes(recovery_binding_->identities(),
+                                                                recovery_binding_->invitation());
+        InvitationKey expected_digest{};
+        crypto_hash_sha256(expected_digest.data(), evidence.data(), evidence.size());
+        if (!journal.initialize_pairing_recovery(*recovery_binding_, generation_) ||
+            !journal.read_public(context) || context.session_generation != generation_ || context.group != group_ || context.epoch != epoch_ ||
+            context.evidence_digest != expected_digest ||
+            context.identities.initiator != recovery_binding_->identities().initiator ||
+            context.identities.responder != recovery_binding_->identities().responder ||
+            !completion_->mark_completing(&pairing_guard, this)) return false;
+        // Both durable Prepared votes, fresh peer proof and this exact signed
+        // binding authorize only the initial public membership installation.
+        // Interrupted body/marker writes are retried without treating arbitrary
+        // retained or revoked membership as blank.
+        if (!membership.initialize_pairing_recovery(context.evidence_digest, &pairing_guard, this)) return false;
+        PeerMembership member{};
+        if (!membership.read(member) || member.state != MembershipState::active ||
+            member.binding != context.evidence_digest) return false;
+        if (!journal.complete_pairing_public(context, &pairing_guard, this) ||
+            !membership.read(member) || member.state != MembershipState::active ||
+            member.binding != context.evidence_digest) return false;
+        EnrollmentCommitCoordinator verified(journal_storage_);
+        EnrollmentCommitContext retained{};
+        if (!verified.initialize() || verified.state() != EnrollmentJournalState::active_committed ||
+            !verified.read_public(retained) || !EnrollmentCommitCoordinator::equal(retained, context)) return false;
+        return completion_->mark_committed(&pairing_guard, this);
+    }
+
     bool review_reject(EnrollmentReviewRefusal reason) {
         review_refusal_=reason;(void)cancel();return false;
     }
@@ -797,8 +1367,17 @@ private:
     bool rekey_{},attempted_{},captured_{},started_{},context_bound_{},possession_accepted_{},binding_signed_{},active_{};
     bool busy_{},observing_{},failed_{},cleaned_{},cleanup_ok_{},cleared_{true};
     StartRefusal start_refusal_{StartRefusal::none};
+    std::optional<PairingCompletionJournal> completion_;
+    std::optional<VerifiedIdentityBinding> recovery_binding_;
+    std::array<std::uint8_t,16> recovery_nonce_{}, recovery_peer_nonce_{};
+    bool pairing_recovery_{}, recovery_peer_nonce_set_{}, recovery_proved_{}, pairing_finished_{};
+    std::uint64_t pairing_outer_deadline_{};
     companion::DeviceFactoryResetMarkerPort* containment_marker_{};std::uint64_t containment_receipt_{};
     bool containing_{},containment_reentered_{},containment_observing_{};
     EnrollmentSessionResetGate* const reset_gate_;const std::uint64_t reset_incarnation_;
+    persistence::PersistentStorage* const pairing_storage_;
+    PairingCompletionArchive* const pairing_archive_;
+    std::optional<PairingCompletionArchiveEntry> archive_entry_;
+    bool archive_mode_{};
 };
 } // namespace opentrail::security_evaluation

@@ -37,6 +37,15 @@ void invalidate_companion_configuration(bool revoke = false);
 [[nodiscard]] bool companion_pairing_request_snapshot(
     companion::SelectedEnrollmentRequest& request,
     companion::DeviceNameAuthority& authority);
+// App-task publication is bound to its admitted ticket, independently of
+// the session request consumed on commit. GATT serializes these calls.
+// Release only after session cleanup and any final-response linger end.
+void companion_pairing_request_complete(const companion::SelectedEnrollmentRequest&);
+[[nodiscard]] bool companion_pairing_result_claim(const companion::SelectedEnrollmentRequest&);
+void companion_pairing_result_publish(const companion::SelectedEnrollmentRequest&,
+    companion::CompanionPairingState, companion::CompanionPairingReason, std::uint16_t peer_short_id);
+[[nodiscard]] bool companion_pairing_result_snapshot(const companion::DeviceNameContext&,
+    companion::CompanionPairingResult&);
 [[nodiscard]] time::OledClockReading companion_configuration_clock();
 [[nodiscard]] companion::DeviceNamePayload companion_configuration_name();
 [[nodiscard]] companion::ConfigurationRegionPayload companion_configuration_region();

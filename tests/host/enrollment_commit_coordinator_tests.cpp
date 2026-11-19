@@ -22,6 +22,30 @@ public:
             assert(storage.sync_slot(domain,bank)==persistence::StorageError::none);
         }
     }
+    static void public_state_fixture(persistence::PersistentStorage& storage,
+                                     const EnrollmentCommitContext& context,std::uint64_t generation,std::uint8_t stage) {
+        const auto current=EnrollmentCommitCoordinator::encode({context,generation,stage},EnrollmentCommitCoordinator::committed);
+        for(unsigned d=0;d<5;++d) for(unsigned bank=0;bank<2;++bank) {
+            const auto domain=static_cast<persistence::StorageDomain>(d);
+            assert(storage.erase_slot(domain,bank)==persistence::StorageError::none);
+            if(bank==(generation-1)%2) assert(storage.write_slot(domain,bank,0,{current[d].data(),current[d].size()})==persistence::StorageError::none);
+        }
+    }
+    static bool complete_pairing_recovery(EnrollmentCommitCoordinator& journal,
+                                          const EnrollmentCommitContext& context) {
+        return journal.complete_pairing_public(context,[](void*){return true;},nullptr);
+    }
+    static bool pairing_recovery(EnrollmentCommitCoordinator& journal,
+                                 const VerifiedIdentityBinding& binding,std::uint64_t generation) {
+        return journal.initialize_pairing_recovery(binding,generation);
+    }
+    static bool pairing_abort_recovery(EnrollmentCommitCoordinator& journal,
+                                       const VerifiedIdentityBinding& binding,std::uint64_t generation) {
+        return journal.initialize_pairing_abort_recovery(binding,generation);
+    }
+    static bool abort_pairing_recovery(EnrollmentCommitCoordinator& journal,const EnrollmentCommitContext& context) {
+        return journal.abort_pairing_public(context,[](void*){return true;},nullptr);
+    }
     static bool rekey(EnrollmentCommitCoordinator& c,const VerifiedIdentityBinding& b,std::uint64_t generation,
                       const std::array<std::uint8_t,16>& op,std::optional<PreparedEnrollmentReceipt>& output) {
         return c.prepare_rekey(b,generation,op,output);
@@ -79,7 +103,144 @@ static void preceding(EnrollmentCommitCoordinator& c,unsigned stage,const Verifi
     CHECK(c.initialize());
     for(unsigned i=1;i<stage;++i) CHECK(advance(c,i,v,receipt));
 }
-int main() {
+static auto journal_bytes(const Storage& storage) {
+    std::array<std::array<std::uint8_t,64>,10> bytes{};
+    for(unsigned d=0;d<5;++d) for(unsigned bank=0;bank<2;++bank)
+        bytes[d*2+bank]=storage.memory.slot_bytes(static_cast<Domain>(d),bank);
+    return bytes;
+}
+static unsigned mixed_recovery_bank(bool foreign,bool aborting=false) {
+    const auto verified=binding();
+    Storage media;EnrollmentCommitCoordinator journal(media);
+    std::optional<PreparedEnrollmentReceipt> receipt;
+    CHECK(journal.initialize() && journal.prepare(verified,1,op(),receipt) &&
+          journal.mark_activation_possible(*receipt));
+    if(foreign) {
+        Storage other;EnrollmentCommitCoordinator writer(other);
+        std::optional<PreparedEnrollmentReceipt> unrelated;
+        CHECK(writer.initialize() && writer.prepare(binding(1,10),1,op(2),unrelated));
+        for(unsigned d=0;d<5;++d) {
+            const auto domain=static_cast<Domain>(d);const auto bytes=other.memory.slot_bytes(domain,0);
+            CHECK(media.memory.erase_slot(domain,0)==Error::none &&
+                  media.memory.write_slot(domain,0,0,{bytes.data(),bytes.size()})==Error::none);
+        }
+    } else {
+        auto bytes=media.memory.slot_bytes(Domain::configuration,0);bytes[0]='X';
+        CHECK(media.memory.erase_slot(Domain::configuration,0)==Error::none &&
+              media.memory.write_slot(Domain::configuration,0,0,{bytes.data(),bytes.size()})==Error::none);
+    }
+    const auto before=journal_bytes(media);media.clear();
+    EnrollmentCommitCoordinator recovered(media);
+    const bool admitted=aborting?ProductEnrollmentActivation::pairing_abort_recovery(recovered,verified,1):
+                                 ProductEnrollmentActivation::pairing_recovery(recovered,verified,1);
+    std::cerr << "M1 " << (foreign?"foreign":"corrupt") << " admitted=" << admitted
+              << " journal_changed=" << (journal_bytes(media)!=before) << '\n';
+    CHECK(!admitted);
+    CHECK(journal_bytes(media)==before && media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+    return 1;
+}
+static unsigned uncompletable_pairing_counter(unsigned variant) {
+    const auto verified=binding();Storage media;EnrollmentCommitCoordinator first(media);
+    std::optional<PreparedEnrollmentReceipt> receipt;CHECK(first.initialize() && first.prepare(verified,1,op(),receipt));
+    const auto limit=std::numeric_limits<std::uint64_t>::max();
+    const auto generation=variant==1?limit-1:variant==3?std::uint64_t{2}:limit;
+    const auto stage=static_cast<std::uint8_t>(variant==2?2:variant==3?4:1);
+    ProductEnrollmentActivation::public_state_fixture(media,receipt->context(),generation,stage);
+    const auto before=journal_bytes(media);media.clear();EnrollmentCommitCoordinator recovery(media);
+    const bool admitted=ProductEnrollmentActivation::pairing_recovery(recovery,verified,1);
+    std::cerr << "M1 capacity variant=" << variant << " admitted=" << admitted << '\n';
+    CHECK(!admitted && journal_bytes(media)==before);
+    CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);return 1;
+}
+static unsigned pairing_counter_exact_headroom() {
+    unsigned groups=0;const auto verified=binding();
+    for(const std::uint8_t stage:{std::uint8_t{1},std::uint8_t{2}}) {
+        Storage media;EnrollmentCommitCoordinator first(media);std::optional<PreparedEnrollmentReceipt> receipt;
+        CHECK(first.initialize() && first.prepare(verified,1,op(),receipt));
+        ProductEnrollmentActivation::public_state_fixture(media,receipt->context(),std::numeric_limits<std::uint64_t>::max()-(stage==1?2:1),stage);
+        EnrollmentCommitCoordinator recovery(media);CHECK(ProductEnrollmentActivation::pairing_recovery(recovery,verified,1));
+        EnrollmentCommitContext context{};CHECK(recovery.read_public(context));
+        CHECK(ProductEnrollmentActivation::complete_pairing_recovery(recovery,context));
+        EnrollmentCommitCoordinator final(media);CHECK(final.initialize() && final.state()==EnrollmentJournalState::active_committed);++groups;
+    }
+    return groups;
+}
+static unsigned pairing_abort_intent_capacity() {
+    const auto verified=binding();const auto limit=std::numeric_limits<std::uint64_t>::max();unsigned groups=0;
+    for(unsigned variant=0;variant<6;++variant) {
+        Storage media;EnrollmentCommitCoordinator first(media);std::optional<PreparedEnrollmentReceipt> receipt;
+        CHECK(first.initialize() && first.prepare(verified,1,op(),receipt));
+        const auto stage=static_cast<std::uint8_t>(variant<2?1:variant<4?2:variant==4?4:3);
+        const auto generation=(variant==1 || variant==3)?limit-1:limit;
+        const bool expected=variant==1 || variant==3 || variant==4;
+        ProductEnrollmentActivation::public_state_fixture(media,receipt->context(),generation,stage);
+        const auto before=journal_bytes(media);media.clear();EnrollmentCommitCoordinator recovery(media);
+        const bool admitted=ProductEnrollmentActivation::pairing_abort_recovery(recovery,verified,1);
+        CHECK(admitted==expected && journal_bytes(media)==before);
+        CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+        if(admitted) {
+            CHECK(ProductEnrollmentActivation::abort_pairing_recovery(recovery,receipt->context()));
+            CHECK(recovery.state()==EnrollmentJournalState::aborted);
+            if(stage==4) CHECK(journal_bytes(media)==before && media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+            else {
+                CHECK(media.count('w')>0);EnrollmentCommitCoordinator final(media);
+                CHECK(final.initialize() && final.state()==EnrollmentJournalState::aborted);
+            }
+        }
+        ++groups;
+    }
+    return groups+mixed_recovery_bank(false,true)+mixed_recovery_bank(true,true);
+}
+static unsigned pairing_recovery_torn_transition_sweep() {
+    const auto verified=binding();unsigned groups=0;
+    for(unsigned stage:{2U,3U}) {
+        Storage control;EnrollmentCommitCoordinator baseline(control);
+        std::optional<PreparedEnrollmentReceipt> receipt;
+        preceding(baseline,stage,verified,receipt);control.clear();CHECK(advance(baseline,stage,verified,receipt));
+        for(const auto fault:{Fault::erase_before,Fault::erase_after,Fault::write_before,
+                              Fault::write_after,Fault::partial_write,Fault::sync_after}) {
+            for(unsigned nth=1;nth<=control.count(operation(fault));++nth) {
+                Storage media;EnrollmentCommitCoordinator writer(media);
+                std::optional<PreparedEnrollmentReceipt> original;
+                preceding(writer,stage,verified,original);media.arm(fault,nth);
+                CHECK(!advance(writer,stage,verified,original));media.clear();
+                const auto interrupted=journal_bytes(media);
+                EnrollmentCommitCoordinator recovery(media);
+                const bool admitted=ProductEnrollmentActivation::pairing_recovery(recovery,verified,1);
+                if(!admitted) std::cerr << "M1 torn stage=" << stage << " fault=" << static_cast<int>(fault) << " nth=" << nth << '\n';
+                CHECK(admitted && journal_bytes(media)==interrupted);
+                CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+                EnrollmentCommitContext context{};CHECK(recovery.read_public(context));
+                CHECK(ProductEnrollmentActivation::complete_pairing_recovery(recovery,context));
+                EnrollmentCommitCoordinator final(media);CHECK(final.initialize());
+                CHECK(final.state()==EnrollmentJournalState::active_committed);
+                EnrollmentCommitContext restored{};CHECK(final.read_public(restored));
+                CHECK(restored.identities.initiator==verified.identities().initiator &&
+                      restored.identities.responder==verified.identities().responder &&
+                      restored.evidence_digest==context.evidence_digest && restored.operation==context.operation);
+                ++groups;
+            }
+        }
+    }
+    return groups;
+}
+int main(int argc,char** argv) {
+    if(argc==2) {
+        const std::string name=argv[1];
+        if(name=="m1-abort-intent") {
+            const auto count=pairing_abort_intent_capacity();
+            std::cout << "PASS " << count << " enrollment commit journal groups\n";return 0;
+        }
+        if(name.rfind("m1-capacity-",0)==0) {
+            CHECK(name.size()==13 && name.back()>='0' && name.back()<='3');
+            const auto count=uncompletable_pairing_counter(static_cast<unsigned>(name.back()-'0'));
+            std::cout << "PASS " << count << " enrollment commit journal groups\n";return 0;
+        }
+        CHECK(name=="m1-corrupt" || name=="m1-foreign" || name=="m1-torn");
+        const auto count=name=="m1-torn" ? pairing_recovery_torn_transition_sweep() : mixed_recovery_bank(name=="m1-foreign");
+        std::cout << "PASS " << count << " enrollment commit journal groups\n";return 0;
+    }
+
     static_assert(!std::is_default_constructible_v<PreparedEnrollmentReceipt>);
     static_assert(!std::is_copy_constructible_v<EnrollmentCommitCoordinator>);
     static_assert(!std::is_move_constructible_v<EnrollmentCommitCoordinator>);
@@ -273,5 +434,8 @@ int main() {
         s.clear();CHECK(!ProductEnrollmentActivation::rekey(reboot,binding(2),2,op(2),r));
         CHECK(reboot.failed() && s.count('w')==0 && r->context().epoch==1);++groups;
     }
+    groups+=mixed_recovery_bank(false)+mixed_recovery_bank(true)+pairing_recovery_torn_transition_sweep()+pairing_counter_exact_headroom();
+    for(unsigned variant=0;variant<4;++variant) groups+=uncompletable_pairing_counter(variant);
+    groups+=pairing_abort_intent_capacity();
     std::cout << "PASS " << groups << " enrollment commit journal groups (no peer-commit or traffic authority)\n";
 }

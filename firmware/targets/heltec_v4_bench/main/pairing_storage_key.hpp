@@ -14,13 +14,13 @@
 
 namespace opentrail::target::heltec_v4_bench::pairing_key {
 
-inline constexpr std::size_t kNamespaces = 11;  // namespaces 0-10 (7-10: identity..boot stores)
+inline constexpr std::size_t kNamespaces = 12;  // namespaces 0-11; 7-10 are fixed, 11 holds completion/archive
 inline constexpr std::size_t kDomains = 5;
 inline constexpr std::size_t kSlots = 2;
 inline constexpr std::size_t kKeyBytes = 16;
 // Session generations the storage keeps (PairingNvsStorage::kCapacity; I-055).
 inline constexpr std::uint64_t kCapacity = 32;
-inline constexpr unsigned kFirstGenerationZeroOnly = 7;  // namespaces 7-10 exist only in generation 0  // NVS key buffer, NVS_KEY_NAME_MAX_SIZE
+inline constexpr unsigned kFirstGenerationZeroOnly = 7;  // namespaces 7-10 exist only in generation zero
 using Key = char[kKeyBytes];
 
 // Number of distinct valid keys for generations 0..capacity.
@@ -32,11 +32,11 @@ constexpr int hex_digit(char c) {
     return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
 }
 
-// Writes the key for generation g, namespace n (7-10 exist only for generation 0),
+// Writes the key for generation g, namespace n (7-10 exist only for generation 0; 11 also archives each generation),
 // domain d and slot s. False, with `key` unchanged in meaning, for anything out of range.
 inline bool format(std::uint64_t g, unsigned n, unsigned d, unsigned s, std::uint64_t capacity,
                    Key& key) {
-    if (g > capacity || n >= kNamespaces || (n >= kFirstGenerationZeroOnly && g) || d >= kDomains ||
+    if (g > capacity || n >= kNamespaces || (n >= kFirstGenerationZeroOnly && n != 11 && g) || d >= kDomains ||
         s >= kSlots) {
         return false;
     }
@@ -63,7 +63,7 @@ constexpr std::size_t slot(const Key& key, std::uint64_t capacity) {
     const int d = hex_digit(key[12]);
     const int s = hex_digit(key[14]);
     if (g > capacity || n < 0 || n >= static_cast<int>(kNamespaces) ||
-        (n >= static_cast<int>(kFirstGenerationZeroOnly) && g) || d < 0 ||
+        (n >= static_cast<int>(kFirstGenerationZeroOnly) && n != 11 && g) || d < 0 ||
         d >= static_cast<int>(kDomains) || s < 0 || s >= static_cast<int>(kSlots)) {
         return invalid;
     }

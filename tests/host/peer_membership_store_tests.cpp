@@ -3,6 +3,21 @@
 #include "security_policy_invitation_lifecycle_fixture.hpp"
 #include "opentrail/peer_membership_store.hpp"
 using namespace invitation_lifecycle_test;
+// This isolated test executable supplies the existing session friend solely
+// to exercise the private repair boundary. It includes no product session.
+namespace opentrail::security_evaluation {
+class EnrollmentCandidateSession {
+public:
+    static bool recover_initial_membership(PeerMembershipStore& store, const InvitationKey& binding,
+                                           bool (*guard)(void*), void* context) {
+        return store.initialize_pairing_recovery(binding, guard, context);
+    }
+};
+}
+static bool recovery_guard(void* context) { return *static_cast<bool*>(context); }
+static bool recover_initial(PeerMembershipStore& store, const InvitationKey& expected, bool& live) {
+    return EnrollmentCandidateSession::recover_initial_membership(store, expected, &recovery_guard, &live);
+}
 static_assert(!std::is_copy_constructible_v<PeerMembershipStore>);
 static_assert(!std::is_move_constructible_v<PeerMembershipStore>);
 static InvitationKey binding(unsigned byte = 0x42) { InvitationKey value{}; value.fill(byte); return value; }
@@ -145,6 +160,114 @@ int main() {
             CHECK(restored.initialize()); const auto count = storage.mutations();
             CHECK(!restored.revoke() && restored.failed() && storage.mutations() == count);
         } else CHECK(!restored.initialize() && restored.failed());
+        ++groups;
+    }
+    {
+        // Every initial-write interruption is repairable only to the exact
+        // first active membership authorized by both saved D-112 votes.
+        Storage control;
+        PeerMembershipStore baseline(control);
+        CHECK(baseline.initialize());
+        control.clear();
+        CHECK(baseline.enroll(binding()));
+        for (const auto fault : faults) {
+            for (unsigned nth = 1; nth <= control.count(operation(fault)); ++nth) {
+                Storage storage;
+                PeerMembershipStore original(storage);
+                CHECK(original.initialize());
+                storage.arm(fault, nth);
+                CHECK(!original.enroll(binding()));
+                storage.clear();
+                PeerMembershipStore repaired(storage);
+                bool live = true;
+                CHECK(recover_initial(repaired, binding(), live));
+                CHECK(read(repaired).binding == binding());
+                CHECK(read(repaired).generation == 1);
+                CHECK(read(repaired).state == MembershipState::active);
+                CHECK(storage.count('e') == 0);
+                PeerMembershipStore restored(storage);
+                CHECK(restored.initialize() && same(read(restored), read(repaired)));
+            }
+        }
+        ++groups;
+    }
+    {
+        // Repair itself can be interrupted at every I/O, from both blank and
+        // torn initial media. Another fresh authenticated owner repeats it.
+        for (const bool torn : {false, true}) {
+            const auto prepare = [torn] (Storage& storage) {
+                if (!torn) return;
+                PeerMembershipStore original(storage);
+                CHECK(original.initialize());
+                storage.arm(Fault::partial_write, 1);
+                CHECK(!original.enroll(binding()));
+                storage.clear();
+            };
+            Storage control;
+            prepare(control);
+            PeerMembershipStore baseline(control);
+            bool live = true;
+            CHECK(recover_initial(baseline, binding(), live));
+            for (const auto fault : faults) {
+                const auto operations = control.count(operation(fault));
+                if (!operations) {
+                    CHECK(fault == Fault::erase_before || fault == Fault::erase_after);
+                    continue;
+                }
+                for (unsigned nth = 1; nth <= operations; ++nth) {
+                    Storage storage;
+                    prepare(storage);
+                    PeerMembershipStore original(storage);
+                    storage.arm(fault, nth);
+                    CHECK(!recover_initial(original, binding(), live));
+                    storage.clear();
+                    PeerMembershipStore recovered(storage);
+                    CHECK(recover_initial(recovered, binding(), live));
+                    CHECK(read(recovered).binding == binding());
+                    CHECK(read(recovered).generation == 1);
+                    CHECK(storage.count('e') == 0);
+                }
+            }
+        }
+        ++groups;
+    }
+    {
+        // Existing identities, revocations, reset/history, malformed bytes and
+        // noncanonical marker prefixes cannot become first enrollment again.
+        for (unsigned scenario = 0; scenario < 6; ++scenario) {
+            Storage storage;
+            if (scenario < 4) {
+                PeerMembershipStore original(storage);
+                CHECK(original.initialize() && original.enroll(binding(scenario == 0 ? 7 : 0x42)));
+                if (scenario == 1) CHECK(original.revoke());
+                if (scenario == 2) CHECK(original.prepare_reset());
+                if (scenario == 3) CHECK(original.rekey(binding(8)));
+            } else if (scenario == 4) {
+                storage.memory.corrupt_byte(domain, 0, 0, 1);
+            } else {
+                storage.memory.corrupt_byte(domain, 0, 60, 1);
+            }
+            const auto count = storage.mutations();
+            PeerMembershipStore refused(storage);
+            bool live = true;
+            CHECK(!recover_initial(refused, binding(), live));
+            CHECK(storage.mutations() == count);
+        }
+        ++groups;
+    }
+    {
+        HookStorage storage;
+        PeerMembershipStore original(storage);
+        bool live = false;
+        CHECK(!recover_initial(original, binding(), live));
+        CHECK(storage.inner.mutations() == 0);
+        live = true;
+        PeerMembershipStore recovered(storage);
+        CHECK(recover_initial(recovered, binding(), live));
+        const auto count = storage.inner.mutations();
+        PeerMembershipStore exact(storage);
+        CHECK(recover_initial(exact, binding(), live));
+        CHECK(storage.inner.mutations() == count);
         ++groups;
     }
     std::cout << "PASS " << groups << " peer membership store groups\n";

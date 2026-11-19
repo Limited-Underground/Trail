@@ -171,6 +171,16 @@ public:
     EnrolledFailureDetail consume_failure_detail() { return endpoint_.consume_failure_detail(); }
 private:
     friend class ProductEnrollmentActivation;
+    bool pairing_confirmed() {
+        return local_confirmed_ && confirmation_sent_ && committed_ && !closed_ && fresh();
+    }
+    // Only the product owner calls this after verifying durable matching receipts.
+    bool admit_completed_pairing() {
+        if (!pairing_confirmed()) return false;
+        activation_sent_ = true;
+        peer_active_ = true;
+        return ready();
+    }
     // Callback-free continuation of the same serialized owner's ready check;
     // this observation neither polls nor grants admission by itself.
     bool observed_clock(ConfirmationSample& output) const {

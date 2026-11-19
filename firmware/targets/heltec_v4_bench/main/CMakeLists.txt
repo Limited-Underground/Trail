@@ -153,4 +153,9 @@ if(OPENTRAIL_CONFIRMATION_EVALUATION)
 endif()
 
 target_link_libraries(${COMPONENT_LIB} PRIVATE idf::espressif__libsodium)
+if(OPENTRAIL_LORA_LINK_TEST)
+    # Custom options are absent from IDF's early requirements pass.
+    # Bind the selected radio targets in the actual component build.
+    target_link_libraries(${COMPONENT_LIB} PRIVATE idf::jgromes__radiolib idf::esp_driver_spi)
+endif()
 target_compile_features(${COMPONENT_LIB} PRIVATE cxx_std_17)

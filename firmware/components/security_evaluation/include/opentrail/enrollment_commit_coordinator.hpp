@@ -24,7 +24,7 @@ private:
     explicit PreparedEnrollmentReceipt(EnrollmentCommitContext c):context_(c) {}
     EnrollmentCommitContext context_;
 };
-enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, active_committed, reconcile };
+enum class EnrollmentJournalState { unavailable, empty, prepared, activation_possible, active_committed, reconcile, aborted };
 class EnrollmentCommitCoordinator final {
 public:
     explicit EnrollmentCommitCoordinator(persistence::PersistentStorage& storage):storage_(storage) {}
@@ -44,8 +44,7 @@ public:
                 if(decode(retained_[slot],committed,current) && decode(retained_[1-slot],transitioning,prior) &&
                    current.generation>1 && prior.generation==current.generation-1 &&
                    slot==(current.generation-1)%2 &&
-                   ((prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
-                    (prior.stage<3 && current.stage==prior.stage+1 && equal(current.context,prior.context)))) {
+                    follows(prior,current)) {
                     record_=current; current_slot_=slot; restarted_=true; return true;
                 }
             }
@@ -57,7 +56,7 @@ public:
         if(!operation([&] {
             if(!initialized_ || !exact()) return refuse();
             result=empty_ ? EnrollmentJournalState::empty : record_.stage==3 ? EnrollmentJournalState::active_committed :
-                restarted_ ? EnrollmentJournalState::reconcile :
+                record_.stage==4 ? EnrollmentJournalState::aborted : restarted_ ? EnrollmentJournalState::reconcile :
                 record_.stage==1 ? EnrollmentJournalState::prepared : EnrollmentJournalState::activation_possible;
             return true;
         })) return EnrollmentJournalState::unavailable;
@@ -75,10 +74,12 @@ public:
         const auto bytes=enrollment_identity_signing_bytes(c.identities,binding.invitation());
         crypto_hash_sha256(c.evidence_digest.data(),bytes.data(),bytes.size());
         const bool ok=operation([&] {
-            if(!initialized_ || !exact() || !empty_ || !valid(c)) return refuse();
-            return commit({c,1,1});
+            if(!initialized_ || !exact() || !valid(c) || (!empty_ &&
+                (record_.stage!=4 || c.session_generation<=record_.context.session_generation ||
+                 c.operation==record_.context.operation))) return refuse();
+            return commit({c,empty_?1:record_.generation+1,1});
         });
-        if(ok) output=PreparedEnrollmentReceipt(c);
+        if(ok) { restarted_=false; output=PreparedEnrollmentReceipt(c); }
         return ok;
     }
     // Only proves the LOCAL intent was durably read back before a send. It is
@@ -105,6 +106,96 @@ public:
 private:
     friend class ProductEnrollmentActivation;
     friend class EnrollmentRecoveryOwner;
+    friend class EnrollmentCandidateSession;
+    bool complete_pairing_public(const EnrollmentCommitContext& context,
+                                 bool (*guard)(void*), void* guard_context) {
+        const bool ok = operation([&] {
+            if (!initialized_ || empty_ || !exact() || !equal(context, record_.context) || !guard ||
+                !pairing_completion_capacity(record_)) return false;
+            guard_ = guard;
+            guard_context_ = guard_context;
+            if (record_.stage == 3) return true;
+            if (record_.stage == 1 && !commit({context, record_.generation + 1, 2})) return false;
+            return record_.stage == 2 && commit({context, record_.generation + 1, 3});
+        });
+        guard_ = nullptr;
+        guard_context_ = nullptr;
+        return ok;
+    }
+    enum class PairingRecoveryIntent { complete, abort };
+    // Negative cleanup is called only after the session verifies its retained
+    // Abort descriptor and archive. Its tombstone needs one advance, or none
+    // for an already-aborted exact public record.
+    bool initialize_pairing_abort_recovery(const VerifiedIdentityBinding& binding,std::uint64_t generation) {
+        return initialize_pairing_recovery(binding,generation,PairingRecoveryIntent::abort);
+    }
+    // Matching signed D-112 votes permit repairing a torn public-journal
+    // transition from its highest intact predecessor. This restores metadata
+    // only and retains the exact identities, invitation digest and generation.
+    bool initialize_pairing_recovery(const VerifiedIdentityBinding& binding, std::uint64_t generation,
+                                     PairingRecoveryIntent intent=PairingRecoveryIntent::complete) {
+        return operation([&] {
+            if (initialized_) return false;
+            initialized_ = true;
+            if (!snapshot(retained_)) return false;
+            Record records[2]{};
+            bool valid_bank[2]{}, retired[2]{};
+            std::size_t selected_slot=0;
+            bool found=false;
+            for (std::size_t slot=0;slot<2;++slot) {
+                valid_bank[slot]=decode(retained_[slot],committed,records[slot]);
+                if (!valid_bank[slot]) {
+                    retired[slot]=decode(retained_[slot],transitioning,records[slot]);
+                    valid_bank[slot]=retired[slot];
+                }
+                if (!valid_bank[slot]) continue;
+                if (slot!=(records[slot].generation-1)%2) return refuse();
+                if (!found || records[slot].generation>records[selected_slot].generation) {
+                    selected_slot=slot;found=true;
+                }
+            }
+            if (!found) return refuse();
+            const auto& selected=records[selected_slot];
+            const auto fields=independent_invitation_detail::decode(binding.invitation());
+            const auto bytes=enrollment_identity_signing_bytes(binding.identities(),binding.invitation());
+            InvitationKey digest{};
+            crypto_hash_sha256(digest.data(),bytes.data(),bytes.size());
+            const auto& context=selected.context;
+            if (context.identities.initiator!=binding.identities().initiator ||
+                context.identities.responder!=binding.identities().responder ||
+                context.group!=fields.group || context.epoch!=fields.epoch ||
+                context.session_generation!=generation || context.evidence_digest!=digest ||
+                !pairing_recovery_capacity(selected,intent)) return refuse();
+            const auto other=1-selected_slot;
+            if (valid_bank[other]) {
+                // A complete other bank must be the retired exact predecessor,
+                // not merely any lower decodable transaction.
+                if (!retired[other] || selected.generation<=1 ||
+                    records[other].generation!=selected.generation-1 ||
+                    !follows(records[other],selected)) return refuse();
+            } else if (!blank(retained_[other])) {
+                // No target erase/write happens before the current marker is
+                // retired. Replay only this binding's known next transition in
+                // RAM; unknown bytes never authorize journal or member writes.
+                if (!retired[selected_slot] || !interrupted_pairing_write(selected,retained_[other])) return refuse();
+            }
+            record_=selected;current_slot_=selected_slot;empty_=false;restarted_=true;
+            return true;
+        });
+    }
+    bool abort_pairing_public(const EnrollmentCommitContext& context,
+                              bool (*guard)(void*), void* guard_context) {
+        const bool ok=operation([&] {
+            if (!initialized_ || empty_ || !exact() || !equal(context,record_.context) ||
+                !guard || record_.stage==3) return false;
+            if (record_.stage==4) return true;
+            if (record_.generation==std::numeric_limits<std::uint64_t>::max()) return false;
+            guard_=guard;guard_context_=guard_context;
+            return commit({context,record_.generation+1,4});
+        });
+        guard_=nullptr;guard_context_=nullptr;return ok;
+    }
+
     // Candidate recovery may inspect a complete durable stage without treating
     // restarted PREPARED/ACTIVATION_POSSIBLE as traffic authority.
     bool recovery_snapshot(EnrollmentCommitContext& context,std::uint8_t& stage) const {
@@ -184,6 +275,61 @@ private:
             prior.group==next.group && prior.epoch!=std::numeric_limits<std::uint32_t>::max() && next.epoch==prior.epoch+1 &&
             next.session_generation>prior.session_generation && prior.evidence_digest!=next.evidence_digest && prior.operation!=next.operation;
     }
+    // Pairing recovery installs membership only after proving that this public
+    // record can finish without wrapping its internal journal generation.
+    static bool pairing_completion_capacity(const Record& r) {
+        const auto limit=std::numeric_limits<std::uint64_t>::max();
+        return r.generation!=0 && (r.stage==3 ||
+            (r.stage==1 && r.generation<=limit-2) || (r.stage==2 && r.generation<limit));
+    }
+    static bool pairing_recovery_capacity(const Record& r,PairingRecoveryIntent intent) {
+        if(intent==PairingRecoveryIntent::complete) return pairing_completion_capacity(r);
+        return r.generation!=0 && (r.stage==4 ||
+            ((r.stage==1 || r.stage==2) && r.generation<std::numeric_limits<std::uint64_t>::max()));
+    }
+    static bool follows(const Record& prior,const Record& current) {
+        return (prior.stage==3 && current.stage==1 && rekey_context(prior.context,current.context)) ||
+            (prior.stage==4 && current.stage==1 && current.context.session_generation>prior.context.session_generation &&
+             current.context.operation!=prior.context.operation) ||
+            (prior.stage<3 && (current.stage==prior.stage+1 || current.stage==4) && equal(current.context,prior.context));
+    }
+    // Observed interrupted writes must be an exact byte prefix of one actual
+    // write operation. This mutates only a temporary bank, never storage.
+    static bool write_prefix(Bank& state,const Bank& observed,std::size_t domain,
+                             std::size_t offset,const std::uint8_t* bytes,std::size_t count) {
+        for(std::size_t n=0;n<=count;++n) {
+            if(state==observed) return true;
+            if(n<count) state[domain][offset+n]=bytes[n];
+        }
+        return false;
+    }
+    static bool interrupted_write_from(Bank state,const Bank& observed,const Record& next) {
+        if(state==observed) return true;
+        // erase_slot removes a whole slot; write_slot can leave a byte prefix.
+        for(std::size_t d=0;d<5;++d) {
+            state[d].fill(0xff);
+            if(state==observed) return true;
+        }
+        const auto encoded=encode(next,committed);
+        for(std::size_t d=1;d<5;++d)
+            if(write_prefix(state,observed,d,0,encoded[d].data(),64)) return true;
+        return write_prefix(state,observed,0,0,encoded[0].data(),60) ||
+               write_prefix(state,observed,0,60,encoded[0].data()+60,4);
+    }
+    static bool interrupted_pairing_write(const Record& selected,const Bank& observed) {
+        if(selected.stage>=3 || selected.generation==std::numeric_limits<std::uint64_t>::max()) return false;
+        Bank erased{};for(auto& bytes:erased)bytes.fill(0xff);
+        for(const auto stage:{static_cast<std::uint8_t>(selected.stage+1),std::uint8_t{4}}) {
+            const Record next{selected.context,selected.generation+1,stage};
+            if(interrupted_write_from(erased,observed,next)) return true;
+            // A stage-2 predecessor has this exact stage-1 target before erase.
+            // For an earlier unrelated history, only the fully erased/write
+            // suffix above is recognizable; unbound partial erases stay closed.
+            if(selected.stage==2 && selected.generation>1 &&
+               interrupted_write_from(encode({selected.context,selected.generation-1,1},transitioning),observed,next)) return true;
+        }
+        return false;
+    }
     template<class Action> bool operation(Action action) const {
         if (busy_ || reentered_) { reentered_=true; return refuse(); }
         if (failed_) return false;
@@ -239,7 +385,7 @@ private:
         r.context.session_generation=authority_detail::get(b.data()+76,8);
         std::memcpy(r.context.evidence_digest.data(),b.data()+84,32);
         std::memcpy(r.context.operation.data(),b.data()+116,16);
-        if(!r.generation || r.stage!=(r.generation-1)%3+1 || !valid(r.context) || in!=encode(r,marker)) return false;
+        if(!r.generation || r.stage<1 || r.stage>4 || !valid(r.context) || in!=encode(r,marker)) return false;
         output=r; return true;
     }
     bool write(std::size_t d,std::size_t s,std::size_t offset,const std::uint8_t* bytes,std::size_t size) {

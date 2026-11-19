@@ -109,6 +109,8 @@ constexpr std::uint64_t kLoraActivityVisibleMs = 1500;
 // V1 F5 R2a: first board pairing over LoRa (D-085, D-086).
 opentrail::target::heltec_v4_bench::BoardPairingRuntime g_board_pairing{
     g_factory_reset_input, g_board_pairing_random};
+// Same app task owns the one-entry queue and this exact pairing-copy tag.
+bool g_pairing_frame_queued = false;
 // Screen line: shown while pairing, and for a minute after it ends.
 opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase g_board_pairing_last_phase{
     opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase::idle};
@@ -127,8 +129,12 @@ std::uint32_t lora_link_test_tag() {
 
 // Transmit grant asked by the driver at every launch (D-079, review F4).
 bool lora_transmit_permitted(void*) {
-    return link_test::transmit_allowed(
-        opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id);
+    if (!link_test::transmit_allowed(
+            opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id)) return false;
+    if (!g_pairing_frame_queued) return true;
+    // The driver calls again after CAD. Never reuse the app poll's timestamp.
+    return g_board_pairing.queued_launch_allowed(
+        static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
 }
 #endif
 
@@ -473,7 +479,6 @@ extern "C" void app_main() {
     }
     bool lora_fault_logged = false;
     int lora_tx_allowed_logged = -1;
-    bool pairing_frame_queued = false;
 #endif
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
@@ -616,21 +621,21 @@ extern "C" void app_main() {
             opentrail::protocol::pairing::FrameBuffer pairing_out{};
             std::size_t pairing_size = 0;
             g_board_pairing.service(elapsed_ms, tx_allowed && g_lora.running(), pairing_out, pairing_size);
-            if (pairing_frame_queued && !g_board_pairing.active()) g_lora.discard_queued();
+            if (g_pairing_frame_queued && !g_board_pairing.active()) g_lora.discard_queued();
             // Give any received frame the poll to itself. Launch previously
             // queued work only after pairing has serviced the receive phase.
             if (!got.has_frame()) g_lora.launch_queued(elapsed_ms);
-            const bool pairing_dropped = pairing_frame_queued &&
+            const bool pairing_dropped = g_pairing_frame_queued &&
                 g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
             if (pairing_dropped) g_board_pairing.unsent();
-            if (g_lora.status().transmit_queue_depth == 0) pairing_frame_queued = false;
+            if (g_lora.status().transmit_queue_depth == 0) g_pairing_frame_queued = false;
             if (pairing_size != 0) {
                 // A drop changes the send count. Recompute any offer on the
                 // next poll so its first-send or retry floor is checked again.
                 const bool accepted = !pairing_dropped && tx_allowed &&
                     g_lora.send({pairing_out.data(), pairing_size}, elapsed_ms).accepted();
                 g_board_pairing.sent(accepted, elapsed_ms);
-                if (accepted) pairing_frame_queued = true;
+                if (accepted) g_pairing_frame_queued = true;
                 ESP_LOGI(kLogTag, "pairing tx type=%u bytes=%u accepted=%u",
                          static_cast<unsigned>(pairing_out[2] & 0x0f),
                          static_cast<unsigned>(pairing_size),

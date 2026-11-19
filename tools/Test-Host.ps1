@@ -440,6 +440,8 @@ $builds = @(
         Sources = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_protocol.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_semantics.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_semantics_tests.cpp')
         )
     },

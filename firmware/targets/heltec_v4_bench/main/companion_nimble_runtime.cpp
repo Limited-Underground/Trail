@@ -220,12 +220,20 @@ public:
         CompanionSemanticEncodeResult encoded{};
         const radio::ByteView payload{request.payload.data(), request.payload_bytes};
         if (request.kind == 1) {
-            if (!decode_companion_snapshot_request(payload).decoded()) return false;
+            const bool pairing_read = decode_companion_pairing_snapshot_request(payload).decoded();
+            if (!pairing_read && !decode_companion_snapshot_request(payload).decoded()) return false;
             const auto snapshot = g_snapshot_authority.read_snapshot();
             if (!snapshot.ready()) return false;
             response.kind = 0x81;
-            encoded = encode_companion_status_snapshot(snapshot.snapshot,
-                {response.payload.data(), response.payload.size()});
+            if (pairing_read) {
+                CompanionPairingResult pairing{};
+                if (!companion_pairing_result_snapshot(request_context, pairing)) return false;
+                encoded = encode_companion_pairing_status_snapshot({snapshot.snapshot, pairing},
+                    {response.payload.data(), response.payload.size()});
+            } else {
+                encoded = encode_companion_status_snapshot(snapshot.snapshot,
+                    {response.payload.data(), response.payload.size()});
+            }
         } else if (request.kind == 2) {
             const auto action = decode_companion_action_request(payload);
             if (!action.decoded()) return false;

@@ -86,6 +86,15 @@ public:
     }
     bool failed() const { return failed_; }
 private:
+    friend class EnrollmentCandidateSession;
+    // Restoring an exact pending transaction does not reserve another generation
+    // or open any former traffic state. Only its public completion uses this pin.
+    bool restore_pairing_generation(std::uint64_t generation) {
+        if (!initialized_ || allocated_ || !generation || generation != generation_) return false;
+        if (!operation([&] { return exact(); })) return false;
+        allocated_ = true;
+        return true;
+    }
     static InvitationKey token(std::uint64_t generation) {
         InvitationKey bytes{};
         std::memcpy(bytes.data(),"OT session generation v1",24);

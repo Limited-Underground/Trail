@@ -39,7 +39,7 @@
 
 namespace opentrail::protocol::pairing {
 
-enum class LocalStep : std::uint8_t { review, confirm, commit };
+enum class LocalStep : std::uint8_t { review, confirm, commit, finish };
 enum class LocalResult : std::uint8_t { pending, done, failed };
 
 enum class StepKind : std::uint8_t { send, receive, local };
@@ -57,7 +57,8 @@ using F = FrameType;
 using LS = LocalStep;
 }  // namespace detail
 
-inline constexpr std::size_t kScriptSteps = 22;
+inline constexpr std::size_t kLegacyScriptSteps = 22;
+inline constexpr std::size_t kScriptSteps = 26;
 using Script = std::array<Step, kScriptSteps>;
 
 // Order taken from the two-endpoint session tests. A starts ("Start pairing").
@@ -93,10 +94,45 @@ inline constexpr Script kResponderScript{
     detail::L(detail::LS::commit),
 };
 
+// D-112: both durable votes precede public commit. A committed receipt proves
+// the complete public write set, and finish admits traffic only after its peer.
+inline constexpr Script kCompletionInitiatorScript{
+    detail::S(detail::F::candidate), detail::R(detail::F::candidate), detail::L(detail::LS::review),
+    detail::S(detail::F::offer), detail::R(detail::F::offer),
+    detail::S(detail::F::possession), detail::R(detail::F::possession),
+    detail::S(detail::F::clock_mark), detail::R(detail::F::clock_mark),
+    detail::S(detail::F::invitation_payload), detail::S(detail::F::invitation_signature),
+    detail::S(detail::F::invitation_cosign), detail::R(detail::F::invitation_cosign),
+    detail::S(detail::F::handshake), detail::R(detail::F::handshake), detail::S(detail::F::handshake),
+    detail::L(detail::LS::confirm), detail::S(detail::F::control), detail::R(detail::F::control),
+    detail::S(detail::F::prepared), detail::R(detail::F::prepared), detail::L(detail::LS::commit),
+    detail::S(detail::F::committed), detail::R(detail::F::committed), detail::L(detail::LS::finish),
+};
+inline constexpr Script kCompletionResponderScript{
+    detail::S(detail::F::candidate), detail::R(detail::F::candidate), detail::L(detail::LS::review),
+    detail::S(detail::F::offer), detail::R(detail::F::offer),
+    detail::S(detail::F::possession), detail::R(detail::F::possession),
+    detail::S(detail::F::clock_mark), detail::R(detail::F::clock_mark),
+    detail::R(detail::F::invitation_payload), detail::R(detail::F::invitation_signature),
+    detail::S(detail::F::invitation_cosign), detail::R(detail::F::invitation_cosign),
+    detail::R(detail::F::handshake), detail::S(detail::F::handshake), detail::R(detail::F::handshake),
+    detail::L(detail::LS::confirm), detail::R(detail::F::control), detail::S(detail::F::control),
+    detail::R(detail::F::prepared), detail::S(detail::F::prepared), detail::L(detail::LS::commit),
+    detail::R(detail::F::committed), detail::S(detail::F::committed), detail::L(detail::LS::finish),
+};
+inline constexpr Script kRecoveryScript{
+    detail::S(detail::F::recovery_challenge), detail::R(detail::F::recovery_challenge),
+    detail::S(detail::F::recovery_response), detail::R(detail::F::recovery_response),
+    detail::L(detail::LS::commit), detail::S(detail::F::committed), detail::R(detail::F::committed),
+    detail::L(detail::LS::finish),
+};
+inline constexpr std::size_t kCompletionScriptSteps = 25;
+inline constexpr std::size_t kRecoveryScriptSteps = 8;
+
 // The scripts must mirror each other: every frame one board sends, in order
 // per type, is a frame the other board receives.
 constexpr bool scripts_mirror(const Script& a, const Script& b) {
-    for (std::uint8_t t = 1; t <= 10; ++t) {
+    for (std::uint8_t t = 1; t <= 14; ++t) {
         int a_send = 0, b_recv = 0, b_send = 0, a_recv = 0;
         for (const auto& s : a) {
             if (static_cast<std::uint8_t>(s.frame) != t || s.kind == StepKind::local) continue;
@@ -112,8 +148,14 @@ constexpr bool scripts_mirror(const Script& a, const Script& b) {
 }
 static_assert(scripts_mirror(kInitiatorScript, kResponderScript),
               "pairing scripts must mirror each other");
+static_assert(scripts_mirror(kCompletionInitiatorScript, kCompletionResponderScript),
+              "completion scripts must mirror each other");
+static_assert(scripts_mirror(kRecoveryScript, kRecoveryScript),
+              "recovery script must mirror itself");
 
 struct Limits {
+    bool peer_confirmed_completion{false};
+    bool recovery_completion{false};
     std::uint64_t resend_after_ms{3000};
     // Half-duplex radios (review of I-057): after a shared step both boards are
     // ready to send in the same instant. The responder holds each new frame this
@@ -172,8 +214,14 @@ public:
     PairingCoordinator(Adapter& adapter, bool initiator, std::uint32_t code,
                        Limits limits = {})
         : adapter_(adapter), initiator_(initiator),
-          own_(initiator ? kInitiatorScript : kResponderScript),
-          peer_(initiator ? kResponderScript : kInitiatorScript),
+          own_(limits.recovery_completion ? kRecoveryScript : limits.peer_confirmed_completion ?
+                (initiator ? kCompletionInitiatorScript : kCompletionResponderScript) :
+                (initiator ? kInitiatorScript : kResponderScript)),
+          peer_(limits.recovery_completion ? kRecoveryScript : limits.peer_confirmed_completion ?
+                (initiator ? kCompletionResponderScript : kCompletionInitiatorScript) :
+                (initiator ? kResponderScript : kInitiatorScript)),
+          script_steps_(limits.recovery_completion ? kRecoveryScriptSteps :
+                        limits.peer_confirmed_completion ? kCompletionScriptSteps : kLegacyScriptSteps),
           code_(code), limits_(limits) {}
     PairingCoordinator(const PairingCoordinator&) = delete;
     PairingCoordinator& operator=(const PairingCoordinator&) = delete;
@@ -192,7 +240,7 @@ public:
     void on_receive(const std::uint8_t* data, std::size_t size) {
         if (outcome_ == Outcome::failed || !begun_) return;
         Frame f{};
-        if (decode(data, size, code_, f) != DecodeResult::ok) return;
+        if (decode(data, size, code_, f, version()) != DecodeResult::ok) return;
         heard_ = true;  // stamped with the time at the next service()
         for (std::size_t i = 0; i < consumed_count_; ++i) {
             if (same(consumed_[i], f)) {  // peer repeats: it missed our reply
@@ -232,7 +280,8 @@ public:
         offered_ = 0;
         if (!accepted) return;
         auto& o = sent_[offered - 1];
-        last_accepted_ = {offered, o.last_ms, o.wait_ms};
+        last_accepted_ = {offered, o.last_ms, o.wait_ms, now_ms,
+                          static_cast<std::uint8_t>(o.sends + 1), offered_budget_};
         ++o.sends;
         o.last_ms = now_ms;
         o.wait_ms = interval(o);
@@ -254,6 +303,33 @@ public:
         last_accepted_ = {};
         offered_ = 0;
         return true;
+    }
+
+    // Query only the exact most recently accepted queue copy. The caller must
+    // still own that unlaunched entry; no offer, script step or refund occurs.
+    // In particular sends==1 is not a resend: its pre-increment floor is saved.
+    bool queued_launch_allowed(std::uint64_t now_ms) {
+        if (!begun_ || outcome_ == Outcome::failed || last_accepted_.index == 0 ||
+            now_ms < start_ms_ || now_ms < now_ms_ ||
+            now_ms < last_launch_check_ms_ || now_ms < last_accepted_.accepted_ms) return false;
+        last_launch_check_ms_ = now_ms;  // monotonic observation watermark only
+        const auto& copy = last_accepted_;
+        const auto& frame = sent_[copy.index - 1];
+        if (frame.sends != copy.sends || frame.received || heard_ ||
+            (heard_any_ && now_ms - heard_ms_ < limits_.quiet_after_rx_ms) ||
+            now_ms - start_ms_ >= limits_.attempt_limit_ms ||
+            !copy.budget.valid || now_ms < copy.budget.checked_ms) return false;
+        const auto used = now_ms - copy.budget.checked_ms;
+        if (used >= copy.budget.left_ms) return false;
+        auto left = copy.budget.left_ms - used;
+        if (outcome_ == Outcome::running) {
+            std::uint64_t live = 0;
+            if (!remaining(now_ms, live) || live == 0) return false;
+            if (live < left) left = live;
+        }
+        // After public commit the adapter can retire its completion budget.
+        // Only this copy's aged original live window survives for the linger.
+        return left >= copy.budget.floor_ms;
     }
 
     Outcome outcome() const { return outcome_; }
@@ -282,10 +358,20 @@ private:
         std::uint64_t wait_ms{};  // until the next timed resend          // the peer's later frames prove it has this one               // resend requested by a peer repeat
     };
 
+    struct LaunchBudget {
+        std::uint64_t checked_ms{};
+        std::uint64_t left_ms{};
+        std::uint64_t floor_ms{};
+        bool valid{};
+    };
+
     struct AcceptedSend {
         std::size_t index{};
         std::uint64_t previous_ms{};
         std::uint64_t previous_wait_ms{};
+        std::uint64_t accepted_ms{};
+        std::uint8_t sends{};
+        LaunchBudget budget{};
     };
 
     // D-106: the candidate hello uses its own limits; every other frame keeps D-087.
@@ -317,13 +403,13 @@ private:
     // the receive it is blocked on after that send, and mark our frame due.
     void answer_repeat(FrameType type, std::uint8_t instance) {
         int seen = 0;
-        std::size_t at = kScriptSteps;
-        for (std::size_t i = 0; i < kScriptSteps; ++i) {
+        std::size_t at = script_steps_;
+        for (std::size_t i = 0; i < script_steps_; ++i) {
             if (peer_[i].kind == StepKind::send && peer_[i].frame == type &&
                 ++seen == instance) { at = i; break; }
         }
-        if (at == kScriptSteps) return;
-        for (std::size_t i = at + 1; i < kScriptSteps; ++i) {
+        if (at == script_steps_) return;
+        for (std::size_t i = at + 1; i < script_steps_; ++i) {
             if (peer_[i].kind != StepKind::receive) continue;
             const auto wanted = peer_[i].frame;
             std::uint8_t index = 0;
@@ -344,13 +430,13 @@ private:
     }
 
     // Index in `script` of the instance-th step of `kind` for `type`, or kScriptSteps.
-    static std::size_t position(const Script& script, StepKind kind, FrameType type,
-                                std::uint8_t instance) {
+    std::size_t position(const Script& script, StepKind kind, FrameType type,
+                                std::uint8_t instance) const {
         std::uint8_t seen = 0;
-        for (std::size_t i = 0; i < kScriptSteps; ++i) {
+        for (std::size_t i = 0; i < script_steps_; ++i) {
             if (script[i].kind == kind && script[i].frame == type && ++seen == instance) return i;
         }
-        return kScriptSteps;
+        return script_steps_;
     }
 
     // We consumed the peer's instance-th frame of `type`. Every frame of ours the
@@ -392,11 +478,11 @@ private:
     }
 
     bool advance(std::uint64_t now_ms) {
-        while (step_ < kScriptSteps) {
+        while (step_ < script_steps_) {
             const Step& st = own_[step_];
             if (st.kind == StepKind::send) {
                 if (sent_count_ == kSlots) return fail(FailReason::frame_store_full);
-                if (st.frame == FrameType::control) {
+                if (final_frame(st.frame)) {
                     std::uint64_t left = 0;
                     if (!remaining(now_ms, left)) return fail(FailReason::local_failed);
                     const auto need = sent_any(FrameType::control) ? limits_.final_step_reserve_ms
@@ -416,7 +502,7 @@ private:
                 }
                 ++o.instance;
                 if (!encode(st.frame, code_, payload.data(), payload_bytes(st.frame),
-                            o.bytes, o.size)) {
+                            o.bytes, o.size, version())) {
                     return fail(FailReason::bad_state);
                 }
                 ++sent_count_;
@@ -493,24 +579,30 @@ private:
     // reports that the radio accepted it (sent(true, ...)); D-087.
     bool offer(std::size_t k, FrameBuffer& out, std::size_t& out_size) {
         const auto& o = sent_[k];
-        if (o.type == FrameType::control) {
-            const auto floor = o.sends == 0 ? limits_.final_first_send_floor_ms
-                                            : limits_.final_send_floor_ms;
-            if (outcome_ == Outcome::running) {
-                std::uint64_t left = 0;
-                if (!remaining(now_ms_, left) || left < floor) return false;
+        const bool final = final_frame(o.type);
+        const auto floor = final ? (o.sends == 0 ? limits_.final_first_send_floor_ms
+                                                : limits_.final_send_floor_ms) : 0;
+        LaunchBudget budget{};
+        if (outcome_ == Outcome::running) {
+            std::uint64_t left = 0;
+            const bool live = remaining(now_ms_, left);
+            if (final && (!live || left < floor)) return false;
+            budget = {now_ms_, left, floor, live && left != 0};
+            if (final) {
                 final_budget_checked_ms_ = now_ms_;
                 final_budget_left_ms_ = left;
-            } else if (o.retry_unsent) {
-                // After local commit the adapter no longer supplies a completion
-                // budget. Age the last live window for this refunded control.
-                if (now_ms_ < final_budget_checked_ms_) return false;
-                const auto used = now_ms_ - final_budget_checked_ms_;
-                if (used > final_budget_left_ms_ || final_budget_left_ms_ - used < floor) {
-                    return false;
-                }
             }
+        } else if (final && now_ms_ >= final_budget_checked_ms_) {
+            // A paired reply can use only the last observed live window.
+            const auto used = now_ms_ - final_budget_checked_ms_;
+            if (used < final_budget_left_ms_) {
+                budget = {now_ms_, final_budget_left_ms_ - used, floor, true};
+            }
+            if (o.retry_unsent && (!budget.valid || budget.left_ms < floor)) return false;
+        } else if (final && o.retry_unsent) {
+            return false;
         }
+        offered_budget_ = budget;
         out = o.bytes;
         out_size = o.size;
         offered_ = k + 1;
@@ -523,10 +615,18 @@ private:
         return false;
     }
 
+    static bool final_frame(FrameType type) {
+        return type == FrameType::control || type == FrameType::prepared || type == FrameType::committed;
+    }
+    std::uint8_t version() const {
+        return limits_.peer_confirmed_completion || limits_.recovery_completion ? kCompletionVersion : kVersion;
+    }
+
     Adapter& adapter_;
     bool initiator_;
     const Script& own_;
     const Script& peer_;
+    const std::size_t script_steps_;
     std::uint32_t code_;
     Limits limits_;
     std::size_t step_{0};
@@ -538,6 +638,8 @@ private:
     std::size_t sent_count_{0};
     std::size_t offered_{0};  // 1-based index of the frame last offered
     AcceptedSend last_accepted_{};
+    LaunchBudget offered_budget_{};
+    std::uint64_t last_launch_check_ms_{0};
     std::uint64_t final_budget_checked_ms_{0};
     std::uint64_t final_budget_left_ms_{0};
     std::uint64_t start_ms_{0};

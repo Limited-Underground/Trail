@@ -43,7 +43,7 @@ const esp_partition_t* PairingNvsStorage::partition() {
 
 PairingNvsStorage::PairingNvsStorage()
     : views_{{{*this, Store::identity}, {*this, Store::journal},
-              {*this, Store::binding}, {*this, Store::boot}}} {
+              {*this, Store::binding}, {*this, Store::boot}, {*this, Store::completion}}} {
     Guard guard;
     if (g_reset_retired) return;
     const auto* p = partition();
@@ -152,7 +152,7 @@ bool PairingNvsStorage::inventory() {
             return false;
         }
         for (std::uint64_t g = 0; g <= kCapacity && !found; ++g)
-            for (unsigned n = 0; n <= 10 && !found; ++n)
+            for (unsigned n = 0; n < pairing_key::kNamespaces && !found; ++n)
                 for (unsigned d = 0; d < 5 && !found; ++d)
                     for (unsigned s = 0; s < 2 && !found; ++s) {
                         char key[16]{};

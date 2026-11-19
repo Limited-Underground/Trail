@@ -231,8 +231,12 @@ def run(output, cached_component=None):
         suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],
               (), " enrollment candidate session groups")
+        suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
+              base, (), " pairing completion journal groups")
+        suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
+              base, (), " pairing completion archive groups")
         suite("pairing_session_adapter_tests", [*common, ROOT / "tests/host/pairing_session_adapter_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include"],
+              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include"],
               (), " pairing session adapter groups")
         suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],

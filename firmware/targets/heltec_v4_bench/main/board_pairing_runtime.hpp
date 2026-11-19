@@ -13,10 +13,10 @@
 // frame; the person compares fingerprints and the transcript on each board and
 // presses the button (BOOT arbiter, which also preempts for factory reset).
 //
-// After local commit this owner keeps answering the peer's repeats for
-// kLingerMs (review R2A-1), so a lost final control frame can still be
-// recovered. Local "paired" means this board committed; it is not proof that
-// the other board did.
+// D-112 finishes only after durable peer proof, then answers repeats for
+// kLingerMs. Interrupted decisions recover in their saved transaction on a
+// fresh phone request. D-111 reports a local durable save separately from
+// bilateral proof; historical negative recovery never reports another pair.
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -36,8 +36,8 @@ public:
     enum class Phase : std::uint8_t {
         idle,         // no attempt
         running,      // exchanging frames or waiting for a press
-        paired,       // this board committed (peer not proven)
-        failed,       // attempt ended without pairing on this board
+        paired,       // durable local commit and verified peer commit
+        failed,       // attempt ended; durable pending/local state may remain
         closed,       // terminal (factory reset)
     };
     static constexpr std::uint64_t kLingerMs = 15000;
@@ -56,6 +56,8 @@ public:
     // Whether the radio accepted the frame the last service() offered.
     void sent(bool accepted, std::uint64_t now_ms);
     void unsent();
+    // The last accepted copy is still owned by the radio queue, before launch.
+    bool queued_launch_allowed(std::uint64_t now_ms);
     // Received LoRa bytes. Non-pairing traffic is ignored by the coordinator.
     void on_receive(const std::uint8_t* data, std::size_t size);
     // The radio stopped: an attempt in progress ends.
@@ -79,6 +81,7 @@ private:
     companion::DeviceNameAuthority current() noexcept override;
     bool start(const companion::SelectedEnrollmentRequest& phone, std::uint64_t now_ms);
     void end(Phase result);
+    void publish_result(companion::CompanionPairingState, companion::CompanionPairingReason);
     bool same_phone_request(const companion::SelectedEnrollmentRequest& r) const;
 
     HeltecEnrollmentInputArbiter& input_;
@@ -95,6 +98,9 @@ private:
     std::optional<security_evaluation::PairingSessionAdapter> adapter_;
     std::optional<Coordinator> coordinator_;
     Phase phase_{Phase::idle};
+    companion::CompanionPairingReason failure_reason_{companion::CompanionPairingReason::unavailable};
+    bool saw_peer_{false}, sent_any_{false};
+    bool successful_start_{false};
 };
 
 }  // namespace opentrail::target::heltec_v4_bench
