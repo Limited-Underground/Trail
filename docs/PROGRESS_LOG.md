@@ -1,5 +1,21 @@
 # OpenTrail Progress Log
 
+## 2026-11-20
+
+### OT-0005i Keep the MeshTrail board pairing result visible
+
+I-087 keeps `PAIRED - THIS BOARD` on the normal OLED screen for 60 seconds
+from the local result. The F5 handoff can close its pairing owner and arm
+messaging without clearing the line. A new pairing attempt replaces the old
+result, and reset, failure and region screens keep their existing priority.
+An OLED port regression checks the handoff and exact expiry. Pairing frames,
+durable state, protected phone status and Bluetooth layout are unchanged.
+
+The prior board session recorded multi-step save delays without a watchdog
+warning or reboot. Keep the save and watchdog behavior unchanged until a
+separate trace isolates the delay. The display correction awaits an
+owner-present board check. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff).
+
 ## 2026-11-19
 
 ### OT-0177a Record pairing outcomes and Bluetooth recovery
