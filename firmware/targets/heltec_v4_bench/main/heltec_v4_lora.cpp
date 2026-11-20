@@ -1,7 +1,6 @@
 #include "heltec_v4_lora.hpp"
 
 #include <algorithm>
-#include <cmath>
 
 #include "driver/gpio.h"
 #include "esp_log.h"
@@ -20,11 +19,24 @@ const Module::RfSwitchMode_t kFemModes[] = {
     END_OF_MODE_TABLE,
 };
 constexpr int kDio1Pin = 14;
-// A 255-byte frame at SF7/125 kHz is about 0.4 s on air; anything past 2 s
-// means the chip did not report TX done.
+// D-135 interim MeshTrail bench profile (US915 only). Both endpoints need
+// this profile. The power is an SX1262 command, before the V4.2 front end.
+constexpr struct {
+    unsigned version{2};
+    std::uint32_t frequency_hz{925'100'000};
+    unsigned bandwidth_khz{500};
+    std::uint8_t spreading_factor{7};
+    std::uint8_t coding_rate_denominator{5};
+    std::uint8_t sync_word{0x12};
+    std::int8_t power_dbm{2};
+    std::uint16_t preamble_symbols{8};
+    unsigned crc_bytes{2};
+    bool ldro_enabled{false};
+} kBenchProfile;
+
+// A 255-byte frame takes about 100 ms. Allow time to service a latched TX_DONE.
 constexpr std::uint64_t kMaximumTransmitMs = 2000;
-// The default SF7/125 kHz CAD takes a few milliseconds. Bound the DIO1 wait
-// in case the chip never signals completion.
+// Four CAD symbols take about 1 ms at SF7/BW500. Bound missing DIO1 separately.
 constexpr std::int64_t kCadTimeoutUs = 30'000;
 constexpr unsigned kMaximumBackoffs = 3;
 
@@ -65,7 +77,7 @@ bool HeltecV4Lora::arm_receive() {
     return true;
 }
 
-bool HeltecV4Lora::start(const LoraProfile& profile) {
+bool HeltecV4Lora::start() {
     if (running_ || faulted_) return false;
     gpio_config_t config{};
     config.pin_bit_mask = (1ULL << 7) | (1ULL << 2) | (1ULL << 46);
@@ -81,20 +93,28 @@ bool HeltecV4Lora::start(const LoraProfile& profile) {
     fem_off();
     module_.setRfSwitchTable(kFemPins, kFemModes);
     // TCXO 1.8 V, regulator LDO off (DC-DC), as in the OT-234 driver.
-    if (!ok(radio_.begin(profile.frequency_mhz, profile.bandwidth_khz,
-                         profile.spreading_factor,
-                         profile.coding_rate_denominator, profile.sync_word,
-                         profile.power_dbm, profile.preamble_symbols, 1.8F,
-                         false)) ||
-        !ok(radio_.explicitHeader()) || !ok(radio_.setCRC(2)) ||
-        !ok(radio_.forceLDRO(false))) {
+    constexpr auto& profile = kBenchProfile;
+    constexpr float frequency_mhz = static_cast<float>(profile.frequency_hz / 1'000'000.0);
+    if (!ok(radio_.begin(frequency_mhz, static_cast<float>(profile.bandwidth_khz),
+                         profile.spreading_factor, profile.coding_rate_denominator,
+                         profile.sync_word, profile.power_dbm, profile.preamble_symbols,
+                         1.8F, false)) ||
+        !ok(radio_.explicitHeader()) || !ok(radio_.setCRC(profile.crc_bytes)) ||
+        !ok(radio_.forceLDRO(profile.ldro_enabled))) {
         return false;
     }
-    frequency_hz_ =
-        static_cast<std::uint32_t>(std::lround(profile.frequency_mhz * 1e6F));
     running_ = true;
     last_error_ = radio::RadioError::none;
-    return arm_receive();
+    if (!arm_receive()) return false;
+    ESP_LOGI("lora_link",
+             "bench profile=%u frequency_hz=%lu bandwidth_khz=%u sf=%u "
+             "cr=4/%u preamble=%u sync=0x%02x tx_setpoint_dbm=%d",
+             profile.version, static_cast<unsigned long>(profile.frequency_hz),
+             profile.bandwidth_khz, static_cast<unsigned>(profile.spreading_factor),
+             static_cast<unsigned>(profile.coding_rate_denominator),
+             static_cast<unsigned>(profile.preamble_symbols),
+             static_cast<unsigned>(profile.sync_word), static_cast<int>(profile.power_dbm));
+    return true;
 }
 
 void HeltecV4Lora::stop() {
@@ -194,7 +214,7 @@ bool HeltecV4Lora::take_received_frame(std::uint16_t irq, std::uint64_t now_ms) 
     if (!ok(module_.SPIreadStream(command, 2, rx_.data(), count))) return false;
     rx_metadata_ = {};
     rx_metadata_.received_at_ms = now_ms;
-    rx_metadata_.frequency_hz = frequency_hz_;
+    rx_metadata_.frequency_hz = kBenchProfile.frequency_hz;
     rx_metadata_.frequency_valid = true;
     // GetPacketStatus (LoRa): RssiPkt, SnrPkt, SignalRssiPkt, decoded directly
     // (RadioLib's getRSSI() reports the third field, the signal RSSI).

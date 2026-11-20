@@ -68,6 +68,8 @@ picked up by Android until the board is paired again.
 
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b is underway on the host.
 
+The interim MeshTrail bench uses [profile v2 at 925.100 MHz and 500 kHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz) under D-135. Both Link Test boards need the new profile. The candidate awaits owner-present RF validation. V1 frequency hopping is separate under D-133.
+
 The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed. The fourth session got through the whole radio exchange, but ran out of the 2-minute window; the window is now 5 minutes (D-110) and storage reads are fast (I-066). The fifth session paired both boards; the remaining 26 s save and slow button polls came from repeated identity reads, now served from a verified RAM copy (I-068, I-069).
 
 The product is renamed Limited Underground MeshTrail (owner decision D-089). The Android app shows the name with the Linked Route home-screen artwork (D-091, D-092). On the board, the startup screen shows the Linked Route symbol and MeshTrail, and the reset question reads "ERASE MESHTRAIL DATA?". The application ID, signing, Bluetooth setup label and storage keys are unchanged.
@@ -193,7 +195,7 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-18 |
+| Reviewed | 2026-11-19 |
 | Task | OT-0005i — F5 single-board restart, storage integration and independent review fixes (TASK-4, I-072/I-074, D-124). |
 | Owner | Messaging owns the F5 task on feat/f5-msg-step2. The merged D-112/D-111/I-073 behavior remains the pairing baseline. |
 | Scope | Retained public history, fresh rekey and protected status after one board restarts, disjoint storage under the existing reset domain, and exact launch and status admission gates. |
@@ -203,7 +205,7 @@ activation, signing, source publication and merge require separate authority.
 | Blocker | Owner-present board acceptance remains open. The link-test arm remains bounded and the combined restore requires compatible storage handling under D-124. |
 | Next action | Review the exact host and build evidence for firmware issue #75 before any separately authorized board session. |
 | Restrictions | Local branch only. This is development link-test firmware, and physical testing and publication require separate owner authorization. |
-| Latest record | [OT-0005i Recover a fresh MeshTrail session after one board restarts](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Latest record | [OT-0005i Move the MeshTrail bench to 925.1 MHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz). F5 restart history: [OT-0005i Recover a fresh MeshTrail session after one board restarts](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
 | Evidence access | Source and host suites are present on the local branch. REPORT-4.md in D:/LimitedUnderground/Build/codex-messaging-plan/out records commands and artifact identities. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 

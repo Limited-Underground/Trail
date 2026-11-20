@@ -32,6 +32,20 @@ constexpr std::uint16_t RADIOLIB_SX126X_IRQ_TIMEOUT = 0x200;
 
 namespace radio_mock {
 enum class Mode { standby, rx, cad, tx };
+struct BeginSettings {
+    float frequency_mhz{0};
+    float bandwidth_khz{0};
+    unsigned sf{0};
+    unsigned cr{0};
+    unsigned sync_word{0};
+    int power_dbm{0};
+    unsigned preamble{0};
+    float tcxo_voltage{0};
+    bool use_regulator_ldo{false};
+};
+inline BeginSettings begin_settings;
+inline unsigned crc_bytes = 0;
+inline bool ldro_enabled = true;
 inline Mode chip_mode = Mode::standby;
 inline std::vector<std::string> calls;
 inline std::string fault;
@@ -54,6 +68,7 @@ inline std::int16_t op(const std::string& name) {
     return name == fault ? RADIOLIB_ERR_SPI_CMD_TIMEOUT : RADIOLIB_ERR_NONE;
 }
 inline void reset() {
+    begin_settings = {}; crc_bytes = 0; ldro_enabled = true;
     chip_mode = Mode::standby; calls.clear(); fault.clear(); irq = 0; length = 3;
     packet.fill(0); packet[0] = 7; packet[1] = 8; packet[2] = 9;
     packet_status = {0xA0, 0xFC, 0xB4};
@@ -114,12 +129,20 @@ public:
 class SX1262 {
 public:
     explicit SX1262(Module*) {}
-    std::int16_t begin(float, float, unsigned, unsigned, unsigned, int, unsigned, float, bool) {
+    std::int16_t begin(float mhz, float khz, unsigned sf, unsigned cr, unsigned sync_word,
+                       int power, unsigned preamble, float tcxo, bool ldo) {
+        radio_mock::begin_settings = {mhz, khz, sf, cr, sync_word, power, preamble, tcxo, ldo};
         return radio_mock::op("begin");
     }
     std::int16_t explicitHeader() { return radio_mock::op("header"); }
-    std::int16_t setCRC(unsigned) { return radio_mock::op("crc"); }
-    std::int16_t forceLDRO(bool) { return radio_mock::op("ldro"); }
+    std::int16_t setCRC(unsigned bytes) {
+        radio_mock::crc_bytes = bytes;
+        return radio_mock::op("crc");
+    }
+    std::int16_t forceLDRO(bool enabled) {
+        radio_mock::ldro_enabled = enabled;
+        return radio_mock::op("ldro");
+    }
     std::int16_t startReceive() {
         const auto r = radio_mock::op("start_rx");
         if (!r) { radio_mock::chip_mode = radio_mock::Mode::rx; radio_mock::irq = 0; }
