@@ -11,6 +11,8 @@
 namespace opentrail::target::heltec_v4_bench {
 namespace {
 constexpr char kTag[]="f5_msg";
+constexpr bool kTextTest = OPENTRAIL_LORA_F7_TEXT_TEST;
+constexpr char kTestText[] = "MeshTrail text test.";
 constexpr std::uint64_t kArmMs=60000, kRetryMs=1000;
 bool same(const security_evaluation::F5RekeySession::Frame& a,
           const security_evaluation::F5RekeySession::Frame& b) {
@@ -48,6 +50,7 @@ void BoardMessagingRuntime::begin(std::uint64_t now_ms) {
     phase_=Phase::rekey;
     if(now_ms>std::numeric_limits<std::uint64_t>::max()-kArmMs)return fail();
     deadline_ms_=now_ms+kArmMs;radio_permitted_=true;
+    if constexpr (kTextTest) text_arm_ = {};
     storage_.emplace();
     if(!storage_->ready() || !register_pairing_storage(&*storage_))return fail();
     membership_.emplace(*storage_,security_evaluation::EvaluationNamespace::membership);
@@ -91,6 +94,7 @@ void BoardMessagingRuntime::begin(std::uint64_t now_ms) {
     if(!rekey_->start(out))return fail();
     offer(out);
     ESP_LOGI(kTag,"retained conversation armed window_ms=%u",static_cast<unsigned>(kArmMs));
+    if constexpr (kTextTest) ESP_LOGI(kTag, "trial mode=typed text");
 }
 void BoardMessagingRuntime::begin_after_pairing(std::uint64_t now_ms) {
     if(phase_!=Phase::absent)return;
@@ -171,7 +175,8 @@ void BoardMessagingRuntime::observe_transmit() {
     if(counters.tx_completed!=completions_before_ && counters.tx_attempts!=attempts_before_) {
         if(tracked_data_ && packets_ && queued_lease_==packet_lease_) {
             packets_->on_data_transmitted();
-            ESP_LOGI(kTag,"status transmitted (DATA TxDone)");
+            if constexpr (kTextTest) ESP_LOGI(kTag, "text transmitted (DATA TxDone)");
+            else ESP_LOGI(kTag,"status transmitted (DATA TxDone)");
         }
         if(tracked_rekey_ && same(queued_frame_,pending_)) {
             phase_completed_=true;phase_completed_ms_=clock(this);
@@ -208,7 +213,8 @@ bool BoardMessagingRuntime::start_packets(std::uint64_t now_ms) {
     auto* dr=storage_->packet_storage(Store::packet_data_rx,allocation);
     auto* ar=storage_->packet_storage(Store::packet_ack_rx,allocation);
     if(!dt || !at || !dr || !ar)return false;
-    packets_.emplace(rekey_->data_tx(),rekey_->ack_tx(),rekey_->data_rx(),rekey_->ack_rx(),*dt,*at,*dr,*ar,packet_radio_);
+    packets_.emplace(rekey_->data_tx(), rekey_->ack_tx(), rekey_->data_rx(), rekey_->ack_rx(),
+                     *dt, *at, *dr, *ar, packet_radio_, kTextTest ? &text_arm_ : nullptr);
     if(!packets_->start(now_ms,deadline_ms_))return false;
     packet_lease_=lease;packet_allocation_=allocation;packet_ready_ms_=now_ms;status_sent_=false;
     phase_=Phase::exchanging;
@@ -226,8 +232,20 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
         if(!start_packets(clock(this)))fail();
     } else if(packets_) {
         const auto before=packets_->received_count();
-        (void)packets_->receive({bytes,size},now_ms);
-        if(packets_->received_count()>before)ESP_LOGI(kTag,"peer status authenticated");
+        (void)packets_->receive({bytes, size}, kTextTest ? clock(this) : now_ms);
+        if (packets_->received_count() > before) {
+            if constexpr (kTextTest) {
+                const auto text = packets_->received_text();
+                if (text.data && text.size == sizeof(kTestText) - 1 &&
+                    std::memcmp(text.data, kTestText, text.size) == 0) {
+                    ESP_LOGI(kTag, "peer text authenticated: %s", kTestText);
+                } else {
+                    ESP_LOGW(kTag, "peer text fixture mismatch bytes=%u", static_cast<unsigned>(text.size));
+                }
+            } else {
+                ESP_LOGI(kTag,"peer status authenticated");
+            }
+        }
         if(rekey_->failed())return fail();
     }
 }
@@ -268,9 +286,16 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
         if(!tracked_) { packets_.reset();rekey_->release_retired_leases(); }
         return;
     }
-    if(!status_sent_ && !tracked_ && fresh-packet_ready_ms_>=(rekey_->initiator()?1500u:2500u)) {
-        status_sent_=packets_->send_status(static_cast<std::uint32_t>(packet_allocation_),fresh);
-        if(status_sent_)ESP_LOGI(kTag,"status queued");
+    const bool payload_sent = kTextTest ? text_arm_.sent : status_sent_;
+    if (!payload_sent && !tracked_ && fresh - packet_ready_ms_ >= (rekey_->initiator() ? 1500u : 2500u)) {
+        const auto id = static_cast<std::uint32_t>(packet_allocation_);
+        if constexpr (kTextTest) {
+            const radio::ByteView sample{reinterpret_cast<const std::uint8_t*>(kTestText), sizeof(kTestText) - 1};
+            if (packets_->send_text(id, sample, fresh)) ESP_LOGI(kTag, "text queued");
+        } else {
+            status_sent_=packets_->send_status(id,fresh);
+            if(status_sent_)ESP_LOGI(kTag,"status queued");
+        }
     }
     packets_->service(clock(this));
     if(packets_->state()==companion::F5StatusSession::State::failed) {
@@ -280,7 +305,9 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
     }
     if(phase_!=Phase::complete && packets_->state()==companion::F5StatusSession::State::acknowledged &&
        packets_->received_count()==1) {
-        phase_=Phase::complete;ESP_LOGI(kTag,"status acknowledged; peer status accepted once");
+        phase_=Phase::complete;
+        if constexpr (kTextTest) ESP_LOGI(kTag, "text acknowledged (authenticated ACK); peer text accepted once");
+        else ESP_LOGI(kTag,"status acknowledged; peer status accepted once");
     }
 }
 void BoardMessagingRuntime::fail() {

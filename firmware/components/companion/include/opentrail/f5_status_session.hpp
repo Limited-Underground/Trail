@@ -3,6 +3,7 @@
 // F5 rekey owner; transport queue admission is never a transmitted receipt.
 #include <algorithm>
 #include <optional>
+#include "opentrail/otxt_payload_codec.hpp"
 #include "opentrail/packet_v1_selected_core.hpp"
 #include "opentrail/quick_status_codec.hpp"
 
@@ -13,6 +14,8 @@ class F5StatusSession final {
     using Frame = protocol::v1::selected_packet_detail::Frame;
     using Outcome = protocol::v1::selected_packet_detail::Outcome;
     static constexpr std::uint32_t kDeliveryMs = 30000;
+    static constexpr std::size_t kPacketMtu = 163;
+    static constexpr std::size_t kPacketOverhead = protocol::v1::header_bytes + protocol::v1::tag_bytes;
     class GuardedTransport final : public radio::RadioTransport {
     public:
         explicit GuardedTransport(F5StatusSession& owner) : owner_(owner) {}
@@ -38,11 +41,20 @@ class F5StatusSession final {
     };
 public:
     enum class State { idle, queued, transmitted, acknowledged, failed };
+
+    // The local RF arm owns these slots across replacement Packet leases.
+    // A slot consumed by an admitted operation stays consumed on storage failure.
+    struct TextArm {
+        bool sent{};
+        bool received{};
+        bool expired{};
+    };
     F5StatusSession(Binding& dt, Binding& at, Binding& dr, Binding& ar,
                     persistence::PersistentStorage& dtx, persistence::PersistentStorage& atx,
                     persistence::PersistentStorage& drx, persistence::PersistentStorage& arx,
-                    radio::RadioTransport& radio)
+                    radio::RadioTransport& radio, TextArm* text_arm = nullptr)
         : bindings_{&dt,&at,&dr,&ar}, stores_{&dtx,&atx,&drx,&arx}, radio_(radio),
+          text_arm_(text_arm),
           data_store_(dtx), ack_store_(atx), data_counter_(data_store_), ack_counter_(ack_store_),
           data_replay_(drx), ack_replay_(arx), transport_(*this), delivery_(transport_) {}
     ~F5StatusSession() { close(); }
@@ -50,7 +62,11 @@ public:
     F5StatusSession& operator=(const F5StatusSession&) = delete;
 
     bool start(std::uint64_t now, std::uint64_t deadline) {
-        if (started_ || closed_ || deadline <= now || deadline-now > 60000 || radio_.mtu() < 72) return fail();
+        const auto minimum_plaintext = text_arm_ ? otxt::envelope_bytes + 1
+                                                 : protocol::kQuickStatusPayloadBytes;
+        if (started_ || closed_ || deadline <= now || deadline - now > 60000 ||
+            (text_arm_ && text_arm_->expired) ||
+            packet_mtu() < kPacketOverhead + minimum_plaintext) return fail();
         started_ = true; deadline_ = deadline;
         for (unsigned i=0; i<4; ++i) {
             for (unsigned j=0; j<i; ++j) if (stores_[i]==stores_[j]) return fail();
@@ -72,19 +88,31 @@ public:
             !start_replay(data_replay_,*bindings_[2]) || !start_replay(ack_replay_,*bindings_[3])) return fail();
         node_.emplace(*bindings_[0],*bindings_[1],*bindings_[2],*bindings_[3],
             data_counter_,ack_counter_,data_replay_,ack_replay_,delivery_,nullptr,nullptr,
-            delivery::DeliveryPolicy{true,2,4000,kDeliveryMs}, &admit_status, this);
+            delivery::DeliveryPolicy{true,2,4000,kDeliveryMs}, &admit_data, this);
         return live(now);
     }
     bool send_status(std::uint32_t id, std::uint64_t now) {
-        if (!node_ || sent_ || !live(now)) return false;
+        if (text_arm_ || !node_ || sent_ || !live(now)) return false;
         std::array<std::uint8_t,protocol::kQuickStatusPayloadBytes> plain{};
         const auto encoded=protocol::encode_quick_status({protocol::QuickStatusKind::ok},{plain.data(),plain.size()});
-        if (!encoded.encoded() || !node_->send(id,{plain.data(),plain.size()},now)) return fail();
-        data_deadline_ = now + std::min<std::uint64_t>(kDeliveryMs, deadline_ - now);
-        sent_=true; state_=State::queued; return true;
+        if (!encoded.encoded()) return fail();
+        return queue_data(id, {plain.data(), plain.size()}, now);
     }
+
+    bool send_text(std::uint32_t id, radio::ByteView utf8, std::uint64_t now) {
+        if (!node_ || !text_arm_ || text_arm_expired(now) || text_arm_->sent || !id) return false;
+        std::array<std::uint8_t, otxt::envelope_bytes + otxt::max_text_bytes> payload{};
+        const auto length = otxt::encode({utf8.data, utf8.size}, {payload.data(), payload.size()},
+                                         packet_mtu());
+        if (!length || !live(now)) return false;
+        text_arm_->sent = true;
+        return queue_data(id, {payload.data(), length}, now);
+    }
+
     bool receive(radio::ByteView bytes, std::uint64_t now) {
-        if (!node_ || !live(now) || !bytes.data || bytes.size<4 || bytes.size>std::min<std::size_t>(radio_.mtu(),163)) return false;
+        // The arm owner retires expired lanes during service, never in response to late text.
+        if (!node_ || text_arm_expired(now) || !live(now) ||
+            !bytes.data || bytes.size < 4 || bytes.size > packet_mtu()) return false;
         const auto type=static_cast<protocol::v1::Type>(bytes.data[3]);
         if (type!=protocol::v1::Type::data && type!=protocol::v1::Type::ack) return false;
         Frame ack{};
@@ -93,9 +121,15 @@ public:
         if (result==Outcome::acknowledged) state_=State::acknowledged;
         if (result==Outcome::delivered) {
             const auto plain=node_->last_plain();
-            const auto decoded=protocol::decode_quick_status({plain.data,plain.size});
-            if (!decoded.decoded() || received_!=0) return fail();
-            received_status_=decoded.payload.kind; ++received_;
+            if (received_ != 0) return fail();
+            if (text_arm_) {
+                if (!otxt::decode(plain, packet_mtu()).data) return fail();
+            } else {
+                const auto decoded = protocol::decode_quick_status({plain.data, plain.size});
+                if (!decoded.decoded()) return fail();
+                received_status_ = decoded.payload.kind;
+            }
+            ++received_;
         }
         if (ack.size) {
             if (pending_ack_.size && (ack.size!=pending_ack_.size ||
@@ -120,7 +154,7 @@ public:
     // Deadline of the exact copy accepted by the one-entry driver. The
     // target also rechecks this bound after delegated proof reads.
     std::uint64_t frame_deadline(radio::ByteView frame) const {
-        if (!node_ || closed_ || !frame.data || frame.size < 4 ||
+        if (!node_ || closed_ || (text_arm_ && text_arm_->expired) || !frame.data || frame.size < 4 ||
             frame.size != queued_frame_.size ||
             std::memcmp(frame.data, queued_frame_.bytes.data(), frame.size) != 0) return 0;
         const auto type = static_cast<protocol::v1::Type>(frame.data[3]);
@@ -142,6 +176,13 @@ public:
     State state() const { return state_; }
     unsigned received_count() const { return received_; }
     protocol::QuickStatusKind received_status() const { return received_status_; }
+
+    // Valid while this session retains the delivered plaintext.
+    radio::ByteView received_text() const {
+        if (!text_arm_ || text_arm_->expired || !node_ || closed_ || received_ == 0) return {};
+        const auto text = otxt::decode(node_->last_plain(), packet_mtu());
+        return {text.data, text.size};
+    }
     bool closed() const { return closed_; }
     void close() {
         if (closed_) return;
@@ -154,10 +195,25 @@ public:
         if (state_!=State::acknowledged) state_=State::failed;
     }
 private:
-    static bool admit_status(void* context, protocol::v1::View plain) {
-        const auto& self = *static_cast<F5StatusSession*>(context);
-        return !self.closed_ && self.received_ == 0 &&
-            protocol::decode_quick_status({plain.data, plain.size}).decoded();
+    std::size_t packet_mtu() const {
+        return std::min(radio_.mtu(), kPacketMtu);
+    }
+
+    bool queue_data(std::uint32_t id, protocol::v1::View plain, std::uint64_t now) {
+        if (!node_->send(id, plain, now)) return fail();
+        data_deadline_ = now + std::min<std::uint64_t>(kDeliveryMs, deadline_ - now);
+        sent_ = true;
+        state_ = State::queued;
+        return true;
+    }
+
+    static bool admit_data(void* context, protocol::v1::View plain) {
+        auto& self = *static_cast<F5StatusSession*>(context);
+        if (self.closed_ || self.received_ != 0) return false;
+        if (!self.text_arm_) return protocol::decode_quick_status({plain.data, plain.size}).decoded();
+        if (self.text_arm_->received || !otxt::decode(plain, self.packet_mtu()).data) return false;
+        self.text_arm_->received = true;
+        return true;
     }
     static bool start_replay(security_eval::EvaluationReplayStore& store,const Binding& b) {
         security_eval::EvaluationReplayStore::Context context{};
@@ -165,9 +221,16 @@ private:
         std::copy(b.prefix.begin(),b.prefix.end(),context.begin()+16);
         return store.start(context,true)==security_eval::ReplayError::none;
     }
+    bool text_arm_expired(std::uint64_t now) {
+        if (!text_arm_) return false;
+        // Remember the sampled expiry without writing the replay stores.
+        if (now >= deadline_) text_arm_->expired = true;
+        return text_arm_->expired;
+    }
+
     bool live(std::uint64_t now) {
         if (!started_ || closed_) return false;
-        if (now<last_now_ || now>=deadline_ || radio_.status().state==radio::RadioState::fault ||
+        if (text_arm_expired(now) || now<last_now_ || now>=deadline_ || radio_.status().state==radio::RadioState::fault ||
             radio_.status().state==radio::RadioState::offline) return fail();
         last_now_=now;
         for (auto* b:bindings_) if (!b->active || !b->validity || !b->validity(b->validity_context,now)) return fail();
@@ -177,6 +240,7 @@ private:
     std::array<Binding*,4> bindings_;
     std::array<persistence::PersistentStorage*,4> stores_;
     radio::RadioTransport& radio_;
+    TextArm* const text_arm_;
     persistence::OutboundCounterLeaseStore data_store_,ack_store_;
     persistence::OutboundCounterAllocator data_counter_,ack_counter_;
     security_eval::EvaluationReplayStore data_replay_,ack_replay_;

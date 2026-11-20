@@ -63,8 +63,9 @@ def custody_suite(commands, path, env):
     groups = unittest_groups(path, 4, "custody")
     records = []
     for index, group in enumerate(groups, 1):
+        # A shard can exceed 90 s on Windows while its simulated recovery tests pass.
         completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *group],
-                                 env=env, check=True, timeout=90)
+                                 env=env, check=True, timeout=180)
         records.append({"group": index, "tests": group,
                         "output": (completed.stdout + completed.stderr).strip(), "result": "passed"})
     return {"output": "\n".join(record["output"] for record in records),
@@ -114,6 +115,7 @@ def run(output, cached_component=None):
                   if p.is_file() and p.suffix in (".py", ".cpp", ".c", ".hpp", ".h", ".json")}
         helper = ROOT / "tools/noise_xk_independent_interop.py"
         inputs.add(helper)
+        inputs.add(ROOT / "android/protocol/src/test/resources/otxt-v1-vectors.tsv")
         inputs.update(ROOT / "tools" / name for name in (
             "enrollment_candidate_controller.py", "enrollment_candidate_custody.py",
             "enrollment_candidate_rom_adapter.py", "enrollment_candidate_operator.py",
@@ -243,6 +245,12 @@ def run(output, cached_component=None):
         suite("f5_status_admission_tests",
               [*common, *f5_sources, ROOT / "tests/host/f5_status_admission_tests.cpp"],
               [*base, *f5_includes], (), " F5 status semantic admission and launch groups")
+        suite("otxt_payload_codec_tests",
+              [f5_components / "protocol/src/packet_v1.cpp", ROOT / "tests/host/otxt_payload_codec_tests.cpp"],
+              f5_includes, (), " OTXT shared vectors")
+        suite("f7_text_session_tests",
+              [*common, *f5_sources, ROOT / "tests/host/f7_text_session_tests.cpp"],
+              [*base, *f5_includes], (), " retained-pair F7 text session groups")
         f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
         suite("companion_gatt_layout_tests",
               [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
