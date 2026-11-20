@@ -2,6 +2,22 @@
 
 ## 2026-11-20
 
+### OT-0005i Prepare US hopping profile and dwell accounting
+
+- **Scope.** Host-only D-140 work based on the PR #289 merge. The fixed
+  bench, pairing and messaging paths still use the existing target files.
+- **Outcome.** Profile fingerprints make mixed versions explicit and the
+  host admission refuses a payload over 236 bytes. The rolling ledger
+  charges each channel, and the cursor journal preserves a possibly used
+  hop after interruption. A fake radio exercises the final send ordering.
+- **Verification.** Both new suites failed to compile on the baseline
+  before their interfaces existed. Four profile and seven hopping TX
+  groups pass with the new code. An independent SHA-256 check reproduces
+  the canonical digests and the 64-channel order.
+- **Next.** Build rendezvous in a later increment. Heltec's burst limit
+  and the qualification basis govern burst-dependent framing and reserves.
+  Hopping TX remains disabled in the board target.
+
 ### OT-0170a Clarify tester wording and resume setup (I-023)
 
 The Android topic applies D-139 to connection, setup, reset and message status
