@@ -19,19 +19,6 @@
 
 namespace opentrail::target::heltec_v4_bench {
 
-// Fixed close-bench profile, the same one used by OT-234 and OT-0005j:
-// 915 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 8 preamble symbols, 2 dBm,
-// explicit header, CRC on. US915 region only (D-028).
-struct LoraProfile {
-    float frequency_mhz{915.0F};
-    float bandwidth_khz{125.0F};
-    std::uint8_t spreading_factor{7};
-    std::uint8_t coding_rate_denominator{5};
-    std::uint8_t sync_word{0x12};
-    std::int8_t power_dbm{2};
-    std::uint16_t preamble_symbols{8};
-};
-
 struct LoraCounters {
     std::uint32_t tx_attempts{0};
     std::uint32_t tx_completed{0};
@@ -57,7 +44,7 @@ public:
 
     // Configures the front end and the SX1262 and enters receive. Returns false
     // and leaves the radio off (front end unpowered) on any failure.
-    [[nodiscard]] bool start(const LoraProfile& profile = {});
+    [[nodiscard]] bool start();
     // Puts the chip in standby and powers the front end down.
     void stop();
     [[nodiscard]] bool running() const { return running_; }
@@ -113,7 +100,6 @@ private:
     LoraCounters counters_{};
     std::array<std::uint8_t, 3> last_packet_status_{};
     radio::RadioError last_error_{radio::RadioError::none};
-    std::uint32_t frequency_hz_{0};
     bool running_{false};
     bool transmitting_{false};
     bool receiving_{false};

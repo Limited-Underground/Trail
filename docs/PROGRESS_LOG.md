@@ -2,6 +2,15 @@
 
 ## 2026-11-19
 
+### OT-0005i Move the MeshTrail bench to 925.1 MHz
+
+D-135 moves the opt-in Heltec Link Test candidate to bench profile v2 at
+925.100 MHz, nominal 500 kHz and SF7. Both boards need the same version.
+Pairing and F5 keep their US915 and exact-copy launch gates around CAD.
+The old 915.000 MHz image cannot exchange packets with this profile.
+The maintainer-local Task 8 report records host and build evidence.
+An owner-present session remains pending. D-133 covers V1 frequency hopping.
+
 ### OT-0005i Refresh bonded MeshTrail phones after a GATT layout update
 
 I-084 preserves the Companion table shipped in `0615e22` and signals
