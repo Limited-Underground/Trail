@@ -282,13 +282,83 @@ class AndroidBlePlatformPolicyTest {
     }
 
     @Test
+    fun serviceChangedAfterAcceptedCachedDiscoveryRequiresFreshGatt() {
+        val gate = AndroidServiceChangedDiscoveryGate()
+        assertEquals(
+            AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE,
+            gate.onDiscoveryResult(profileAccepted = true),
+        )
+        assertEquals(AndroidServiceChangedDiscoveryAction.REFRESH_BEFORE_RECONNECT, gate.onServiceChanged())
+        assertTrue(gate.isReplacingAcceptedProfile())
+        assertFalse(gate.isRefreshingBeforeReconnect())
+        assertTrue(gate.beginRediscovery())
+        assertTrue(gate.isRefreshingBeforeReconnect())
+        assertEquals(AndroidServiceChangedDiscoveryAction.RECONNECT, gate.onDiscoveryResult(profileAccepted = true))
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, gate.onServiceChanged())
+        assertFalse(gate.beginRediscovery())
+    }
+
+    @Test
+    fun serviceChangedReconnectBudgetSurvivesFreshReturningOwnerLeases() {
+        val budget = AndroidServiceChangedReconnectBudget()
+        assertFalse(budget.allows(returningOwner = false))
+        assertTrue(budget.allows(returningOwner = true))
+        budget.consume()
+        // A fresh lease or scan token has no effect on this facade-owned budget.
+        assertFalse(budget.allows(returningOwner = true))
+        assertFalse(budget.allows(returningOwner = false))
+        budget.reset()
+        assertTrue(budget.allows(returningOwner = true))
+        assertFalse(budget.allows(returningOwner = false))
+    }
+
+    @Test
+    fun serviceChangedRecoveryStillRequiresSignalAfterStaleCccdRejection() {
+        val signalled = AndroidServiceChangedDiscoveryGate()
+        val unsignalled = AndroidServiceChangedDiscoveryGate()
+        assertFalse(signalled.onStreamCccdWriteNotPermitted())
+        assertEquals(AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE, signalled.onDiscoveryResult(true))
+        assertEquals(AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE, unsignalled.onDiscoveryResult(true))
+        assertTrue(signalled.onStreamCccdWriteNotPermitted())
+        assertTrue(unsignalled.onStreamCccdWriteNotPermitted())
+        assertEquals(AndroidServiceChangedDiscoveryAction.REFRESH_BEFORE_RECONNECT, signalled.onServiceChanged())
+        assertTrue(signalled.beginRediscovery())
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, signalled.onDiscoveryResult(false))
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, unsignalled.onFailureGraceExpired())
+        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, unsignalled.onServiceChanged())
+    }
+
+    @Test
+    fun lateServiceChangeCannotRestartAClaimOrASubscribedProtocolInfoRead() {
+        val gate = AndroidGattOperationGate()
+        assertTrue(gate.beginConnection())
+        assertTrue(gate.beginDiscovery())
+        assertFalse(gate.canRestartBeforeClaim())
+        assertTrue(gate.acceptProfile())
+        assertTrue(gate.canRestartBeforeClaim())
+        assertTrue(gate.beginProtocolInfoRead())
+        assertTrue(gate.canRestartBeforeClaim())
+        assertTrue(gate.acceptProtocolInfo())
+        assertTrue(gate.beginMtuRequest())
+        assertTrue(gate.acceptMtu())
+        assertTrue(gate.beginIndicationSubscription())
+        assertTrue(gate.canRestartBeforeClaim())
+        assertTrue(gate.acceptIndicationSubscription())
+        assertFalse(gate.canRestartBeforeClaim())
+        assertTrue(gate.beginProtocolInfoRead())
+        assertFalse(gate.canRestartBeforeClaim())
+        assertTrue(gate.acceptProtocolInfo())
+        assertTrue(gate.beginCommandWrite())
+        assertFalse(gate.canRestartBeforeClaim())
+    }
+
+    @Test
     fun serviceChangedRecoveryKeepsCleanDiscoveryAndFailureBoundariesExact() {
         val clean = AndroidServiceChangedDiscoveryGate()
         assertEquals(
             AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE,
             clean.onDiscoveryResult(profileAccepted = true),
         )
-        assertEquals(AndroidServiceChangedDiscoveryAction.FAIL, clean.onServiceChanged())
 
         val noChange = AndroidServiceChangedDiscoveryGate()
         assertEquals(

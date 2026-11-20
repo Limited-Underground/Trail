@@ -193,18 +193,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-18 |
-| Task | OT-0005i — F5 single-board restart, storage integration and independent review fixes (TASK-4, I-072/I-074, D-124). |
-| Owner | Messaging owns the F5 task on feat/f5-msg-step2. The merged D-112/D-111/I-073 behavior remains the pairing baseline. |
-| Scope | Retained public history, fresh rekey and protected status after one board restarts, disjoint storage under the existing reset domain, and exact launch and status admission gates. |
-| State | Local link-test development candidate. F11 source is merged but unwired. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure and its grant is consumed. |
-| Source | Task branch feat/f5-msg-step2, based on 2b920186754ca0260f1677c380e029920764bb56 (PR #283). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | The TASK-4 report records host regressions, build hashes and evidence limits. The previous pairing and F11 evidence is retained in the dated progress log. |
-| Blocker | Owner-present board acceptance remains open. The link-test arm remains bounded and the combined restore requires compatible storage handling under D-124. |
-| Next action | Review the exact host and build evidence for firmware issue #75 before any separately authorized board session. |
-| Restrictions | Local branch only. This is development link-test firmware, and physical testing and publication require separate owner authorization. |
-| Latest record | [OT-0005i Recover a fresh MeshTrail session after one board restarts](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
-| Evidence access | Source and host suites are present on the local branch. REPORT-4.md in D:/LimitedUnderground/Build/codex-messaging-plan/out records commands and artifact identities. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
+| Reviewed | 2026-11-19 |
+| Task | OT-0005i — I-084 bonded-phone cache migration for the F5 status trial (Part of #75). |
+| Owner | MeshTrail Firmware owns the local fix and its host evidence. The F5 status trial remains with Messaging. |
+| Scope | Heltec Companion GATT handle stability, standard Service Changed for the retained legacy subscription, pre-claim Android cache recovery, and host regressions. |
+| State | F5 PR #284 is on main at 0615e22. The 2026-11-19 board trial stopped before the owner claim. Both boards were restored to b4c843b. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded unauthenticated exchange and closure; the grant is consumed. |
+| Source | Isolated local fix/i084-gatt-layout-change based on 0615e22221cc1a3a81ea9e51aea77765d60613e0. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | Prior incident evidence and the pinned NimBLE source identify the cached Stream CCCD write. I-084 host and Link Test evidence are recorded in the local report. |
+| Blocker | The two-phone with-bonds upgrade and the F5 status trial remain open. The combined restore still requires compatible storage handling under D-124. |
+| Next action | Review the exact I-084 host evidence, then arrange a separately authorized owner-present upgrade check with both previous bonds retained. |
+| Restrictions | Local branch only. Device operations and publication require separate owner authorization. |
+| Latest record | [OT-0005i Refresh bonded MeshTrail phones after a GATT layout update](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Evidence access | The local I-084 report holds the exact command and artifact identities. The 2026-11-19 F5 session record and logs are maintainer-held. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and
