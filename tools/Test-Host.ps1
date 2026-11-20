@@ -952,7 +952,8 @@ $builds = @(
         Arguments = @('-I', (Join-Path $projectRoot 'tests\host\heltec_v4_lora_stubs'))
         Sources = @(
             (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main\heltec_v4_lora.cpp'),
-            (Join-Path $projectRoot 'tests\host\heltec_v4_lora_driver_tests.cpp')
+            (Join-Path $projectRoot 'tests\host\heltec_v4_lora_driver_tests.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp')
         )
     },
     @{
