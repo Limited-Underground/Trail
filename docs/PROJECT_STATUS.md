@@ -21,6 +21,14 @@ Phone verification remains pending.
 
 ## Android reconnect and status refresh
 
+The local I-083 correction rechecks Bluetooth when MeshTrail returns to the
+foreground, after it reattaches to an existing service and when Android reports
+that Bluetooth is on. Recovery uses the saved-board route or returns to Idle.
+Manual retry rechecks permission and explains any refusal while preserving
+the existing protected authorization and reset checks. See the
+[I-083 host progress entry](PROGRESS_LOG.md#ot-0170a-recover-bluetooth-after-adapter-enable-i-083).
+Phone acceptance remains open.
+
 The local OT-0170a topic lets a visible app attach to an existing owner or
 recover a bonded board through the same protected claim and initial snapshot.
 First-use Nearby Devices permission now follows the Find device tap. The
@@ -197,17 +205,17 @@ activation, signing, source publication and merge require separate authority.
 | Field | Current pickup state |
 | --- | --- |
 | Reviewed | 2026-11-18 |
-| Task | OT-0341 — MeshTrail device parameters for logging (V1 F11, requirement 8). |
-| Owner | Codex owns the standalone collector/codec, new host suites and local closeout on feat/f11-device-parameters. |
-| Scope | Collect timestamped parameters into a bounded versioned record in new files; document separate target, protected transport and Android integration hooks. |
-| State | Local unwired F11 host candidate for review. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure; its grant is consumed. |
-| Source | F11 worktree in D:/LimitedUnderground/Build/worktrees/trl-f11, base 4b7e5d5 (PR #277). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283; APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c; execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | New codec passed seven groups and collector ten groups; bench admission passed 20 groups; offline security passed 83 suites / 613 commands, with all 1,241 source pins matching. Separate Xtensa compilation and the unchanged link-test build pass without warnings. The baseline image excludes this module; the local report binds evidence and admission limits. |
-| Blocker | Task scope excludes edits to the existing bench/status/pairing and Android paths needed for live acquisition and transport. |
-| Next action | Review the collector/codec and coordinate the documented source publication and protected response hook with the status and Android owners. Hardware validation remains separately authorized. |
-| Restrictions | Local branch only. Device access, signing, release and publication require separate owner approval. |
-| Latest record | [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
-| Evidence access | Source and tests are clone-visible. Detailed local test and build results are in REPORT-6.md in the task output directory. The unchanged historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb; this task does not execute retired tools or read that evidence. |
+| Task | OT-0005i — F5 single-board restart, storage integration and independent review fixes (TASK-4, I-072/I-074, D-124). |
+| Owner | Messaging owns the F5 task on feat/f5-msg-step2. The merged D-112/D-111/I-073 behavior remains the pairing baseline. |
+| Scope | Retained public history, fresh rekey and protected status after one board restarts, disjoint storage under the existing reset domain, and exact launch and status admission gates. |
+| State | Local link-test development candidate. F11 source is merged but unwired. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains only its accepted unauthenticated exchange/closure and its grant is consumed. |
+| Source | Task branch feat/f5-msg-step2, based on 2b920186754ca0260f1677c380e029920764bb56 (PR #283). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | The TASK-4 report records host regressions, build hashes and evidence limits. The previous pairing and F11 evidence is retained in the dated progress log. |
+| Blocker | Owner-present board acceptance remains open. The link-test arm remains bounded and the combined restore requires compatible storage handling under D-124. |
+| Next action | Review the exact host and build evidence for firmware issue #75 before any separately authorized board session. |
+| Restrictions | Local branch only. This is development link-test firmware, and physical testing and publication require separate owner authorization. |
+| Latest record | [OT-0005i Recover a fresh MeshTrail session after one board restarts](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Evidence access | Source and host suites are present on the local branch. REPORT-4.md in D:/LimitedUnderground/Build/codex-messaging-plan/out records commands and artifact identities. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

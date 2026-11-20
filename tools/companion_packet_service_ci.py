@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--archive", type=Path)
+    parser.add_argument("--sodium-source", type=Path, help="Offline expanded component; all 733 files must match the tracked admission inventory")
     parser.add_argument("--compiler-dir", type=Path)
     args = parser.parse_args()
     recipe_bytes = RECIPE.read_bytes()
@@ -33,26 +34,61 @@ def main():
     generated_pins = {}
     output = args.out.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    archive = args.archive
-    if archive is None:
-        archive = output / "libsodium-1.0.22.zip"
-        with urllib.request.urlopen(recipe["archive_url"], timeout=60) as response:
-            archive.write_bytes(response.read())
-    if digest(archive) != recipe["archive_sha256"]:
-        raise ValueError("Pinned libsodium archive mismatch")
-    extracted = output / "dependency"
-    with zipfile.ZipFile(archive) as bundle:
-        for member in bundle.infolist():
-            target = (extracted / member.filename).resolve()
-            if not target.is_relative_to(extracted.resolve()):
-                raise ValueError("Archive path outside dependency directory")
-            if (member.external_attr >> 16) & 0o170000 == 0o120000:
-                raise ValueError("Archive symbolic link refused")
-        bundle.extractall(extracted)
-    candidates = list(extracted.glob("**/src/libsodium/include/sodium.h"))
-    if len(candidates) != 1:
-        raise ValueError("Unambiguous pinned source root required")
-    sodium = candidates[0].parents[3]
+    if args.sodium_source:
+        if args.archive:
+            raise ValueError("Choose archive or expanded source")
+        # Preserve the complete accepted package admission inventory, not just
+        # the subset compiled by this recipe. No download on the offline path.
+        import sys
+        sys.path.insert(0, str(ROOT / "tests/host"))
+        from security_policy_lifecycle import dependencies
+        manifest = ROOT / "tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/source-manifest.sha256"
+        raw_manifest = manifest.read_bytes()
+        if hashlib.sha256(raw_manifest).hexdigest() != dependencies.MANIFEST_SHA:
+            raise ValueError("Expanded source inventory pin mismatch")
+        expected = {name: (int(size), sha) for name, size, sha in
+                    (line.split("\t") for line in raw_manifest.decode().splitlines())}
+        source = args.sodium_source.resolve(strict=True)
+        observed = {}
+        admitted = {}
+        for path in source.rglob("*"):
+            if path.is_symlink() or getattr(path, "is_junction", lambda: False)():
+                raise ValueError("Indirect dependency path refused")
+            if path.is_file():
+                raw = path.read_bytes()
+                name = path.relative_to(source).as_posix()
+                observed[name] = (len(raw), hashlib.sha256(raw).hexdigest())
+                admitted[name] = raw
+        if len(expected) != 733 or observed != expected:
+            raise ValueError("Expanded dependency bytes mismatch")
+        sodium = output / "dependency"
+        sodium.mkdir()
+        for name, raw in admitted.items():
+            target = sodium / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+        sodium = sodium / "libsodium"
+    else:
+        archive = args.archive
+        if archive is None:
+            archive = output / "libsodium-1.0.22.zip"
+            with urllib.request.urlopen(recipe["archive_url"], timeout=60) as response:
+                archive.write_bytes(response.read())
+        if digest(archive) != recipe["archive_sha256"]:
+            raise ValueError("Pinned libsodium archive mismatch")
+        extracted = output / "dependency"
+        with zipfile.ZipFile(archive) as bundle:
+            for member in bundle.infolist():
+                target = (extracted / member.filename).resolve()
+                if not target.is_relative_to(extracted.resolve()):
+                    raise ValueError("Archive path outside dependency directory")
+                if (member.external_attr >> 16) & 0o170000 == 0o120000:
+                    raise ValueError("Archive symbolic link refused")
+            bundle.extractall(extracted)
+        candidates = list(extracted.glob("**/src/libsodium/include/sodium.h"))
+        if len(candidates) != 1:
+            raise ValueError("Unambiguous pinned source root required")
+        sodium = candidates[0].parents[3]
     values = {"${ROOT}": str(ROOT), "${SODIUM}": str(sodium), "${OUT}": str(output)}
 
     def expand(value):
@@ -104,7 +140,8 @@ def main():
     record = {"result": "PASS", "host_scenarios": 68, "exit": child.returncode,
               "stdout": child.stdout, "stderr": child.stderr,
               "recipe_sha256": recipe_hash, "physical": False,
-              "private_evidence_required": False, "archive_sha256": digest(archive)}
+              "private_evidence_required": False, "archive_sha256": None if args.sodium_source else digest(archive),
+              "dependency_input": "verified expanded 733-file tree" if args.sodium_source else "pinned archive"}
     (output / "RESULT.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     print(child.stdout, end="")
 

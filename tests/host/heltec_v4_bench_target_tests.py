@@ -218,12 +218,16 @@ def admitted_target_sources(cmake: str) -> list[str]:
     # V1 F5 step R2a (D-086): plus the pairing storage in ot_state.
     require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp",
                                  "pairing_nvs_storage.cpp", "board_pairing_runtime.cpp",
+                                 "board_messaging_runtime.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp",
                                  "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c",
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
-            len(lora_tokens) == 9 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            len(lora_tokens) == 13 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
@@ -342,6 +346,9 @@ def test_contract() -> None:
         "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
         "main/board_pairing_runtime.cpp",
         "main/board_pairing_runtime.hpp",
+        "main/board_messaging_runtime.cpp",
+        "main/board_messaging_runtime.hpp",
+        "main/board_pairing_result.hpp",  # D-111: guarded pure result projection, real-session tested
         "main/idf_component.yml",
         ".gitignore",
     }
@@ -3549,6 +3556,172 @@ def test_selected_enrollment_request_route():
             "selected containment must retire and invalidate under one checked lock")
 
 
+def test_pairing_result_protected_route():
+    """D-111 target composition: discovery is metadata; results need owned Ready."""
+    gatt = NIMBLE_GATT.read_text()
+    runtime = NIMBLE_RUNTIME.read_text()
+    companion = ROOT / "firmware/components/companion"
+    dispatcher = (companion / "src/companion_configuration_dispatcher.cpp").read_text()
+    lane = (TARGET / "main/companion_configuration_lane.hpp").read_text()
+    pairing = (TARGET / "main/board_pairing_runtime.cpp").read_text()
+
+    metadata = gatt[gatt.index("int pairing_result_feature_access("):
+                    gatt.index("ble_gatt_dsc_def kPairingResultDescriptors[]")]
+    require("BLE_GATT_ACCESS_OP_READ_DSC" in metadata and
+            "constexpr std::uint8_t version = 1;" in metadata and
+            "os_mbuf_append(context->om, &version, sizeof(version))" in metadata and
+            metadata.count("os_mbuf_append(") == 1 and
+            "g_pairing_result" not in metadata and "snapshot" not in metadata,
+            "pairing feature descriptor may expose only its one-byte version")
+    definitions = gatt[gatt.index("ble_gatt_dsc_def kPairingResultDescriptors[]"):
+                       gatt.index("const ble_gatt_svc_def kServices[]")]
+    require("BLE_ATT_F_READ, 0, pairing_result_feature_access" in definitions and
+            definitions.index("{&kProtocolInfoUuid.u, protocol_info_access") <
+            definitions.index("kPairingResultDescriptors,", definitions.index("const ble_gatt_chr_def")) <
+            definitions.index("{&kCommandUuid.u, command_access"),
+            "feature discovery must be the read-only ProtocolInfo descriptor")
+
+    protected = gatt[gatt.index("bool companion_pairing_result_snapshot("):
+                     gatt.index("bool companion_nimble_gatt_definition_self_check()")]
+    for gate in ("GattLock lock;", "g_configuration_revoked",
+                 "update_configuration_authority();",
+                 "kSelectedConfigurationMinor != kPublicProfileMinor",
+                 "g_configuration_authority.phase != DeviceNamePhase::connected",
+                 "g_configuration_authority.context != context",
+                 "!g_phone_status.ready(g_configuration_authority, status.transport_generation)"):
+        require(gate in protected, f"pairing result read lacks owned-Ready gate: {gate}")
+    require(protected.index("!g_phone_status.ready(") <
+            protected.index("g_pairing_result.read(g_configuration_authority)"),
+            "result owner may be read only after current protected Ready")
+
+    base = runtime[runtime.index("class ConfigurationBaseAuthority final"):
+                   runtime.index("ConfigurationBaseAuthority g_configuration_base;")]
+    status = base[base.index("if (request.kind == 1)"):base.index("} else if (request.kind == 2)")]
+    require("decode_companion_pairing_snapshot_request(payload).decoded()" in status and
+            "!decode_companion_snapshot_request(payload).decoded()" in status and
+            "if (pairing_read)" in status and
+            status.index("companion_pairing_result_snapshot(request_context, pairing)") <
+            status.index("encode_companion_pairing_status_snapshot(") and
+            "} else {" in status and "encode_companion_status_snapshot(snapshot.snapshot," in status,
+            "opt-in status must read authorized results while ordinary status keeps V0")
+    require("(selected_minor_!=kPublicProfileMinor || !ready_)" in dispatcher and
+            "if(request.kind==1 && !pairing_snapshot) ready_=true;" in dispatcher,
+            "version1 result polling requires Ready and cannot establish bootstrap Ready")
+    phone_status = lane[lane.index("class ConfigurationPhoneStatus"):]
+    require("decode_companion_status_snapshot(" in phone_status and
+            "decode_companion_pairing_status_snapshot(" not in phone_status and
+            phone_status.index("if (!snapshot.decoded()) return;") <
+            phone_status.index("ready_ = true;"),
+            "acknowledged V0 snapshot remains the phone Ready bootstrap")
+
+    completion_start = gatt.index("companion_pairing_request_complete(")
+    completion = gatt[completion_start:gatt.index("\n}\n", completion_start) + 2]
+    require("GattLock lock;" in completion and
+            "g_selected_enrollment_requests.cancel_exact(request)" in completion and
+            "g_pairing_result" not in completion,
+            "ending one runtime must release only its exact request and retain the independent result")
+    ending = pairing[pairing.index("void BoardPairingRuntime::end("):
+                     pairing.index("void BoardPairingRuntime::service(")]
+    require(ending.index("session_.reset();") <
+            ending.index("companion_pairing_request_complete(phone_)"),
+            "the original phone request must stay admitted through session cleanup and final resend linger")
+
+    projection = pairing[pairing.index("void BoardPairingRuntime::publish_result("):
+                         pairing.index("void BoardPairingRuntime::end(")]
+    helper = (TARGET / "main/board_pairing_result.hpp").read_text()
+    require("project_board_pairing_result(" in projection and
+            "record, successful_start_, session_ && session_->pairing_archive_recovery(), fallback, reason" in projection and
+            "projection.state, projection.reason, projection.peer_short_id" in projection,
+            "production must use the tested projection with successful-start and archive-recovery guards")
+    require("if (!successful_start || archive_recovery) return result;" in helper and
+            helper.index("if (!successful_start || archive_recovery)") <
+            helper.index("Completion::peer_confirmed") and
+            "record.phase == Completion::peer_confirmed || record.phase == Completion::committed" in helper and
+            "record.phase == Completion::peer_confirmed ? State::paired_both : State::paired_local" in helper and
+            "record.peer[30]" in helper and "record.peer[31]" in helper,
+            "failed starts and archived replies cannot project old success; current success needs durable proof")
+    startup = pairing[pairing.index("bool BoardPairingRuntime::start("):
+                      pairing.index("void BoardPairingRuntime::publish_result(")]
+    require(startup.index("successful_start_ = false;") <
+            startup.index("companion_pairing_result_claim(phone_)") and
+            startup.index("session_->start_pairing(") <
+            startup.index("successful_start_ = coordinator_->begin(now_ms);") and
+            "return successful_start_;" in startup and
+            ending.index("session_.reset();") < ending.index("successful_start_ = false;"),
+            "successful-start evidence must be reset per request, set after bound begin, and cleared after cleanup")
+    service = pairing[pairing.index("void BoardPairingRuntime::service("):
+                      pairing.index("void BoardPairingRuntime::sent(")]
+    require("!session_->pairing_archive_recovery()" in service and
+            "PairingCompletionPhase::committed" in service and
+            "PairingCompletionPhase::peer_confirmed" in service and
+            "publish_result(" in service,
+            "service must publish local and bilateral durable stages without attributing archive replies")
+    require("Store::completion), &*storage_)" in pairing and
+            "route_pairing_archive_challenge(*session_, frame," in pairing and
+            "limits.recovery_completion = true;" in pairing,
+            "production next-contact recovery must use the durable store and exact archived-transaction route")
+
+
+
+def test_pairing_queued_launch_behavior():
+    app = SOURCE.read_text(encoding="utf-8")
+    grant = app[app.index("bool lora_transmit_permitted("):app.index("\n}\n", app.index("bool lora_transmit_permitted(")) + 2]
+    require(grant.index("link_test::transmit_allowed(") < grant.index("queued_launch_allowed(") and
+            "if (!g_pairing_frame_queued) return true;" in grant and
+            "esp_timer_get_time() / 1000" in grant,
+            "every queued pairing launch must retain region permission and sample a fresh clock")
+    require(app.count("bool g_pairing_frame_queued = false;") == 1 and
+            "if (accepted) g_pairing_frame_queued = true;" in app and
+            "if (pairing_dropped) g_board_pairing.unsent();" in app,
+            "the app task must tag exact queue ownership and refund only a prelaunch drop")
+    pairing = (TARGET / "main/board_pairing_runtime.cpp").read_text(encoding="utf-8")
+    start = pairing.index("bool BoardPairingRuntime::queued_launch_allowed(")
+    guard = pairing[start:pairing.index("\n}\n", start) + 2]
+    require("busy_ || !active() || !coordinator_" in guard and
+            "current().phase != companion::DeviceNamePhase::connected" in guard and
+            guard.index("current().phase") < guard.index("esp_timer_get_time() / 1000") and
+            "fresh_ms < now_ms || fresh_ms < last_ms_" in guard and
+            "fresh_ms >= linger_until_ms_" in guard and
+            "coordinator_->queued_launch_allowed(fresh_ms)" in guard,
+            "runtime must validate the original request and use a post-authority clock sample")
+    # Exercise the actual app callback and real transport/coordinator; SDK/chip
+    # and session I/O remain simulated. Keep each run's complete command log.
+    import importlib.util
+    import time
+    spec = importlib.util.spec_from_file_location(
+        "heltec_v4_pairing_launch_tests", ROOT / "tests/host/heltec_v4_pairing_launch_tests.py")
+    require(spec is not None and spec.loader is not None, "launch regression loader missing")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    result = module.run(ROOT / "build" / "i073-bench-admission-launch" / str(time.time_ns()))
+    require(result["result"] == "PASS", f"actual queued-launch path failed: {result['output_root']}")
+
+
+def test_f5_messaging_runtime_surface() -> None:
+    app = SOURCE.read_text(encoding="utf-8")
+    owner = (TARGET / "main/board_messaging_runtime.cpp").read_text(encoding="utf-8")
+    storage = (TARGET / "main/pairing_nvs_storage.hpp").read_text(encoding="utf-8")
+    gate = app[app.index("bool lora_transmit_permitted("):app.index("#endif", app.index("bool lora_transmit_permitted("))]
+    require("g_board_messaging.queued_launch_allowed(" in gate and "esp_timer_get_time()" in gate and
+            "g_board_pairing.queued_launch_allowed(" in gate,
+            "F5 and pairing must retain exact-copy fresh-time launch checks")
+    loop = app[app.index("if (g_lora.running()) {"):]
+    require(loop.index("g_lora.receive(") < loop.index("g_board_messaging.service(") < loop.index("g_lora.launch_queued("),
+            "RX must be processed before service and queued launch")
+    require("!g_board_messaging.owns_radio()" in loop,
+            "a retained F5 owner must exclude unauthenticated beacon fallback")
+    require("rekey_->frame_eligible(queued_frame_)" in owner and "packets_->frame_eligible(" in owner and
+            "fresh<=queued_latest_ms_" in owner and "phase_completed_ms_+kRetryMs" in owner,
+            "each queued class needs phase/deadline authority after CAD and actual phase quiet spacing")
+    require("self.trust_view_->read(scope)" in owner and "Rekey::Trust{&read_trust,this,&seed_allowed,&trust_guard}" in owner,
+            "raw local R2 commit cannot bypass D-112 peer-confirmed trust")
+    require("bind_packet_generation" not in storage and "packet_storage(" in storage and "generation_" in storage,
+            "successor packet borrowers require immutable allocation views")
+    retire = owner[owner.index("void BoardMessagingRuntime::fail()"):]
+    require(retire.index("radio_.discard_queued()") < retire.index("packets_.reset()") < retire.index("rekey_->close()"),
+            "retirement cancels queued work before closing packet and key owners")
+
+
 def main() -> int:
     tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3564,7 +3737,9 @@ def main() -> int:
              test_automatic_termination_acceptance_surface,
              test_factory_reset_surfaces, test_secure_random_surface,
              test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
-             test_selected_enrollment_request_route)
+             test_selected_enrollment_request_route, test_pairing_result_protected_route,
+             test_pairing_queued_launch_behavior)
+    tests = (*tests, test_f5_messaging_runtime_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

@@ -1,6 +1,97 @@
 # OpenTrail Progress Log
 
+## 2026-11-19
+
+### OT-0170a Recover Bluetooth after adapter enable (I-083)
+
+An attached connected-device service could retain its Bluetooth-off state after
+the Activity reopened. The Activity now asks the admitted owner to recheck
+preflight on both resume and attachment. The active runtime owns an Android
+adapter-on receiver lease and treats broadcasts as hints for a fresh read.
+
+Automatic recovery checks for a saved board or leaves the runtime idle.
+Manual retry keeps the explicit discovery route, reads current permissions and
+explains failures that previously returned silently. Pending authorization and
+board reset stay protected, and the Bluetooth-off handlers still release scans
+and sessions through the existing callbacks. The baseline and final commands
+are retained in the local task report. The incident build and phone outcome
+remain to be verified.
+
 ## 2026-11-18
+
+### OT-0005i Recover a fresh MeshTrail session after one board restarts
+
+TASK-4 and its review addendum integrate the F5 candidate on the main that
+contains pairing PR #283. D-112 keeps its generation-zero completion and
+per-generation archives at tuple name 11. F5 uses names 12–17 and a separate
+key spelling within the existing partition. The combined allocation budget
+is 7,564 entries at capacity 32. D-124 makes incompatible inventories refuse
+while preserving their bytes.
+
+F5 saves public epoch and allocation history and verifies the saved evidence
+on restart. A fresh attempt uses new traffic keys. It records the verified
+D-074 catch-up before releasing a reply, checks the exact queued control and
+its deadline before and after CAD, and rejects unsupported status content
+before replay or ACK storage changes. First pairing remains governed by the
+D-112 completion owner. This remains a link-test development candidate and
+requires an owner-present board session to measure timing and verify delivery.
+The maintainer-local TASK-4 report records the source, regressions, target
+build results and remaining limits.
+
+### OT-0005i Integrate pairing review fixes with current main
+
+TASK-5 authorizes the incoming merge of current main 67607f9 after review-fix
+commit 6bcec78a. Product source merges cleanly. Both conflicting documentation
+histories are retained: the F11 collector/codec and D-114 Android entries from
+main, plus the D-112/D-111/I-073 and review-fix entries on this branch. The current
+handoff covers the integrated candidate and preserves F11's unwired boundary.
+
+The first integrated actual-session gate found that positive completion and
+negative tombstone cleanup shared one initializer. The new positive guard
+correctly rejects aborted public state, but also blocked a legitimate fresh
+action after authenticated abort. Separate private admission intents preserve
+both-bank classification; positive completion still refuses Abort, while exact
+negative cleanup is idempotent at Abort and requires one advance otherwise.
+The one negative caller is updated. Eight additional primitive cases cover
+intent/counter and mixed-bank limits; all 4,455 primitive groups pass. The first
+failed integrated run and interrupted build lanes remain as evidence.
+
+Main's starter-code retention production and observer wiring are preserved.
+New regression coverage checks local/bilateral completion, refusal, failure,
+cancellation and incomplete states; each clears a retained starter code. The
+merged security, coordinator, actual-session, composed-launch, bench, Android,
+documentation and two-fresh-build gates are bound to the final source and image
+in D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-5.md.
+
+The merge remains local; no push, PR, device action, release or additional V1
+acceptance is added. Future publication is Part of #232 and separately approved.
+
+### OT-0005i Contain recovery banks and fence new pairing outcomes
+
+Review findings M1-M3 are corrected locally. Public recovery classifies both
+banks against the signed binding and exact interrupted write order before any
+membership change. Nonterminal counters require enough remaining advances;
+aborted public state cannot enter positive completion. The completion journal
+accepts only canonical unvoted first-write/retirement prefixes and bound history;
+installed marker bytes require the complete canonical payload. A new phone
+action installs its result-origin fence before handoff for every outcome, so
+an old success cannot replace a new refusal.
+
+Tests first reproduced both mixed public-bank admissions and actual membership
+mutation, 12 hostile completion layouts, nine additional marker-order cases,
+counter/aborted-state admission failures, and both old-local/old-bilateral phone
+success overwrites. Corrected public primitives pass 4,447 groups with 86 genuine
+interruption cases; completion primitives pass 16 groups and 1,288 canonical
+prefix cases; both Android refusal regressions pass with actual old OTN1 delivery.
+Current actual-session negative probes leave journal/membership unchanged.
+Earlier 47-group adapter evidence is intermediate; the final merged suite has
+48 groups and will run with both final headers. Both changed composition pins
+are updated and all 91 ROOT pins match. Final integrated gates belong in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-5.md.
+
+This fix increment follows 1ef64090 on the local pairing branch. TASK-5 explicitly
+authorizes fetching and merging current main next; no push, PR, signing, device
+work or physical/V1 acceptance is added. The future PR remains Part of #232.
 
 ### OT-0177a Add the Android operation log and text export
 
@@ -52,7 +143,139 @@ results and the test-fixture corrections.
 The D-111 pairing-result topic shares the pairing panel and status presentation;
 its acceptance remains separate. Phone verification remains pending.
 
+### OT-0005i Recheck queued pairing copies at transmit (I-073)
+
+A pairing frame accepted at its floor could age in the queue or CAD and launch
+below that floor. The coordinator now retains the exact accepted copy's original
+budget and pre-increment first/resend floor. The existing pre/post-CAD region
+grant also checks pairing eligibility with a fresh monotonic sample. The runtime
+revalidates the original phone authority and samples again after its lookup.
+A provably unlaunched drop returns one send reservation; uncertain TX-start
+failure never does. D-106, D-107 and the 15/10 s creation reserves are unchanged.
+
+Tests-first evidence records all 32 named coordinator delay cases failing, then
+passing. The actual baseline app callback launches below the floor in all 64
+negative composed cases; its 64 equality cases pass. The corrected composed
+bench path passes 132 cases, and genuine-session validation passes 45 groups
+with every accepted copy checked before delivery. Bench admission passes 22.
+The requested full offline matrix, two fresh warning-free matching builds and
+documentation gate details are recorded in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-4.md.
+
+The only other product queue producer is the diagnostic beacon; it has no
+per-copy expiry/floor. D-111 status is BLE-only and Packet-v1/D-113 traffic is not
+wired to this queue. The bounded offline matrix route from main b0d0f49 is
+backported without changing this branch's suite registrations; its 18 dependency
+admission tests pass. All 91 composition pins are unchanged, so the verified
+68-scenario companion result is reused. Tuple namespace 11 remains current
+completion at generation 0 and negative history at 1..32; its charged budget is
+2,364 NVS entries. I-074 assigns the D-113 renumbering to Messaging.
+
+This is the third local increment after D-112 2cb16e7 and D-111 96c333fb on the
+4b7e5d5 task base. One independent review of all three commits precedes any
+separately owner-approved publication or board session. No devices, downloads,
+GitHub writes, signing, public website status or V1 score change.
+
+### OT-0005i Show protected MeshTrail pairing results (D-111)
+
+The protected opt-in status now reports the exact admitted pairing attempt.
+Local durable save shows Paired with board XXXX and Saved on this board; Both
+boards paired requires D-112 peer completion proof. Failed startup cannot
+project an old cached success. The result owner retains one terminal outcome
+for ten minutes during this boot, bounded by owner/reset/new-admission rules,
+and labels same-owner reconnect history. V0 Ready and ordinary reads remain
+compatible. No reply suggests checking the code without claiming a mismatch.
+
+The Android flow polls every five seconds through local save and offers an
+explicit Resume for incomplete work with the original Start/Join roles and a
+new matching code. It does not replay enrollment automatically. All 658 debug
+app tests and 119 protocol tests pass; two final Resume-copy interaction tests
+also pass. Firmware result/owner and dispatcher groups pass 22 and 14; the real
+session suite passes 44, including the genuine cached-success/failed-identity
+regression. Bench admission passes 21 and the actual offline companion recipe
+passes 68 scenarios. Two fresh link-test builds have zero warnings and identical
+841,840-byte images. Required matrix/docs results, exact source binding, command
+ledgers and artifact SHA-256 values are in
+D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-3.md.
+
+This local increment follows D-112 commit 2cb16e7 on the same 4b7e5d5-based task
+branch. Independent source review of the final startup guard is clear. External
+review/publication and owner-present hardware acceptance remain separate. No
+push, PR, device changes, signing or V1 score change. I-073 and D-113 storage
+namespace reconciliation remain board-session/integration prerequisites.
+
+### OT-0005i Recover interrupted MeshTrail board pairing (D-112)
+
+The product pairing path now records the exact confirmed transaction and durable
+Prepared votes before public commit. Signed Committed receipts distinguish a
+local save from verified peer completion. A fresh, owner-admitted request recovers
+an interrupted decision in its original generation with fresh nonce-bound peer
+proof. It restores public records without restoring old traffic keys. Verified
+terminal negative history survives later attempts. Cleanup releases only the
+exact ended phone admission after the session and final-response linger finish.
+
+Real-session regressions pass 43 groups, including save failure, request
+withdrawal, all Prepared or Committed copies lost, late confirmation, restart,
+initial descriptor and cleanup interruptions, and torn membership installation.
+The exact membership suite passes 278 groups; completion journal and archive
+fault suites each pass 10. Independent source review found no unresolved findings
+after the recovery fixes. Existing deadlines, creation reserves, send floors,
+hello retries and other send limits remain in force. The final combined security,
+composition, target-build and documentation gates are recorded in the local task
+report at D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-3.md.
+Two fresh combined link-test builds each pass with zero warnings and produce
+the same 841,840-byte image. Both D-112-only target translation units also
+compile against the base companion semantics with zero warnings. The offline
+CMake target dependency correction makes a fresh RadioLib/SPI build work without
+component acquisition.
+
+This is a local host/build candidate on feat/d112-d111-pairing-completion from
+4b7e5d5. No devices, signing, publication, release or V1 score change. D-111 is the
+next local increment. Before a combined D-113 trial, reconcile its tuple names
+11..15 with completion namespace 11; older-image storage compatibility and the
+inherited I-073 launch-floor defect remain board-session prerequisites.
+
 ## 2026-11-17
+
+### OT-0005i Wire the retained status candidate into Heltec
+
+The link-test target now probes the retained pair before first-pairing acquires
+storage, uses the new rekey and protected-status owners on the actual Heltec
+radio interface, and attributes transmitted only to the exact owned DATA TxDone.
+Receive processing precedes service and queued launch. Failure/expiry retires
+keys and queued traffic; no beacon fallback occurs. The existing reset-covered
+ot_state namespace holds bounded new F5 journal and per-generation packet views.
+Its 64-slot cache covers the expanded verification working set. The previous
+firmware rejects new tuple names, so rollback compatibility needs review with
+the D-112 pairing change. No forbidden pairing file or phone code changed.
+Bench admission passes 21 groups, storage-key admission passes 3, and the final
+ESP-IDF v6.0.2 link-test image is 835,392 bytes with no warnings; SHA-256
+84f992067af72e828588a4a1d59e0960b007c72273e98fe66bd70cf5607f8ea4.
+The image was built from the source overlay at base 4b7e5d5 (dirty build label).
+The full offline security matrix passed all 83 suite results and 613 commands
+without timeouts. All 733 expanded dependency files matched both admission
+inventories; official ZIP admission was not repeated. Documentation comparison
+and 48 repository-doc tests passed. Both peers must start together; one-peer
+restart and interrupted rekey recovery remain open. No hardware session or V1 score change. See the [lifecycle notes](testing/OT-0005i-F5-STATUS-STEP1.md)
+and maintainer-local codex-messaging-plan/out/REPORT-2.md for review and board steps.
+
+
+### OT-0005i Retained-pair fresh session and protected status candidate
+
+D-113 adds a local link-test-only F5 owner that verifies actual committed R2
+records, binds the retained ID to both complete identities in an outside-group
+domain, performs fresh signed rekey and exchanges one protected OTQ0 status each
+way. DATA and ACK use isolated durable counter/replay stores. Queued, hardware
+DATA TxDone and authenticated ACK remain separate states. The focused 17-group
+host suite and existing 68-scenario companion suite pass. Bench source admission
+passes 21 groups; the offline link-test build has no warnings. Full matrix and
+final documentation results are recorded in the local task report at closeout.
+The original pairing coordinator/runtime/adapter and Android were not edited.
+This is a development carrier needing review, with one exchange per boot and
+both boards started together. Single-peer restart/catch-up, uncertain-state
+reconciliation, phone messaging and hardware acceptance remain open. No V1 score
+or public website status changes. See [candidate lifecycle and validation](testing/OT-0005i-F5-STATUS-STEP1.md).
+
 
 ### OT-0305 Persist verified group catch-up before reply
 

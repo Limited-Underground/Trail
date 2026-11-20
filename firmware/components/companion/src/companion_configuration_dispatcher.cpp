@@ -143,6 +143,9 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
     if(context==sequence_context_ && frame.exchange_id<last_exchange_) return status(ConfigurationDispatchCode::stale);
     if(pending_) return status(ConfigurationDispatchCode::busy);
     if(!ready_ && frame.kind!=1) return status(ConfigurationDispatchCode::unauthorized);
+    if(frame.kind==1 &&
+        decode_companion_pairing_snapshot_request({frame.payload.data(),frame.payload_bytes}).decoded() &&
+        (selected_minor_!=kPublicProfileMinor || !ready_)) return status(ConfigurationDispatchCode::unauthorized);
     if(holding_time_) {
         const auto t=decode_configuration_time_payload(frame.payload.data(),frame.payload_bytes);
         if(frame.kind!=5 || !t.decoded() || t.value.kind!=3 || t.value.challenge_id!=challenge_) return status(ConfigurationDispatchCode::busy);
@@ -177,7 +180,10 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
     response.minor_version=selected_minor_;
     if(request.kind==1 || request.kind==2) {
         const radio::ByteView input{request.payload.data(),request.payload_bytes};
-        if((request.kind==1 && !decode_companion_snapshot_request(input).decoded()) ||
+        const bool pairing_snapshot = request.kind==1 &&
+            decode_companion_pairing_snapshot_request(input).decoded();
+        if((request.kind==1 && !decode_companion_snapshot_request(input).decoded() &&
+            !(pairing_snapshot && selected_minor_==kPublicProfileMinor && ready_)) ||
             (request.kind==2 && !decode_companion_action_request(input).decoded())) return finish(nullptr);
         if(selected_minor_==kConfirmationEvaluationMinor && request.kind==2 &&
             decode_companion_action_request(input).value.kind==CompanionActionKind::factory_reset) return finish(nullptr);
@@ -185,10 +191,12 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
             response.exchange_id!=request.exchange_id || response.kind!=(request.kind==1 ? 0x81 : 0x82)) return finish(nullptr);
         if(response.payload_bytes>response.payload.size()) return finish(nullptr);
         const radio::ByteView output{response.payload.data(),response.payload_bytes};
-        if((request.kind==1 && !decode_companion_status_snapshot(output).decoded()) ||
+        if((request.kind==1 && (pairing_snapshot
+                ? !decode_companion_pairing_status_snapshot(output).decoded()
+                : !decode_companion_status_snapshot(output).decoded())) ||
             (request.kind==2 && !decode_companion_action_result(output).decoded())) return finish(nullptr);
         if(!refresh() || authority_.context!=request_context_) return finish(nullptr);
-        if(request.kind==1) ready_=true;
+        if(request.kind==1 && !pairing_snapshot) ready_=true;
         return finish(&response);
     }
     if(!ready_) return finish(nullptr);

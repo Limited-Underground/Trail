@@ -32,6 +32,10 @@ import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
 import io.github.nbjelanovic.otprotocol.CompanionRadioState
 import io.github.nbjelanovic.otprotocol.CompanionSemanticCodec
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
+import io.github.nbjelanovic.otprotocol.CompanionPairingResult
+import io.github.nbjelanovic.otprotocol.CompanionPairingState
+import io.github.nbjelanovic.otprotocol.CompanionPairingReason
+import io.github.nbjelanovic.otprotocol.CompanionPairingStatusSnapshot
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
 import io.github.nbjelanovic.otprotocol.CompanionRegionPayload
 import kotlin.test.Test
@@ -1720,6 +1724,222 @@ class BleCompanionRuntimeTest {
         respond(0x82, payload, stale = stale)
     }
 
+    private fun ConfigurationFixture.pairingStatus(
+        result: CompanionPairingResult, exchange: UInt = last().exchangeId,
+    ) {
+        respond(0x81, checkNotNull(CompanionSemanticCodec.encodePairingStatusSnapshot(
+            CompanionPairingStatusSnapshot(readySession().snapshot, result),
+        ).value), exchange)
+    }
+
+    @Test fun pairingStatusPreservesOriginAfterAdmissionAndReportsBothWithoutTelemetryChange() {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val origin = f.last().exchangeId.toLong()
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        assertContentEquals(CompanionSemanticCodec.encodePairingSnapshotRequest(), f.last().payload)
+        val before = f.readySession().snapshot
+        f.pairingStatus(CompanionPairingResult(
+            CompanionPairingState.RUNNING, originExchangeId = origin,
+            originSessionNonce = f.nonce.toLong(), revision = 1,
+        ))
+        assertIs<BoardPairingState.Ready>(f.pairingState())
+        f.scheduler.advanceBy(PAIRING_STATUS_REFRESH_INTERVAL_MILLIS)
+        f.pairingStatus(CompanionPairingResult(
+            CompanionPairingState.PAIRED_LOCAL, peerShortId = 10, originExchangeId = origin,
+            originSessionNonce = f.nonce.toLong(), revision = 2,
+        ))
+        val local = assertIs<BoardPairingState.Result>(f.pairingState())
+        assertFalse(local.historical)
+        assertEquals("Paired with board 000A", boardPairingResultText(local.result).first)
+        assertEquals(before, f.readySession().snapshot)
+        val localWrites = f.gatt.commands.size
+        f.scheduler.advanceBy(PAIRING_STATUS_REFRESH_INTERVAL_MILLIS - 1)
+        assertEquals(localWrites, f.gatt.commands.size)
+        f.scheduler.advanceBy(1)
+        assertEquals(localWrites + 1, f.gatt.commands.size)
+        assertContentEquals(CompanionSemanticCodec.encodePairingSnapshotRequest(), f.last().payload)
+        f.pairingStatus(local.result.copy(state = CompanionPairingState.PAIRED_BOTH, revision = 3))
+        assertEquals("Both boards paired", boardPairingResultText(
+            assertIs<BoardPairingState.Result>(f.pairingState()).result).first)
+        val bothWrites = f.gatt.commands.size
+        f.scheduler.advanceBy(PAIRING_STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(bothWrites, f.gatt.commands.size)
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS - PAIRING_STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(bothWrites + 1, f.gatt.commands.size)
+    }
+
+    @Test fun oldLocalPairingResultCannotReplaceNewRefusal() {
+        assertOldPairingResultCannotReplaceNewRefusal(CompanionPairingState.PAIRED_LOCAL)
+    }
+
+    @Test fun oldBothPairingResultCannotReplaceNewRefusal() {
+        assertOldPairingResultCannotReplaceNewRefusal(CompanionPairingState.PAIRED_BOTH)
+    }
+
+    private fun assertOldPairingResultCannotReplaceNewRefusal(previousState: CompanionPairingState) {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val previousOrigin = f.last().exchangeId.toLong()
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val previous = CompanionPairingResult(
+            previousState, peerShortId = 0x34ab, originExchangeId = previousOrigin,
+            originSessionNonce = f.nonce.toLong(), revision = 5,
+        )
+        f.pairingStatus(previous)
+        assertEquals(previous, assertIs<BoardPairingState.Result>(f.pairingState()).result)
+        assertFalse(assertIs<BoardPairingState.Result>(f.pairingState()).historical)
+
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val refusedOrigin = f.last().exchangeId
+        assertNotEquals(previousOrigin, refusedOrigin.toLong())
+        val refusal = CompanionActionResult(
+            CompanionActionKind.START_ENROLLMENT,
+            disposition = CompanionActionDisposition.REJECTED,
+            rejectReason = CompanionActionRejectReason.BUSY,
+        )
+        f.respond(0x82, checkNotNull(CompanionSemanticCodec.encodeActionResult(refusal).value))
+        val rejected = BoardPairingState.Rejected(CompanionActionRejectReason.BUSY)
+        assertEquals(rejected, f.pairingState())
+        val pollDelay = if (previousState == CompanionPairingState.PAIRED_LOCAL)
+            PAIRING_STATUS_REFRESH_INTERVAL_MILLIS else STATUS_REFRESH_INTERVAL_MILLIS
+        val writesBeforePoll = f.gatt.commands.size
+        f.scheduler.advanceBy(pollDelay)
+        assertEquals(writesBeforePoll + 1, f.gatt.commands.size)
+        assertEquals(1, f.last().kind)
+        assertTrue(f.last().exchangeId > refusedOrigin)
+        assertContentEquals(CompanionSemanticCodec.encodePairingSnapshotRequest(), f.last().payload)
+        assertEquals(rejected, f.pairingState())
+        // This fresh read's envelope is current; only the pairing result origin belongs to E1.
+        f.pairingStatus(previous)
+        assertEquals(rejected, f.pairingState(), "Old success must not become the result of a refused new request")
+    }
+
+    @Test fun pairingStatusRejectsWrongAttemptAndStaleOrConflictingRevisions() {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val origin = f.last().exchangeId.toLong()
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val valid = CompanionPairingResult(
+            CompanionPairingState.PAIRED_BOTH, peerShortId = 0x34ab,
+            originExchangeId = origin, originSessionNonce = f.nonce.toLong(), revision = 5,
+        )
+        f.pairingStatus(valid.copy(originExchangeId = origin + 1))
+        f.pairingStatus(valid.copy(originSessionNonce = f.nonce.toLong() + 1))
+        assertIs<BoardPairingState.Ready>(f.pairingState())
+        f.pairingStatus(valid)
+        assertEquals(valid, assertIs<BoardPairingState.Result>(f.pairingState()).result)
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS)
+        f.pairingStatus(valid.copy(state = CompanionPairingState.PAIRED_LOCAL))
+        f.pairingStatus(valid.copy(revision = 4))
+        assertEquals(valid, assertIs<BoardPairingState.Result>(f.pairingState()).result)
+        f.pairingStatus(CompanionPairingResult(CompanionPairingState.NONE, revision = 6))
+        assertEquals(BoardPairingState.Available, f.pairingState())
+        // A late extended indication cannot claim a newer attempt or interrupt the link.
+        f.pairingStatus(valid)
+        assertEquals(BoardPairingState.Available, f.pairingState())
+    }
+
+    @Test fun pairingStatusReadsAuthorizedHistoryAndFallsBackOnUnansweredOptionalQuery() {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        f.pairingStatus(CompanionPairingResult(
+            CompanionPairingState.CANCELLED, CompanionPairingReason.REQUEST_ENDED,
+            originExchangeId = 900, originSessionNonce = 888, revision = 2,
+        ))
+        assertTrue(assertIs<BoardPairingState.Result>(f.pairingState()).historical)
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS)
+        f.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS)
+        assertEquals(BoardPairingState.Unknown, f.pairingState())
+        f.scheduler.advanceBy(STATUS_REFRESH_INTERVAL_MILLIS)
+        assertContentEquals(CompanionSemanticCodec.encodeSnapshotRequest(), f.last().payload)
+        f.statusReply(f.readySession().snapshot)
+        assertIs<BleRuntimeState.Ready>(f.runtime.state)
+    }
+
+    @Test fun incompletePairingAllowsOnlyANewExplicitStartWithoutReplayingOldAdmission() {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val incomplete = CompanionPairingResult(
+            CompanionPairingState.INCOMPLETE, originExchangeId = 900,
+            originSessionNonce = 888, revision = 2,
+        )
+        f.pairingStatus(incomplete)
+        assertEquals(incomplete, assertIs<BoardPairingState.Result>(f.pairingState()).result)
+        val before = f.gatt.commands.size
+        f.scheduler.advanceBy(PAIRING_STATUS_REFRESH_INTERVAL_MILLIS)
+        assertEquals(before, f.gatt.commands.size)
+        assertFalse(checkNotNull(f.pairingState()).isBusy(f.now))
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        assertEquals(before + 1, f.gatt.commands.size)
+        assertEquals(pairingRequest(), CompanionSemanticCodec.decodeActionRequest(f.last().payload).value)
+        assertEquals(BoardPairingState.Waiting, f.pairingState())
+        assertFalse(f.runtime.submitAction(pairingRequest()))
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        assertIs<BoardPairingState.Ready>(f.pairingState())
+    }
+
+    @Test fun pairingStatusStaysOffWithoutDescriptorAndNeverUsesCountdownAsResult() {
+        val f = ConfigurationFixture(profile = 5)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        f.now += BOARD_PAIRING_WINDOW_MILLIS
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        assertContentEquals(CompanionSemanticCodec.encodeSnapshotRequest(), f.last().payload)
+        f.statusReply(f.readySession().snapshot)
+        assertIs<BoardPairingState.Ready>(f.pairingState())
+        assertFalse(checkNotNull(f.pairingState()).isBusy(f.now))
+    }
+
+    @Test fun pairingReconnectReadsFreshHistoryWithoutReplayingStartOrAcceptingOldCallbacks() {
+        val f = ConfigurationFixture(profile = 5, pairingResults = true)
+        f.name(); f.clock()
+        assertTrue(f.runtime.submitAction(pairingRequest()))
+        val origin = f.last().exchangeId.toLong()
+        f.pairingResult(CompanionActionDisposition.ADMITTED)
+        val old = f.gatt
+        old.emit(BleGattEvent.Disconnected)
+        f.scheduler.runNext()
+        f.facade.connections.last().pairingResultSupported = true
+        f.negotiate(18u); f.name(); f.clock()
+        assertEquals(BoardPairingState.Available, f.pairingState())
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val result = CompanionPairingResult(
+            CompanionPairingState.PAIRED_BOTH, peerShortId = 0x12ef,
+            originExchangeId = origin, originSessionNonce = 17, revision = 2,
+        )
+        val stalePayload = checkNotNull(CompanionSemanticCodec.encodePairingStatusSnapshot(
+            CompanionPairingStatusSnapshot(f.readySession().snapshot, result),
+        ).value)
+        old.emitStale(BleGattEvent.StreamIndication(checkNotNull(f.codec.encodeFrame(
+            CompanionConfigurationFrame(0x81, 17u, f.last().exchangeId, stalePayload, 5),
+        ))))
+        assertEquals(BoardPairingState.Available, f.pairingState())
+        f.pairingStatus(result)
+        val actual = assertIs<BoardPairingState.Result>(f.pairingState())
+        assertTrue(actual.historical)
+        assertEquals(result, actual.result)
+        val starts = f.facade.connections.last().commands.mapNotNull { f.codec.decodeFrame(it, 5) }
+            .count { it.kind == 2 }
+        assertEquals(0, starts)
+    }
+
     @Test fun boardPairingWritesExactSelectedFrameAndWaitsForAdmittedResult() {
         val f = ConfigurationFixture(profile = 5)
         f.name(); f.clock()
@@ -2543,7 +2763,8 @@ class BleCompanionRuntimeTest {
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
-        wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it }) {
+        wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it },
+        pairingResults: Boolean = false) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
@@ -2583,6 +2804,7 @@ class BleCompanionRuntimeTest {
                 facade.returningOwnerScans.single().emit(BleScanEvent.Complete)
             }
             gatt=facade.connections.single()
+            gatt.pairingResultSupported = pairingResults
             if (wireAuthority) {
                 // Explicit fixture protected exchange, completed before protocol6 negotiation queries it.
                 // Android callback generation comes from this actual host graph; wire device/session generation3 is a separate domain.
@@ -2965,6 +3187,75 @@ class BleCompanionRuntimeTest {
         fixture.runtime.close()
     }
 
+    @Test fun bluetoothOffDuringScanClosesLeaseAndRejectsLateCandidate() {
+        val f = Fixture()
+        f.runtime.requestScan()
+        val scan = f.facade.scans.single()
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        scan.emit(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))
+        assertTrue(scan.closed)
+        assertEquals(BleRuntimeFailure.SCAN_START_FAILED, assertIs<BleRuntimeState.Failed>(f.runtime.state).reason)
+        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertIs<BleRuntimeState.Failed>(f.runtime.state)
+        assertTrue(f.facade.connections.isEmpty())
+        f.runtime.close()
+    }
+
+    @Test fun bluetoothOffWhileConnectedReleasesSessionAndCannotReconnectOrAcceptOldEvents() {
+        val scheduler = TestRuntimeScheduler()
+        val f = Fixture(scheduler = scheduler)
+        val gatt = f.readyGatt(71)
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        gatt.emit(BleGattEvent.Disconnected)
+        assertTrue(gatt.closed)
+        assertIs<BleRuntimeState.Reconnecting>(f.runtime.state)
+        scheduler.advanceBy(1_000)
+        assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED), f.runtime.state)
+        assertEquals(1, f.facade.connections.size)
+        gatt.emitStale(BleGattEvent.ProfileReady)
+        assertIs<BleRuntimeState.Blocked>(f.runtime.state)
+        assertFalse(scheduler.hasOpenTimers())
+        f.runtime.close()
+    }
+
+    @Test fun automaticRecoveryOfBlockedSetupWaitsForFreshPermissionAndExplicitScan() {
+        val f = Fixture()
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        f.runtime.requestScan()
+
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.SCAN_PERMISSION_MISSING)
+        f.runtime.refreshBluetoothPreflight()
+        assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.SCAN_PERMISSION_MISSING), f.runtime.state)
+        assertTrue(f.facade.scans.isEmpty())
+
+        f.facade.preflight = BlePreflight()
+        f.runtime.refreshBluetoothPreflight()
+        assertIs<BleRuntimeState.Idle>(f.runtime.state)
+        assertTrue(f.facade.scans.isEmpty())
+        assertTrue(f.facade.returningOwnerScans.isEmpty())
+        f.runtime.requestScan()
+        assertEquals(1, f.facade.scans.size)
+        f.runtime.close()
+    }
+
+    @Test fun pendingFactoryResetReceiptRefusesNormalAutomaticAndManualDiscovery() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        runtime.onLifecycleStart()
+        facade.pendingFactoryResetReceipt = RESET_RECEIPT
+        facade.preflight = BlePreflight()
+
+        runtime.refreshBluetoothPreflight()
+        assertEquals(BluetoothRecoveryRefusal.RESET_PENDING, runtime.retryDiscovery())
+        assertIs<BleRuntimeState.Blocked>(runtime.state)
+        assertEquals(RESET_RECEIPT, facade.pendingFactoryResetReceipt)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+        assertTrue(facade.scans.isEmpty())
+        assertTrue(facade.resetVerificationScans.isEmpty())
+        runtime.close()
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),
@@ -3143,6 +3434,7 @@ class BleCompanionRuntimeTest {
         private val startResult: Boolean = true,
         enforceOperationGate: Boolean = false,
     ) : BleGattLease {
+        override var pairingResultSupported = false
         var started = false
         var closed = false
         val requestedMtus = mutableListOf<Int>()

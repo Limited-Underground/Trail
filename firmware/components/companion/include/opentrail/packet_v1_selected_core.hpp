@@ -22,11 +22,14 @@ struct Frame {std::array<unsigned char,255> bytes{};std::size_t size=0;};
 enum class Outcome {rejected,delivered,acknowledged,duplicate,storage_failure};
 class Node final {
 public:
+ using DataAdmission = bool(*)(void*,View);
  Node(Binding& data_tx,Binding& ack_tx,Binding& data_rx,Binding& ack_rx,
  persistence::OutboundCounterAllocator& data_counter,persistence::OutboundCounterAllocator& ack_counter,
  security_eval::EvaluationReplayStore& data_replay,security_eval::EvaluationReplayStore& ack_replay,
- delivery::DeliveryController& delivery,bool(*validity)(void*,std::uint64_t)=nullptr,void* validity_context=nullptr):dt_(data_tx),at_(ack_tx),dr_(data_rx),ar_(ack_rx),
- dc_(data_counter),ac_(ack_counter),drep_(data_replay),arep_(ack_replay),delivery_(delivery),fdt_(data_tx),fat_(ack_tx),fdr_(data_rx),far_(ack_rx),validity_(validity),validity_context_(validity_context){}
+ delivery::DeliveryController& delivery,bool(*validity)(void*,std::uint64_t)=nullptr,void* validity_context=nullptr,
+ delivery::DeliveryPolicy policy={true,3,10,100}, DataAdmission admit_data=nullptr,
+ void* admission_context=nullptr):dt_(data_tx),at_(ack_tx),dr_(data_rx),ar_(ack_rx),
+ dc_(data_counter),ac_(ack_counter),drep_(data_replay),arep_(ack_replay),delivery_(delivery),fdt_(data_tx),fat_(ack_tx),fdr_(data_rx),far_(ack_rx),validity_(validity),validity_context_(validity_context),policy_(policy),admit_data_(admit_data),admission_context_(admission_context){}
  Node(const Node&)=delete;Node& operator=(const Node&)=delete;Node(Node&&)=delete;Node& operator=(Node&&)=delete;
  ~Node(){sodium_memzero(fdt_.key.data(),32);sodium_memzero(fat_.key.data(),32);sodium_memzero(fdr_.key.data(),32);sodium_memzero(far_.key.data(),32);sodium_memzero(last_plain_.data(),last_plain_.size());}
  void service(std::uint64_t now){if(!ready(now))return;delivery_.service(now);auto event=delivery_.next_event();if(event.has_event&&event.event.outcome!=delivery::DeliveryOutcome::confirmed){close();pending_=false;}}
@@ -34,7 +37,7 @@ public:
   if(!ready(now)||pending_||!id||!dt_.active)return false;
   Frame staged{};std::uint64_t counter=0;
   if(!seal(dt_,dc_,Type::data,id,plain,staged,counter)){close();return false;}
-  if(!delivery_.enqueue(id,delivery::MessageClass::direct_message,{true,3,10,100}, {staged.bytes.data(),staged.size},now).accepted())return false;
+  if(!delivery_.enqueue(id,delivery::MessageClass::direct_message,policy_, {staged.bytes.data(),staged.size},now).accepted())return false;
   if(!ready(now))return false;
   pending_=true;pending_id_=id;pending_counter_=counter;return true;
  }
@@ -50,6 +53,10 @@ public:
   if(validate_plaintext(parsed.header,{temporary.data(),static_cast<std::size_t>(length)})!=Error::none)return Outcome::rejected;
   auto& replay=expected==Type::data?drep_:arep_;
   if(expected==Type::ack&&(!pending_||parsed.header.message_id!=pending_id_||get64(temporary.data())!=pending_counter_))return Outcome::rejected;
+  // Only a new authenticated DATA can change application state. A previously
+  // admitted exact duplicate keeps its cached ACK even after admission closes.
+  if(expected==Type::data&&parsed.header.counter>replay.high_water()&&admit_data_&&
+     !admit_data_(admission_context_,{temporary.data(),static_cast<std::size_t>(length)}))return Outcome::rejected;
   const auto accepted=replay.accept_authenticated(parsed.header.counter);
   if(accepted==security_eval::ReplayError::replay){
    if(expected==Type::data&&at_.active&&cache_valid_&&frame.size==cached_data_.size&&std::memcmp(frame.data,cached_data_.bytes.data(),frame.size)==0){ack=cached_ack_;return Outcome::duplicate;}
@@ -94,7 +101,8 @@ private:
  persistence::OutboundCounterAllocator& dc_;persistence::OutboundCounterAllocator& ac_;
  security_eval::EvaluationReplayStore& drep_;security_eval::EvaluationReplayStore& arep_;delivery::DeliveryController& delivery_;
  Binding fdt_,fat_,fdr_,far_;bool closed_=false;bool pending_=false,cache_valid_=false;std::uint32_t pending_id_=0;std::uint64_t pending_counter_=0;
- bool(*validity_)(void*,std::uint64_t)=nullptr;void*validity_context_=nullptr;
+ bool(*validity_)(void*,std::uint64_t)=nullptr;void*validity_context_=nullptr;delivery::DeliveryPolicy policy_{};
+ DataAdmission admit_data_{};void* admission_context_{};
  Frame cached_data_{},cached_ack_{};std::array<unsigned char,195>last_plain_{};std::size_t last_size_=0;unsigned deliveries_=0,acknowledgements_=0;
 };
 }

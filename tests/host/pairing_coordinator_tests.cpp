@@ -39,16 +39,17 @@ struct FakeSession {
     int confirm_ticks{2};
     std::uint64_t review_at_ms{0}, confirm_at_ms{0};  // optional absolute times for phased polls
     bool refuse_consume{false};
-    int produced[11]{};
-    int consumed[11]{};
+    int produced[15]{};
+    int consumed[15]{};
     std::vector<int> log;  // positive: produced type, negative: consumed type
     int review_waited{0}, confirm_waited{0};
     bool committed{false};
     // The session's own deadline (request or signed invitation), on the test clock.
     std::uint64_t deadline_ms{~std::uint64_t{0}};
     bool refuse_remaining_after_commit{false};
+    bool remaining_allowed{true};
     bool remaining_ms(std::uint64_t now_ms, std::uint64_t& out) const {
-        if (committed && refuse_remaining_after_commit) return false;
+        if (!remaining_allowed || (committed && refuse_remaining_after_commit)) return false;
         out = deadline_ms == ~std::uint64_t{0} ? deadline_ms : now_ms >= deadline_ms ? 0 : deadline_ms - now_ms;
         return true;
     }
@@ -1010,6 +1011,67 @@ void test_refunded_control_obeys_the_paired_send_floor() {
     }
 }
 
+// D-112 Prepared and Committed copies obey the original exact send floors.
+void test_completion_tail_offer_floors(bool refunded) {
+    for (const auto target : {FrameType::prepared, FrameType::committed}) {
+        for (const bool resend : {false, true}) {
+            for (const bool enough : {false, true}) {
+                FakeSession a{1, 2}, b{2, 1};
+                Limits limits{};
+                limits.peer_confirmed_completion = true;
+                limits.quiet_after_rx_ms = 0;
+                limits.responder_turn_delay_ms = 0;
+                PairingCoordinator<FakeSession> ca(a, true, 123456, limits);
+                PairingCoordinator<FakeSession> cb(b, false, 123456, limits);
+                EXPECT(ca.begin(0) && cb.begin(0));
+                unsigned accepted = 0;
+                bool checked = false;
+                for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+                    FrameBuffer out{};
+                    std::size_t size = 0;
+                    if (ca.service(now, out, size)) {
+                        if (Run::frame_type(out) != target) {
+                            ca.sent(true, now);
+                            cb.on_receive(out.data(), size);
+                        } else if (refunded) {
+                            ca.sent(true, now);
+                            if (++accepted == (resend ? 2U : 1U)) {
+                                EXPECT(ca.unsent());
+                                const auto retry_at = now + 100;
+                                const auto floor = resend ? limits.final_send_floor_ms :
+                                                            limits.final_first_send_floor_ms;
+                                a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                                FrameBuffer retry{};
+                                std::size_t retry_size = 0;
+                                EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                                EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                                checked = true;
+                            }
+                        } else {
+                            ca.sent(resend, now);
+                            const auto retry_at = now + (resend ? limits.resend_after_ms : 100);
+                            const auto floor = resend ? limits.final_send_floor_ms :
+                                                        limits.final_first_send_floor_ms;
+                            a.deadline_ms = retry_at + floor - (enough ? 0 : 1);
+                            FrameBuffer retry{};
+                            std::size_t retry_size = 0;
+                            EXPECT(ca.service(retry_at, retry, retry_size) == enough);
+                            EXPECT(enough ? retry_size == size && retry == out : retry_size == 0);
+                            checked = true;
+                        }
+                        // Lose every accepted target copy so a repeat is eligible.
+                    }
+                    if (!checked && cb.service(now, out, size)) {
+                        cb.sent(true, now);
+                        ca.on_receive(out.data(), size);
+                    }
+                }
+                EXPECT(checked);
+            }
+        }
+    }
+}
+
 void test_cad_drop_can_spend_the_last_pairing_copy() {
     struct Target {
         const char* name;
@@ -1151,9 +1213,195 @@ void test_begin_refusals() {
     PairingCoordinator<FakeSession> not_begun(s, true, 5);
     EXPECT(!not_begun.service(0, buf, n));
 }
+
+// I-073 baseline compatibility: the old coordinator has no queue-launch query.
+// Its actual app path admitted every still-active queued copy, so only this
+// test adapter returns true when that API is absent. No production fallback.
+template <class C>
+auto queued_allowed(C& c, std::uint64_t now, int)
+    -> decltype(c.queued_launch_allowed(now)) { return c.queued_launch_allowed(now); }
+template <class C>
+bool queued_allowed(C&, std::uint64_t, long) { return true; }
+template <class C>
+bool queued_allowed(C& c, std::uint64_t now) { return queued_allowed(c, now, 0); }
+
+struct LaunchTarget { const char* name; FrameType type; bool completion; };
+constexpr LaunchTarget kLaunchTargets[] = {
+    {"v1-control", FrameType::control, false},
+    {"v2-control", FrameType::control, true},
+    {"v2-prepared", FrameType::prepared, true},
+    {"v2-committed", FrameType::committed, true},
+};
+
+// Capture a real coordinator-produced copy. Refuse its first offer, then admit
+// exactly the same bytes at a controlled remaining budget; creation reserves
+// have already been met. An earlier accepted target copy is lost for resends.
+template <class Check>
+void with_queued_copy(LaunchTarget target, bool resend, std::uint64_t extra, Check check) {
+    FakeSession a{1, 2}, b{2, 1};
+    Limits l{}; l.peer_confirmed_completion = target.completion;
+    l.quiet_after_rx_ms = 0; l.responder_turn_delay_ms = 0;
+    PairingCoordinator<FakeSession> ca(a, true, 123456, l), cb(b, false, 123456, l);
+    EXPECT(ca.begin(0) && cb.begin(0));
+    unsigned accepted = 0;
+    for (std::uint64_t now = 0; now < 30000; now += 100) {
+        FrameBuffer out{}; std::size_t size = 0;
+        if (ca.service(now, out, size)) {
+            if (Run::frame_type(out) == target.type && accepted == (resend ? 1U : 0U)) {
+                ca.sent(false, now);
+                const auto at = now + 100;
+                const auto floor = resend ? l.final_send_floor_ms : l.final_first_send_floor_ms;
+                a.deadline_ms = at + floor + extra;
+                FrameBuffer retry{}; std::size_t n = 0;
+                EXPECT(ca.service(at, retry, n) && n == size && retry == out);
+                ca.sent(true, at);
+                check(ca, a, l, at, floor, retry, n);
+                return;
+            }
+            ca.sent(true, now);
+            if (Run::frame_type(out) == target.type) ++accepted;
+            else cb.on_receive(out.data(), size);
+        }
+        if (cb.service(now, out, size)) { cb.sent(true, now); ca.on_receive(out.data(), size); }
+    }
+    EXPECT(false);  // target must have been reached using the unchanged script
+}
+
+void test_queued_copy_floor_after_queue_and_each_backoff() {
+    unsigned cases = 0;
+    for (const auto target : kLaunchTargets) for (const bool resend : {false, true}) {
+        for (unsigned backoff = 0; backoff <= 3; ++backoff) {
+            const auto extra = backoff == 0 ? 0U : backoff * 100U - 1U;
+            with_queued_copy(target, resend, extra,
+                [&](auto& c, auto&, const auto&, auto at, auto, const auto&, auto) {
+                    for (unsigned n = 1; n < backoff; ++n) EXPECT(queued_allowed(c, at + n * 100U));
+                    EXPECT(queued_allowed(c, at + extra));  // equality is eligible
+                    const bool allowed = queued_allowed(c, at + extra + 1);
+                    std::cout << "CASE " << target.name << ':' << (resend ? "resend" : "first")
+                              << ':' << (backoff ? "CAD" : "queue") << backoff
+                              << " expected=drop actual=" << (allowed ? "launch FAIL" : "drop PASS") << '\n';
+                    EXPECT(!allowed);
+                    EXPECT(c.outcome() == Outcome::running); // query does not advance/fail script
+                });
+            ++cases;
+        }
+    }
+    EXPECT(cases == 32);
+}
+
+void test_queued_copy_budget_does_not_follow_later_offer() {
+    for (const bool resend : {false, true}) with_queued_copy(kLaunchTargets[2], resend, 200,
+        [&](auto& c, auto& a, const auto&, auto at, auto, const auto&, auto) {
+            // A later observation/offer cannot extend this already accepted copy.
+            a.deadline_ms += 100000;
+            FrameBuffer ignored{}; std::size_t n = 0;
+            (void)c.service(at + 100, ignored, n); c.sent(false, at + 100);
+            EXPECT(queued_allowed(c, at + 200));
+            EXPECT(!queued_allowed(c, at + 201));
+        });
+}
+
+void test_queued_nonfinal_authority_and_attempt_expiry() {
+    for (const unsigned mode : {0U, 1U, 2U}) {
+        FakeSession a{1, 2}; Limits l{}; l.attempt_limit_ms = mode == 2 ? 200 : 300000;
+        if (mode == 0) a.deadline_ms = 200;
+        PairingCoordinator<FakeSession> c(a, true, 123456, l); EXPECT(c.begin(0));
+        EXPECT(!queued_allowed(c, 0));
+        FrameBuffer out{}; std::size_t n = 0; EXPECT(c.service(0, out, n)); c.sent(true, 0);
+        EXPECT(queued_allowed(c, 0));
+        if (mode == 1) { a.remaining_allowed = false; EXPECT(!queued_allowed(c, 1)); }
+        else { EXPECT(queued_allowed(c, 199)); EXPECT(!queued_allowed(c, 200)); }
+        EXPECT(c.unsent() && !c.unsent());
+        EXPECT(!queued_allowed(c, 201));
+    }
+}
+
+void test_queued_copy_rejects_clock_rollback() {
+    with_queued_copy(kLaunchTargets[0], false, 1000,
+        [&](auto& c, auto&, const auto&, auto at, auto, const auto&, auto) {
+            EXPECT(queued_allowed(c, at + 10));
+            EXPECT(!queued_allowed(c, at + 9));
+            EXPECT(queued_allowed(c, at + 11));
+            FrameBuffer out{}; std::size_t n = 0; (void)c.service(at + 100, out, n); c.sent(false, at + 100);
+            EXPECT(!queued_allowed(c, at + 99));
+        });
+}
+
+void test_queued_copy_waits_for_received_frame_and_quiet() {
+    FakeSession a{1, 2}, b{2, 1}; Limits l{};
+    PairingCoordinator<FakeSession> c(a, true, 123456, l); EXPECT(c.begin(0));
+    FrameBuffer out{}; std::size_t n = 0; EXPECT(c.service(0, out, n)); c.sent(true, 0);
+    std::array<std::uint8_t, kMaxPayloadBytes> bytes{}; EXPECT(b.produce(FrameType::candidate, bytes.data()));
+    FrameBuffer peer{}; std::size_t size = 0;
+    EXPECT(encode(FrameType::candidate, 123456, bytes.data(), payload_bytes(FrameType::candidate), peer, size));
+    c.on_receive(peer.data(), size); EXPECT(!queued_allowed(c, 1));
+    (void)c.service(10, out, n); c.sent(false, 10);
+    EXPECT(!queued_allowed(c, 509)); EXPECT(queued_allowed(c, 510));
+}
+
+void test_queued_paired_copy_uses_original_budget() {
+    for (const bool resend : {false, true}) {
+        FakeSession a{1, 2}, b{2, 1}; Limits l{}; l.quiet_after_rx_ms = 0; l.responder_turn_delay_ms = 0;
+        b.refuse_remaining_after_commit = true;
+        PairingCoordinator<FakeSession> ca(a, true, 123456, l), cb(b, false, 123456, l);
+        EXPECT(ca.begin(0) && cb.begin(0));
+        bool checked = false; FrameBuffer request{}; std::size_t request_size = 0;
+        for (std::uint64_t now = 0; now < 20000 && !checked; now += 100) {
+            FrameBuffer out{}; std::size_t n = 0;
+            if (ca.service(now, out, n)) {
+                ca.sent(true, now);
+                if (Run::frame_type(out) == FrameType::control && out[kHeaderBytes] == fill(1, FrameType::control, 2, 0)) {
+                    b.deadline_ms = now + 12000; request = out; request_size = n;
+                }
+                cb.on_receive(out.data(), n);
+            }
+            if (!cb.service(now, out, n)) continue;
+            cb.sent(true, now);
+            if (Run::frame_type(out) != FrameType::control || out[kHeaderBytes] != fill(2, FrameType::control, 2, 0)) {
+                ca.on_receive(out.data(), n); continue;
+            }
+            FrameBuffer ignored{}; std::size_t size = 0; (void)cb.service(now + 100, ignored, size);
+            EXPECT(cb.outcome() == Outcome::paired && b.committed);
+            if (resend) {
+                cb.on_receive(request.data(), request_size);
+                EXPECT(cb.service(now + 200, ignored, size)); cb.sent(true, now + 200);
+            }
+            const auto floor = resend ? l.final_send_floor_ms : l.final_first_send_floor_ms;
+            EXPECT(queued_allowed(cb, b.deadline_ms - floor));
+            EXPECT(!queued_allowed(cb, b.deadline_ms - floor + 1));
+            EXPECT(cb.outcome() == Outcome::paired && b.committed); checked = true;
+        }
+        EXPECT(checked);
+    }
+}
+
+void test_expired_queued_copy_refunds_exactly_once() {
+    for (const bool resend : {false, true}) with_queued_copy(kLaunchTargets[3], resend, 10,
+        [&](auto& c, auto&, const auto&, auto at, auto, const auto&, auto) {
+            EXPECT(queued_allowed(c, at)); EXPECT(!queued_allowed(c, at + 11));
+            EXPECT(c.unsent()); EXPECT(!c.unsent()); EXPECT(!queued_allowed(c, at + 11));
+            FrameBuffer out{}; std::size_t n = 0; EXPECT(!c.service(at + 12, out, n));
+        });
+}
+
+void test_queued_launch_groups() {
+    test_queued_copy_floor_after_queue_and_each_backoff();
+    test_queued_copy_budget_does_not_follow_later_offer();
+    test_queued_nonfinal_authority_and_attempt_expiry();
+    test_queued_copy_rejects_clock_rollback();
+    test_queued_copy_waits_for_received_frame_and_quiet();
+    test_queued_paired_copy_uses_original_budget();
+    test_expired_queued_copy_refunds_exactly_once();
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--queued-launch-only") {
+        test_queued_launch_groups();
+        if (failures != 0) { std::cerr << failures << " queued launch check(s) failed\n"; return EXIT_FAILURE; }
+        std::cout << "PASS: 7 queued launch scenario groups\n"; return EXIT_SUCCESS;
+    }
     test_lossless_pairing_follows_session_order();
     test_any_single_lost_frame_is_recovered();
     test_early_frames_wait_for_local_review();
@@ -1168,6 +1416,8 @@ int main() {
     test_unsent_invalidates_an_offer_made_before_the_drop();
     test_refunded_control_obeys_the_running_send_floor();
     test_refunded_control_obeys_the_paired_send_floor();
+    test_completion_tail_offer_floors(false);
+    test_completion_tail_offer_floors(true);
     test_cad_drop_can_spend_the_last_pairing_copy();
     test_review_confirm_timing_and_single_loss();
     test_default_window_d110();
@@ -1177,10 +1427,11 @@ int main() {
     test_refused_offers_are_not_counted();
     test_commit_waits_for_final_frame_acceptance();
     test_held_transmit_spends_nothing();
+    test_queued_launch_groups();
     if (failures != 0) {
         std::cerr << failures << " pairing coordinator check(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 23 pairing coordinator scenario groups\n";
+    std::cout << "PASS: 32 pairing coordinator scenario groups\n";
     return EXIT_SUCCESS;
 }

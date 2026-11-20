@@ -22,6 +22,7 @@ namespace opentrail::protocol::pairing {
 inline constexpr std::uint8_t kMagic0 = 'O';
 inline constexpr std::uint8_t kMagic1 = 'P';
 inline constexpr std::uint8_t kVersion = 1;
+inline constexpr std::uint8_t kCompletionVersion = 2;
 inline constexpr std::size_t kHeaderBytes = 6;
 inline constexpr std::uint32_t kCodeMin = 1;
 inline constexpr std::uint32_t kCodeMax = 999999;
@@ -37,6 +38,10 @@ enum class FrameType : std::uint8_t {
     handshake = 8,             // version, step, length u16, payload 128
     control = 9,               // control record
     status = 10,               // status record
+    prepared = 11,             // durable, identity-signed decision
+    committed = 12,            // durable public membership receipt
+    recovery_challenge = 13,   // transaction and fresh nonce
+    recovery_response = 14,    // durable decision bound to both fresh nonces
 };
 
 // Exact payload size for each type; 0 means unknown type.
@@ -52,6 +57,10 @@ inline constexpr std::size_t payload_bytes(FrameType type) {
         case FrameType::handshake: return 1 + 1 + 2 + 128;
         case FrameType::control: return 8 + 8 + 4 + 32 + 32 + 24;
         case FrameType::status: return 8 + 8 + 4 + 32 + 32 + 24;
+        case FrameType::prepared:
+        case FrameType::committed: return 100;
+        case FrameType::recovery_challenge: return 48;
+        case FrameType::recovery_response: return 164;
     }
     return 0;
 }
@@ -68,15 +77,16 @@ inline constexpr bool code_valid(std::uint32_t code) {
 // payload whose size is not exactly the size for its type.
 inline bool encode(FrameType type, std::uint32_t code,
                    const std::uint8_t* payload, std::size_t size,
-                   FrameBuffer& out, std::size_t& out_size) {
+                   FrameBuffer& out, std::size_t& out_size, std::uint8_t version = kVersion) {
     const auto expected = payload_bytes(type);
     if (expected == 0 || size != expected || payload == nullptr ||
-        !code_valid(code)) {
+        !code_valid(code) || (version != kVersion && version != kCompletionVersion) ||
+        (static_cast<unsigned>(type) > 10 && version != kCompletionVersion)) {
         return false;
     }
     out[0] = kMagic0;
     out[1] = kMagic1;
-    out[2] = static_cast<std::uint8_t>((kVersion << 4) |
+    out[2] = static_cast<std::uint8_t>((version << 4) |
                                        static_cast<std::uint8_t>(type));
     out[3] = static_cast<std::uint8_t>(code & 0xffU);
     out[4] = static_cast<std::uint8_t>((code >> 8) & 0xffU);
@@ -103,15 +113,15 @@ enum class DecodeResult : std::uint8_t {
 
 // Accepts only an exact, current-version frame for this pairing code.
 inline DecodeResult decode(const std::uint8_t* data, std::size_t size,
-                           std::uint32_t expected_code, Frame& out) {
+                           std::uint32_t expected_code, Frame& out, std::uint8_t version = kVersion) {
     if (data == nullptr || size < kHeaderBytes || data[0] != kMagic0 ||
         data[1] != kMagic1) {
         return DecodeResult::not_pairing;
     }
-    if ((data[2] >> 4) != kVersion) return DecodeResult::bad_version;
+    if ((data[2] >> 4) != version || (version != kVersion && version != kCompletionVersion)) return DecodeResult::bad_version;
     const auto type = static_cast<FrameType>(data[2] & 0x0fU);
     const auto expected = payload_bytes(type);
-    if (expected == 0) return DecodeResult::bad_type;
+    if (expected == 0 || (static_cast<unsigned>(type) > 10 && version != kCompletionVersion)) return DecodeResult::bad_type;
     if (size != kHeaderBytes + expected) return DecodeResult::bad_size;
     const std::uint32_t code = static_cast<std::uint32_t>(data[3]) |
                                (static_cast<std::uint32_t>(data[4]) << 8) |

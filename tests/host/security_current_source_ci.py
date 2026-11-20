@@ -231,8 +231,29 @@ def run(output, cached_component=None):
         suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],
               (), " enrollment candidate session groups")
+        f5_components = ROOT / "firmware/components"
+        f5_sources = [f5_components / path for path in (
+            "protocol/src/packet_v1.cpp", "protocol/src/quick_status_codec.cpp",
+            "delivery/src/delivery_controller.cpp")]
+        f5_includes = [f5_components / path for path in (
+            "companion/include", "protocol/include", "radio/include", "delivery/include")]
+        suite("f5_rekey_status_tests",
+              [*common, *f5_sources, ROOT / "tests/host/f5_rekey_status_tests.cpp"],
+              [*base, *f5_includes], (), " real retained F5 rekey/status groups")
+        suite("f5_status_admission_tests",
+              [*common, *f5_sources, ROOT / "tests/host/f5_status_admission_tests.cpp"],
+              [*base, *f5_includes], (), " F5 status semantic admission and launch groups")
+        f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+        suite("f5_pairing_nvs_tests",
+              [f5_target / "pairing_nvs_storage.cpp", ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base],
+              (), " actual F5 pairing NVS host groups")
+        suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
+              base, (), " pairing completion journal groups")
+        suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
+              base, (), " pairing completion archive groups")
         suite("pairing_session_adapter_tests", [*common, ROOT / "tests/host/pairing_session_adapter_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include"],
+              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include"],
               (), " pairing session adapter groups")
         suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
               [*base, ROOT / "firmware/components/companion/include"],

@@ -7,6 +7,8 @@ namespace {
 
 constexpr std::array<std::uint8_t, 4> kSnapshotRequestMagic{'O', 'T', 'X', '0'};
 constexpr std::array<std::uint8_t, 4> kStatusSnapshotMagic{'O', 'T', 'N', '0'};
+constexpr std::array<std::uint8_t, 4> kPairingSnapshotRequestMagic{'O', 'T', 'X', '1'};
+constexpr std::array<std::uint8_t, 4> kPairingStatusSnapshotMagic{'O', 'T', 'N', '1'};
 constexpr std::array<std::uint8_t, 4> kActionRequestMagic{'O', 'T', 'A', '0'};
 constexpr std::array<std::uint8_t, 4> kActionResultMagic{'O', 'T', 'R', '0'};
 
@@ -340,6 +342,102 @@ decode_companion_status_snapshot(radio::ByteView encoded) {
                      CompanionSemanticCodecError::none, snapshot}
                : CompanionSemanticDecodeResult<CompanionStatusSnapshot>{
                      error, {}};
+}
+
+
+bool companion_pairing_result_valid(const CompanionPairingResult& result) {
+    using State = CompanionPairingState;
+    using Reason = CompanionPairingReason;
+    if (result.state == State::none) {
+        return result.reason == Reason::none && result.peer_short_id == 0 &&
+            result.action_exchange_id == 0 && result.action_session_nonce == 0;
+    }
+    if (result.action_exchange_id == 0 || result.action_session_nonce == 0 ||
+        result.revision == 0) return false;
+    switch (result.state) {
+        case State::paired_local:
+        case State::paired_both:
+            return result.reason == Reason::none;
+        case State::running:
+            return result.reason == Reason::none && result.peer_short_id == 0;
+        case State::failed:
+            return result.reason >= Reason::timed_out && result.reason <= Reason::unavailable &&
+                result.peer_short_id == 0;
+        case State::cancelled:
+            return result.reason == Reason::request_ended && result.peer_short_id == 0;
+        case State::incomplete:
+            return (result.reason == Reason::none || result.reason == Reason::storage ||
+                    result.reason == Reason::request_ended) && result.peer_short_id == 0;
+        case State::none:
+            return false;
+    }
+    return false;
+}
+
+CompanionSemanticEncodeResult encode_companion_pairing_snapshot_request(
+    const CompanionPairingSnapshotRequest&,
+    radio::MutableByteView output) {
+    std::array<std::uint8_t, kCompanionPairingSnapshotRequestBytes> candidate{};
+    for (std::size_t i = 0; i < kPairingSnapshotRequestMagic.size(); ++i) {
+        candidate[i] = kPairingSnapshotRequestMagic[i];
+    }
+    return write_candidate(candidate, output);
+}
+
+CompanionSemanticDecodeResult<CompanionPairingSnapshotRequest>
+decode_companion_pairing_snapshot_request(radio::ByteView encoded) {
+    const auto error = validate_prefix(encoded, kPairingSnapshotRequestMagic,
+                                       kCompanionPairingSnapshotRequestBytes);
+    if (error != CompanionSemanticCodecError::none) return {error, {}};
+    if (encoded.data[6] != 0 || encoded.data[7] != 0) {
+        return {CompanionSemanticCodecError::reserved_bits_set, {}};
+    }
+    return {CompanionSemanticCodecError::none, {}};
+}
+
+CompanionSemanticEncodeResult encode_companion_pairing_status_snapshot(
+    const CompanionPairingStatusSnapshot& value,
+    radio::MutableByteView output) {
+    if (output.data == nullptr) return {CompanionSemanticCodecError::invalid_argument, 0};
+    if (!companion_pairing_result_valid(value.pairing)) {
+        return {CompanionSemanticCodecError::incoherent_result, 0};
+    }
+    std::array<std::uint8_t, kCompanionPairingStatusSnapshotBytes> candidate{};
+    const auto base = encode_companion_status_snapshot(
+        value.snapshot, {candidate.data(), kCompanionStatusSnapshotBytes});
+    if (!base.encoded()) return base;
+    for (std::size_t i = 0; i < kPairingStatusSnapshotMagic.size(); ++i) {
+        candidate[i] = kPairingStatusSnapshotMagic[i];
+    }
+    candidate[24] = static_cast<std::uint8_t>(value.pairing.state);
+    candidate[25] = static_cast<std::uint8_t>(value.pairing.reason);
+    write_u16_le(candidate.data() + 26, value.pairing.peer_short_id);
+    write_u32_le(candidate.data() + 28, value.pairing.action_exchange_id);
+    write_u32_le(candidate.data() + 32, value.pairing.action_session_nonce);
+    write_u32_le(candidate.data() + 36, value.pairing.revision);
+    return write_candidate(candidate, output);
+}
+
+CompanionSemanticDecodeResult<CompanionPairingStatusSnapshot>
+decode_companion_pairing_status_snapshot(radio::ByteView encoded) {
+    const auto error = validate_prefix(encoded, kPairingStatusSnapshotMagic,
+                                       kCompanionPairingStatusSnapshotBytes);
+    if (error != CompanionSemanticCodecError::none) return {error, {}};
+    // Reuse V0's exact telemetry validation, with its reserved tail cleared.
+    std::array<std::uint8_t, kCompanionStatusSnapshotBytes> base_bytes{};
+    for (std::size_t i = 0; i < 24; ++i) base_bytes[i] = encoded.data[i];
+    base_bytes[3] = '0';
+    const auto base = decode_companion_status_snapshot({base_bytes.data(), base_bytes.size()});
+    if (!base.decoded()) return {base.error, {}};
+    const CompanionPairingResult pairing{
+        static_cast<CompanionPairingState>(encoded.data[24]),
+        static_cast<CompanionPairingReason>(encoded.data[25]),
+        read_u16_le(encoded.data + 26), read_u32_le(encoded.data + 28),
+        read_u32_le(encoded.data + 32), read_u32_le(encoded.data + 36)};
+    if (!companion_pairing_result_valid(pairing)) {
+        return {CompanionSemanticCodecError::incoherent_result, {}};
+    }
+    return {CompanionSemanticCodecError::none, {base.value, pairing}};
 }
 
 CompanionSemanticEncodeResult encode_companion_action_request(

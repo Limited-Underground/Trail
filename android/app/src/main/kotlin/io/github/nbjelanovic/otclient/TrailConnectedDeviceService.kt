@@ -276,9 +276,15 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             attached?.scan()
         }
-        override fun retryDiscovery() {
+        override fun refreshBluetoothPreflight() {
             assertMainThread()
-            attached?.retryDiscovery()
+            attached?.refreshBluetoothPreflight()
+        }
+
+        override fun retryDiscovery(): BluetoothRecoveryRefusal? {
+            assertMainThread()
+            val current = attached ?: return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
+            return current.retryDiscovery()
         }
         override fun authorize(endpointToken: String) {
             assertMainThread()

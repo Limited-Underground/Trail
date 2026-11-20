@@ -156,7 +156,7 @@ internal class MeshTrailLogTransitions(private val append: (MeshTrailLogKind, St
             authorization?.let { put(MeshTrailLogKind.AUTHORIZATION, it) }
             val pairing = (runtime as? BleRuntimeState.Ready)?.session?.boardPairing
             when (pairing) {
-                null -> Unit
+                null, BoardPairingState.Unknown, is BoardPairingState.Result -> Unit
                 BoardPairingState.Available -> put(MeshTrailLogKind.PAIRING, "available")
                 BoardPairingState.Waiting -> put(MeshTrailLogKind.PAIRING, "waiting")
                 is BoardPairingState.Ready -> put(MeshTrailLogKind.PAIRING, "ready")

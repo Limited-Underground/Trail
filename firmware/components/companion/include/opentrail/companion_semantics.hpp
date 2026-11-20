@@ -14,6 +14,9 @@ inline constexpr std::uint8_t kCompanionSemanticMajor = 0;
 inline constexpr std::uint8_t kCompanionSemanticMinor = 0;
 inline constexpr std::size_t kCompanionSnapshotRequestBytes = 8;
 inline constexpr std::size_t kCompanionStatusSnapshotBytes = 32;
+// Opt-in selected-profile readback. V0 keeps its exact lengths and reserved bytes.
+inline constexpr std::size_t kCompanionPairingSnapshotRequestBytes = 8;
+inline constexpr std::size_t kCompanionPairingStatusSnapshotBytes = 40;
 inline constexpr std::size_t kCompanionActionRequestBytes = 20;
 inline constexpr std::size_t kCompanionActionResultBytes = 20;
 
@@ -111,6 +114,46 @@ struct CompanionStatusSnapshot {
     std::uint64_t pending_critical_alert_id{0};
 };
 
+enum class CompanionPairingState : std::uint8_t {
+    none = 0,
+    running = 1,
+    paired_local = 2,
+    paired_both = 3,
+    failed = 4,
+    cancelled = 5,
+    incomplete = 6,
+};
+
+enum class CompanionPairingReason : std::uint8_t {
+    none = 0,
+    timed_out = 1,
+    no_reply = 2,
+    storage = 3,
+    request_ended = 4,
+    radio_unavailable = 5,
+    verification_failed = 6,
+    unavailable = 7,
+};
+
+// The original admitted action is distinct from the enclosing status-read
+// exchange. These fields are presentation correlation, never peer authority.
+struct CompanionPairingResult {
+    CompanionPairingState state{CompanionPairingState::none};
+    CompanionPairingReason reason{CompanionPairingReason::none};
+    std::uint16_t peer_short_id{0};
+    std::uint32_t action_exchange_id{0};
+    std::uint32_t action_session_nonce{0};
+    std::uint32_t revision{0};
+};
+
+struct CompanionPairingSnapshotRequest {};
+struct CompanionPairingStatusSnapshot {
+    CompanionStatusSnapshot snapshot{};
+    CompanionPairingResult pairing{};
+};
+
+[[nodiscard]] bool companion_pairing_result_valid(const CompanionPairingResult& result);
+
 // detail is a protocol::QuickStatusKind value only for quick_status. The shared
 // subject slot is the exact device-owned alert ID for acknowledge_critical_alert
 // and a nonzero, app-generated correlation receipt for factory_reset. That
@@ -171,6 +214,18 @@ decode_companion_snapshot_request(radio::ByteView encoded);
     radio::MutableByteView output);
 [[nodiscard]] CompanionSemanticDecodeResult<CompanionStatusSnapshot>
 decode_companion_status_snapshot(radio::ByteView encoded);
+
+[[nodiscard]] CompanionSemanticEncodeResult encode_companion_pairing_snapshot_request(
+    const CompanionPairingSnapshotRequest& request,
+    radio::MutableByteView output);
+[[nodiscard]] CompanionSemanticDecodeResult<CompanionPairingSnapshotRequest>
+decode_companion_pairing_snapshot_request(radio::ByteView encoded);
+
+[[nodiscard]] CompanionSemanticEncodeResult encode_companion_pairing_status_snapshot(
+    const CompanionPairingStatusSnapshot& snapshot,
+    radio::MutableByteView output);
+[[nodiscard]] CompanionSemanticDecodeResult<CompanionPairingStatusSnapshot>
+decode_companion_pairing_status_snapshot(radio::ByteView encoded);
 
 [[nodiscard]] CompanionSemanticEncodeResult encode_companion_action_request(
     const CompanionActionRequest& request,

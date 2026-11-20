@@ -1,12 +1,12 @@
 # F5 R2: first board pairing in the product firmware (plan)
 
-Status: plan, 2026-11-14. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (pairing starts from the phone app).
+Status: local host/build candidate, 2026-11-18. Part of #232. Decisions: D-076 (LoRa carrier), D-077 (Packet-v1), D-078 (test limits), D-082 (phone admission), D-112 (recoverable pairing), D-111 (protected phone outcome). Physical acceptance and independent review before merge remain open.
 
 ## What already exists
 
 The whole enrollment sequence exists and is host-tested. It was also run on two real boards through the USB evaluation target `heltec_v4_enrollment_candidate_eval`, where a PC relayed every message between the boards:
 
-1. `EnrollmentCandidateSession::start(role, group)` captures the admitted request and creates the board identity if absent (`EnrollmentIdentityStore::initialize`, real entropy). It also allocates a fresh session generation.
+1. `EnrollmentCandidateSession::start_pairing(role, group)` routes a saved decision into recovery; with no saved decision it captures the admitted request and creates the board identity if absent (`EnrollmentIdentityStore::initialize`, real entropy). It also allocates a fresh session generation.
 2. `export_candidate` and `receive_candidate` exchange public identities. A received identity is an untrusted candidate.
 3. The fingerprint review shows the board's own key, then the peer's key (all 64 hex digits). A 1-3 s press on each board confirms. `HeltecEnrollmentInputArbiter` already owns the BOOT button and the OLED for this.
 4. `finish_review` then:
@@ -15,10 +15,12 @@ The whole enrollment sequence exists and is host-tested. It was also run on two 
    - device-issued invitation;
    - handshake;
    - transcript confirmation;
-   - controls;
-   - `commit`.
+   - authenticated confirmation controls;
+   - durable Prepared receipts;
+   - exact local public commit;
+   - signed Committed receipts and peer-proof finish.
 
-The product target (`heltec_v4_bench`) already admits the phone's start-enrollment request (action 6) into `SelectedEnrollmentRequestOwner`, with a 5-minute window (D-110; 120 s under D-087) that is cancelled on disconnect. Nothing consumes the request yet.
+The product target (`heltec_v4_bench`) already admits the phone's start-enrollment request (action 6) into `SelectedEnrollmentRequestOwner`, with a 5-minute window (D-110; 120 s under D-087) that is cancelled on disconnect. The app-task board runtime consumes each exact admitted request once and rechecks its original link and deadline throughout the attempt.
 
 ## What R2a adds
 
@@ -27,7 +29,123 @@ The product target (`heltec_v4_bench`) already admits the phone's start-enrollme
 - **Product storage.** Product NVS namespaces for identity, journal, binding and boot, included in factory reset.
 - **Screen.** The OLED shows a pairing status line and the review pages.
 
-R3 (committed membership reported to the phone) and R4 (Packet-v1 DATA) follow.
+Protected phone results are implemented in the local D-111 increment below. Retained fresh-session Packet-v1 traffic is a separate candidate; recovered pairing never restores traffic keys.
+
+## Recoverable pairing decision (D-112)
+
+The dedicated double-bank completion journal records the exact transaction,
+verified peer identity, original role/group/generation/epoch and signed decisions.
+It stores no traffic keys. A locally Prepared vote survives disconnect, expiry and
+restart; a missing final radio copy cannot turn it into a clean refusal. A fresh
+phone request with the original Start/Join role and a new matching routing code
+runs a fresh-nonce recovery exchange for that saved transaction. The code does
+not replace the saved group or peer authority.
+
+Both Prepared decisions complete the exact public commit; an authenticated
+negative decision before a positive vote undoes the uncommitted pairing. When
+the peer is absent, an unresolved decision remains recoverable and cannot admit
+traffic or a fresh generation. A verified terminal negative receipt is archived
+per generation before cleanup so an older pending peer can still obtain it after
+a later attempt. Unknown transactions and malformed or conflicting stores fail
+closed. Initial descriptor/save and cleanup interruptions have an explicit
+negative-only recovery path; they never invent a positive vote.
+
+The target uses completion tuple namespace 11 (generation 0 for the current
+journal and 1..32 for signed terminal history), under the existing reset-covered
+`ot_pair`/`ot_state` store. Its worst-case budget is 2,364 NVS entries, below one
+eighth of the partition. This branch keeps tuple name 11 and integrates first;
+Messaging moves the conflicting D-113 F5/data records to 12 and above (I-074).
+The current key has one hexadecimal namespace digit: 12..15 fit that format,
+while 16+ requires a format/parser change. Any added names still require an
+explicit inventory, budget, reset and compatibility review. Older firmware
+rejects the added inventory; restoring an image alone does not establish
+storage compatibility.
+
+## Recovery journal containment (review M1/M2)
+
+Recovery classifies both public-journal banks before any membership or journal
+mutation. The selected record must match the signed binding, generation/parity
+and requested recovery intent. Positive completion needs its permitted stage
+and room for every remaining advance. Exact negative cleanup uses a separate
+entry point: already-aborted state is a no-write retry, including at the counter
+limit; a staged record needs one remaining advance. Completed state cannot
+enter negative cleanup.
+The other bank must be blank, the allowed retired predecessor, or an exact
+recognized interrupted transition for this binding. Unknown/corrupt/foreign
+bytes remain untouched. Classification replays the actual erase/payload/header/
+marker order in RAM and does not repair storage by guessing.
+
+Completion initialization likewise requires canonical OTPC first-record fields,
+sequence, unvoted phase/flags, reserved bytes and write order. An installed marker
+byte proves that all 316 payload bytes must already be canonical; an erased or
+partly retired marker alone never makes arbitrary bytes empty. Bound successor
+and predecessor interruption checks preserve genuine fault recovery while
+unrecognizable state remains uncertain. Storage format, key numbering and budget
+are unchanged. Exact regression and integration evidence is in REPORT-5.md.
+
+## Queued launch eligibility (I-073)
+
+Queue acceptance reserves one copy; it is not a radio launch. The coordinator
+captures that exact accepted copy's original remaining window and its
+pre-increment first/resend floor. Its launch query ages the captured budget,
+rechecks live session deadlines while running, and retains only the original
+budget during completed-session linger. It also rejects retired/proven-received
+copies, clock rollback, pending receive processing and the receive quiet window.
+The query neither advances the script nor changes the retry/refund token.
+
+The existing radio permission callback retains the independent region check and
+adds the queued pairing owner check. It samples the monotonic clock on each
+call, including the driver's check immediately after CAD. The runtime rechecks
+the original phone authority and samples again after that potentially blocking
+lookup. The one app task owns the queue tag and copy token. A failed permission
+check uses the existing provably-prelaunch discard counter; its exact copy is
+refunded once before another admission. TX-start failure remains uncertain and
+receives no refund. D-106/D-107 limits, 15/10 s creation reserves, and 6.5/3 s
+first/resend floors remain unchanged.
+
+Tests cover queue wait, CAD back-offs 1/2/3 and time crossed within CAD, for v1
+controls and v2 controls/Prepared/Committed, with equality checks and real-session
+integration. The composed bench test compiles the actual app callback, driver
+and coordinator against simulated SDK/chip/session seams. It does not establish
+physical CAD or RF acceptance. Exact results and the three-commit review handoff
+are in D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-4.md.
+
+## Protected phone outcome (D-111)
+
+The metadata-only ProtocolInfo descriptor advertises result version 1. After the
+unchanged V0 protected Ready bootstrap, the app opts into OTX1/OTN1 status.
+The 40-byte snapshot preserves ordinary telemetry and adds state/reason,
+the confirmed peer suffix, originating action exchange/nonce and an independent
+result revision. Discovery contains no outcome; a result read requires the
+current authorized Ready owner. A result cannot establish Ready or grant trust. Every handed-off pairing action
+sets a new result-origin fence before platform write, including refused or
+uncertain outcomes; an old result cannot replace that attempt's refusal.
+
+The runtime captures the exact admitted ticket before consuming its session
+request and publishes before teardown. Only successful session/coordinator
+startup permits projection of a cached journal: failed identity/binding checks
+cannot expose an old successful phase. Local durable commit reports
+"Paired with board XXXX" and "Saved on this board"; durable authenticated peer
+Committed proof reports "Both boards paired". XXXX is the opposite confirmed
+identity's final two bytes in four uppercase hex digits. Archive-only recovery
+cannot project an unrelated current journal. Unresolved saved decisions report
+incomplete rather than assumed success or refusal.
+
+One boot-local result lasts ten minutes from a terminal transition. Repeated
+reads/publications do not extend it. A newer admission supersedes it; reset,
+revocation, owner change and cold boot retire RAM history. A freshly authorized
+same-owner reconnect may read terminal history as "Last pairing attempt";
+a running attempt is not exposed on a new link. Exact ended-request release
+happens after session cleanup and the final-response linger, preserves result
+history and cannot cancel a newer admission.
+
+Foreground polling remains five seconds through local save and returns to
+normal after peer proof. Incomplete offers explicit Resume pairing: use the
+original Start/Join phones and a new matching code. Resume sends no action
+until the person submits the form; Cancel only exits that form. No reply carries
+a check-code hint without asserting a mismatch. Old/stale-feature firmware
+falls back to ordinary status and board guidance. Hardware verification remains
+open; see the task report's independent checklist and owner-present procedure.
 
 ## Role and group (decided: D-085, option A)
 
@@ -57,7 +175,10 @@ Decided 2026-11-14 (D-085): option A. Done in the first R2a slice: action 6 now 
    - different hello intervals for the two roles (above);
    - the joiner holds each new frame 0.6 s and resends other frames every 2.3 s instead of 3 s;
    - neither board transmits until 0.5 s after it last heard the peer, so it never answers into the rest of the peer's burst (a simple stand-in for listen-before-talk).
-   The final exchange is A control 1, B control 1, A control 2, B control 2; the responder commits once its control 2 is accepted by its radio, the initiator once it receives it. A board produces its first control only with 15 s left and each later control only with 10 s left, measured to the earlier of its own 5-minute window, the original phone request (which can be admitted before the board starts), and its session's deadlines (its copy of the request, and the signed invitation's 180 s from the board's clock mark). While the attempt is running, a control frame goes to the radio only with time left for its answer: its first copy with at least 6.5 s left (room for that copy and one resend 3 s later; the radio may have refused offers for a while, so the first copy can go out long after the frame was made), a resend with at least 3 s (a lossless round trip takes about 1.4 s; a shorter floor let a late resend collide with the peer's held final reply). A running attempt ends as soon as transmit is no longer allowed (the saved region changed), instead of waiting out the hold: host sweeps found that no send floor makes a long hold plus a lost final reply safe. After a board has committed it still answers the peer's repeats during its short linger, without these limits. So a board that sends a control can still receive the answer it needs, and a board too late to finish fails before the other can commit: a late confirmation fails both boards instead of pairing one (host-tested timing cases; not a guarantee under every fault). In practice the second phone should start within a few minutes of the first, and each person should confirm well before the window ends. Known limits, tracked for a proper design (owner decision D-108): nothing confirms that the initiator received the responder's last control, so if every copy of it is lost the responder is paired and the initiator is not (I-059); and if the responder's save fails after that frame reached the radio, the initiator is paired and the responder is not (I-062). A frame already in the radio queue can still launch in the same poll that picks up a received frame (I-063). Listen-before-talk with the SX1262's channel activity detection (Semtech AN1200.48) is the standard way to avoid the collisions themselves; it is planned after the next board test (I-061).
+   The product uses version 2 completion frames. After both people confirm the exact transcript, authenticated controls precede the durable Prepared exchange. Each board commits the exact public write set only after both Prepared votes, then sends a signed Committed receipt. Finish requires a verified peer Committed receipt. The original 22-step version 1 script remains available to existing callers; it is not the product completion path.
+
+   The first final frame requires 15 s remaining and later final frames require 10 s at creation. Control, Prepared and Committed offers retain the 6.5 s first-copy and 3 s resend floors, including a refunded pre-launch copy. The first positive vote rechecks the signed invitation and original phone deadline after payload readback, immediately before the durable decision marker. No later live send can extend those deadlines. The outer request/attempt remains 300 s, the board-issued signed invitation 180 s, the hello limit 70 and other accepted sends 4. At actual launch, I-073 now requires a fresh coordinator check before and after CAD, including each back-off; see the queued-launch section above. Independent review and hardware acceptance remain open.
+
 4. Session adapter: converts session values to and from the exact frame payloads, and drives the local review and transcript confirmation through the existing review API (tests in the security suite, with real crypto).
 5. Target composition in `heltec_v4_bench`, in steps:
    - 5a (done). `pairing_nvs_storage.cpp/.hpp`: the pairing stores in a standard NVS instance inside `ot_state` (D-086), modelled on the evaluation storage. Factory reset unmounts it before erasing `ot_state`. Compiled only with the radio.

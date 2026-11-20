@@ -43,7 +43,8 @@ const esp_partition_t* PairingNvsStorage::partition() {
 
 PairingNvsStorage::PairingNvsStorage()
     : views_{{{*this, Store::identity}, {*this, Store::journal},
-              {*this, Store::binding}, {*this, Store::boot}}} {
+              {*this, Store::binding}, {*this, Store::boot}, {*this, Store::completion},
+              {*this, Store::f5_state}, {*this, Store::f5_state_tail}}} {
     Guard guard;
     if (g_reset_retired) return;
     const auto* p = partition();
@@ -55,6 +56,8 @@ PairingNvsStorage::PairingNvsStorage()
 }
 
 PairingNvsStorage::~PairingNvsStorage() { retire(); }
+
+bool PairingNvsStorage::ready() const { Guard guard; return good_; }
 
 void PairingNvsStorage::retire() {
     Guard guard;
@@ -78,6 +81,18 @@ void retire_pairing_storage_for_reset() {
     g_reset_retired = true;
     if (g_live != nullptr) g_live->retire();
     g_live = nullptr;
+}
+
+bool PairingNvsStorage::f5_packet_footprint_absent() {
+    Guard guard;
+    if (!good_) return false;
+    for (std::uint64_t g=1;g<=kCapacity;++g)
+        for (unsigned n=13;n<=16;++n)
+            for (unsigned d=0;d<5;++d) for(unsigned slot=0;slot<2;++slot) {
+                char key[16]{};
+                if (!key_for(g,n,static_cast<Domain>(d),slot,key) || known_[index(key)]) return false;
+            }
+    return good_;
 }
 
 bool PairingNvsStorage::budget_ok() {
@@ -151,13 +166,11 @@ bool PairingNvsStorage::inventory() {
             nvs_release_iterator(it);
             return false;
         }
-        for (std::uint64_t g = 0; g <= kCapacity && !found; ++g)
-            for (unsigned n = 0; n <= 10 && !found; ++n)
-                for (unsigned d = 0; d < 5 && !found; ++d)
-                    for (unsigned s = 0; s < 2 && !found; ++s) {
-                        char key[16]{};
-                        found = key_for(g, n, static_cast<Domain>(d), s, key) && std::strcmp(info.key, key) == 0;
-                    }
+        // Parse a canonical bounded key once. Unknown families/namespaces
+        // refuse before any erase/write, including incompatible older F5 keys.
+        char observed[16]{};
+        std::memcpy(observed,info.key,sizeof observed);
+        found = pairing_key::slot(observed,kCapacity) < pairing_key::table_size(kCapacity);
         if (!found) { nvs_release_iterator(it); return false; }
         std::size_t size = 0;
         if (nvs_get_blob(handle_, info.key, nullptr, &size) != ESP_OK || size != 64) {

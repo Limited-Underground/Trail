@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
@@ -253,9 +254,52 @@ class AndroidBluetoothGattFacade(
         return AndroidDisplayClockWatcher.create(appContext, mainHandler, changed).also { displayClockWatcher = it }
     }
     private var displayClockWatcher: BleReconnectLease? = null
+    private var bluetoothEnabledWatcher: BleReconnectLease? = null
+
+    override fun watchBluetoothEnabled(callback: () -> Unit): BleReconnectLease? {
+        if (closed || !onMainThread() || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        bluetoothEnabledWatcher?.close()
+        var receiving = false
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (receiving && intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED &&
+                    intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR) == BluetoothAdapter.STATE_ON
+                ) callback()
+            }
+        }
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // This is a protected framework broadcast. The Bluetooth module can have its own UID.
+                appContext.registerReceiver(receiver, filter, null, mainHandler, Context.RECEIVER_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                appContext.registerReceiver(receiver, filter, null, mainHandler)
+            }
+        } catch (_: SecurityException) {
+            return null
+        } catch (_: IllegalArgumentException) {
+            return null
+        }
+        receiving = true
+        return object : BleReconnectLease {
+            override fun close() {
+                if (!receiving) return
+                receiving = false
+                if (bluetoothEnabledWatcher === this) bluetoothEnabledWatcher = null
+                try {
+                    appContext.unregisterReceiver(receiver)
+                } catch (_: IllegalArgumentException) {
+                    // A receiver already unregistered by the platform is closed as well.
+                }
+            }
+        }.also { bluetoothEnabledWatcher = it }
+    }
+
     private val gattServiceUuid = UUID.fromString(AndroidBlePlatformPlan.GATT_SERVICE_UUID)
     private val pairableAdvertisingUuid = UUID.fromString(AndroidBlePlatformPlan.PAIRABLE_ADVERTISING_UUID)
     private val protocolInfoUuid = UUID.fromString(CompanionGattV0Contract.PROTOCOL_INFO_UUID)
+    private val pairingResultFeatureUuid = UUID.fromString(PAIRING_RESULT_FEATURE_UUID)
     private val commandUuid = UUID.fromString(CompanionGattV0Contract.COMMAND_UUID)
     private val streamUuid = UUID.fromString(CompanionGattV0Contract.STREAM_UUID)
     private val cccdUuid = UUID.fromString(CLIENT_CONFIGURATION_UUID)
@@ -377,6 +421,7 @@ class AndroidBluetoothGattFacade(
         verifiedResetReceipt = null
         displayClockWatcher?.close()
         displayClockWatcher = null
+        bluetoothEnabledWatcher?.close()
         activeScan?.close()
         activeGatt?.close()
         candidates.clear()
@@ -679,6 +724,8 @@ class AndroidBluetoothGattFacade(
         private val allowSystemBondCreation: Boolean,
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
+        override var pairingResultSupported = false
+            private set
         private val operations = AndroidGattOperationGate()
         private val protocolInfoDiagnostics = ProtectedProtocolInfoDiagnostics.create(
             appContext as? ProtectedProtocolInfoDiagnosticObserver,
@@ -1311,6 +1358,7 @@ class AndroidBluetoothGattFacade(
         }
 
         private fun scheduleServiceRediscovery(callbackGatt: BluetoothGatt) {
+            pairingResultSupported = false
             protocolInfo = null
             command = null
             stream = null
@@ -1354,6 +1402,12 @@ class AndroidBluetoothGattFacade(
                 fail(BleGattFailure.PERMISSION_REVOKED)
                 return
             }
+            val pairingFeature = try {
+                info?.getDescriptor(pairingResultFeatureUuid) != null
+            } catch (_: SecurityException) {
+                fail(BleGattFailure.PERMISSION_REVOKED)
+                return
+            }
             val profile = AndroidGattProfileSnapshot(
                 hasService = discovered.hasService,
                 protocolInfoReadable = info.hasProperty(BluetoothGattCharacteristic.PROPERTY_READ),
@@ -1372,6 +1426,7 @@ class AndroidBluetoothGattFacade(
                         return
                     }
                     protocolInfo = info
+                    pairingResultSupported = pairingFeature
                     command = commandCharacteristic
                     stream = streamCharacteristic
                     streamCccd = cccd

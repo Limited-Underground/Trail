@@ -10,6 +10,7 @@ internal class P1UiController(initial: TrailAppUiState) : TrailUiController by i
     var connectionRequests = 0
     var resetConfirmations = 0
     var discoveryRetries = 0
+    var discoveryRetryRefusal: BluetoothRecoveryRefusal? = null
 
     override fun observe(observer: ((TrailAppUiState) -> Unit)?) {
         this.observer = observer
@@ -23,7 +24,10 @@ internal class P1UiController(initial: TrailAppUiState) : TrailUiController by i
 
     override fun chooseBluetoothDeviceMode() { connectionRequests++ }
     override fun scanBluetoothDevices() { connectionRequests++ }
-    override fun retryBluetoothDiscovery() { discoveryRetries++ }
+    override fun retryBluetoothDiscovery(): BluetoothRecoveryRefusal? {
+        discoveryRetries++
+        return discoveryRetryRefusal
+    }
     override fun startBluetoothService() { connectionRequests++ }
     override fun requestFactoryResetConfirmation(): Boolean {
         publish((state as TrailAppUiState.BluetoothDevice).copy(factoryResetConfirmationVisible = true))
