@@ -1,4 +1,6 @@
 #include "companion_nimble_gatt.hpp"
+
+#include "companion_gatt_layout.hpp"
 #include "companion_connection_diagnostics.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
@@ -529,6 +531,22 @@ bool ensure_exact_registered_handles() {
         cccd == 0 || cccd == stream) {
         return false;
     }
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+    // Storage keys for CCCDs and the Android cache both depend on this map.
+    const ble_uuid16_t standard_gatt = BLE_UUID16_INIT(0x1801);
+    const ble_uuid16_t service_changed_uuid = BLE_UUID16_INIT(0x2a05);
+    std::uint16_t service_changed = 0;
+    std::uint16_t pairing_feature = 0;
+    if (ble_gatts_find_chr(&standard_gatt.u, &service_changed_uuid.u,
+                           nullptr, &service_changed) != 0 ||
+        ble_gatts_find_dsc(&kServiceUuid.u, &kProtocolInfoUuid.u,
+                           &kPairingResultFeatureUuid.u, &pairing_feature) != 0 ||
+        !companion_gatt_layout::matches_current(service_changed, service, protocol,
+                                                pairing_feature, command, stream,
+                                                cccd, public_link_info)) {
+        return false;
+    }
+#endif
     if (g_adapter->register_handles({protocol, command, stream, cccd}) !=
         CompanionGattAdapterError::none) {
         return false;

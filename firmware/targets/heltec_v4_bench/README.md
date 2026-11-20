@@ -372,6 +372,28 @@ identifier, key or user data. It reports the build's own generation and the
 offset the bootloader ran it from; it does not prove the image is authentic,
 which the Loader checks from the signature before writing.
 
+## Preserving the MeshTrail Bluetooth layout
+
+A bonded phone can retain attribute handles across a board firmware update.
+Treat shipped GAP, GATT and Companion attributes as an ordered layout. Append
+new attributes at the end of the complete database, or use reserved slots, so
+existing handles stay fixed. Appending attributes still requires a reviewed
+cache-change signal for bonded phones to discover them. If an existing handle
+must move, review and host-test the exact old and new layouts, the peer's
+subscription or revision evidence, and secure reconnect before releasing it.
+Enabling Database Hash changes the pinned NimBLE standard GATT layout and
+therefore requires the same review.
+
+I-084 preserves the Companion handles shipped in `0615e22`. A retained bond
+that subscribed to the older Stream value at `0x0014` and enabled standard
+Service Changed receives an indication for `0x000e–0x0018` on its next
+authenticated, encrypted reconnect. A stored current Stream subscription at
+`0x0015` needs no refresh. The NimBLE confirmation suppresses repeated
+indications during that boot while the phone rediscovers and subscribes.
+The protected owner claim still runs before application access. A phone with
+no stored Service Changed subscription cannot receive this indication. Its
+upgrade path remains unverified. Keep both bonds in place for the owner test.
+
 ## Building from a clean checkout
 
 The target's `sdkconfig` is not in Git. In a clean checkout, run
