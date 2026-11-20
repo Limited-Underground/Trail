@@ -62,10 +62,7 @@ public:
     }
 
     // App-owner task only (V1 F5 R2a): the board pairing line on the normal screen.
-    void set_board_pairing(ui::oled_presentation::BoardPairing state) {
-        configuration_dirty_ = configuration_dirty_ || state != board_pairing_;
-        board_pairing_ = state;
-    }
+    void set_board_pairing(ui::oled_presentation::BoardPairing state);
 
 private:
     [[nodiscard]] bool record_failure(const char* step, int error_code);
@@ -77,6 +74,8 @@ private:
     time::OledClockReading configuration_clock_{};
     std::uint16_t configuration_region_{0};
     ui::oled_presentation::BoardPairing board_pairing_{ui::oled_presentation::BoardPairing::none};
+    ui::oled_presentation::BoardPairing last_board_pairing_{ui::oled_presentation::BoardPairing::none};
+    std::int64_t board_pairing_changed_ms_{0};
     std::array<char, 40> firmware_line_{};
     std::size_t firmware_line_bytes_{0};
     bool configuration_dirty_{false};
