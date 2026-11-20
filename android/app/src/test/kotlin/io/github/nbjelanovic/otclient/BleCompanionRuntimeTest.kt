@@ -3213,6 +3213,75 @@ class BleCompanionRuntimeTest {
         fixture.runtime.close()
     }
 
+    @Test fun bluetoothOffDuringScanClosesLeaseAndRejectsLateCandidate() {
+        val f = Fixture()
+        f.runtime.requestScan()
+        val scan = f.facade.scans.single()
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        scan.emit(BleScanEvent.Failed(BleGattFailure.PLATFORM_FAILURE))
+        assertTrue(scan.closed)
+        assertEquals(BleRuntimeFailure.SCAN_START_FAILED, assertIs<BleRuntimeState.Failed>(f.runtime.state).reason)
+        scan.emit(BleScanEvent.Candidate(CANDIDATE))
+        assertIs<BleRuntimeState.Failed>(f.runtime.state)
+        assertTrue(f.facade.connections.isEmpty())
+        f.runtime.close()
+    }
+
+    @Test fun bluetoothOffWhileConnectedReleasesSessionAndCannotReconnectOrAcceptOldEvents() {
+        val scheduler = TestRuntimeScheduler()
+        val f = Fixture(scheduler = scheduler)
+        val gatt = f.readyGatt(71)
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        gatt.emit(BleGattEvent.Disconnected)
+        assertTrue(gatt.closed)
+        assertIs<BleRuntimeState.Reconnecting>(f.runtime.state)
+        scheduler.advanceBy(1_000)
+        assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED), f.runtime.state)
+        assertEquals(1, f.facade.connections.size)
+        gatt.emitStale(BleGattEvent.ProfileReady)
+        assertIs<BleRuntimeState.Blocked>(f.runtime.state)
+        assertFalse(scheduler.hasOpenTimers())
+        f.runtime.close()
+    }
+
+    @Test fun automaticRecoveryOfBlockedSetupWaitsForFreshPermissionAndExplicitScan() {
+        val f = Fixture()
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        f.runtime.requestScan()
+
+        f.facade.preflight = BlePreflight(BleRuntimeBlock.SCAN_PERMISSION_MISSING)
+        f.runtime.refreshBluetoothPreflight()
+        assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.SCAN_PERMISSION_MISSING), f.runtime.state)
+        assertTrue(f.facade.scans.isEmpty())
+
+        f.facade.preflight = BlePreflight()
+        f.runtime.refreshBluetoothPreflight()
+        assertIs<BleRuntimeState.Idle>(f.runtime.state)
+        assertTrue(f.facade.scans.isEmpty())
+        assertTrue(f.facade.returningOwnerScans.isEmpty())
+        f.runtime.requestScan()
+        assertEquals(1, f.facade.scans.size)
+        f.runtime.close()
+    }
+
+    @Test fun pendingFactoryResetReceiptRefusesNormalAutomaticAndManualDiscovery() {
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, TestRuntimeScheduler())
+        facade.preflight = BlePreflight(BleRuntimeBlock.BLUETOOTH_DISABLED)
+        runtime.onLifecycleStart()
+        facade.pendingFactoryResetReceipt = RESET_RECEIPT
+        facade.preflight = BlePreflight()
+
+        runtime.refreshBluetoothPreflight()
+        assertEquals(BluetoothRecoveryRefusal.RESET_PENDING, runtime.retryDiscovery())
+        assertIs<BleRuntimeState.Blocked>(runtime.state)
+        assertEquals(RESET_RECEIPT, facade.pendingFactoryResetReceipt)
+        assertTrue(facade.returningOwnerScans.isEmpty())
+        assertTrue(facade.scans.isEmpty())
+        assertTrue(facade.resetVerificationScans.isEmpty())
+        runtime.close()
+    }
+
     private class Fixture(
         val facade: TestBluetoothFacade = TestBluetoothFacade(),
         scheduler: TestRuntimeScheduler = TestRuntimeScheduler(),

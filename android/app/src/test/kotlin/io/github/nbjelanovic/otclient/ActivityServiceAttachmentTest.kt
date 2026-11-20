@@ -7,6 +7,75 @@ import kotlin.test.*
 /** Real controller/runtime/owner composition; Android binding and GATT I/O are controlled host seams. */
 class ActivityServiceAttachmentTest {
     @Test
+    fun activityReopenRecoversAnExistingOwnerStartedWithBluetoothOff() {
+        for (hasSavedBoard in listOf(false, true)) {
+            val facade = Facade().apply {
+                blocker = BleRuntimeBlock.BLUETOOTH_DISABLED
+                allowReturningOwnerScan = hasSavedBoard
+            }
+            val service = ServiceGraph(facade = facade)
+            val first = service.activity()
+            first.onLifecycleStart()
+            first.chooseBluetoothDeviceMode()
+            first.startBluetoothService()
+            assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED), bluetooth(first).runtimeState)
+            first.onLifecycleStop()
+            first.close()
+            assertTrue(service.running)
+            facade.blocker = null
+
+            // onResume may finish before Android delivers the existing binding callback.
+            val connector = Connector(service).apply { delayed = true }
+            val reopened = service.activity(connector)
+            reopened.onLifecycleStart()
+            reopened.refreshPermissionState()
+            assertEquals(TrailAppUiState.ChooseMode, reopened.state)
+            connector.callbacks.single()(ConnectedDeviceServiceConnection.Connected(service.port))
+
+            val expected = if (hasSavedBoard) BleRuntimeState.FindingReturningOwner else BleRuntimeState.Idle
+            assertEquals(expected, bluetooth(reopened).runtimeState)
+            reopened.refreshPermissionState()
+            assertEquals(expected, service.runtime.state)
+            assertEquals(if (hasSavedBoard) 1 else 0, facade.returningOwnerScans.size)
+            assertTrue(facade.scans.isEmpty())
+            assertTrue(facade.connections.isEmpty())
+            assertEquals(0, service.authorization.claims)
+            assertEquals(1, service.starts)
+            reopened.close()
+            service.owner.close()
+        }
+    }
+
+    @Test
+    fun retryDoesNotUseServicePermissionSampleTakenBeforeBluetoothPreflight() {
+        val permissions = Permissions(NearbyDevicesPermissionState.MISSING)
+        val facade = Facade().apply {
+            blocker = BleRuntimeBlock.BLUETOOTH_DISABLED
+            allowReturningOwnerScan = true
+            atNextPreflight = { permissions.value = NearbyDevicesPermissionState.GRANTED }
+        }
+        // Model permission changing between the service controller's read and platform preflight.
+        val service = ServiceGraph(permissions = permissions, facade = facade)
+        val activity = service.activity()
+        activity.onLifecycleStart()
+        activity.chooseBluetoothDeviceMode()
+        activity.startBluetoothService()
+        assertEquals(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED), bluetooth(activity).runtimeState)
+        assertEquals(NearbyDevicesPermissionState.GRANTED, bluetooth(activity).permissionState)
+        facade.blocker = null
+
+        activity.retryBluetoothDiscovery()
+
+        assertEquals(BleRuntimeState.FindingReturningOwner, bluetooth(activity).runtimeState)
+        assertEquals(1, facade.returningOwnerScans.size)
+        assertTrue(facade.scans.isEmpty())
+        assertTrue(facade.connections.isEmpty())
+        assertEquals(0, service.authorization.claims)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
     fun explicitBluetoothRetryReachesTheOwnerWithoutChangingDiscoveryRoutes() {
         for (returningOwner in listOf(false, true)) {
             val service = ServiceGraph()
@@ -946,10 +1015,12 @@ class ActivityServiceAttachmentTest {
         override fun current() = value
     }
 
-    private class ServiceGraph(generation: Long = 41L) {
-        val permissions = Permissions()
+    private class ServiceGraph(
+        generation: Long = 41L,
+        val permissions: Permissions = Permissions(),
+        val facade: Facade = Facade(),
+    ) {
         val scheduler = Scheduler()
-        val facade = Facade()
         val runtime = BleCompanionRuntime(facade, scheduler)
         val authorization = Authorization()
         val controller = TrailAppController(
@@ -1142,7 +1213,13 @@ class ActivityServiceAttachmentTest {
         val connections = mutableListOf<Gatt>()
         var allowReturningOwnerScan = false
         var blocker: BleRuntimeBlock? = null
-        override fun preflight() = BlePreflight(blocker)
+        var atNextPreflight: (() -> Unit)? = null
+        override fun preflight(): BlePreflight {
+            val change = atNextPreflight
+            atNextPreflight = null
+            change?.invoke()
+            return BlePreflight(blocker)
+        }
         override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease = Scan(observer).also(scans::add)
         override fun createReturningOwnerScan(observer: (BleScanEvent) -> Unit): BleScanLease? =
             if (allowReturningOwnerScan) Scan(observer).also(returningOwnerScans::add) else null

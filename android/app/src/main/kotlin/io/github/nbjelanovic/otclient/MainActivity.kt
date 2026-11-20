@@ -44,9 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -459,6 +462,7 @@ private fun BluetoothDevicePanel(
                 state,
                 controller,
                 requestNearbyPermissions,
+                openAppSettings,
                 openBluetoothSettings,
                 openDeviceSettings,
                 onSetupComplete,
@@ -472,6 +476,7 @@ private fun BluetoothAuthorizedRuntimePanel(
     state: TrailAppUiState.BluetoothDevice,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    openAppSettings: () -> Unit,
     openBluetoothSettings: () -> Unit,
     openDeviceSettings: (BleActiveSession) -> Unit,
     onSetupComplete: (V1OnboardingScope) -> Unit,
@@ -481,6 +486,7 @@ private fun BluetoothAuthorizedRuntimePanel(
             state.runtimeState,
             controller,
             requestNearbyPermissions,
+            openAppSettings,
             openBluetoothSettings,
             openDeviceSettings,
             onSetupComplete,
@@ -518,6 +524,7 @@ private fun BluetoothAuthorizedRuntimePanel(
                 controller,
                 requestNearbyPermissions,
                 openBluetoothSettings,
+                openAppSettings,
                 openDeviceSettings,
                 onSetupComplete,
             )
@@ -575,6 +582,7 @@ private fun BluetoothRuntimePanel(
     state: BleRuntimeState,
     controller: TrailUiController,
     requestNearbyPermissions: () -> Unit,
+    openAppSettings: () -> Unit,
     openBluetoothSettings: () -> Unit,
     openDeviceSettings: (BleActiveSession) -> Unit,
     onSetupComplete: (V1OnboardingScope) -> Unit,
@@ -593,12 +601,36 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Blocked -> {
             StatusCard("Bluetooth unavailable", state.reason.publicText())
-            if (state.reason == BleRuntimeBlock.BLUETOOTH_DISABLED) {
-                Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
-                    Text("Open Bluetooth settings")
+            val disabled = state.reason == BleRuntimeBlock.BLUETOOTH_DISABLED
+            val stateReadDenied = state.reason == BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED
+            if (disabled || stateReadDenied) {
+                var refusal by remember(controller, state.reason) { mutableStateOf<BluetoothRecoveryRefusal?>(null) }
+                if (disabled) {
+                    Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
+                        Text("Open Bluetooth settings")
+                    }
                 }
-                OutlinedButton(onClick = controller::retryBluetoothDiscovery, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { refusal = controller.retryBluetoothDiscovery() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text("Try again")
+                }
+                refusal?.let { problem ->
+                    Text(
+                        problem.publicText(stringResource(R.string.app_name)),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                if (stateReadDenied ||
+                    refusal == BluetoothRecoveryRefusal.PERMISSION_REQUIRED ||
+                    refusal == BluetoothRecoveryRefusal.OWNER_UNAVAILABLE ||
+                    refusal == BluetoothRecoveryRefusal.RESET_PENDING ||
+                    refusal == BluetoothRecoveryRefusal.PLATFORM_BLOCKED
+                ) {
+                    OutlinedButton(onClick = openAppSettings, modifier = Modifier.fillMaxWidth()) {
+                        Text("Open app settings")
+                    }
                 }
             }
             if (
@@ -1167,12 +1199,33 @@ private fun BleRuntimeBlock.publicText(): String = when (this) {
     BleRuntimeBlock.ADAPTER_IMPLEMENTATION_MISSING -> "The Bluetooth adapter is unavailable in this build."
     BleRuntimeBlock.PLATFORM_UNSUPPORTED -> "The real Bluetooth path requires Android 12 or newer."
     BleRuntimeBlock.BLUETOOTH_UNAVAILABLE -> "This phone does not expose the required Bluetooth Low Energy adapter."
-    BleRuntimeBlock.BLUETOOTH_DISABLED -> "Turn on Bluetooth, then scan again."
+    BleRuntimeBlock.BLUETOOTH_DISABLED ->
+        "Turn on Bluetooth. MeshTrail checks again when Bluetooth is ready. You can also tap Try again."
     BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED ->
         "Android refused the Bluetooth state check. Verify Nearby Devices permission, then retry discovery."
     BleRuntimeBlock.SCAN_PERMISSION_MISSING,
     BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
     -> "Nearby Devices permission is required before Bluetooth can continue."
+}
+
+private fun BluetoothRecoveryRefusal.publicText(appName: String): String = when (this) {
+    BluetoothRecoveryRefusal.BLUETOOTH_OFF ->
+        "Bluetooth is still off or turning on. Turn it on in Bluetooth settings and wait for it to finish."
+    BluetoothRecoveryRefusal.PERMISSION_REQUIRED ->
+        "MeshTrail needs Nearby Devices access. Open app settings, tap Permissions, and allow Nearby devices."
+    BluetoothRecoveryRefusal.PERMISSION_PENDING ->
+        "Finish the Nearby Devices request from Android, then return to MeshTrail."
+    BluetoothRecoveryRefusal.OWNER_UNAVAILABLE ->
+        "MeshTrail couldn't reach its Bluetooth service. Open app settings, tap Force stop, then reopen with Bluetooth on."
+    BluetoothRecoveryRefusal.AUTHORIZATION_PENDING ->
+        "An authorization is in progress. Complete the prompt already shown by Android or the board, or wait for the request to end."
+    BluetoothRecoveryRefusal.RESET_PENDING ->
+        "The earlier board reset still needs verification. In Settings, open Apps, choose $appName, and tap Force stop. " +
+            "Reopen with Bluetooth on. If Device asks, tap Start Bluetooth device service to resume the check."
+    BluetoothRecoveryRefusal.PLATFORM_BLOCKED ->
+        "Android still reports Bluetooth unavailable. Check Bluetooth settings and allow Nearby devices in app settings."
+    BluetoothRecoveryRefusal.STATE_CHANGED ->
+        "The Bluetooth screen changed before retry could start. Follow the current instructions on Device."
 }
 
 private fun BleRuntimeFailure.publicText(): String = when (this) {

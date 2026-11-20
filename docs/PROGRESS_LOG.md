@@ -19,6 +19,21 @@ review. Exact host and Link Test receipts are in the maintainer's I-084 report.
 A separately authorized with-bonds upgrade check is required before the F5
 status trial. This change is part of firmware issue #75.
 
+### OT-0170a Recover Bluetooth after adapter enable (I-083)
+
+An attached connected-device service could retain its Bluetooth-off state after
+the Activity reopened. The Activity now asks the admitted owner to recheck
+preflight on both resume and attachment. The active runtime owns an Android
+adapter-on receiver lease and treats broadcasts as hints for a fresh read.
+
+Automatic recovery checks for a saved board or leaves the runtime idle.
+Manual retry keeps the explicit discovery route, reads current permissions and
+explains failures that previously returned silently. Pending authorization and
+board reset stay protected, and the Bluetooth-off handlers still release scans
+and sessions through the existing callbacks. The baseline and final commands
+are retained in the local task report. The incident build and phone outcome
+remain to be verified.
+
 ## 2026-11-18
 
 ### OT-0005i Recover a fresh MeshTrail session after one board restarts
