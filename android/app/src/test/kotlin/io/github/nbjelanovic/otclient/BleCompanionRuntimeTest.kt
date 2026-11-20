@@ -344,6 +344,32 @@ class BleCompanionRuntimeTest {
     }
 
     @Test
+    fun returningOwnerMissingSubscriptionCallbackClosesTheLeaseBeforeClaim() {
+        val scheduler = TestRuntimeScheduler()
+        val facade = TestBluetoothFacade(returningOwnerScanSupported = true)
+        val runtime = BleCompanionRuntime(facade, scheduler)
+        runtime.onLifecycleStart()
+        facade.returningOwnerScans.single().apply {
+            emit(BleScanEvent.Candidate(CANDIDATE))
+            emit(BleScanEvent.Complete)
+        }
+        val gatt = facade.connections.single()
+        gatt.emit(BleGattEvent.ProfileReady)
+        gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(authorizationProtocolInfoBytes(17)))
+        gatt.emit(BleGattEvent.MtuChanged(COMPANION_MINIMUM_ATT_MTU))
+        assertPhase(runtime, BleNegotiationPhase.STREAM_SUBSCRIPTION)
+        assertEquals(1, gatt.streamSubscriptions)
+
+        val deadline = scheduler.nextOpen()
+        assertEquals(NEGOTIATION_STEP_TIMEOUT_MILLIS, deadline.delayMillis)
+        deadline.run()
+        assertTrue(gatt.closed)
+        assertEquals(BleRuntimeFailure.NEGOTIATION_TIMEOUT, assertIs<BleRuntimeState.Failed>(runtime.state).reason)
+        gatt.emitStale(BleGattEvent.StreamIndicationsSubscribed)
+        assertTrue(gatt.commands.isEmpty())
+    }
+
+    @Test
     fun returningOwnerGattFailuresRetainExactIdentityFreeDiagnosticAndExistingPolicy() {
         data class Case(
             val gattFailure: BleGattFailure,
