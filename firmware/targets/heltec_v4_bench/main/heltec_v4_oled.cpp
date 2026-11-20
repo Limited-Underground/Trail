@@ -221,6 +221,27 @@ bool HeltecV4Oled::initialize() {
     return true;
 }
 
+void HeltecV4Oled::set_board_pairing(ui::oled_presentation::BoardPairing state) {
+    using ui::oled_presentation::BoardPairing;
+    constexpr std::int64_t kResultVisibleMs = 60'000;
+    const auto now_ms = esp_timer_get_time() / 1000;
+
+    // F5 closes the successful pairing runtime after it drains. Its absent
+    // observation must not clear or restart the local OLED result's timer.
+    const bool handing_off = state == BoardPairing::none &&
+                             last_board_pairing_ == BoardPairing::paired_here;
+    if (state != last_board_pairing_ && !handing_off) {
+        last_board_pairing_ = state;
+        board_pairing_changed_ms_ = now_ms;
+    }
+    const bool result_recent = now_ms >= board_pairing_changed_ms_ &&
+                               now_ms - board_pairing_changed_ms_ < kResultVisibleMs;
+    const auto shown = (last_board_pairing_ == BoardPairing::in_progress || result_recent)
+        ? last_board_pairing_ : BoardPairing::none;
+    configuration_dirty_ = configuration_dirty_ || shown != board_pairing_;
+    board_pairing_ = shown;
+}
+
 bool HeltecV4Oled::render(const StartupDisplayView& view) {
     if (!initialized_ || panel_ == nullptr) return false;
     std::uint64_t now_ms = 0;

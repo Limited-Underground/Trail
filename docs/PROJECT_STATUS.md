@@ -230,17 +230,17 @@ activation, signing, source publication and merge require separate authority.
 | Field | Current pickup state |
 | --- | --- |
 | Reviewed | 2026-11-20 |
-| Task | OT-0312 — F7 typed text over the retained-pair F5 link (Messaging TASK-5B, D-024). |
-| Owner | Messaging owns the local feat/f7-board-text topic. The I-084 firmware task owns the overlapping Bluetooth files. |
-| Scope | One OTXT send and one received text per arm in the opt-in board Link Test, with runtime MTU checks, authenticated acknowledgement and the existing F5 storage and launch guards. |
-| State | Local Link Test development candidate. F5 PR #284, I-084 PR #287 and the 925.1 MHz bench profile PR #288 are on main. The first F5 trial stopped before the owner claim and both boards were restored to b4c843b. F11 source is merged and remains unwired. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/f7-board-text started from 0615e22221cc1a3a81ea9e51aea77765d60613e0 and integrates main c26d3886a1bd5971cc54a526bfe7019b47480a3f. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | REPORT-5 binds the shared vectors, the retained-session and expiry regressions, the existing F5 gates, the offline matrix and Link Test image evidence to the local candidate. |
-| Blocker | Physical F5 and F7 acceptance remain open. I-084 host and Link Test evidence is available. The retained-bond upgrade check remains open. A board session also needs the compatible restoration route and owner-present authority. |
-| Next action | Review the F7 candidate under firmware issue #75, then qualify the two-board path after the F5 prerequisites. |
-| Restrictions | Local topic and host or Link Test evidence only. Physical testing and publication require separate owner authorization. |
-| Latest record | [OT-0312 Send one typed message between paired MeshTrail boards](PROGRESS_LOG.md#ot-0312-send-one-typed-message-between-paired-meshtrail-boards). See the [F5 record](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts) and [I-084 record](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). Bench profile: [OT-0005i Move the MeshTrail bench to 925.1 MHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz). |
-| Evidence access | Source and host tests are in the branch. D:/LimitedUnderground/Build/codex-messaging-plan/out/REPORT-5.md records the maintainer-local artifacts and command evidence. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
+| Task | OT-0005i — I-087 local board pairing result (firmware issue #232). |
+| Owner | Trail Firmware owns the bench app/OLED and focused panel test scope on the local fix/i087-paired-screen topic. |
+| Scope | Retain the local pairing result across the existing F5 storage and radio handoff. Diagnose existing save timings. Preserve pairing, storage, F5 and protected Bluetooth behavior. |
+| State | Local Heltec Link Test candidate. F5 and F7 exchanged status and typed text on main 3cd0e123 in the November 20 board session. The owner missed the pairing result on both screens. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
+| Source | Topic fix/i087-paired-screen based on Trail main 3cd0e123b4bfcb82bf0d55bed2d726aebf3c9935. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | Source traces the cleared result to pairing-owner closure. The panel regression covers the rendered line through the handoff and restores the normal row at its deadline. The slow-save logs measure whole service calls. |
+| Blocker | The local display fix needs an owner-present board check. Save timing has no per-operation or idle-task trace. |
+| Next action | Review the local fix under firmware issue #232. In a separately approved session, verify the local 60-second row on both boards while F5 proceeds and record save and watchdog timing. |
+| Restrictions | Local commit and host/Link Test evidence only. Preserve boards, release state and remote tracking. |
+| Latest record | [OT-0005i Keep the MeshTrail board pairing result visible](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). See the [F7 record](PROGRESS_LOG.md#ot-0312-send-one-typed-message-between-paired-meshtrail-boards). |
+| Evidence access | Source and panel regression are in the branch. The I-087 report, log references, build artifacts and bundle are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

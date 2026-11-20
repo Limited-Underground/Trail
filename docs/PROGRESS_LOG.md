@@ -17,6 +17,20 @@ still needs its own protected read, indications and exact owner claim. The
 operation log records a fixed failure reason without device identity or read
 content. This local topic advances issue #97. Phone verification remains open.
 
+### OT-0005i Keep the MeshTrail board pairing result visible
+
+I-087 keeps `PAIRED - THIS BOARD` on the normal OLED screen for 60 seconds
+from the local result. The F5 handoff can close its pairing owner and arm
+messaging without clearing the line. A new pairing attempt replaces the old
+result, and reset, failure and region screens keep their existing priority.
+An OLED port regression checks the handoff and exact expiry. Pairing frames,
+durable state, protected phone status and Bluetooth layout are unchanged.
+
+The prior board session recorded multi-step save delays without a watchdog
+warning or reboot. Keep the save and watchdog behavior unchanged until a
+separate trace isolates the delay. The display correction awaits an
+owner-present board check. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff).
+
 ### OT-0005i Prepare US hopping profile and dwell accounting
 
 - **Scope.** Host-only D-140 work based on the PR #289 merge. The fixed
