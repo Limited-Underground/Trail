@@ -232,6 +232,8 @@ interface BleGattLease : BleLease {
 interface AndroidBluetoothFacade {
     fun displayTimeSample(): Pair<UInt,Int> = java.time.LocalTime.now().toSecondOfDay().toUInt() to 2
     fun watchDisplayTimeChanges(callback: () -> Unit): BleReconnectLease? = null
+    /** Adapter-on hint only. The runtime must read current permission and adapter state. */
+    fun watchBluetoothEnabled(callback: () -> Unit): BleReconnectLease? = null
     fun preflight(): BlePreflight
     fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease?
     /** Optional process-restart route; candidates must already be bonded and advertise owned D0 only. */
@@ -459,6 +461,8 @@ class BleCompanionRuntime(
     private var deliveringObserver = false
     private val deferredControlActions = ArrayDeque<DeferredRuntimeControl>()
     private var lifecycleActive = false
+    private var bluetoothPowerWatcher: BleReconnectLease? = null
+    private var bluetoothPowerToken: Any? = null
     private var closed = false
     private var generation = initialGeneration
     private var scanLease: BleScanLease? = null
@@ -577,6 +581,11 @@ class BleCompanionRuntime(
     private fun startNow() {
         if (closed || lifecycleActive) return
         lifecycleActive = true
+        val token = Any()
+        bluetoothPowerToken = token
+        bluetoothPowerWatcher = facade.watchBluetoothEnabled {
+            if (bluetoothPowerToken === token) refreshBluetoothPreflight()
+        }
         val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
             if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
         }
@@ -671,32 +680,71 @@ class BleCompanionRuntime(
             selected = null
         }
         lifecycleActive = false
+        releaseBluetoothPowerWatcher()
         invalidateAndRelease()
         authorizationClaim = null
         publish(BleRuntimeState.Inactive)
     }
 
-    /** Explicit retry on the existing owner, preserving the last discovery route. */
+    private fun releaseBluetoothPowerWatcher() {
+        bluetoothPowerToken = null
+        val watcher = bluetoothPowerWatcher
+        bluetoothPowerWatcher = null
+        watcher?.close()
+    }
+
+    /** Foreground and adapter-on hints only recover an already blocked live owner. */
     @Synchronized
-    fun retryDiscovery() {
+    fun refreshBluetoothPreflight() {
+        recoverBlockedDiscovery(explicit = false)
+    }
+
+    /** An explicit retry preserves the last discovery route and all protection gates. */
+    @Synchronized
+    fun retryDiscovery(): BluetoothRecoveryRefusal? = recoverBlockedDiscovery(explicit = true)
+
+    private fun recoverBlockedDiscovery(explicit: Boolean): BluetoothRecoveryRefusal? {
         requireOwnerThread()
-        if (deliveringObserver || closed || !lifecycleActive || state !is BleRuntimeState.Blocked ||
-            authorizationClaim != null || factoryResetVerificationTarget != null ||
-            facade.loadPendingFactoryResetReceipt() != null
-        ) return
-        if (retryDiscoveryRoute == DiscoveryRoute.ADD_DEVICE) {
-            requestScan()
-            return
+        if (deliveringObserver || closed || !lifecycleActive) return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
+        if (state !is BleRuntimeState.Blocked) return BluetoothRecoveryRefusal.STATE_CHANGED
+        if (authorizationClaim != null || lifecycleAuthorizationFailure != null) {
+            return BluetoothRecoveryRefusal.AUTHORIZATION_PENDING
+        }
+        if (factoryResetVerificationTarget != null || facade.loadPendingFactoryResetReceipt() != null) {
+            return BluetoothRecoveryRefusal.RESET_PENDING
         }
         val preflight = facade.preflight()
-        if (!preflight.isReady) {
-            publish(BleRuntimeState.Blocked(preflight.blocker!!))
-            return
+        preflight.blocker?.let { return publishRecoveryBlock(it) }
+
+        if (retryDiscoveryRoute == DiscoveryRoute.ADD_DEVICE && explicit) {
+            requestScan()
+        } else {
+            selected = null
+            reconnectAttempt = 0
+            invalidateAndRelease()
+            val mayFindSavedBoard = retryDiscoveryRoute == DiscoveryRoute.RETURNING_OWNER &&
+                !facade.requiresFreshSetupAfterVerifiedReset()
+            if (!mayFindSavedBoard || !beginReturningOwnerDiscovery()) {
+                // Recheck if lease creation raced a platform state or permission change.
+                facade.preflight().blocker?.let { return publishRecoveryBlock(it) }
+                publish(BleRuntimeState.Idle)
+            }
         }
-        selected = null
-        reconnectAttempt = 0
-        invalidateAndRelease()
-        beginReturningOwnerDiscoveryOrFail()
+        return (state as? BleRuntimeState.Blocked)?.reason?.let(::recoveryRefusal)
+    }
+
+    private fun publishRecoveryBlock(reason: BleRuntimeBlock): BluetoothRecoveryRefusal {
+        val blocked = BleRuntimeState.Blocked(reason)
+        if (state != blocked) publish(blocked)
+        return recoveryRefusal(reason)
+    }
+
+    private fun recoveryRefusal(reason: BleRuntimeBlock): BluetoothRecoveryRefusal = when (reason) {
+        BleRuntimeBlock.BLUETOOTH_DISABLED -> BluetoothRecoveryRefusal.BLUETOOTH_OFF
+        BleRuntimeBlock.SCAN_PERMISSION_MISSING,
+        BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
+        BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED -> BluetoothRecoveryRefusal.PERMISSION_REQUIRED
+        else -> BluetoothRecoveryRefusal.PLATFORM_BLOCKED
     }
 
     private fun beginReturningOwnerDiscoveryOrFail() {
@@ -1318,6 +1366,7 @@ class BleCompanionRuntime(
         if (closed) return
         closed = true
         lifecycleActive = false
+        releaseBluetoothPowerWatcher()
         selected = null
         factoryResetVerificationTarget = null
         invalidateAndRelease()

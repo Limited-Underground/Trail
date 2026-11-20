@@ -2,6 +2,18 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 
+/** Only public recovery outcomes cross the Activity/service seam. */
+enum class BluetoothRecoveryRefusal {
+    BLUETOOTH_OFF,
+    PERMISSION_REQUIRED,
+    PERMISSION_PENDING,
+    OWNER_UNAVAILABLE,
+    AUTHORIZATION_PENDING,
+    RESET_PENDING,
+    PLATFORM_BLOCKED,
+    STATE_CHANGED,
+}
+
 /** Bounded UI command surface shared by the Activity host and the service-owned controller. */
 interface TrailUiController {
     val state: TrailAppUiState
@@ -21,7 +33,7 @@ interface TrailUiController {
     fun refreshPermissionState()
     fun startBluetoothService()
     fun scanBluetoothDevices()
-    fun retryBluetoothDiscovery() = Unit
+    fun retryBluetoothDiscovery(): BluetoothRecoveryRefusal? = BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
     fun selectBluetoothDevice(endpointToken: String)
     fun disconnectBluetoothDevice()
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
@@ -51,4 +63,5 @@ interface TrailLifecycleController : AutoCloseable {
 /** Service-owned subset; implemented by the production Bluetooth controller, never the Activity host. */
 interface TrailServiceController : TrailUiController, TrailLifecycleController {
     fun setStatusRefreshForeground(foreground: Boolean) = Unit
+    fun refreshBluetoothPreflight() = Unit
 }

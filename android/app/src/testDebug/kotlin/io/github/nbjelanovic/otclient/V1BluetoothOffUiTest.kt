@@ -38,6 +38,65 @@ class V1BluetoothOffUiTest {
         }
     }
 
+    @Test fun refusedRetryShowsPermissionRecoveryAndClearsAfterAdmittedRetry() {
+        val guidance = "MeshTrail needs Nearby Devices access. Open app settings, tap Permissions, and allow Nearby devices."
+        val controller = P1UiController(p1BluetoothState(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED)))
+        controller.discoveryRetryRefusal = BluetoothRecoveryRefusal.PERMISSION_REQUIRED
+        ui.setContent { MaterialTheme { TrailApp(controller) } }
+        ui.mainClock.advanceTimeBy(2_000)
+        ui.onNodeWithText("Device").performClick()
+        ui.onNodeWithText("Try again").performScrollTo().performClick()
+        ui.onNodeWithText(guidance).assertExists()
+        ui.onNodeWithText("Open app settings").performScrollTo().performClick()
+        ui.runOnIdle {
+            val intent = shadowOf(ui.activity).nextStartedActivity
+            assertEquals(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, intent.action)
+            assertEquals(ui.activity.packageName, intent.data?.schemeSpecificPart)
+            assertEquals(1, controller.discoveryRetries)
+            assertEquals(0, controller.connectionRequests)
+            controller.discoveryRetryRefusal = null
+        }
+        ui.onNodeWithText("Try again").performScrollTo().performClick()
+        ui.onNodeWithText(guidance).assertDoesNotExist()
+        ui.onNodeWithText("Open app settings").assertDoesNotExist()
+        ui.runOnIdle { assertEquals(2, controller.discoveryRetries) }
+    }
+
+    @Test fun resetRefusalOffersRecoveryWithoutStartingAnotherScanOrReset() {
+        val controller = P1UiController(p1BluetoothState(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED)))
+        controller.discoveryRetryRefusal = BluetoothRecoveryRefusal.RESET_PENDING
+        ui.setContent { MaterialTheme { TrailApp(controller) } }
+        ui.mainClock.advanceTimeBy(2_000)
+        ui.onNodeWithText("Device").performClick()
+        ui.onNodeWithText("Try again").performScrollTo().performClick()
+        ui.onNodeWithText("The earlier board reset still needs verification.", substring = true).assertExists()
+        val appName = ui.activity.getString(R.string.app_name)
+        ui.onNodeWithText("choose $appName, and tap Force stop", substring = true).assertExists()
+        ui.onNodeWithText("Open app settings").assertExists()
+        ui.onNodeWithText("Scan again").assertDoesNotExist()
+        ui.runOnIdle {
+            assertEquals(1, controller.discoveryRetries)
+            assertEquals(0, controller.connectionRequests)
+            assertEquals(0, controller.resetConfirmations)
+        }
+    }
+
+    @Test fun deniedBluetoothStateReadOffersSettingsAndRetry() {
+        val controller = P1UiController(
+            p1BluetoothState(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED)),
+        )
+        ui.setContent { MaterialTheme { TrailApp(controller) } }
+        ui.mainClock.advanceTimeBy(2_000)
+        ui.onNodeWithText("Device").performClick()
+        ui.onNodeWithText("Open Bluetooth settings").assertDoesNotExist()
+        ui.onNodeWithText("Open app settings").assertExists()
+        ui.onNodeWithText("Try again").performScrollTo().performClick()
+        ui.runOnIdle {
+            assertEquals(1, controller.discoveryRetries)
+            assertEquals(0, controller.connectionRequests)
+        }
+    }
+
     @Test fun unrelatedBlockersDoNotOfferBluetoothSettingsAsARecovery() {
         val controller = P1UiController(p1BluetoothState(BleRuntimeState.Blocked(BleRuntimeBlock.PLATFORM_UNSUPPORTED)))
         ui.setContent { MaterialTheme { TrailApp(controller) } }

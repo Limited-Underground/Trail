@@ -21,6 +21,14 @@ Phone verification remains pending.
 
 ## Android reconnect and status refresh
 
+The local I-083 correction rechecks Bluetooth when MeshTrail returns to the
+foreground, after it reattaches to an existing service and when Android reports
+that Bluetooth is on. Recovery uses the saved-board route or returns to Idle.
+Manual retry rechecks permission and explains any refusal while preserving
+the existing protected authorization and reset checks. See the
+[I-083 host progress entry](PROGRESS_LOG.md#ot-0170a-recover-bluetooth-after-adapter-enable-i-083).
+Phone acceptance remains open.
+
 The local OT-0170a topic lets a visible app attach to an existing owner or
 recover a bonded board through the same protected claim and initial snapshot.
 First-use Nearby Devices permission now follows the Find device tap. The
