@@ -78,14 +78,14 @@ Step 3b reserves the sender's group message numbers durably against the full gro
 
 ## Android operation log and text export
 
-The local A8/A9 topic records app events and typed connection, authorization
-and pairing transitions in a rotating 64 KiB app-private log. Device →
-Help & support → Share operation log (.txt) offers a UTF-8 attachment to
-the owner's email or storage app. It reuses the restricted support attachment
-cache and Android's share sheet. The F11 decoder and privacy-filtered parameter
-projection use host fixtures until protected firmware delivery is integrated.
-Phone sharing and live board readings still need acceptance. See the
-[OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-add-the-android-operation-log-and-text-export).
+The local A8/A9 topic includes the current main Bluetooth recovery and pairing
+changes. The private, rotating 64 KiB operation log uses format 2 for typed
+pairing results, previous results, reasons and recovery events. Device →
+Help & support → Share operation log (.txt) offers a UTF-8 attachment through
+Android's share sheet. The F11 decoder uses host fixtures until protected
+firmware delivery is wired. Email receipt, cloud storage, and live board
+readings still need phone acceptance. See the
+[OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-record-pairing-outcomes-and-bluetooth-recovery).
 
 ## Device parameters for logging
 

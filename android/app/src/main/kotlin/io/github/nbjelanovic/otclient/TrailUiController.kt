@@ -2,6 +2,9 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 
+/** Observation only. A trigger never replaces Bluetooth preflight. */
+enum class BluetoothRecoveryTrigger { BLUETOOTH_TURNED_ON, FOREGROUND_RECHECK }
+
 /** Only public recovery outcomes cross the Activity/service seam. */
 enum class BluetoothRecoveryRefusal {
     BLUETOOTH_OFF,

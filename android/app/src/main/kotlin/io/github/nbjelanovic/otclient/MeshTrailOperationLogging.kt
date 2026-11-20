@@ -2,6 +2,7 @@ package io.github.nbjelanovic.otclient
 
 import android.content.Context
 import android.os.SystemClock
+import io.github.nbjelanovic.otprotocol.CompanionPairingReason
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
@@ -25,6 +26,12 @@ internal class MeshTrailOperationLogging private constructor(context: Context) {
     }
 
     fun appObservation(): MeshTrailLogTransitions = MeshTrailLogTransitions(::record)
+
+    private val recoveryLog = MeshTrailLogTransitions(::record)
+
+    fun recordBluetoothRecovery(trigger: BluetoothRecoveryTrigger) = recoveryLog.observeBluetoothRecovery(trigger)
+
+    fun recordBluetoothRetryRefusal(reason: BluetoothRecoveryRefusal) = recoveryLog.observeBluetoothRetryRefusal(reason)
 
     fun serviceObservation(variant: ConnectedDeviceSessionLifecycleObserver?) =
         object : ConnectedDeviceSessionLifecycleObserver {
@@ -156,7 +163,13 @@ internal class MeshTrailLogTransitions(private val append: (MeshTrailLogKind, St
             authorization?.let { put(MeshTrailLogKind.AUTHORIZATION, it) }
             val pairing = (runtime as? BleRuntimeState.Ready)?.session?.boardPairing
             when (pairing) {
-                null, BoardPairingState.Unknown, is BoardPairingState.Result -> Unit
+                null -> Unit
+                BoardPairingState.Unknown -> put(MeshTrailLogKind.PAIRING, "unknown")
+                is BoardPairingState.Result -> {
+                    put(MeshTrailLogKind.PAIRING, pairingResultLogValue(pairing.result.state, pairing.historical))
+                    val reason = pairing.result.reason
+                    if (reason != CompanionPairingReason.NONE) put(MeshTrailLogKind.PAIRING_RESULT_REASON, reason.name)
+                }
                 BoardPairingState.Available -> put(MeshTrailLogKind.PAIRING, "available")
                 BoardPairingState.Waiting -> put(MeshTrailLogKind.PAIRING, "waiting")
                 is BoardPairingState.Ready -> put(MeshTrailLogKind.PAIRING, "ready")
@@ -167,6 +180,12 @@ internal class MeshTrailLogTransitions(private val append: (MeshTrailLogKind, St
             }
         })
     }
+
+    fun observeBluetoothRecovery(trigger: BluetoothRecoveryTrigger) =
+        append(MeshTrailLogKind.BLUETOOTH_RECOVERY, trigger.name)
+
+    fun observeBluetoothRetryRefusal(reason: BluetoothRecoveryRefusal) =
+        append(MeshTrailLogKind.BLUETOOTH_RETRY_REFUSED, reason.name)
 
     private fun observe(next: Map<MeshTrailLogKind, String>) {
         next.forEach { (kind, value) ->

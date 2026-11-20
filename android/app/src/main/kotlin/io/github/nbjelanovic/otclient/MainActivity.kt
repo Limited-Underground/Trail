@@ -77,16 +77,18 @@ open class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         configureTrailFullscreen(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val operationLog = MeshTrailOperationLogging.from(applicationContext)
         appController = TrailActivityController(
             localController = CompanionAppController(FakeCompanionTransport()),
             permissionReader = AndroidNearbyDevicesPermissionReader(applicationContext),
             notificationPermissionReader = AndroidNotificationPermissionReader(applicationContext),
             serviceConnector = createConnectedDeviceServiceConnector(),
             serviceStartupScheduler = AndroidMainThreadBleRuntimeScheduler(),
+            bluetoothRetryRefusalObserver = operationLog::recordBluetoothRetryRefusal,
         )
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
 
-        MeshTrailOperationLogging.from(applicationContext).appOpened()
+        operationLog.appOpened()
         setContent { TrailTheme { TrailApp(appController) { AdditionalTools() } } }
     }
 

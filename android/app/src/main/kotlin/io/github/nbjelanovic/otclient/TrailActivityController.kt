@@ -13,6 +13,7 @@ class TrailActivityController(
     private val serviceConnector: ConnectedDeviceServiceConnector,
     private val serviceStartupScheduler: BleRuntimeScheduler,
     private val threadVerifier: BleRuntimeThreadVerifier = CreationThreadBleRuntimeVerifier(),
+    private val bluetoothRetryRefusalObserver: (BluetoothRecoveryRefusal) -> Unit = {},
 ) : TrailUiController, TrailLifecycleController {
     override var state: TrailAppUiState = TrailAppUiState.ChooseMode
         private set
@@ -230,6 +231,12 @@ class TrailActivityController(
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
     override fun retryBluetoothDiscovery(): BluetoothRecoveryRefusal? {
         requireOwnerThread()
+        return retryFromCurrentOwner().also { refusal ->
+            if (refusal != null) runCatching { bluetoothRetryRefusalObserver(refusal) }
+        }
+    }
+
+    private fun retryFromCurrentOwner(): BluetoothRecoveryRefusal? {
         if (!canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE) {
             return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
         }

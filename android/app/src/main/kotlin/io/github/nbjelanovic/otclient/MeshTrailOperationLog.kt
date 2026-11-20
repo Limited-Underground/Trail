@@ -1,6 +1,8 @@
 package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionActionRejectReason
+import io.github.nbjelanovic.otprotocol.CompanionPairingReason
+import io.github.nbjelanovic.otprotocol.CompanionPairingState
 import io.github.nbjelanovic.otprotocol.CompanionDeviceParametersCodec
 import io.github.nbjelanovic.otprotocol.DeviceParameterGnssState
 import io.github.nbjelanovic.otprotocol.DeviceParameterPowerSource
@@ -23,6 +25,27 @@ private fun choices(vararg allowed: String): Regex =
 private fun enumChoices(values: Iterable<Enum<*>>): Regex = choices(*values.map { it.name }.toTypedArray())
 private fun metrics(fields: String): Regex = Regex("age_ms=$UNSIGNED $fields")
 
+/** Project only the fixed outcome and its current/previous display status. */
+internal fun pairingResultLogValue(state: CompanionPairingState, historical: Boolean): String {
+    val label = when (state) {
+        CompanionPairingState.NONE -> "unknown"
+        CompanionPairingState.RUNNING -> "running"
+        CompanionPairingState.PAIRED_LOCAL -> "paired locally"
+        CompanionPairingState.PAIRED_BOTH -> "paired on both boards"
+        CompanionPairingState.FAILED -> "failed"
+        CompanionPairingState.CANCELLED -> "cancelled"
+        CompanionPairingState.INCOMPLETE -> "incomplete"
+    }
+    return if (historical) "previous $label" else label
+}
+
+private fun pairingValues(): Regex = choices(
+    "available", "waiting", "ready", "refused",
+    *CompanionPairingState.entries.flatMap { state ->
+        listOf(pairingResultLogValue(state, historical = false), pairingResultLogValue(state, historical = true))
+    }.toTypedArray(),
+)
+
 /** Only these schemas can enter the store or leave it, including when loading from disk. */
 internal enum class MeshTrailLogKind(val label: String, private val shape: Regex) {
     APP("App", choices("opened", "Nearby Devices permission denied")),
@@ -39,12 +62,16 @@ internal enum class MeshTrailLogKind(val label: String, private val shape: Regex
     CONNECTION_PHASE("Connection phase", enumChoices(BleNegotiationPhase.entries)),
     CONNECTION_ERROR("Connection error", enumChoices(BleRuntimeFailure.entries)),
     CONNECTION_DETAIL("Connection detail", enumChoices(BleConnectionDiagnostic.entries)),
+    BLUETOOTH_RECOVERY("Bluetooth recovery", enumChoices(BluetoothRecoveryTrigger.entries)),
+    BLUETOOTH_RETRY_REFUSED("Bluetooth retry refused", enumChoices(BluetoothRecoveryRefusal.entries)),
     AUTHORIZATION("Authorization", choices(
         "starting", "pending", "accepted", "denied", "invalid result",
         "expired", "unavailable", "unsupported", "unknown",
     )),
-    PAIRING("Board pairing", choices("available", "waiting", "ready", "refused")),
+    PAIRING("Board pairing", pairingValues()),
     PAIRING_REFUSED("Board pairing refused", enumChoices(CompanionActionRejectReason.entries)),
+    PAIRING_RESULT_REASON("Board pairing result reason",
+        enumChoices(CompanionPairingReason.entries.filter { it != CompanionPairingReason.NONE })),
     PARAMETERS("Device parameters", Regex(
         "invalid record|sequence=$UNSIGNED age_ms=$UNSIGNED uptime_ms=(0|[1-9][0-9]{0,19})",
     )),
@@ -137,7 +164,7 @@ internal class MeshTrailOperationLog(
         val segments = listOf(readSegment(previous), readSegment(current))
         return buildString {
             appendLine("MeshTrail operation log")
-            appendLine("Log format 1")
+            appendLine("Log format 2")
             appendLine("Times are seconds since logging started and may restart when the app restarts.")
             if (segments.any { it.corrupt }) appendLine("Some entries were unreadable.")
             if (segments.all { it.rows.isEmpty() }) appendLine("No events recorded yet.")

@@ -40,9 +40,9 @@ class MeshTrailOperationLogTest {
 
     @Test fun textIsUtf8WithoutBomOrJsonAndEmptyLogHasAPlainExplanation() {
         val log = MeshTrailOperationLog(temp.newFolder())
-        assertEquals("MeshTrail operation log\nLog format 1\nTimes are seconds since logging started and may restart when the app restarts.\nNo events recorded yet.\n", log.exportText())
+        assertEquals("MeshTrail operation log\nLog format 2\nTimes are seconds since logging started and may restart when the app restarts.\nNo events recorded yet.\n", log.exportText())
         assertTrue(log.append(1, MeshTrailLogKind.APP, "opened"))
-        val expected = "MeshTrail operation log\nLog format 1\nTimes are seconds since logging started and may restart when the app restarts.\n+1s  App: opened\n"
+        val expected = "MeshTrail operation log\nLog format 2\nTimes are seconds since logging started and may restart when the app restarts.\n+1s  App: opened\n"
         assertTrue(expected.toByteArray(Charsets.UTF_8).contentEquals(log.exportText().toByteArray(Charsets.UTF_8)))
     }
 
@@ -61,12 +61,56 @@ class MeshTrailOperationLogTest {
         assertTrue(log.exportText().endsWith("+12s  App: opened\n"))
     }
 
+    @Test fun forbiddenDataCannotBecomeAnOperationRowEvenWithAValidChecksum() {
+        val directory = temp.newFolder()
+        val log = MeshTrailOperationLog(directory)
+        val forbidden = listOf(
+            "key=fictional-private-key", "passkey=928473", "pairing-code=490261",
+            "confirmation-code=583704", "nonce=8383629", "lease=716321", "request=20831",
+            "device-id=board-227", "peer-id=peer-918", "group-id=group-827",
+            "address=02:11:22:33:44:55", "endpoint=endpoint-328",
+            "device-name=Fictional North Board", "setup-label=setup-984",
+            "membership=fictional-member", "message=fictional message text",
+            "support-note=fictional free text", "latitude=48.095678 longitude=-122.582392",
+            "model=fictional phone X", "phone-id=fictional handset number",
+            "wall-time=2031-03-22T10:11:12Z", "raw-rf=ABCD9917", "raw-ble=FE122133",
+            "exception=fictional exception text", "stack=fictional.stack.trace",
+            "firmware-version=fictional-private-version",
+        )
+        for (value in forbidden) {
+            assertFalse(log.append(8, MeshTrailLogKind.APP, value))
+            assertFalse(log.append(8, MeshTrailLogKind.BLUETOOTH_RECOVERY, "BLUETOOTH_TURNED_ON $value"))
+            assertFalse(log.append(8, MeshTrailLogKind.BLUETOOTH_RETRY_REFUSED, "PERMISSION_REQUIRED $value"))
+        }
+        assertTrue(directory.listFiles()!!.isEmpty())
+
+        // A valid checksum protects integrity, while the closed grammar controls disclosure.
+        File(directory, "current.log").writeText(forbidden.joinToString("") { value ->
+            val row = "8\tAPP\t$value"
+            val checksum = java.util.zip.CRC32().apply { update(row.toByteArray(Charsets.UTF_8)) }
+            "$row\t${checksum.value.toString(16).padStart(8, '0')}\n"
+        })
+        val text = log.exportText()
+        assertTrue(text.contains("Some entries were unreadable."))
+        assertTrue(text.contains("No events recorded yet."))
+        forbidden.forEach { assertFalse(text.contains(it)) }
+    }
+
+    @Test fun format2ExportReadsAnExistingFormat1Record() {
+        val directory = temp.newFolder()
+        File(directory, "current.log").writeText("13\tPAIRING\tready\t74dd1b30\n")
+        val text = MeshTrailOperationLog(directory).exportText()
+        assertTrue(text.contains("Log format 2\n"))
+        assertTrue(text.endsWith("+13s  Board pairing: ready\n"))
+        assertFalse(text.contains("Some entries were unreadable."))
+    }
+
     @Test fun malformedDeviceRecordRecordsOnlyAFixedRefusal() {
         val directory = temp.newFolder()
         val log = MeshTrailOperationLog(directory)
         val input = "TEST secret pair 123456 at 1.234 2.345".toByteArray()
         assertFalse(log.recordDeviceParameters(3, input))
-        assertEquals("MeshTrail operation log\nLog format 1\nTimes are seconds since logging started and may restart when the app restarts.\n+3s  Device parameters: invalid record\n", log.exportText())
+        assertEquals("MeshTrail operation log\nLog format 2\nTimes are seconds since logging started and may restart when the app restarts.\n+3s  Device parameters: invalid record\n", log.exportText())
         assertFalse(directory.listFiles()!!.single().readText().contains("123456"))
     }
 

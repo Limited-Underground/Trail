@@ -2,6 +2,21 @@
 
 ## 2026-11-19
 
+### OT-0177a Record pairing outcomes and Bluetooth recovery
+
+The A8/A9 topic merges main through PR #285 and retains both dated histories.
+Format 2 adds fixed pairing result labels, previous outcomes, and typed reasons
+without the board identity used on screen. The active runtime records the
+adapter-on signal and foreground recheck at their own entry points. The
+Activity records typed retry refusals. The existing store can read older rows.
+Successful retry and retired callbacks do not create refusal rows.
+
+The UTF-8 share attachment still uses the existing private cache and chooser.
+Host decoding and privacy projection cover the F11 fixture. Live board delivery,
+actual email receipt and storage-link sharing remain open. The local report
+records the fail-before and final tests, both lint variants and the comparison
+against unchanged main's Compose fixture failures.
+
 ### OT-0170a Recover Bluetooth after adapter enable (I-083)
 
 An attached connected-device service could retain its Bluetooth-off state after
