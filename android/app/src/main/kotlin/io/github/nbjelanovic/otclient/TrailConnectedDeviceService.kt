@@ -166,7 +166,7 @@ class TrailConnectedDeviceService : Service() {
             CONNECTED_DEVICE_NOTIFICATION_CHANNEL_NAME,
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Shows that the user-started Bluetooth device service is running."
+            description = "Shows when MeshTrail is running in the background."
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)

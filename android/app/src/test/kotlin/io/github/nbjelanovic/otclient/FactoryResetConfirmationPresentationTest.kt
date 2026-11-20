@@ -28,9 +28,9 @@ class FactoryResetConfirmationPresentationTest {
     }
 
     @Test fun describesTheBoardsDataAndExplicitlyExcludesThePhoneAndOtherBoards() {
-        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("this board's phone pairing"))
-        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("does not erase your phone or other boards"))
-        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("Firmware and factory hardware data remain"))
-        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("cannot be undone"))
+        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("the device's phone pairing"))
+        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("Your phone and other devices keep their data"))
+        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("The device software and factory data stay"))
+        assertTrue(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT.contains("can't undo this"))
     }
 }

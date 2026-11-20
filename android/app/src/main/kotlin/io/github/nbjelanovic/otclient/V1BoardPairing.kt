@@ -63,7 +63,7 @@ internal fun boardPairingResultText(result: CompanionPairingResult): Pair<String
             "Saved on this board. Check the result on the other board."
         CompanionPairingState.PAIRED_BOTH -> "Both boards paired" to "Paired with board $peer"
         CompanionPairingState.INCOMPLETE -> "Pairing incomplete." to
-            "On both phones, tap Resume pairing. Use Start pairing on the phone that started it before, and Join pairing on the other with the same new code."
+            "Tap Resume pairing on both phones.\nTap Start pairing on the phone that started it before.\nTap Join pairing on the other phone and enter the same new code."
         CompanionPairingState.CANCELLED -> "Pairing was cancelled." to
             "The phone disconnected before pairing finished."
         CompanionPairingState.FAILED -> when (result.reason) {
@@ -77,7 +77,7 @@ internal fun boardPairingResultText(result: CompanionPairingResult): Pair<String
             else -> "Pairing couldn't finish." to "Check the messages on both boards."
         }
         CompanionPairingState.RUNNING -> "Pairing in progress." to
-            "Compare the IDs and confirm on both MeshTrail boards."
+            "Compare the codes on both devices before confirming."
         CompanionPairingState.NONE -> "Pairing result unavailable." to "Check your MeshTrail board screen."
     }
 }
@@ -127,7 +127,7 @@ internal fun V1BoardPairingPanel(
         }
         is BoardPairingState.Ready -> {
             if (remaining > 0) {
-                Text("Your board is ready to pair. Keep both boards close, then compare the long codes on the board screens and press the button on each.")
+                Text("Keep the devices close.\nCompare the long codes on both screens.\nPress each device's button if the codes match.")
                 val seconds = (remaining + 999) / 1000
                 Text("Pairing window: ${seconds / 60}:${(seconds % 60).toString().padStart(2, '0')} left")
                 return
@@ -152,7 +152,7 @@ internal fun V1BoardPairingPanel(
         }
     }
 
-    if (sendFailed) Text("Couldn't send the pairing request. Check the connection and try again.")
+    if (sendFailed) Text("Couldn't send the pairing request.\nCheck the connection and try again.")
     when (val selectedRole = role) {
         null -> {
             OutlinedButton(onClick = {
@@ -168,7 +168,7 @@ internal fun V1BoardPairingPanel(
         else -> {
             if (selectedRole == CompanionEnrollmentRole.INITIATOR) {
                 Text(codeText, style = MaterialTheme.typography.displaySmall)
-                Text("On the other phone, tap Join pairing and enter this code. Then tap Send to my board.")
+                Text("Tap Join pairing on the other phone and enter this code.\nThen tap Send to my board.")
             } else {
                 OutlinedTextField(
                     value = codeText,

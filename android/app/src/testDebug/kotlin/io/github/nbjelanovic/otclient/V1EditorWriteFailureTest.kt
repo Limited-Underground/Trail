@@ -50,7 +50,7 @@ class V1EditorWriteFailureTest {
     )
 
     private fun assertUncertainSave() = ui.onNodeWithText(
-        "Save could not be confirmed. Your draft is still here; saved state is uncertain.",
+        "Your draft is still here because MeshTrail couldn’t confirm the save.",
     ).assertExists()
 
     /** Identical real blocked-parent mechanism to the accepted storage test, within this fixture only. */
@@ -93,7 +93,7 @@ class V1EditorWriteFailureTest {
         ui.onNodeWithText("Save quick message").performClick()
         assertDraft("")
         ui.onNodeWithContentDescription("Edit quick message 1").assertExists()
-        ui.onNodeWithText("Save could not be confirmed.", substring = true).assertDoesNotExist()
+        ui.onNodeWithText("Your draft is still here because MeshTrail couldn’t confirm the save.").assertDoesNotExist()
         assertEquals(mapOf("template-0" to "Uncertain new template"), durableValues())
     }
 
@@ -147,7 +147,7 @@ class V1EditorWriteFailureTest {
         check(preferences.edit().putInt("template-0", 7).commit())
         val originalXml = preferenceFile.readBytes()
         show()
-        ui.onNodeWithText("Saved quick messages could not be read. Editing is unavailable.").assertExists()
+        ui.onNodeWithText("MeshTrail couldn’t read your saved quick messages.").assertExists()
         // Disabled fields intentionally expose no SetText action; locate the field by its label.
         ui.onNodeWithText("Your quick message").assertIsNotEnabled()
         ui.onNodeWithText("Save quick message").assertIsNotEnabled()

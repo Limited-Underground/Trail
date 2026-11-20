@@ -14,11 +14,11 @@ data class V1TextState(
 }
 
 object V1TextComposer {
-    const val AUTHORITY_UNAVAILABLE = "Text requires a current authenticated recipient. Production messaging remains disabled."
+    const val AUTHORITY_UNAVAILABLE = "This connection can't send text messages yet."
     fun refusal(text: String): String? = when {
         text.isEmpty() -> "Enter a message before sending."
-        text.any { it.isSurrogate() } && !validScalars(text) -> "Message contains invalid Unicode text."
-        OtxtPayloadCodec.encode(text) == null -> "Message exceeds 90 UTF-8 bytes; it was not truncated."
+        text.any { it.isSurrogate() } && !validScalars(text) -> "This message contains text MeshTrail can't read."
+        OtxtPayloadCodec.encode(text) == null -> "Shorten your message before sending."
         else -> null
     }
     private fun validScalars(text: String): Boolean = try {
@@ -26,21 +26,21 @@ object V1TextComposer {
             .encode(java.nio.CharBuffer.wrap(text)); true
     } catch (_: java.nio.charset.CharacterCodingException) { false }
     fun reason(code: Int): String = when (code) {
-        1 -> "Malformed message"
-        2 -> "Message exceeds the supported byte limit"
-        3 -> "Authenticated recipient changed"
-        4 -> "Current authority unavailable"
-        5 -> "Stale session or command"
-        6 -> "Replay or duplicate refused"
-        7 -> "Unsupported message version"
-        8 -> "Unsupported operation"
+        1 -> "Your device couldn't read the message."
+        2 -> "This message is too long for your device."
+        3 -> "The receiving device changed before sending."
+        4 -> "Your device isn't ready to send to this person."
+        5 -> "The connection changed before sending."
+        6 -> "Your device refused a repeated send."
+        7 -> "Your device doesn't recognize this kind of message."
+        8 -> "Your device doesn't support this action."
         9 -> "Device is busy"
-        10 -> "Device storage refused the operation"
-        11 -> "Device radio I/O failed"
-        12 -> "Operation interrupted"
-        13 -> "Session expired"
-        14 -> "Invalid session context"
-        15 -> "Session counter exhausted"
+        10 -> "Your device couldn't save the details needed to send."
+        11 -> "Your device couldn't send over the radio."
+        12 -> "Sending was interrupted."
+        13 -> "The connection timed out."
+        14 -> "Your device couldn't verify this connection."
+        15 -> "Reconnect before sending more messages."
         else -> ""
     }
 }

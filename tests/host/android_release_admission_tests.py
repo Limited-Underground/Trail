@@ -464,9 +464,10 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         "encoded.size <= V1SetupDraftCodec.MAX_BYTES",
         "Base64.encodeToString(encoded, Base64.NO_WRAP)).commit()",
         'preferences.edit().remove("draft").commit()',
-        "Not applied to device",
+        "Saving this choice won't change your device.",
+        "Setup choices saved on this phone only.",
     ):
-        assert required in draft
+        assert required in draft, required
     draft_model = production_by_path[package / "V1SetupDraft.kt"]
     fields = re.search(r"class V1SetupDraft private constructor\((.*?)\n\)", draft_model, re.DOTALL)
     assert fields is not None
@@ -624,7 +625,7 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
         / "ConnectedDeviceServiceContract.kt"
     ).read_text(encoding="utf-8")
     assert (
-        'CONNECTED_DEVICE_NOTIFICATION_TEXT = "Bluetooth device connection service is running"'
+        'CONNECTED_DEVICE_NOTIFICATION_TEXT = "MeshTrail is running in the background."'
         in notification_contract
     )
 

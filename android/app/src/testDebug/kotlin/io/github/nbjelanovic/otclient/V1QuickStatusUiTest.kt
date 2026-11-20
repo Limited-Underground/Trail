@@ -40,7 +40,7 @@ class V1QuickStatusUiTest {
             onSubmitQuickStatus={r,s->calls.add(r to s);false}) } }
         ui.onAllNodesWithText("Send: Need assistance")[1].performScrollTo().performClick()
         ui.runOnIdle { assertEquals(listOf(recipient to CompanionQuickStatus.NEED_ASSISTANCE),calls) }
-        ui.onNodeWithText("Request refused or outcome uncertain. Check device evidence; do not resend automatically.").assertExists()
+        ui.onNodeWithText("Check whether your status arrived before sending it again.").assertExists()
         assertEquals("Need assistance",prefs.getString("template-0",null))
     }
     @Test fun receivedAndDeliveryEvidenceStayCurrentAndQueueIsNeverAck() {
@@ -48,7 +48,7 @@ class V1QuickStatusUiTest {
         val state=mutableStateOf(V1QuickStatusState(recipient,CompanionQuickStatus.OK,BlePacketDeliveryPhase.QUEUE_ACCEPTED))
         ui.setContent { MaterialTheme { V1MessagesScreen("Device connected",{},quickStatus=state.value) } }
         ui.onNodeWithText("Received status: I'm OK").assertExists()
-        ui.onNodeWithText("Queued on device; delivery not confirmed").assertExists()
+        ui.onNodeWithText("Your device is waiting to send it.").assertExists()
         ui.onAllNodesWithText(V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.PROTECTED_PEER_ACK)).assertCountEquals(0)
         ui.runOnIdle { state.value=V1QuickStatusState(null,CompanionQuickStatus.OK,BlePacketDeliveryPhase.PROTECTED_PEER_ACK) }
         ui.onAllNodesWithText("Received status: I'm OK").assertCountEquals(0)
@@ -68,23 +68,23 @@ class V1QuickStatusUiTest {
         ui.onNodeWithText("Write a message").performScrollTo().performTextInput("Café 界")
         ui.onNodeWithText("Send text").performScrollTo().performClick()
         ui.runOnIdle { assertEquals("Café 界",h.command().text) }
-        ui.onNodeWithText("Text delivery: Awaiting device acceptance").assertExists()
+        ui.onNodeWithText("Message status: Waiting for your device to accept it.").assertExists()
         ui.runOnIdle {
             val r=h.command()
             h.emit(io.github.nbjelanovic.otprotocol.CompanionTextResult(r.reference,r.exchange,r.operation,1,0,100uL,4097u,1uL))
         }
-        ui.onNodeWithText("Text delivery: Queued on device; delivery not confirmed").assertExists()
+        ui.onNodeWithText("Message status: Your device is waiting to send it.").assertExists()
         ui.runOnIdle {
             val r=h.command()
             h.emit(io.github.nbjelanovic.otprotocol.CompanionTextDelivery(r.reference,1u,r.exchange,r.operation,100uL,4097u,1uL,2,0))
         }
-        ui.onNodeWithText("Text delivery: Transmission complete; peer receipt not confirmed").assertExists()
+        ui.onNodeWithText("Message status: Your device sent it and hasn't confirmed delivery.").assertExists()
         ui.runOnIdle {
             val r=h.command()
             h.emit(io.github.nbjelanovic.otprotocol.CompanionTextDelivery(r.reference,2u,r.exchange,r.operation,100uL,4097u,1uL,3,0))
             h.emit(io.github.nbjelanovic.otprotocol.CompanionTextReceived(r.reference,3u,4098u,2uL,"real host event"))
         }
-        ui.onNodeWithText("Text delivery: " + V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.PROTECTED_PEER_ACK)).assertExists()
+        ui.onNodeWithText("Message status: " + V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.PROTECTED_PEER_ACK)).assertExists()
         ui.onNodeWithText("Received text: real host event").assertExists()
         ui.onNodeWithText("Send: Free text fixture").performScrollTo().performClick()
         ui.runOnIdle {
@@ -102,7 +102,7 @@ class V1QuickStatusUiTest {
         ui.onNodeWithText("Send: $tooLong").performScrollTo().assertIsNotEnabled()
         ui.onNodeWithText("Write a message").performScrollTo().performTextInput("界".repeat(30)+"x")
         ui.onNodeWithText("Send text").performScrollTo().assertIsNotEnabled()
-        ui.onAllNodesWithText("Message exceeds 90 UTF-8 bytes; it was not truncated.").assertCountEquals(2)
+        ui.onAllNodesWithText("Shorten your message before sending.").assertCountEquals(2)
         ui.runOnIdle { assertEquals(0,calls);assertEquals(tooLong,prefs.getString("template-0",null)) }
     }
 }

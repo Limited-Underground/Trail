@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.nbjelanovic.otprotocol.CompanionActionDisposition
 import io.github.nbjelanovic.otprotocol.CompanionActionKind
+import io.github.nbjelanovic.otprotocol.CompanionActionRejectReason
 import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 import io.github.nbjelanovic.otprotocol.CompanionActionResult
 import io.github.nbjelanovic.otprotocol.CompanionQuickStatus
@@ -174,7 +175,6 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     }
     val findBluetoothDevice = {
         controller.chooseBluetoothDeviceMode()
-        requestNearbyPermissions()
     }
     val openAppSettings = {
         context.startActivity(
@@ -244,11 +244,12 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
           if (state == TrailAppUiState.ChooseMode) {
             V1OnboardingScreen(
                 state = V1OnboardingScreenState(statusMessage =
-                    "Connect below to read your device name and radio-region settings."),
+                    "Connect to see your device name and radio region."),
                 onAction = { action ->
                     if (action == V1OnboardingUiAction.Back) onSetUpLater()
                 },
                 footer = appSettings,
+                showStepNumber = false,
                 connectionContent = {
                     Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Find device")
@@ -262,8 +263,8 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
           ) {
             when (val current = state) {
                 TrailAppUiState.ChooseMode -> {
-                    Text("Connect your Trail device", style = MaterialTheme.typography.titleLarge)
-                    Text("Turn on your device and keep it nearby. Android will ask for Nearby Devices permission when needed.")
+                    Text("Connect your MeshTrail device", style = MaterialTheme.typography.titleLarge)
+                    Text("Turn on your device and keep it nearby.\nAllow Nearby devices access when Android asks.")
                     Button(onClick = findBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                         Text("Connect device")
                     }
@@ -393,15 +394,15 @@ private fun BluetoothDevicePanel(
     openDeviceSettings: (BleActiveSession) -> Unit,
     onSetupComplete: (V1OnboardingScope) -> Unit,
 ) {
-    Text("Bluetooth device mode · no local fallback", style = MaterialTheme.typography.bodySmall)
+    Text("Bluetooth", style = MaterialTheme.typography.bodySmall)
     when {
         state.permissionState == NearbyDevicesPermissionState.UNSUPPORTED -> StatusCard(
-            "Bluetooth mode unavailable",
-            "The real companion path requires Android 12 or newer.",
+            "Bluetooth unavailable",
+            "Bluetooth needs Android 12 or newer.",
         )
         state.permissionRequestInFlight -> StatusCard(
             "Nearby Devices permission",
-            "Waiting for Android's permission decision. No scan has started.",
+            "Allow Nearby devices access in the Android prompt.",
         )
         state.permissionState == NearbyDevicesPermissionState.MISSING -> {
             val settingsOnly = nearbyDenial == NearbyPermissionDenial.SETTINGS_ONLY
@@ -409,7 +410,7 @@ private fun BluetoothDevicePanel(
             StatusCard(
                 if (denied) "Nearby devices access is off" else "Allow nearby devices",
                 if (settingsOnly) "Open app settings, tap Permissions, and allow Nearby devices."
-                else "Trail needs Nearby devices access to find and connect to your board.",
+                else "MeshTrail needs Nearby devices access to find your device.",
             )
             if (!settingsOnly) {
                 Button(onClick = requestNearbyPermissions, modifier = Modifier.fillMaxWidth()) {
@@ -422,32 +423,30 @@ private fun BluetoothDevicePanel(
         }
         state.serviceState == ConnectedDeviceServiceUiState.START_REQUIRED -> {
             StatusCard(
-                "Bluetooth service ready to start",
-                "Start the connected-device service from this visible screen. It owns at most one Bluetooth session " +
-                    "while running; you or Android may stop it, and no device connection or claim starts automatically.",
+                "Stay connected",
+                "Let MeshTrail stay connected while you use other apps.",
             )
             if (state.notificationPermissionState == NotificationPermissionState.DENIED) {
                 StatusCard(
-                    "Notification visibility is reduced",
-                    "Android can still run the foreground service and shows its disclosure in Task Manager, but " +
-                        "the service notification may not appear in the notification drawer.",
+                    "Notifications are off",
+                    "Allow notifications to see when MeshTrail is running.",
                 )
                 OutlinedButton(onClick = requestNotificationPermission, modifier = Modifier.fillMaxWidth()) {
-                    Text("Allow service notifications")
+                    Text("Allow notifications")
                 }
             }
             Button(onClick = controller::startBluetoothService, modifier = Modifier.fillMaxWidth()) {
-                Text("Start Bluetooth device service")
+                Text("Turn on background connection")
             }
         }
         state.serviceState == ConnectedDeviceServiceUiState.STARTING -> StatusCard(
-            "Starting Bluetooth service",
-            "Android is starting the user-requested connected-device service. No device claim is retried automatically.",
+            "Turning on Bluetooth connection",
+            "MeshTrail is getting Bluetooth ready.",
         )
         state.serviceState == ConnectedDeviceServiceUiState.START_FAILED -> {
-            StatusCard("Bluetooth service unavailable", state.serviceFailure.publicText())
+            StatusCard("Couldn't start Bluetooth connection", state.serviceFailure.publicText())
             Button(onClick = controller::startBluetoothService, modifier = Modifier.fillMaxWidth()) {
-                Text("Try starting service again")
+                Text("Try again")
             }
         }
         else -> {
@@ -455,12 +454,11 @@ private fun BluetoothDevicePanel(
                 state.notificationPermissionState == NotificationPermissionState.DENIED
             ) {
                 StatusCard(
-                    "Service running · reduced notification visibility",
-                    "Notification permission is not granted. Android still discloses the foreground service in Task " +
-                        "Manager, but its notification may be absent from the notification drawer.",
+                    "Bluetooth notifications are off",
+                    "Allow notifications to see when MeshTrail is running.",
                 )
                 OutlinedButton(onClick = requestNotificationPermission, modifier = Modifier.fillMaxWidth()) {
-                    Text("Allow service notifications")
+                    Text("Allow notifications")
                 }
             }
             BluetoothAuthorizedRuntimePanel(
@@ -520,51 +518,47 @@ private fun BluetoothAuthorizedRuntimePanel(
         }
         is DeviceAuthorizationUiState.Accepted -> {
             StatusCard(
-                "Device reported request accepted",
-                "The exact protected device response reported this one claim accepted. Normal use still awaits the " +
-                    "exact initial device snapshot/session gate; this host-tested build is not physical-device evidence.",
+                "Phone approved",
+                "Your device approved this phone.",
             )
             BluetoothRuntimePanel(
-                state.runtimeState,
-                controller,
-                requestNearbyPermissions,
-                openBluetoothSettings,
-                openAppSettings,
-                openDeviceSettings,
-                onSetupComplete,
+                state = state.runtimeState,
+                controller = controller,
+                requestNearbyPermissions = requestNearbyPermissions,
+                openAppSettings = openAppSettings,
+                openBluetoothSettings = openBluetoothSettings,
+                openDeviceSettings = openDeviceSettings,
+                onSetupComplete = onSetupComplete,
             )
         }
         is DeviceAuthorizationUiState.Denied -> AuthorizationEndedPanel(
-            "Device reported request denied",
-            "The authoritative denial ended this request; no normal authorized companion session was established.",
+            "Phone refused",
+            "Your device refused to connect to this phone.",
             controller,
         )
         is DeviceAuthorizationUiState.InvalidResult -> AuthorizationEndedPanel(
-            "Authorization result rejected",
+            "Device reply not accepted",
             INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT,
             controller,
         )
         is DeviceAuthorizationUiState.Expired -> AuthorizationEndedPanel(
-            "Authorization request expired",
+            "Phone request timed out",
             EXPIRED_AUTHORIZATION_PUBLIC_TEXT,
             controller,
         )
         is DeviceAuthorizationUiState.Unavailable -> AuthorizationEndedPanel(
-            "Authorization request unavailable",
-            "No authorization claim or result is available. No normal authorized companion session was established, " +
-                "and this app did not establish device authority.",
+            "Couldn't request phone approval",
+            "MeshTrail couldn't ask your device to approve this phone.",
             controller,
         )
         is DeviceAuthorizationUiState.Unsupported -> AuthorizationEndedPanel(
-            "Authorization not supported",
-            "This device did not expose the accepted protected authorization contract. The app did not " +
-                "fall back to local test mode or establish device authority.",
+            "Phone setup unavailable",
+            "Your device's software doesn't support this phone setup.",
             controller,
         )
         is DeviceAuthorizationUiState.AuthorityUnknown -> AuthorizationEndedPanel(
-            "Authorization result unknown",
-            "The protected connection ended after the device reported the request pending. Device authority " +
-                "may have changed; reconnect and check the physical device before retrying.",
+            "Phone approval not confirmed",
+            "The connection dropped before your device answered.\nCheck your device before trying again.",
             controller,
         )
     }
@@ -595,10 +589,10 @@ private fun BluetoothRuntimePanel(
     when (state) {
         BleRuntimeState.Inactive -> StatusCard(
             "Bluetooth paused",
-            "The app lifecycle is stopped. No scan or connection lease is retained.",
+            "MeshTrail isn't using Bluetooth right now.",
         )
         BleRuntimeState.Idle -> {
-            StatusCard("Bluetooth disconnected", "No Bluetooth companion session is active.")
+            StatusCard("Bluetooth disconnected", "No device is connected.")
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan for compatible devices")
             }
@@ -650,7 +644,7 @@ private fun BluetoothRuntimePanel(
         is BleRuntimeState.Scanning -> {
             StatusCard(
                 "Scanning",
-                "Only devices in their active unowned pairing window are listed.",
+                "Only devices ready to pair are shown.",
             )
             if (state.candidates.isEmpty()) Text("No compatible device found yet.")
             BluetoothCandidateList(state.candidates, controller)
@@ -663,9 +657,9 @@ private fun BluetoothRuntimePanel(
             StatusCard(
                 "Scan complete",
                 if (state.candidates.isEmpty()) {
-                    "No compatible MeshTrail device was found. Restart an unowned or reset device if its PIN is not showing, then scan again."
+                    "No MeshTrail device was found.\nRestart a device ready for setup if its code is missing, then scan again."
                 } else {
-                    "The scan ended. Choose a compatible device found during this scan, or scan again."
+                    "Choose a device or scan again."
                 },
             )
             BluetoothCandidateList(state.candidates, controller)
@@ -676,8 +670,8 @@ private fun BluetoothRuntimePanel(
         }
         BleRuntimeState.FindingReturningOwner -> {
             StatusCard(
-                "Checking for authorized device",
-                "Looking for exactly one nearby device already authorized by this phone. No PIN or new pairing is requested.",
+                "Finding your saved device",
+                "Looking for your saved device nearby.",
             )
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Add a new device instead")
@@ -687,17 +681,17 @@ private fun BluetoothRuntimePanel(
             }
         }
         is BleRuntimeState.AwaitingAuthorization -> StatusCard(
-            "Waiting for device authority",
-            "The selected device has not yet returned an authoritative claim result.",
+            "Connecting",
+            "Waiting for your device to answer.",
         )
         is BleRuntimeState.Connecting -> {
-            StatusCard("Connecting", "Opening ${state.companion.publicLabel}.")
+            StatusCard("Connecting", "Connecting to ${state.companion.publicLabel}.")
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel connection")
             }
         }
         is BleRuntimeState.Negotiating -> {
-            StatusCard("Securing connection", state.phase.publicText())
+            StatusCard("Connecting safely", state.phase.publicText())
             OutlinedButton(onClick = controller::disconnectBluetoothDevice, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel connection")
             }
@@ -705,15 +699,15 @@ private fun BluetoothRuntimePanel(
         is BleRuntimeState.Ready -> BluetoothReadyPanel(state.session, controller, openDeviceSettings, onSetupComplete)
         is BleRuntimeState.FactoryResetRequesting -> StatusCard(
             "Reset request sent",
-            "Waiting for the exact protected device response. Nothing has been reported as erased or complete.",
+            "Waiting for your device to accept the reset.",
         )
         is BleRuntimeState.FactoryResetErasing -> StatusCard(
-            "Reset accepted · completion not verified",
-            "The device accepted the durable reset intent. Keep Bluetooth on while it erases data and restarts.",
+            "Reset in progress",
+            "Keep Bluetooth on while your device resets.",
         )
         is BleRuntimeState.FactoryResetVerifying -> StatusCard(
-            "Verifying reset",
-            "Waiting for this exact device to restart and advertise its verified unowned state. Other nearby devices do not count.",
+            "Checking the reset",
+            "Waiting for your device to restart and show it was reset.",
         )
         is BleRuntimeState.FactoryResetNotVerified -> {
             StatusCard("Reset not verified", state.reason.factoryResetPublicText())
@@ -731,9 +725,9 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.FactoryResetComplete -> {
             val recovery=factoryResetRecoveryPresentation(state)
-            StatusCard("Factory reset verified",recovery.detail)
+            StatusCard("Device reset confirmed",recovery.detail)
             recovery.bondGuidance?.let {
-                StatusCard("Check the old Android pairing",it)
+                StatusCard("Old Bluetooth pairing",it)
                 Button(onClick = openBluetoothSettings, modifier = Modifier.fillMaxWidth()) {
                     Text("Open Bluetooth settings")
                 }
@@ -749,7 +743,7 @@ private fun BluetoothRuntimePanel(
         }
         is BleRuntimeState.Reconnecting -> {
             val progress = if (state.periodic) {
-                "Trying ${state.companion.publicLabel} again, with a 15-second wait between attempts. Keep the app open."
+                "Keep MeshTrail open as it tries ${state.companion.publicLabel} again every 15 seconds."
             } else {
                 "Attempt ${state.attempt} of ${state.maximumAttempts} for ${state.companion.publicLabel}."
             }
@@ -773,19 +767,19 @@ private fun BluetoothRuntimePanel(
             } else {
                 "${state.reason.publicText()}\nSupport code: ${state.connectionDiagnostic.supportCode()}"
             }
-            StatusCard("Bluetooth connection unavailable", body)
+            StatusCard("Couldn't connect to the device", body)
             Button(onClick = controller::scanBluetoothDevices, modifier = Modifier.fillMaxWidth()) {
                 Text("Scan again")
             }
         }
-        BleRuntimeState.Closed -> StatusCard("Bluetooth closed", "This app session cannot open another Bluetooth lease.")
+        BleRuntimeState.Closed -> StatusCard("Bluetooth closed", "Reopen MeshTrail to use Bluetooth again.")
     }
 }
 
 @Composable
 private fun LostPhoneGuidance() {
     StatusCard(
-        "Lost authorized phone",
+        "Lost your paired phone?",
         LOST_PHONE_RECOVERY_PUBLIC_TEXT,
     )
 }
@@ -803,13 +797,13 @@ private fun BluetoothCandidateList(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(candidate.publicLabel)
-                    Text("Step 1 of 5 · Match this exact label with the one on your Heltec before authorizing.",
+                    Text("Step 1 of 5 · Choose the name shown on your device.",
                         style = MaterialTheme.typography.bodySmall)
                     Button(
                         onClick = { controller.selectBluetoothDevice(candidate.endpointToken) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Authorize this phone") }
-                    Text("Enter the six digits shown on your Heltec in Android's pairing dialog.",
+                    ) { Text("Pair this phone") }
+                    Text("Enter the six digits from your device only in Android's pairing prompt.",
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
@@ -832,11 +826,7 @@ private fun PairingHelp() {
 }
 
 internal const val LOST_PHONE_RECOVERY_PUBLIC_TEXT =
-    "A replacement phone cannot take over an owned device. On the device, hold the physical control for at " +
-        "least 10 seconds, release when prompted, then short-press within 10 seconds to confirm. The physical " +
-        "factory reset erases all MeshTrail user data. After the verified reset reboots the device unowned, its " +
-        "six-digit PIN and pairable window open automatically for 60 seconds; authorize the new phone before " +
-        "the window closes."
+    "A new phone needs you to reset your device first.\nThis erases all MeshTrail user data on the device.\nHold the device button for at least 10 seconds.\nRelease it when prompted, then press it briefly within 10 seconds to confirm.\nAfter the reset restarts the device, use its six-digit code to pair within 60 seconds."
 
 internal data class AndroidSystemPairingInstructions(
     val beforeActionTitle: String,
@@ -853,20 +843,13 @@ internal fun androidSystemPairingInstructions(
     DeviceAuthorizationPurpose.AUTHORIZE_THIS_PHONE -> AndroidSystemPairingInstructions(
         beforeActionTitle = "Pair a new phone",
         beforeActionBody =
-            "Restart the unowned or just-reset device if its six-digit PIN is not showing. The PIN and pairable " +
-                "window open automatically for 60 seconds after unowned boot. Then tap Authorize this phone and " +
-                "enter the displayed six digits only in Android's system pairing dialog. MeshTrail never receives " +
-                "or stores the code.",
-        startingTitle = "Android system pairing starting",
+            "Restart a device ready for setup if the code is missing.\nThe device shows the code for 60 seconds after it starts.\nTap Pair this phone and enter the six digits only in Android's pairing prompt.\nMeshTrail never sees your code.",
+        startingTitle = "Pairing with Android",
         startingBody =
-            "Keep the automatically opened 60-second PIN window active. If Android asks for a code, enter the " +
-                "six digits shown on the device only in Android's system pairing dialog. If the PIN is no " +
-                "longer showing, cancel, restart the unowned device, and retry. MeshTrail never receives or stores " +
-                "the code.",
-        pendingTitle = "Secure pairing completed",
+            "You have 60 seconds after the device starts.\nEnter the six digits from your device only in Android's pairing prompt.\nIf the code disappears, cancel and restart the device, then try again.",
+        pendingTitle = "Bluetooth paired",
         pendingBody =
-            "The device is completing initial phone authorization. Initial authorization does not require a " +
-                "second physical confirmation.",
+            "Wait for the device to approve this phone.\nYou don't need to press the device button again.",
     )
 }
 
@@ -950,7 +933,7 @@ private fun DeviceSettingsScreen(
                 if (supportsFactoryReset) {
                     APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT
                 } else {
-                    "This connected firmware does not expose the protected factory-reset capability."
+                    "This device can't be reset from the app."
                 },
             )
         }
@@ -981,12 +964,12 @@ private fun FactoryResetConfirmationScreen(session: BleActiveSession?, controlle
             Text(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT)
             StatusCard(
                 "Keep the device nearby",
-                "After you confirm, MeshTrail waits for the protected acceptance and then verifies this exact device restarted unowned. A disconnect or timeout is not shown as success.",
+                "MeshTrail checks that your device resets and restarts.",
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             Button(onClick = { controller.confirmFactoryReset() }, enabled = session != null, modifier = Modifier.fillMaxWidth()) {
-                Text("Erase this board")
+                Text("Erase this device")
             }
             OutlinedButton(onClick = controller::cancelFactoryResetConfirmation, modifier = Modifier.fillMaxWidth()) {
                 Text("Cancel")
@@ -1003,23 +986,23 @@ private fun BleRuntimeState.isFactoryResetResolutionState(): Boolean =
 
 private fun FactoryResetNotVerifiedReason.factoryResetPublicText(): String = when (this) {
     FactoryResetNotVerifiedReason.REQUEST_WRITE_UNCERTAIN ->
-        "Android could not verify that the protected reset command was accepted. The saved device record was kept."
+        "Couldn't confirm that your device received the reset request."
     FactoryResetNotVerifiedReason.REQUEST_REJECTED ->
-        "The device rejected the reset request. No reset completion is claimed, and the saved device record was kept."
+        "Your device refused the reset."
     FactoryResetNotVerifiedReason.RESPONSE_TIMEOUT ->
-        "The protected reset response timed out. The result is unknown, not successful, and the saved device record was kept."
+        "Your device took too long to answer.\nThe reset is unconfirmed."
     FactoryResetNotVerifiedReason.CONNECTION_LOST_BEFORE_ACCEPTANCE ->
-        "The connection ended before reset acceptance was proven. The result is unknown, not successful, and the saved device record was kept."
+        "The connection dropped before MeshTrail could confirm the reset request."
     FactoryResetNotVerifiedReason.MALFORMED_RESPONSE ->
-        "The reset response was invalid. No success is claimed, and the saved device record was kept."
+        "Couldn't read your device's reset reply."
     FactoryResetNotVerifiedReason.VERIFICATION_UNAVAILABLE ->
-        "MeshTrail could not verify this exact device after restart. No success is claimed, and the saved device record was kept."
+        "Couldn't check whether your device reset."
     FactoryResetNotVerifiedReason.VERIFICATION_TIMEOUT ->
-        "This exact device did not show its verified unowned state before the check ended. No success is claimed, and the saved device record was kept."
+        "Your device didn't confirm the reset in time."
     FactoryResetNotVerifiedReason.WRONG_DEVICE_OBSERVED ->
-        "The observed device did not match the reset target. It was ignored, no success is claimed, and the saved device record was kept."
+        "A different device answered, so your reset is unconfirmed."
     FactoryResetNotVerifiedReason.LOCAL_RECORD_CLEAR_FAILED ->
-        "The reset device was observed unowned, but MeshTrail could not safely remove its saved record. Completion is not claimed."
+        "MeshTrail couldn't remove the old saved device after checking the reset."
 }
 
 @Composable
@@ -1039,9 +1022,9 @@ private fun CandidateList(candidates: List<Pair<String, String>>, connect: (Stri
 @Composable
 private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
     Text(
-        "$title · ${snapshot.radio.deviceStatusLabel()} · GNSS ${snapshot.gnss.publicLabel()} · " +
-            "power ${snapshot.power.publicLabel()} · position ${snapshot.positionSharing.publicLabel()} · " +
-            "queued ${snapshot.queuedActionCount}",
+        "$title · ${snapshot.radio.deviceStatusLabel()} · GPS ${snapshot.gnss.publicLabel()} · " +
+            "power ${snapshot.power.publicLabel()} · location sharing ${snapshot.positionSharing.publicLabel()} · " +
+            "waiting requests: ${snapshot.queuedActionCount}",
         style = MaterialTheme.typography.bodyMedium,
     )
 }
@@ -1050,12 +1033,12 @@ private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
 private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
     var expanded by remember { mutableStateOf(false) }
     val isFake = snapshot.provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
-    val sourceLabel = if (isFake) "Fake fixture" else "Device-reported"
+    val sourceLabel = if (isFake) "Fake fixture" else "Device"
     OutlinedButton(
         onClick = { expanded = !expanded },
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(if (expanded) "Close Group / Location" else "Open Group / Location")
+        Text(if (expanded) "Hide group locations" else "Show group locations")
     }
     if (!expanded) return
 
@@ -1065,7 +1048,7 @@ private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Group / Location",
+                "Group locations",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
@@ -1075,24 +1058,24 @@ private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
                     GroupLocationProvenance.LOCAL_TEST_FIXTURE ->
                         "Deterministic fake location fixture. This is not phone GPS, device, radio, or map evidence."
                     GroupLocationProvenance.DEVICE_AUTHORITATIVE_SNAPSHOT ->
-                        "Device-authoritative snapshot only. This app does not substitute phone GPS."
+                        "These locations come from your device."
                 },
             )
             Text("$sourceLabel position sharing: ${snapshot.sharingState.publicLabel()}.")
             GroupPositionCard("This device", snapshot.selfPosition, snapshot.provenance)
             Text(
-                "Group peers (${snapshot.peers.size})",
+                "Group members (${snapshot.peers.size})",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() },
             )
             if (snapshot.peers.isEmpty()) {
-                Text("No peer positions or public display aliases were supplied in this snapshot.")
+                Text("No group locations yet.")
             } else {
                 snapshot.peers.forEach { peer ->
                     GroupPositionCard(peer.displayAlias.value, peer.position, snapshot.provenance)
                 }
             }
-            Text("Map rendering and offline map packages are deferred; this screen uses no network tiles.")
+            Text("Maps aren't available yet.")
         }
     }
 }
@@ -1104,7 +1087,7 @@ private fun GroupPositionCard(
     provenance: GroupLocationProvenance,
 ) {
     val isFake = provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
-    val sourceLabel = if (isFake) "Fake fixture" else "Device-reported"
+    val sourceLabel = if (isFake) "Fake fixture" else "Device"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
@@ -1113,13 +1096,13 @@ private fun GroupPositionCard(
             Text(if (isFake) "Fake $label" else label, style = MaterialTheme.typography.titleMedium)
             when (position.state) {
                 GroupPositionState.UNAVAILABLE -> Text(
-                    "$sourceLabel position unavailable. No coordinates, age, or accuracy were supplied.",
+                    "$sourceLabel location unavailable.",
                 )
                 GroupPositionState.CURRENT,
                 GroupPositionState.STALE,
                 -> {
                     val coordinate = requireNotNull(position.coordinate)
-                    Text("$sourceLabel position ${position.state.publicLabel()}.")
+                    Text("$sourceLabel location is ${position.state.publicLabel()}.")
                     Text(
                         "$sourceLabel latitude ${coordinate.latitudeDegrees().fixedCoordinate()}, " +
                             "longitude ${coordinate.longitudeDegrees().fixedCoordinate()}.",
@@ -1127,7 +1110,7 @@ private fun GroupPositionCard(
                     Text("$sourceLabel age: ${position.ageSeconds} seconds.")
                     Text(
                         position.accuracyMeters?.let { "$sourceLabel accuracy: $it meters." }
-                            ?: "$sourceLabel accuracy: not supplied.",
+                            ?: "$sourceLabel accuracy: unknown.",
                     )
                 }
             }
@@ -1160,11 +1143,11 @@ private fun ActionControls(submit: (CompanionActionRequest) -> Unit) {
         OutlinedButton(
             onClick = { submit(CompanionActionRequest(CompanionActionKind.START_POSITION_SHARING)) },
             modifier = Modifier.weight(1f),
-        ) { Text("Start position") }
+        ) { Text("Share location") }
         OutlinedButton(
             onClick = { submit(CompanionActionRequest(CompanionActionKind.STOP_POSITION_SHARING)) },
             modifier = Modifier.weight(1f),
-        ) { Text("Stop position") }
+        ) { Text("Stop sharing") }
     }
 }
 
@@ -1180,7 +1163,7 @@ private fun AcknowledgeAlertButton(alertId: ULong, submit: (CompanionActionReque
             )
         },
         modifier = Modifier.fillMaxWidth(),
-    ) { Text("Acknowledge pending critical alert") }
+    ) { Text("Mark alert as seen") }
 }
 
 @Composable
@@ -1195,68 +1178,76 @@ private fun CompanionActionResult.fakePublicOutcome(): String = when (dispositio
 }
 
 private fun CompanionActionResult.bluetoothPublicOutcome(): String = when (disposition) {
-    CompanionActionDisposition.QUEUED -> "Accepted into the device queue. This is not sent or delivered evidence."
-    CompanionActionDisposition.ADMITTED -> "Applied locally by the device."
-    CompanionActionDisposition.REJECTED -> "The device rejected the request: ${rejectReason.publicLabel()}."
+    CompanionActionDisposition.QUEUED -> "Your device queued the request."
+    CompanionActionDisposition.ADMITTED -> "Your device applied the request."
+    CompanionActionDisposition.REJECTED -> when (rejectReason) {
+        CompanionActionRejectReason.NONE -> "Your device refused the request."
+        CompanionActionRejectReason.UNSUPPORTED_ACTION -> "Your device can't do that."
+        CompanionActionRejectReason.STALE_ALERT -> "That alert is no longer current."
+        CompanionActionRejectReason.UNAVAILABLE -> "That feature isn't available right now."
+        CompanionActionRejectReason.QUEUE_FULL -> "Your device has too many requests waiting."
+        CompanionActionRejectReason.POLICY_DENIED -> "Your device didn't allow this request."
+        CompanionActionRejectReason.INTERNAL_FAILURE -> "Your device hit an error while handling the request."
+        CompanionActionRejectReason.BUSY -> "Your device is busy, so try again in a moment."
+    }
 }
 
 private fun BleRuntimeBlock.publicText(): String = when (this) {
-    BleRuntimeBlock.ADAPTER_IMPLEMENTATION_MISSING -> "The Bluetooth adapter is unavailable in this build."
-    BleRuntimeBlock.PLATFORM_UNSUPPORTED -> "The real Bluetooth path requires Android 12 or newer."
-    BleRuntimeBlock.BLUETOOTH_UNAVAILABLE -> "This phone does not expose the required Bluetooth Low Energy adapter."
+    BleRuntimeBlock.ADAPTER_IMPLEMENTATION_MISSING -> "This version of MeshTrail can't use Bluetooth."
+    BleRuntimeBlock.PLATFORM_UNSUPPORTED -> "Bluetooth needs Android 12 or newer."
+    BleRuntimeBlock.BLUETOOTH_UNAVAILABLE -> "This phone doesn't support this kind of Bluetooth."
     BleRuntimeBlock.BLUETOOTH_DISABLED ->
-        "Turn on Bluetooth. MeshTrail checks again when Bluetooth is ready. You can also tap Try again."
+        "Turn on Bluetooth and MeshTrail will check again."
     BleRuntimeBlock.BLUETOOTH_STATE_READ_DENIED ->
-        "Android refused the Bluetooth state check. Verify Nearby Devices permission, then retry discovery."
+        "Android didn't let MeshTrail check Bluetooth.\nAllow Nearby devices access in app settings and try again."
     BleRuntimeBlock.SCAN_PERMISSION_MISSING,
     BleRuntimeBlock.CONNECT_PERMISSION_MISSING,
-    -> "Nearby Devices permission is required before Bluetooth can continue."
+    -> "Allow Nearby devices access to use Bluetooth."
 }
 
 private fun BluetoothRecoveryRefusal.publicText(appName: String): String = when (this) {
     BluetoothRecoveryRefusal.BLUETOOTH_OFF ->
-        "Bluetooth is still off or turning on. Turn it on in Bluetooth settings and wait for it to finish."
+        "Bluetooth is still off or starting.\nCheck Bluetooth settings and wait."
     BluetoothRecoveryRefusal.PERMISSION_REQUIRED ->
-        "MeshTrail needs Nearby Devices access. Open app settings, tap Permissions, and allow Nearby devices."
+        "Allow Nearby devices under Permissions in app settings."
     BluetoothRecoveryRefusal.PERMISSION_PENDING ->
-        "Finish the Nearby Devices request from Android, then return to MeshTrail."
+        "Answer the Nearby devices prompt before trying again."
     BluetoothRecoveryRefusal.OWNER_UNAVAILABLE ->
-        "MeshTrail couldn't reach its Bluetooth service. Open app settings, tap Force stop, then reopen with Bluetooth on."
+        "Force stop MeshTrail in app settings, then reopen it with Bluetooth on."
     BluetoothRecoveryRefusal.AUTHORIZATION_PENDING ->
-        "An authorization is in progress. Complete the prompt already shown by Android or the board, or wait for the request to end."
+        "Finish the prompt on your phone or device, or wait for it to end."
     BluetoothRecoveryRefusal.RESET_PENDING ->
-        "The earlier board reset still needs verification. In Settings, open Apps, choose $appName, and tap Force stop. " +
-            "Reopen with Bluetooth on. If Device asks, tap Start Bluetooth device service to resume the check."
+        "The earlier device reset still needs checking.\nForce stop $appName in app settings, then reopen it with Bluetooth on.\nIf prompted, tap Turn on background connection."
     BluetoothRecoveryRefusal.PLATFORM_BLOCKED ->
-        "Android still reports Bluetooth unavailable. Check Bluetooth settings and allow Nearby devices in app settings."
+        "Android still can't use Bluetooth.\nCheck Bluetooth and Nearby devices access in Settings."
     BluetoothRecoveryRefusal.STATE_CHANGED ->
-        "The Bluetooth screen changed before retry could start. Follow the current instructions on Device."
+        "The connection changed, so follow the instructions on Device."
 }
 
 private fun BleRuntimeFailure.publicText(): String = when (this) {
-    BleRuntimeFailure.SCAN_START_FAILED -> "The Bluetooth scan could not start. No local test data was substituted."
-    BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS -> "Two nearby devices showed the same setup label. Restart one of the devices awaiting setup and scan again, then match the Trail label on its display."
-    BleRuntimeFailure.SETUP_LABEL_CHANGED -> "A nearby device's setup label changed or became invalid. Scan again and match the current Trail label on your Heltec display."
+    BleRuntimeFailure.SCAN_START_FAILED -> "Couldn't start looking for your device."
+    BleRuntimeFailure.SETUP_LABEL_AMBIGUOUS -> "Two devices showed the same setup name.\nRestart one and check its screen before you scan again."
+    BleRuntimeFailure.SETUP_LABEL_CHANGED -> "A device's setup name changed or couldn't be read.\nCheck its screen and scan again."
     BleRuntimeFailure.RETURNING_OWNER_AMBIGUOUS ->
-        "More than one bonded MeshTrail device answered. Reconnect stopped without choosing or storing an identity."
-    BleRuntimeFailure.CONNECTION_START_FAILED -> "The selected companion connection ended or could not start."
-    BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> "The companion did not meet the required security checks."
-    BleRuntimeFailure.MTU_NEGOTIATION_FAILED -> "The companion could not negotiate the required message size."
-    BleRuntimeFailure.PROTOCOL_INFO_FAILED -> "The companion protocol is incompatible or unavailable."
-    BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED -> "The authoritative device update stream could not be enabled."
-    BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED -> "The initial authoritative device status was not accepted."
-    BleRuntimeFailure.NEGOTIATION_TIMEOUT -> "The companion did not complete setup in time."
-    BleRuntimeFailure.PROTOCOL_VIOLATION -> "The companion sent an invalid or unexpected protocol message."
-    BleRuntimeFailure.RECONNECT_EXHAUSTED -> "The bounded reconnect attempts were exhausted."
-    BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED -> "The session counter was exhausted; reconnect before retrying."
-    BleRuntimeFailure.ACTION_WRITE_FAILED -> "The action was not accepted for Bluetooth write."
-    BleRuntimeFailure.ACTION_RESULT_TIMEOUT -> "The device did not return an action result in time."
+        "More than one saved device answered.\nMove away from the others and try again."
+    BleRuntimeFailure.CONNECTION_START_FAILED -> "Couldn't connect to the device.\nMove closer and try again."
+    BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED -> "Couldn't make a secure connection to your device."
+    BleRuntimeFailure.MTU_NEGOTIATION_FAILED -> "Couldn't set up messaging over Bluetooth."
+    BleRuntimeFailure.PROTOCOL_INFO_FAILED -> "Couldn't check that this device works with MeshTrail."
+    BleRuntimeFailure.STREAM_SUBSCRIPTION_FAILED -> "Couldn't turn on updates from your device."
+    BleRuntimeFailure.INITIAL_SNAPSHOT_FAILED -> "Couldn't read your device's starting status."
+    BleRuntimeFailure.NEGOTIATION_TIMEOUT -> "Your device took too long to connect."
+    BleRuntimeFailure.PROTOCOL_VIOLATION -> "Your device sent a reply MeshTrail couldn't use."
+    BleRuntimeFailure.RECONNECT_EXHAUSTED -> "Couldn't reconnect after several tries."
+    BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED -> "This connection reached its limit, so reconnect and try again."
+    BleRuntimeFailure.ACTION_WRITE_FAILED -> "Couldn't send the request to your device."
+    BleRuntimeFailure.ACTION_RESULT_TIMEOUT -> "Your device took too long to answer the request."
     BleRuntimeFailure.AUTHORIZATION_CONNECTION_LOST ->
-        "The authorization connection ended. Device authority may have changed; reconnect and check the device."
+        "The connection dropped during phone approval.\nCheck your device before trying again."
     BleRuntimeFailure.AUTHORIZATION_UNSUPPORTED ->
-        "The selected device does not expose the accepted protected authorization contract."
+        "This device doesn't support the phone setup MeshTrail needs."
     BleRuntimeFailure.AUTHORIZATION_UNAVAILABLE ->
-        "The protected authorization path is unavailable. This app did not establish device authority."
+        "Couldn't ask your device to approve this phone."
 }
 
 internal fun BleConnectionDiagnostic.supportCode(): String = when (this) {
@@ -1273,23 +1264,23 @@ internal fun BleConnectionDiagnostic.supportCode(): String = when (this) {
 
 private fun ConnectedDeviceServiceStartFailure?.publicText(): String = when (this) {
     ConnectedDeviceServiceStartFailure.NOT_VISIBLE_USER_ACTION ->
-        "Start the Bluetooth service again from the visible app screen."
+        "Keep MeshTrail open and tap Try again."
     ConnectedDeviceServiceStartFailure.NEARBY_PERMISSION_MISSING ->
-        "Nearby Devices permission was not available when the service start was requested."
+        "Allow Nearby devices in app settings."
     ConnectedDeviceServiceStartFailure.PLATFORM_REJECTED ->
-        "Android did not allow the foreground service to start from the current app state."
+        "Android didn't let MeshTrail start the background connection."
     ConnectedDeviceServiceStartFailure.SERVICE_UNAVAILABLE,
     null,
-    -> "The connected-device service did not become available. No local test data was substituted."
+    -> "MeshTrail couldn't get the background connection ready."
 }
 
 private fun BleNegotiationPhase.publicText(): String = when (this) {
-    BleNegotiationPhase.LINK_SECURITY -> "Checking the encrypted, authenticated, application-authorized link."
-    BleNegotiationPhase.ATT_MTU -> "Negotiating the required Bluetooth message size."
-    BleNegotiationPhase.PROTOCOL_INFO -> "Checking the companion protocol and capabilities."
-    BleNegotiationPhase.STREAM_SUBSCRIPTION -> "Enabling authoritative device indications."
-    BleNegotiationPhase.AUTHORIZATION_CLAIM -> "Waiting for an exact device authorization result."
-    BleNegotiationPhase.INITIAL_SNAPSHOT -> "Waiting for the initial authoritative device status."
+    BleNegotiationPhase.LINK_SECURITY -> "Checking that your phone can connect safely."
+    BleNegotiationPhase.ATT_MTU -> "Getting Bluetooth messages ready."
+    BleNegotiationPhase.PROTOCOL_INFO -> "Checking your device's software."
+    BleNegotiationPhase.STREAM_SUBSCRIPTION -> "Turning on updates from your device."
+    BleNegotiationPhase.AUTHORIZATION_CLAIM -> "Waiting for your device to approve this phone."
+    BleNegotiationPhase.INITIAL_SNAPSHOT -> "Reading your device's current status."
 }
 
 internal fun CompanionRadioState.deviceStatusLabel(): String =

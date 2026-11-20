@@ -47,6 +47,9 @@ internal fun V1HomeScreen(
         mutableStateOf(V1HomeLaunchState.initial(state))
     }
     val currentRuntime by rememberUpdatedState(liveRuntime)
+    if (navigation.awaitingSetupReadback) {
+        LaunchedEffect(state) { navigation = navigation.resolveInitialSetup(state) }
+    }
     var splashFinished by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { delay(1_800); splashFinished = true }
     if (!splashFinished) {
@@ -75,7 +78,7 @@ internal fun V1HomeScreen(
         is BleRuntimeState.Ready -> "Device connected"
         is BleRuntimeState.Reconnecting, BleRuntimeState.FindingReturningOwner -> "Reconnecting to device"
         is BleRuntimeState.Connecting, is BleRuntimeState.Negotiating -> "Connecting to device"
-        is BleRuntimeState.AwaitingAuthorization -> "Authorize your phone"
+        is BleRuntimeState.AwaitingAuthorization -> "Let this phone connect"
         else -> "No device connected"
     }
     V1AppShell(
@@ -152,8 +155,8 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         val recipient = textMessages.recipient
         submissionNotice = V1TextComposer.refusal(value) ?: when {
             recipient == null -> V1TextComposer.AUTHORITY_UNAVAILABLE
-            onSubmitText(recipient, value) -> "Request submitted; see delivery evidence."
-            else -> "Check delivery evidence before sending again; the outcome may be unknown."
+            onSubmitText(recipient, value) -> "Waiting for the device to confirm your message."
+            else -> "Check whether your message arrived before sending it again."
         }
     }
     fun chooseStatus(value: String) {
@@ -162,8 +165,8 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         submissionNotice = when {
             status == null -> { chooseText(value); return }
             recipient == null -> V1QuickStatusComposer.AUTHORITY_UNAVAILABLE
-            onSubmitQuickStatus(recipient, status) -> "Request submitted; delivery is not confirmed."
-            else -> "Request refused or outcome uncertain. Check device evidence; do not resend automatically."
+            onSubmitQuickStatus(recipient, status) -> "Waiting for the device to confirm your status."
+            else -> "Check whether your status arrived before sending it again."
         }
     }
     val preferences = remember { context.getSharedPreferences("v1-local-templates", 0) }
@@ -199,7 +202,7 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
     androidx.activity.compose.BackHandler(enabled = nearby) { nearby = false }
     if (nearby) {
         V1PeopleScreen(V1PeopleScreenState(
-            statusMessage = "Nearby people requires the upcoming device update. No live discovery is running."),
+            statusMessage = "Finding nearby people needs a device update."),
             onAction = { if (it == V1PeopleUiAction.Back) nearby = false })
         return
     }
@@ -229,11 +232,11 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (direct) "No conversations yet" else "No group conversation", style = MaterialTheme.typography.titleLarge)
-                Text(if (direct) "Discoverable people will appear here. A chat request must be accepted before you can exchange messages."
-                    else "Create or join a group from the Group tab when group setup is available.")
+                Text(if (direct) "People who are visible nearby will appear here.\nThey need to accept your chat request first."
+                    else "You can set up a group from the Group tab after a device update.")
                 if (direct) {
                     OutlinedButton(onClick = { nearby = true }) { Text("Find nearby people") }
-                    Text("Person discovery requires the upcoming device update.", style = MaterialTheme.typography.bodySmall)
+                    Text("Finding nearby people needs a device update.", style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -244,7 +247,7 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
                 Text(if (editing) "Done" else "Customize")
             }
         }
-        Text("Fixed quick statuses use the current authenticated pair only. Templates remain local until explicitly selected.", style = MaterialTheme.typography.bodySmall)
+        Text("Quick statuses go to the other paired device.\nSaved messages stay on this phone until you send them.", style = MaterialTheme.typography.bodySmall)
         if (quickStatus.recipient == null) Text(V1QuickStatusComposer.AUTHORITY_UNAVAILABLE)
         submissionNotice?.let { Text(it) }
         if (!editing) {
@@ -259,7 +262,7 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
         }
         if (textMessages.recipient != null) textMessages.received?.let { Text("Received text: " + it) }
         textMessages.outbound?.let {
-            Text((if (textMessages.currentAttachment) "Text delivery: " else "Previous connection text delivery: ") + V1QuickStatusComposer.evidence(it))
+            Text((if (textMessages.currentAttachment) "Message status: " else "Earlier connection: ") + V1QuickStatusComposer.evidence(it))
             if (textMessages.reason != 0) Text(V1TextComposer.reason(textMessages.reason))
         }
         if (quickStatus.recipient != null) {
@@ -267,9 +270,9 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             quickStatus.outbound?.let { Text(V1QuickStatusComposer.evidence(it)) }
         }
         if (loadedTemplates == null) {
-            Text("Saved quick messages could not be read. Editing is unavailable.")
+            Text("MeshTrail couldn’t read your saved quick messages.")
         } else if (saveFailed) {
-            Text("Save could not be confirmed. Your draft is still here; saved state is uncertain.")
+            Text("Your draft is still here because MeshTrail couldn’t confirm the save.")
         }
         val choices = if (editing) V1QuickMessages.builtIn else
             (V1QuickMessages.builtIn + io.github.nbjelanovic.otprotocol.CompanionQuickStatus.entries.map(V1QuickStatusComposer::label)).distinct()
@@ -343,7 +346,7 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
                     }, supportingText = {
                     Text(when {
                         staleEdit -> "This quick message changed. Cancel the edit before choosing it again."
-                        formText.isNotEmpty() && candidate() == null -> "Use a unique message of 1–160 characters without control characters."
+                        formText.isNotEmpty() && candidate() == null -> "Enter a different message with 1–160 characters of plain text."
                         else -> "${formText.length}/160 · ${templates.size}/12 custom messages"
                     })
                 })

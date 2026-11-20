@@ -475,7 +475,7 @@ class TrailAppControllerTest {
         mismatchClaim.emit(DeviceAuthorizationClaimEvent.Pending("claim-a"))
         mismatchClaim.emit(DeviceAuthorizationClaimEvent.Denied("claim-b"))
         assertIs<DeviceAuthorizationUiState.InvalidResult>(bluetoothState(mismatch).authorizationState)
-        assertTrue(INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT.contains("authority is unknown"))
+        assertTrue(INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT.contains("couldn't confirm the device's answer"))
         assertTrue(mismatch.facade.connections.isEmpty())
         mismatch.controller.close()
 
@@ -504,7 +504,7 @@ class TrailAppControllerTest {
         expiringClaim.emit(DeviceAuthorizationClaimEvent.Pending("expires"))
         expired.scheduler.leases.last().run()
         assertIs<DeviceAuthorizationUiState.Expired>(bluetoothState(expired).authorizationState)
-        assertTrue(EXPIRED_AUTHORIZATION_PUBLIC_TEXT.contains("authority is unknown"))
+        assertTrue(EXPIRED_AUTHORIZATION_PUBLIC_TEXT.contains("didn't answer in time"))
         assertFalse(EXPIRED_AUTHORIZATION_PUBLIC_TEXT.contains("No phone authority changed"))
         expiringClaim.emit(DeviceAuthorizationClaimEvent.Accepted("expires"))
         assertTrue(expired.facade.connections.isEmpty())

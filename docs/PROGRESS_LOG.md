@@ -1,5 +1,22 @@
 # OpenTrail Progress Log
 
+## 2026-11-20
+
+### OT-0170a Clarify tester wording and resume setup (I-023)
+
+The Android topic applies D-139 to connection, setup, reset and message status
+copy and keeps the existing support codes. Find device explains Nearby Devices
+access before the request. Reopening the device page during an outstanding
+request keeps that request in flight. Open app settings goes to MeshTrail's
+permission settings after phone approval.
+
+The initial device screen waits for a current setup read before showing step
+numbers. A returning connection opens Device when the current read shows
+supported, unfinished setup. An explicit tab choice still wins. Regressions
+cover the early prompt, duplicate request, wrong settings destination and three
+cold-launch cases. The maintainer's local report contains exact validation and
+the phone checks still required. This topic advances issue #97.
+
 ## 2026-11-19
 
 ### OT-0177a Record pairing outcomes and Bluetooth recovery

@@ -117,7 +117,7 @@ private fun PeopleBody(state: V1PeopleScreenState, onAction: (V1PeopleUiAction) 
             }
             if (!state.discoveryAvailable) {
                 PeopleCard("Discovery not available yet") {
-                    Text("Nearby discovery and chat requests require the upcoming device update.")
+                    Text("Your device needs an update to find nearby people and start chats.")
                 }
             } else if (state.people.isEmpty()) {
                 PeopleCard("No people found") { Text("People who have enabled visibility can appear here.") }
