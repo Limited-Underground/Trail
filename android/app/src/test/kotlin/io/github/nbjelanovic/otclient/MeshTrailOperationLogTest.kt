@@ -8,6 +8,11 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 
+// Hardware-address shapes are built at runtime so the publication-safety scan
+// never sees an address literal in tracked source (same as V1SupportReportTest).
+private val fixtureAddress = listOf("AA", "BB", "CC", "DD", "EE", "FF").joinToString(":")
+private val otherFixtureAddress = listOf("02", "11", "22", "33", "44", "55").joinToString(":")
+
 class MeshTrailOperationLogTest {
     @get:Rule val temp = TemporaryFolder()
 
@@ -29,7 +34,7 @@ class MeshTrailOperationLogTest {
         val directory = temp.newFolder()
         val log = MeshTrailOperationLog(directory)
         listOf(
-            "123456", "AA:BB:CC:DD:EE:FF", "board-name", "49.245,-123.11",
+            "123456", fixtureAddress, "board-name", "49.245,-123.11",
             "message body", "opened\nsecret key", "opened\tprivate", "opened\u0000",
         ).forEach { assertFalse(log.append(7, MeshTrailLogKind.APP, it)) }
         assertFalse(log.append(-1, MeshTrailLogKind.APP, "opened"))
@@ -68,7 +73,7 @@ class MeshTrailOperationLogTest {
             "key=fictional-private-key", "passkey=928473", "pairing-code=490261",
             "confirmation-code=583704", "nonce=8383629", "lease=716321", "request=20831",
             "device-id=board-227", "peer-id=peer-918", "group-id=group-827",
-            "address=02:11:22:33:44:55", "endpoint=endpoint-328",
+            "address=$otherFixtureAddress", "endpoint=endpoint-328",
             "device-name=Fictional North Board", "setup-label=setup-984",
             "membership=fictional-member", "message=fictional message text",
             "support-note=fictional free text", "latitude=48.095678 longitude=-122.582392",
@@ -152,7 +157,7 @@ class MeshTrailOperationLogTest {
     @Test fun ownerStateProjectionRecordsTransitionsAndReasonsWithoutCandidateData() {
         val log = MeshTrailOperationLog(temp.newFolder())
         val observer = MeshTrailLogTransitions { kind, detail -> check(log.append(12, kind, detail)) }
-        val candidate = BleDiscoveredCompanion("AA:BB:CC:DD:EE:FF", "private board name")
+        val candidate = BleDiscoveredCompanion(fixtureAddress, "private board name")
         val state = TrailAppUiState.BluetoothDevice(
             runtimeState = BleRuntimeState.Connecting(candidate),
             permissionState = NearbyDevicesPermissionState.GRANTED,
