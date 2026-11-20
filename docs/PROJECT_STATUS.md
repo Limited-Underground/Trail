@@ -95,6 +95,17 @@ firmware delivery is wired. Email receipt, cloud storage, and live board
 readings still need phone acceptance. See the
 [OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-record-pairing-outcomes-and-bluetooth-recovery).
 
+## US frequency-hopping preparation
+
+The D-140 work adds a host-only profile catalog and a simulated transmit
+ledger for the 64-channel hybrid candidate. The two new host suites
+exercise profile mismatch, the 236-byte admission cap, durable cursor
+recovery and dwell at the final simulated send boundary. The board target
+continues to select 925.100 MHz bench profile v2. Hopping transmit requires
+a separately qualified timing/storage adapter, the permitted burst length
+and the authorization basis for the exact configuration. See the
+[OT-0005i host progress entry](PROGRESS_LOG.md#ot-0005i-prepare-us-hopping-profile-and-dwell-accounting).
+
 ## Device parameters for logging
 
 The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android decoding and export have a host candidate above. Polling and live age display remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
@@ -216,7 +227,7 @@ activation, signing, source publication and merge require separate authority.
 | Task | OT-0312 — protected phone-to-phone typed text in the paired Link Test (TASK-6, D-024, D-035, D-143). |
 | Owner | Messaging owns feat/f7-phone-text across the opt-in Heltec target and Android trial. The I-086 reconnect task owns its separate refresh follow-up. |
 | Scope | One typed send and one receive per board RF arm. The bench app uses a provisioned pairing record and a live OTY0 proof on the existing protected Command and Stream. Runtime text stays within the existing F5 arm, MTU and ACK gates. |
-| State | Local development candidate. F5 and the fixed-text F7 trial are on main. The November 20 board-to-board F7 trial passed. F11 source remains unwired. Diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded evidence and consumed grant. |
+| State | Local development candidate. F5, the fixed-text F7 trial and the I-087 pairing-screen fix (PR #292) are on main. The November 20 board-to-board F7 trial passed. F11 source remains unwired. Diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded evidence and consumed grant. |
 | Source | Topic feat/f7-phone-text starts at the PR #290 merge e762846fece287031285e81849485fbd5000eba4. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | The TASK-6 report binds carrier parity, retained F5 composition, handset projection and the independent build and test receipts to the candidate. |
 | Blocker | End-to-end phone-to-phone physical evidence remains open. The later two-phone trial needs provisioned pairing records, compatible restore and separate owner-present authority. |

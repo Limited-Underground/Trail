@@ -117,11 +117,6 @@ opentrail::target::heltec_v4_bench::BoardMessagingRuntime g_board_messaging{
     g_lora, g_board_pairing_random};
 // Same app task owns the one-entry queue and this exact pairing-copy tag.
 bool g_pairing_frame_queued = false;
-// Screen line: shown while pairing, and for a minute after it ends.
-opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase g_board_pairing_last_phase{
-    opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase::idle};
-std::uint64_t g_board_pairing_changed_ms{0};
-constexpr std::uint64_t kBoardPairingShownMs = 60000;
 
 // Board tag for the link test: the low four bytes of the factory MAC.
 std::uint32_t lora_link_test_tag() {
@@ -696,21 +691,6 @@ extern "C" void app_main() {
                              static_cast<unsigned>(sent.accepted()));
                 }
             }
-            {
-                using PairingPhase = opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase;
-                using PairingLine = opentrail::ui::oled_presentation::BoardPairing;
-                const auto phase = g_board_pairing.phase();
-                if (phase != g_board_pairing_last_phase) {
-                    g_board_pairing_last_phase = phase;
-                    g_board_pairing_changed_ms = elapsed_ms;
-                }
-                const bool recent = elapsed_ms - g_board_pairing_changed_ms < kBoardPairingShownMs;
-                g_oled_port.set_board_pairing(
-                    phase == PairingPhase::running ? PairingLine::in_progress :
-                    phase == PairingPhase::paired && recent ? PairingLine::paired_here :
-                    phase == PairingPhase::failed && recent ? PairingLine::failed :
-                    PairingLine::none);
-            }
         } else if (!lora_fault_logged) {
             g_board_messaging.close();
             g_board_pairing.radio_lost();
@@ -719,6 +699,13 @@ extern "C" void app_main() {
                      static_cast<unsigned>(g_lora.status().last_error));
             lora_fault_logged = true;
         }
+        using PairingPhase = opentrail::target::heltec_v4_bench::BoardPairingRuntime::Phase;
+        using PairingLine = opentrail::ui::oled_presentation::BoardPairing;
+        const auto pairing_phase = g_board_pairing.phase();
+        g_oled_port.set_board_pairing(
+            pairing_phase == PairingPhase::running ? PairingLine::in_progress :
+            pairing_phase == PairingPhase::paired ? PairingLine::paired_here :
+            pairing_phase == PairingPhase::failed ? PairingLine::failed : PairingLine::none);
 #endif
         g_gnss.service(elapsed_ms);
         opentrail::target::heltec_v4_bench::publish_companion_gnss_observation(

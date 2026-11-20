@@ -23,6 +23,36 @@ the two-board, two-phone acceptance procedure. Board-to-board F7 is covered
 by the November 20 session. The phone-to-phone trial awaits physical
 acceptance. This topic advances #116 and #75.
 
+### OT-0005i Keep the MeshTrail board pairing result visible
+
+I-087 keeps `PAIRED - THIS BOARD` on the normal OLED screen for 60 seconds
+from the local result. The F5 handoff can close its pairing owner and arm
+messaging without clearing the line. A new pairing attempt replaces the old
+result, and reset, failure and region screens keep their existing priority.
+An OLED port regression checks the handoff and exact expiry. Pairing frames,
+durable state, protected phone status and Bluetooth layout are unchanged.
+
+The prior board session recorded multi-step save delays without a watchdog
+warning or reboot. Keep the save and watchdog behavior unchanged until a
+separate trace isolates the delay. The display correction awaits an
+owner-present board check. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff).
+
+### OT-0005i Prepare US hopping profile and dwell accounting
+
+- **Scope.** Host-only D-140 work based on the PR #289 merge. The fixed
+  bench, pairing and messaging paths still use the existing target files.
+- **Outcome.** Profile fingerprints make mixed versions explicit and the
+  host admission refuses a payload over 236 bytes. The rolling ledger
+  charges each channel, and the cursor journal preserves a possibly used
+  hop after interruption. A fake radio exercises the final send ordering.
+- **Verification.** Both new suites failed to compile on the baseline
+  before their interfaces existed. Four profile and seven hopping TX
+  groups pass with the new code. An independent SHA-256 check reproduces
+  the canonical digests and the 64-channel order.
+- **Next.** Build rendezvous in a later increment. Heltec's burst limit
+  and the qualification basis govern burst-dependent framing and reserves.
+  Hopping TX remains disabled in the board target.
+
 ### OT-0170a Clarify tester wording and resume setup (I-023)
 
 The Android topic applies D-139 to connection, setup, reset and message status

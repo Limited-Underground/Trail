@@ -396,7 +396,53 @@ void review_reset_uses_actual_driver_and_rejects_stale_release() {
     EXPECT(owner.clear_factory_reset_confirmation());EXPECT(stub::state.frames.back()==kTrailStartupLogoSsd1306);
 }
 
+void board_pairing_result_outlives_messaging_handoff() {
+    using opentrail::ui::oled_presentation::BoardPairing;
+    using opentrail::ui::oled_presentation::draw_text_row;
+    stub::reset();
+    HeltecV4Oled port;
+    StartupDisplayOwner owner{port};
+    EXPECT(owner.start());
+    port.set_configuration("Bench", {}, 1);
+    CompactStatusSnapshot status{};
+    const auto show = [&](std::uint64_t now_ms, BoardPairing observed) {
+        stub::state.now_us = static_cast<std::int64_t>(now_ms * 1'000);
+        status.render_now_ms = now_ms;
+        port.set_board_pairing(observed);
+        EXPECT(owner.show_compact_status(StartupDisplayFrame::ble_connected, status));
+        return stub::state.frames.back();
+    };
+    const auto normal = show(1'000, BoardPairing::none);
+    auto in_progress = normal;
+    draw_text_row(in_progress, 2, "PAIRING...");
+    auto paired = normal;
+    draw_text_row(paired, 2, "PAIRED - THIS BOARD");
+    auto failed = normal;
+    draw_text_row(failed, 2, "PAIRING FAILED");
+
+    EXPECT(show(2'000, BoardPairing::in_progress) == in_progress);
+    EXPECT(show(3'000, BoardPairing::paired_here) == paired);
+    EXPECT(show(17'999, BoardPairing::paired_here) == paired);
+    // F5 owns the radio after the pairing runtime closes at the end of linger.
+    EXPECT(show(18'000, BoardPairing::none) == paired);
+    EXPECT(show(62'999, BoardPairing::none) == paired);
+    EXPECT(show(63'000, BoardPairing::none) == normal);
+
+    EXPECT(show(64'000, BoardPairing::in_progress) == in_progress);
+    EXPECT(show(65'000, BoardPairing::failed) == failed);
+    EXPECT(show(66'000, BoardPairing::in_progress) == in_progress);
+    EXPECT(show(67'000, BoardPairing::none) == normal);
+
+    EXPECT(show(68'000, BoardPairing::in_progress) == in_progress);
+    EXPECT(show(69'000, BoardPairing::paired_here) == paired);
+    EXPECT(owner.show_factory_reset_confirmation());
+    EXPECT(stub::state.frames.back() != paired);
+    const auto reset = stub::state.frames.back();
+    EXPECT(show(70'000, BoardPairing::none) == reset);
+}
+
 int main() {
+    board_pairing_result_outlives_messaging_handoff();
     review_cells_reach_all_actual_panel_rows();
     review_driver_rejects_clipping_and_conceals_failures();
     review_reset_uses_actual_driver_and_rejects_stale_release();
@@ -414,6 +460,6 @@ int main() {
     pairing_clear_and_failure_use_real_owner_and_port();
     rollback_cannot_be_followed_by_pairing_digits();
     if (failures) return 1;
-    std::cout << "PASS actual Heltec OLED port: 16 groups\n";
+    std::cout << "PASS actual Heltec OLED port: 17 groups\n";
     return 0;
 }
