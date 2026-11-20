@@ -262,6 +262,7 @@ def test_contract() -> None:
         "main/companion_protected_root_key_roster_adapter.hpp",
         "main/companion_protected_root_configuration_security_adapter.cpp",
         "main/companion_protected_root_configuration_security_adapter.hpp",
+        "main/companion_gatt_layout.hpp",
         "main/companion_nimble_gatt.cpp",
         "main/companion_nimble_gatt.hpp",
         "main/companion_nimble_runtime.cpp",
@@ -3723,6 +3724,59 @@ def test_f5_messaging_runtime_surface() -> None:
 
 
 
+def test_companion_gatt_layout_migration() -> None:
+    """Pin the shipped Companion attribute profile and its change signal."""
+    import re
+
+    gatt = (TARGET / "main/companion_nimble_gatt.cpp").read_text(encoding="utf-8")
+    runtime = (TARGET / "main/companion_nimble_runtime.cpp").read_text(encoding="utf-8")
+    defaults = (TARGET / "sdkconfig.defaults").read_text(encoding="utf-8")
+
+    for name, le_bytes in (
+        ("kServiceUuidBytes", "d0 b7 43 1f 4f 0c 10 a2 a3 4e 6b 7c 00 2a 0f 5e"),
+        ("kProtocolInfoUuidBytes", "d0 b7 43 1f 4f 0c 10 a2 a3 4e 6b 7c 01 2a 0f 5e"),
+        ("kCommandUuidBytes", "d0 b7 43 1f 4f 0c 10 a2 a3 4e 6b 7c 02 2a 0f 5e"),
+        ("kStreamUuidBytes", "d0 b7 43 1f 4f 0c 10 a2 a3 4e 6b 7c 03 2a 0f 5e"),
+        ("kPublicLinkInfoUuidBytes", "d0 b7 43 1f 4f 0c 10 a2 a3 4e 6b 7c 04 2a 0f 5e"),
+        ("kPairingResultFeatureUuid", "84 aa 60 74 52 8a 8b 86 d3 4c b7 1d 1d dc 53 8d"),
+    ):
+        definition = re.search(rf"\b{name}\s*(?:\{{([^}}]*)\}}|=\s*BLE_UUID128_INIT\(([^)]*)\))", gatt)
+        require(definition is not None, f"{name} UUID definition missing")
+        actual = bytes(int(value, 16) for value in re.findall(r"0x([0-9a-fA-F]+)", definition[1] or definition[2]))
+        require(actual == bytes.fromhex(le_bytes), f"shipped {name} changed")
+        if name.endswith("Bytes"):
+            wire_name = name.removesuffix("Bytes")
+            wire = re.search(rf"\b{wire_name}\s*=\s*BLE_UUID128_INIT\(([^)]*)\)", gatt)
+            require(wire is not None and
+                    bytes(int(value, 16) for value in re.findall(r"0x([0-9a-fA-F]+)", wire[1])) == actual,
+                    f"registered {wire_name} differs from its pinned UUID bytes")
+
+    table = gatt[gatt.index("const ble_gatt_chr_def kCharacteristics[]"):gatt.index("const ble_gatt_svc_def kServices[]")]
+    require(re.findall(r"\{&(\w+Uuid)\.u", table) == [
+        "kProtocolInfoUuid", "kCommandUuid", "kStreamUuid", "kPublicLinkInfoUuid",
+    ], "shipped Companion characteristic order changed")
+    flags = {
+        "kProtocolInfoFlags": ["READ", "READ_ENC", "READ_AUTHEN", "READ_AUTHOR"],
+        "kCommandFlags": ["WRITE", "WRITE_ENC", "WRITE_AUTHEN", "WRITE_AUTHOR"],
+        "kStreamFlags": ["INDICATE", "NOTIFY_INDICATE_ENC", "NOTIFY_INDICATE_AUTHEN", "NOTIFY_INDICATE_AUTHOR"],
+        "kPublicLinkInfoFlags": ["READ"],
+    }
+    for name, expected in flags.items():
+        declaration = re.search(rf"\b{name}\s*=([^;]+);", gatt)
+        require(declaration is not None and re.findall(r"BLE_GATT_CHR_F_(\w+)", declaration[1]) == expected,
+                f"shipped {name} changed")
+    require("kPairingResultDescriptors" in table and
+            "{&kPairingResultFeatureUuid.u, BLE_ATT_F_READ, 0," in gatt,
+            "shipped capability descriptor changed")
+    require(runtime.index("ble_svc_gap_init();") < runtime.index("ble_svc_gatt_init();") <
+            runtime.index("register_companion_nimble_gatt_service(g_callback_adapter)"),
+            "GAP, GATT and Companion registration order changed")
+    require("CONFIG_BT_NIMBLE_GATT_CACHING=y" not in defaults, "Database Hash would shift Companion handles")
+    require("ble_svc_gatt_changed(" in runtime, "bonded peers with the shipped legacy handle map never receive Service Changed")
+    require("companion_gatt_layout::matches_current(" in gatt,
+            "registered SDK handles must match the reviewed layout before use")
+
+
 def test_f7_link_test_text_surface() -> None:
     build = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
     component = (TARGET / "main/CMakeLists.txt").read_text(encoding="utf-8")
@@ -3762,7 +3816,8 @@ def main() -> int:
              test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
              test_selected_enrollment_request_route, test_pairing_result_protected_route,
              test_pairing_queued_launch_behavior)
-    tests = (*tests, test_f5_messaging_runtime_surface, test_f7_link_test_text_surface)
+    tests = (*tests, test_f5_messaging_runtime_surface, test_companion_gatt_layout_migration,
+             test_f7_link_test_text_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

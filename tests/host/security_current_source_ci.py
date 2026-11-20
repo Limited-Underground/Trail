@@ -252,6 +252,9 @@ def run(output, cached_component=None):
               [*common, *f5_sources, ROOT / "tests/host/f7_text_session_tests.cpp"],
               [*base, *f5_includes], (), " retained-pair F7 text session groups")
         f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+        suite("companion_gatt_layout_tests",
+              [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
+              [f5_target], (), " Companion GATT layout migration groups")
         suite("f5_pairing_nvs_tests",
               [f5_target / "pairing_nvs_storage.cpp", ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
               [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base],

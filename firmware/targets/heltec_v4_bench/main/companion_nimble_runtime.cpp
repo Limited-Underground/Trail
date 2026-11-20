@@ -1,5 +1,7 @@
 #include "companion_public_profile_storage.hpp"
 #include "companion_nimble_runtime.hpp"
+
+#include "companion_gatt_layout.hpp"
 #include "heltec_v4_gnss_snapshot.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "companion_connection_diagnostics.hpp"
@@ -375,6 +377,44 @@ bool clear_pending_cccd_value_changes() {
     }
     return false;
 }
+
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+// Only the NimBLE host accesses this state after startup.
+companion_gatt_layout::Migration g_layout_migration;
+
+bool stored_indication_subscription(const ble_addr_t& peer,
+                                    std::uint16_t value_handle, bool& subscribed) {
+    ble_store_key_cccd key{};
+    key.peer_addr = peer;
+    key.chr_val_handle = value_handle;
+    ble_store_value_cccd cccd{};
+    const int result = ble_store_read_cccd(&key, &cccd);
+    subscribed = result == 0 && (cccd.flags & 0x0003) == 0x0002;
+    return result == 0 || result == BLE_HS_ENOENT;
+}
+
+void signal_layout_change_on_secure_reconnect(const ble_gap_conn_desc& connection) {
+    std::array<ble_addr_t, 2> peers{};
+    int count = 0;
+    if (ble_store_util_bonded_peers(peers.data(), &count, peers.size()) != 0 ||
+        count != 1 || ble_addr_cmp(&peers[0], &connection.peer_id_addr) != 0) return;
+
+    using namespace companion_gatt_layout;
+    bool service_changed = false;
+    bool legacy_stream = false;
+    bool current_stream = false;
+    if (!stored_indication_subscription(peers[0], kServiceChangedValue, service_changed) ||
+        !stored_indication_subscription(peers[0], kLegacyStreamValue, legacy_stream) ||
+        !stored_indication_subscription(peers[0], kCurrentStreamValue, current_stream)) return;
+
+    if (g_layout_migration.begin(connection.conn_handle, true, service_changed,
+                                 legacy_stream, current_stream)) {
+        // The pinned SDK restores subscribed CCCDs after this encryption
+        // callback. Its standard GATT server handles delivery and confirmation.
+        ble_svc_gatt_changed(kService, kLastHandle);
+    }
+}
+#endif
 
 bool fail_security_configuration(std::uint8_t stage) {
     g_security_configuration_failure_stage.store(stage,
@@ -984,6 +1024,9 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             return 0;
         }
         case BLE_GAP_EVENT_DISCONNECT: {
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+            g_layout_migration.disconnect(event->disconnect.conn.conn_handle);
+#endif
             // OT-052 releases its exact session/indication state before the
             // runtime owner can schedule re-advertising.
             const auto adapter_disconnect_error =
@@ -1115,6 +1158,9 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             bool callback_state_available = false;
             bool initial_claim_admitted = false;
             bool orphan_reconciliation_required = false;
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+            bool exact_returning_owner = false;
+#endif
             {
                 PairingLock lock{pdMS_TO_TICKS(50)};
                 if (lock.locked() && g_pairing_window != nullptr) {
@@ -1177,6 +1223,13 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                         // window before NimBLE reports its late secure bond.
                         orphan_reconciliation_required = true;
                     }
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+                    if (exact_secure_bond && !exact_active_attempt &&
+                        g_v1_owner_bridge != nullptr) {
+                        exact_returning_owner = g_v1_owner_bridge->status().phase ==
+                            CompanionV1BondOwnerPhase::closed_owned;
+                    }
+#endif
                 } else {
                     g_event_overflow.store(true,
                                            std::memory_order_release);
@@ -1208,6 +1261,12 @@ int runtime_gap_event(ble_gap_event* event, void*) {
                 (!exact_active_attempt || initial_claim_admitted)) {
                 (void)companion_nimble_gatt_gap_event(
                     event, g_callback_adapter);
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+                if (exact_returning_owner &&
+                    !companion_app_factory_reset_blocks_protected_access()) {
+                    signal_layout_change_on_secure_reconnect(description);
+                }
+#endif
             }
             if (!exact_secure_bond ||
                 orphan_reconciliation_required ||
@@ -1218,6 +1277,14 @@ int runtime_gap_event(ble_gap_event* event, void*) {
             return 0;
         }
         default: {
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+            if (event->type == BLE_GAP_EVENT_NOTIFY_TX) {
+                (void)g_layout_migration.confirm(
+                    event->notify_tx.conn_handle, event->notify_tx.attr_handle,
+                    event->notify_tx.indication != 0,
+                    event->notify_tx.status == BLE_HS_EDONE);
+            }
+#endif
             const auto result = companion_nimble_gatt_gap_event(
                 event, g_callback_adapter);
             const auto adapter = companion_nimble_gatt_adapter_status();
@@ -1494,6 +1561,9 @@ CompanionBleRuntimeError start_companion_nimble_runtime(
     g_setup_random = &random;
     g_boot_unowned = false;
     g_boot_pairing_attempted = false;
+#if !OPENTRAIL_CONFIRMATION_EVALUATION
+    g_layout_migration = {};
+#endif
     g_boot_reset_receipt.store(0, std::memory_order_release);
     set_pairable_advertising_state(false);
     g_suppress_next_adv_complete.store(false, std::memory_order_release);
