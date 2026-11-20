@@ -102,12 +102,14 @@ class TrailConnectedDeviceService : Service() {
             val scheduler = AndroidMainThreadBleRuntimeScheduler()
             val confirmationClock = { android.os.SystemClock.elapsedRealtime() }
             val evaluationConfirmation = application is EvaluationGroupConfirmationOptIn
+            val operationLog = MeshTrailOperationLogging.from(applicationContext)
             val runtime = BleCompanionRuntime(
                 facade = facade,
                 scheduler = scheduler,
                 threadVerifier = AndroidMainThreadBleRuntimeVerifier(),
                 evaluationConfirmationEnabled = evaluationConfirmation,
                 confirmationClockMillis = confirmationClock,
+                bluetoothRecoveryObserver = operationLog::recordBluetoothRecovery,
             )
             val createdController = TrailAppController(
                 localController = CompanionAppController(UnavailableProductionLocalTransport),
@@ -124,7 +126,8 @@ class TrailConnectedDeviceService : Service() {
             val observation = runCatching {
                 (application as? ConnectedDeviceSessionObservationProvider)?.createObservation(generation)
             }.getOrNull()
-            ConnectedDeviceSessionOwner(generation, createdController, observation)
+            val logObservation = operationLog.serviceObservation(observation)
+            ConnectedDeviceSessionOwner(generation, createdController, logObservation)
         } catch (error: RuntimeException) {
             try {
                 if (controller != null) controller.close() else facade.close()

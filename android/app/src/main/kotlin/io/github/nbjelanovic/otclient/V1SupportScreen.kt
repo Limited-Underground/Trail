@@ -67,6 +67,7 @@ internal fun V1SupportScreen(
     ) {
         Text("Help and support")
         Text("Nothing is sent automatically. Review the report before saving or sharing it.")
+        MeshTrailLogExportAction()
         OutlinedTextField(
             value = problemNote,
             onValueChange = { value ->
@@ -116,57 +117,69 @@ internal fun V1SupportScreen(
 internal fun shareSupportReport(
     context: Context,
     report: V1SupportReport,
-): String {
-    val result = runCatching {
-        val directory = File(context.cacheDir, "support-reports").apply {
-            check(isDirectory || mkdirs())
-        }
-        val existingFiles = requireNotNull(directory.listFiles())
-        val plan = V1SupportShareRetentionPolicy.plan(
-            entries = existingFiles.map {
-                V1SupportCachedReport(it.name, it.lastModified(), it.isFile)
-            },
-            nowEpochMillis = System.currentTimeMillis(),
-        )
-        when (plan) {
-            is V1SupportShareRetentionPlan.CapacityReached -> {
-                plan.expiredNames.forEach { name -> check(File(directory, name).delete()) }
-                return "Eight recent reports are still shareable. Save this report instead."
-            }
-            V1SupportShareRetentionPlan.UnsafeDirectoryEntry -> error("Unsafe support cache state")
-            is V1SupportShareRetentionPlan.Accepted -> plan.expiredNames.forEach { name ->
-                check(File(directory, name).delete())
-            }
-        }
-        val reportFile = File.createTempFile(
-            V1_SUPPORT_SHARED_REPORT_PREFIX,
-            V1_SUPPORT_SHARED_REPORT_SUFFIX,
-            directory,
-        )
-        var handoffAttempted = false
-        try {
-            reportFile.writeText(report.text, Charsets.UTF_8)
-            val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.support-files",
-                reportFile,
-            )
-            val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                type = report.mimeType
-                putExtra(Intent.EXTRA_SUBJECT, "MeshTrail support report")
-                putExtra(Intent.EXTRA_STREAM, uri)
-                clipData = ClipData.newUri(context.contentResolver, report.fileName, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            val chooser = Intent.createChooser(sendIntent, "Share support report")
-            // Dispatch may succeed before startActivity throws; retain that report on uncertainty.
-            handoffAttempted = true
-            context.startActivity(chooser)
-            "Share options opened."
-        } finally {
-            // Only this newly created, never-offered report is eligible for failure cleanup.
-            if (!handoffAttempted) runCatching { reportFile.delete() }
-        }
-    }
-    return result.getOrElse { "Support report could not be shared." }
+): String = when (shareV1TextAttachment(
+    context, report, subject = "MeshTrail support report", chooserTitle = "Share support report",
+)) {
+    V1TextShareResult.OPENED -> "Share options opened."
+    V1TextShareResult.AT_CAPACITY -> "Eight recent reports are still shareable. Save this report instead."
+    V1TextShareResult.FAILED -> "Support report could not be shared."
 }
+
+internal enum class V1TextShareResult { OPENED, AT_CAPACITY, FAILED }
+
+internal fun shareV1TextAttachment(
+    context: Context,
+    report: V1SupportReport,
+    subject: String,
+    chooserTitle: String,
+    displayName: String? = null,
+): V1TextShareResult = runCatching {
+    val directory = File(context.cacheDir, "support-reports").apply {
+        check(isDirectory || mkdirs())
+    }
+    val existingFiles = requireNotNull(directory.listFiles())
+    val plan = V1SupportShareRetentionPolicy.plan(
+        entries = existingFiles.map {
+            V1SupportCachedReport(it.name, it.lastModified(), it.isFile)
+        },
+        nowEpochMillis = System.currentTimeMillis(),
+    )
+    val expiredNames = when (plan) {
+        is V1SupportShareRetentionPlan.CapacityReached -> plan.expiredNames
+        is V1SupportShareRetentionPlan.UnsafeDirectoryEntry -> error("Unsafe support cache state")
+        is V1SupportShareRetentionPlan.Accepted -> plan.expiredNames
+    }
+    expiredNames.forEach { name -> check(File(directory, name).delete()) }
+    if (plan is V1SupportShareRetentionPlan.CapacityReached) return@runCatching V1TextShareResult.AT_CAPACITY
+
+    val reportFile = File.createTempFile(
+        V1_SUPPORT_SHARED_REPORT_PREFIX,
+        V1_SUPPORT_SHARED_REPORT_SUFFIX,
+        directory,
+    )
+    var handoffAttempted = false
+    try {
+        reportFile.writeText(report.text, Charsets.UTF_8)
+        val authority = "${context.packageName}.support-files"
+        val uri = if (displayName == null) {
+            FileProvider.getUriForFile(context, authority, reportFile)
+        } else {
+            FileProvider.getUriForFile(context, authority, reportFile, displayName)
+        }
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = report.mimeType
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_STREAM, uri)
+            clipData = ClipData.newUri(context.contentResolver, report.fileName, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(sendIntent, chooserTitle)
+        // Dispatch may succeed before startActivity throws; retain that report on uncertainty.
+        handoffAttempted = true
+        context.startActivity(chooser)
+        V1TextShareResult.OPENED
+    } finally {
+        // Only this newly created, never-offered report is eligible for failure cleanup.
+        if (!handoffAttempted) runCatching { reportFile.delete() }
+    }
+}.getOrDefault(V1TextShareResult.FAILED)
