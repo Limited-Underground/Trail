@@ -1,5 +1,6 @@
 package io.github.nbjelanovic.otclient
 import io.github.nbjelanovic.otprotocol.CompanionRadioEvent
+import io.github.nbjelanovic.otprotocol.CompanionAuthorityCodec
 import io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec
 import io.github.nbjelanovic.otprotocol.CompanionTextRecord
 import io.github.nbjelanovic.otprotocol.CompanionTextReference
@@ -58,6 +59,7 @@ internal const val PERIODIC_RECONNECT_DELAY_MILLIS = 15_000L
 internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
+private const val F7_TEXT_DELIVERY_TIMEOUT_MILLIS = 30_000L
 internal const val STATUS_REFRESH_INTERVAL_MILLIS = 30_000L
 internal const val PAIRING_STATUS_REFRESH_INTERVAL_MILLIS = 5_000L
 internal const val PAIRING_RESULT_FEATURE_UUID = "8d53dc1d-1db7-4cd3-868b-8a527460aa84"
@@ -444,10 +446,16 @@ class BleCompanionRuntime(
     initialGeneration: Long = 0,
     private val evaluationConfirmationEnabled: Boolean = false,
     private val confirmationClockMillis: () -> Long = { System.nanoTime() / 1_000_000L },
-    private val packetV1Enabled: Boolean = false,
+    packetV1Enabled: Boolean = false,
     private val packetAuthority: BlePacketAuthorityProvider = BlePacketAuthorityProvider { null },
     private val bluetoothRecoveryObserver: (BluetoothRecoveryTrigger) -> Unit = {},
+    benchTextRecord: ByteArray? = null,
 ) : AutoCloseable {
+    private val benchTextPins = F7BenchPins.decode(benchTextRecord)
+    private val packetV1Enabled = packetV1Enabled || benchTextPins != null
+    private var benchAuthority: BlePacketAuthorityAdapter? = null
+    private var pendingBenchAuthority: BlePacketAuthorityQuery? = null
+
     init {
         require(maximumReconnectAttempts in 0..16)
         require(firstRequestId in 1..0xffff_ffffL)
@@ -1088,7 +1096,7 @@ class BleCompanionRuntime(
     @Synchronized
     fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: CompanionQuickStatus): Boolean {
         requireOwnerThread()
-        if (recipient !== quickStatusRecipient || !currentPacketAuthority()) return false
+        if (benchTextPins != null || recipient !== quickStatusRecipient || !currentPacketAuthority()) return false
         // Reentrant provider calls cannot replace the selected recipient between these checks.
         if (recipient !== quickStatusRecipient) return false
         return submitActionInternal(CompanionActionRequest(CompanionActionKind.QUICK_STATUS, status), false)
@@ -1098,7 +1106,7 @@ class BleCompanionRuntime(
     fun quickStatusState(): V1QuickStatusState {
         requireOwnerThread()
         val recipient = quickStatusRecipient
-        if (state !is BleRuntimeState.Ready || !packetDelivery.available || recipient == null)
+        if (benchTextPins != null || state !is BleRuntimeState.Ready || !packetDelivery.available || recipient == null)
             return V1QuickStatusState()
         return V1QuickStatusState(recipient,
             packetDelivery.receivedStatus?.takeIf { it.currentAttachment }?.let { CompanionQuickStatus.fromWire(it.status) },
@@ -1216,7 +1224,8 @@ class BleCompanionRuntime(
         }
         if (textConversation.busy) {
             val local = generation
-            val timer = scheduler.schedule(ACTION_RESULT_TIMEOUT_MILLIS) {
+            val timeout = if (benchTextPins == null) ACTION_RESULT_TIMEOUT_MILLIS else F7_TEXT_DELIVERY_TIMEOUT_MILLIS
+            val timer = scheduler.schedule(timeout) {
                 requireOwnerThread()
                 if (accepts(local) && textConversation.origin === request && textConversation.busy)
                     retirePacket(BleRuntimeFailure.ACTION_RESULT_TIMEOUT, unknown = true)
@@ -2291,7 +2300,62 @@ class BleCompanionRuntime(
         }
     }
 
-    /** No production provider is connected; only a trusted caller may supply this context. */
+    private fun beginBenchPacketAuthority(companion: BleDiscoveredCompanion) {
+        val pins = benchTextPins ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        val lease = gattLease ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        val callbackGeneration = generation
+        val exchange = maxOf(nextRequestId, firstRequestId + 1L)
+        if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO) ||
+            negotiatedMtu < CompanionAuthorityCodec.MINIMUM_ATT_MTU ||
+            !authorizationTracker.allowsNormalCompanionTraffic(callbackGeneration.toULong()) ||
+            activeSessionNonce !in 1..0xffff_ffffL) {
+            return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        }
+        if (exchange !in 1..0xffff_fffdL) return failAndRelease(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED)
+
+        val query = BlePacketAuthorityQuery(lease, callbackGeneration, activeSessionNonce.toUInt(), companion.endpointToken)
+        val adapter = BlePacketAuthorityAdapter(this, confirmationClockMillis)
+        val request = pins.begin(adapter, this, query, exchange.toUInt())
+            ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        if (!accepts(callbackGeneration) || gattLease !== lease ||
+            !hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO) ||
+            activeSessionNonce != query.nonce.toLong()) {
+            adapter.invalidate(BlePacketAuthorityAdapter.Invalidation.LEASE_CHANGE)
+            return
+        }
+        benchAuthority = adapter
+        pendingBenchAuthority = query
+        nextRequestId = exchange + 1L
+        val written = try {
+            lease.writeCommandWithResponse(request)
+        } catch (_: Exception) {
+            false
+        }
+        if (!accepts(callbackGeneration) || gattLease !== lease) return
+        if (!written) return failAndRelease(BleRuntimeFailure.ACTION_WRITE_FAILED)
+        if (pendingBenchAuthority === query) armNegotiationTimeout(callbackGeneration, BleNegotiationPhase.PROTOCOL_INFO)
+    }
+
+    private fun acceptBenchPacketAuthority(companion: BleDiscoveredCompanion, value: ByteArray) {
+        val query = pendingBenchAuthority ?: return
+        val lease = gattLease ?: return
+        val claim = authorizationClaim ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        val adapter = benchAuthority ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        pendingBenchAuthority = null
+        if (!hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO) || !claim.promoted ||
+            !normalProfileConfirmedAfterPromotion || query.peer != companion.endpointToken ||
+            query.lease !== lease || query.callbackGeneration != generation ||
+            !authorizationTracker.allowsNormalCompanionTraffic(generation.toULong())) {
+            return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        }
+        adapter.complete(this, lease, generation, value)
+        if (!accepts(query.callbackGeneration) || gattLease !== lease) return
+        operationTimeoutLease?.close()
+        operationTimeoutLease = null
+        continueAfterAuthorizationPromotion(companion, claim)
+    }
+
+    /** Authority belongs to the exact promoted GATT owner and current Packet observation. */
     private fun currentPacketAuthority(bind: Boolean = false, preReady: BleDiscoveredCompanion? = null): Boolean {
         if(!packetV1Enabled || configurationInfo?.minorVersion!=6 || deliveringObserver || queryingPacketAuthority) return false
         val expectedState=state
@@ -2308,8 +2372,9 @@ class BleCompanionRuntime(
         val local=generation
         if(!accepts(local)) return false
         val query=BlePacketAuthorityQuery(lease,local,nonce.toUInt(),companion.endpointToken)
+        val provider = if (benchTextPins != null) benchAuthority ?: return false else packetAuthority
         queryingPacketAuthority=true
-        val sampled=try { packetAuthority.current(query) to confirmationClockMillis() } catch(_:Exception) { null }
+        val sampled=try { provider.current(query) to confirmationClockMillis() } catch(_:Exception) { null }
             finally { queryingPacketAuthority=false }
         val proof=sampled?.first ?: return false
         val now=sampled.second
@@ -2412,6 +2477,12 @@ class BleCompanionRuntime(
     }
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
+        if (benchTextPins != null && configurationInfo?.minorVersion == CompanionAuthorityCodec.PROFILE &&
+            value.size > 6 && (value[6].toInt() and 255) == CompanionAuthorityCodec.RESPONSE_KIND) {
+            acceptBenchPacketAuthority(companion, value)
+            return
+        }
+        if (pendingBenchAuthority != null) return
         if (packetV1Enabled && configurationInfo?.minorVersion == 6 && value.size > 6 &&
             (value[6].toInt() and 255) in listOf(CompanionTextCarrierCodec.RESULT, CompanionTextCarrierCodec.RECEIVED, CompanionTextCarrierCodec.DELIVERY)) {
             acceptTextRecord(value); return
@@ -2629,8 +2700,10 @@ class BleCompanionRuntime(
         }
         activeSessionNonce = info.provisionalSessionNonce
         val packetProfile=configurationInfo?.minorVersion==6
-        if(packetProfile && !currentPacketAuthority(bind=true,preReady=companion)) {
-            failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED);return
+        if (packetProfile && !currentPacketAuthority(bind = true, preReady = companion)) {
+            if (benchTextPins != null && benchAuthority == null) beginBenchPacketAuthority(companion)
+            else failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+            return
         }
         val exchangeId = if (packetProfile && packetBinding?.wireBinding != null) nextRequestId else firstRequestId
         if (exchangeId !in 1..0xffff_fffeL) {
@@ -3336,6 +3409,9 @@ class BleCompanionRuntime(
     }
 
     private fun clearSessionState() {
+        pendingBenchAuthority = null
+        benchAuthority?.invalidate(BlePacketAuthorityAdapter.Invalidation.DISCONNECT)
+        benchAuthority = null
         textConversation.retire(textHandedOff); textHandedOff = false
         finishTextOutboxAttempt()
         outboxBinding = null

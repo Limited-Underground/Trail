@@ -1,5 +1,7 @@
 #include "companion_nimble_gatt.hpp"
 
+#include "companion_phone_text_gatt.hpp"
+
 #include "companion_gatt_layout.hpp"
 #include "companion_connection_diagnostics.hpp"
 #include "companion_nimble_runtime.hpp"
@@ -33,6 +35,7 @@
 #include "nimble/nimble_port.h"
 #include "opentrail/companion_public_link_info.hpp"
 #include "opentrail/companion_region_catalog.hpp"
+#include <sodium/utils.h>
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -148,6 +151,15 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
+CompanionPhoneTextBackend* g_phone_text_backend = nullptr;
+std::uint16_t g_phone_text_connection = BLE_HS_CONN_HANDLE_NONE;
+// Only the app task accesses this backend binding and staged event.
+DeviceNameContext g_phone_text_backend_context{};
+ConfigurationLane g_phone_text_event{};
+
+std::uint8_t configuration_wire_minor() {
+    return g_phone_text_backend == nullptr ? kSelectedConfigurationMinor : phone_text_gatt::profile;
+}
 // D-110: the phone's board pairing request lasts 5 minutes.
 SelectedEnrollmentRequestOwner g_selected_enrollment_requests{SelectedEnrollmentRequestOwner::kBoardPairingLimitMs};
 ConfigurationPhoneStatus g_phone_status;
@@ -452,6 +464,9 @@ void clear_configuration_lane() {
         cancel_enrollment_for_lane(g_configuration_lane);
         g_indication_port.cancel_reservation(g_configuration_lane.token);
         g_indication_port.abandon_indication(g_configuration_lane.token);
+        if (g_phone_text_backend != nullptr) {
+            sodium_memzero(g_configuration_lane.record.data(), g_configuration_lane.record.size());
+        }
     }
     g_configuration_lane = {};
 }
@@ -599,6 +614,42 @@ int refresh_security(std::uint16_t connection_handle,
                : BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
 }
 
+bool phone_text_wire_record(const ConfigurationLane& lane) {
+    return g_phone_text_backend != nullptr && lane.bytes > 5 &&
+           lane.record[5] == phone_text_gatt::profile;
+}
+
+// Caller holds GattLock. Refresh actual link evidence before crossing tasks.
+bool phone_text_link_current_locked(const DeviceNameContext& context) {
+    if (g_phone_text_backend == nullptr || !g_configuration_selected || g_configuration_revoked ||
+        g_phone_text_connection == BLE_HS_CONN_HANDLE_NONE || context.transport_generation == 0 ||
+        context.transport_generation == g_configuration_blocked_generation ||
+        refresh_security(g_phone_text_connection) != 0) return false;
+    update_configuration_authority();
+    const auto status = g_adapter->status();
+    const auto& life = status.lifecycle;
+    const auto& lane = g_configuration_lane;
+    const bool expired = phone_text_wire_record(lane) && lane.context == context && lane.expired(now_ms());
+    return !expired && g_configuration_authority.phase == DeviceNamePhase::connected &&
+           g_configuration_authority.context == context && status.handles_registered &&
+           !status.pending.valid && !life.response_pending && life.protocol_info_read &&
+           life.phase == CompanionGattAuthorizationPhase::promoted;
+}
+
+bool phone_text_command_current(const ConfigurationLane& work) {
+    GattLock lock;
+    const auto& lane = g_configuration_lane;
+    return lock && lane.executing && !lane.indicated && !lane.response_ready &&
+           lane.matches(work.connection, work.context.transport_generation, work.context.session_nonce,
+                        work.exchange, work.token) &&
+           phone_text_link_current_locked(work.context);
+}
+
+void wipe_phone_text_event() {
+    sodium_memzero(g_phone_text_event.record.data(), g_phone_text_event.record.size());
+    g_phone_text_event = {};
+}
+
 void queue_verified_gatt_progress(std::uint16_t connection_handle,
                                   std::uint64_t observed_at_ms) {
     if (g_adapter == nullptr) return;
@@ -647,9 +698,12 @@ int protocol_info_access(std::uint16_t connection_handle,
         }
         std::array<std::uint8_t, kConfigurationInfoBytes> offer{};
         const auto encoded = encode_configuration_info({kSelectedConfigurationCapabilities, kSelectedConfigurationMinor}, offer.data(), offer.size());
-        if (!encoded.encoded() || os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
+        if (!encoded.encoded()) return finish(BLE_ATT_ERR_INSUFFICIENT_RES);
+        offer[5] = configuration_wire_minor();
+        if (os_mbuf_append(context->om, offer.data(), offer.size()) != 0)
             return finish(BLE_ATT_ERR_INSUFFICIENT_RES);
         g_configuration_selected = true;
+        if (g_phone_text_backend != nullptr) g_phone_text_connection = connection_handle;
         update_configuration_authority();
         queue_verified_gatt_progress(connection_handle, now_ms());
         return finish(0, kConfigurationInfoBytes);
@@ -715,6 +769,12 @@ int command_access(std::uint16_t connection_handle,
         return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
     }
     std::array<std::uint8_t, kConfigurationRecordBytes> request{};
+    struct RequestWiper {
+        std::array<std::uint8_t, kConfigurationRecordBytes>& record;
+        ~RequestWiper() {
+            if (g_phone_text_backend != nullptr) sodium_memzero(record.data(), record.size());
+        }
+    } wipe{request};
     if (os_mbuf_copydata(context->om, 0, length, request.data()) != 0) {
         return BLE_ATT_ERR_UNLIKELY;
     }
@@ -727,30 +787,55 @@ int command_access(std::uint16_t connection_handle,
     if (g_adapter->status().transport_generation == g_configuration_blocked_generation &&
         g_configuration_blocked_generation != 0) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
     if (g_configuration_selected) {
-        const auto frame = decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor);
         const auto status = g_adapter->status();
-        if (!frame.decoded() || g_configuration_lane.occupied || status.pending.valid ||
-            g_configuration_authority.phase != DeviceNamePhase::connected ||
-            frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
-            (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6 &&
-             !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
-             !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8) &&
-             !(kSelectedConfigurationMinor == kPublicProfileMinor &&
-                frame.value.kind == kConfigurationGroupCommandKind)) ||
-            (frame.value.kind == kConfigurationGroupCommandKind &&
-                !g_phone_status.ready(g_configuration_authority, status.transport_generation)) ||
-            g_configuration_token == std::numeric_limits<std::uint64_t>::max())
+        const auto authority = g_configuration_authority;
+        const auto wire_minor = configuration_wire_minor();
+        if (g_configuration_lane.occupied || status.pending.valid ||
+            authority.phase != DeviceNamePhase::connected ||
+            g_configuration_token == std::numeric_limits<std::uint64_t>::max() ||
+            length <= 5 || request[5] != wire_minor) {
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+        }
+        const auto phone = phone_text_gatt::decode(encoded);
+        std::uint32_t nonce = 0, exchange = 0;
+        if (g_phone_text_backend != nullptr && phone.command()) {
+            if (!phone_text_link_current_locked(authority.context) ||
+                g_phone_text_connection != connection_handle ||
+                (phone.kind == phone_text_gatt::Kind::send &&
+                 !g_phone_status.ready(authority, status.transport_generation))) {
+                return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+            }
+            nonce = phone.nonce;
+            exchange = phone.exchange;
+        } else {
+            // The bench envelope carries the existing configuration payloads.
+            // Normalize only the version byte for the selected dispatcher.
+            request[5] = kSelectedConfigurationMinor;
+            const auto frame = decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor);
+            if (!frame.decoded() ||
+                (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 &&
+                 frame.value.kind != 5 && frame.value.kind != 6 &&
+                 !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
+                 !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8) &&
+                 !(wire_minor == kPublicProfileMinor && frame.value.kind == kConfigurationGroupCommandKind)) ||
+                (frame.value.kind == kConfigurationGroupCommandKind &&
+                 !g_phone_status.ready(authority, status.transport_generation))) {
+                return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
+            }
+            nonce = frame.value.session_nonce;
+            exchange = frame.value.exchange_id;
+        }
+        if (nonce != authority.context.session_nonce) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         const auto token = ++g_configuration_token;
         if (g_indication_port.reserve(connection_handle, status.transport_generation,
-                frame.value.session_nonce, g_stream_handle, token, kConfigurationRecordBytes) != CompanionGattSinkError::none)
+                nonce, g_stream_handle, token, kConfigurationRecordBytes) != CompanionGattSinkError::none)
             return BLE_ATT_ERR_INSUFFICIENT_RES;
         g_configuration_lane.occupied = true;
-        g_configuration_lane.context = g_configuration_authority.context;
+        g_configuration_lane.context = authority.context;
         g_configuration_lane.connection = connection_handle;
         g_configuration_lane.token = token;
         g_configuration_lane.admitted_ms = now_ms();
-        g_configuration_lane.exchange = frame.value.exchange_id;
+        g_configuration_lane.exchange = exchange;
         g_configuration_lane.bytes = length;
         g_configuration_lane.record = request;
         queue_verified_gatt_progress(connection_handle, now_ms());
@@ -791,29 +876,35 @@ void configuration_response_event(ble_npl_event*) {
     if (!lock || !g_configuration_lane.occupied || !g_configuration_lane.response_ready) return;
     auto& lane = g_configuration_lane;
     const auto tick = now_ms();
-    if (refresh_security(lane.connection) != 0) {
+    const bool phone = phone_text_wire_record(lane);
+    const auto invalidate = [&] {
         invalidate_companion_configuration();
-        observe_companion_app_factory_reset_command(false, tick);
+        if (!phone) observe_companion_app_factory_reset_command(false, tick);
+    };
+    if (refresh_security(lane.connection) != 0) {
+        invalidate();
         return;
     }
     update_configuration_authority();
-    if (!lane.current(g_configuration_authority) || lane.expired(tick)) {
-        invalidate_companion_configuration();
-        observe_companion_app_factory_reset_command(false, tick);
+    if (!lane.current(g_configuration_authority) || lane.expired(tick) ||
+        (phone && !phone_text_link_current_locked(lane.context))) {
+        invalidate();
         return;
     }
     lane.response_ready = false;
     lane.indicated = true;
+    if (!phone) lane.record[5] = configuration_wire_minor();
     const auto submitted = g_indication_port.submit_reserved(lane.connection,
         lane.context.transport_generation, lane.context.session_nonce, g_stream_handle,
         lane.token, {lane.record.data(), lane.bytes});
+    // Keep the dispatcher's version for the exact acknowledged Snapshot check.
+    if (!phone) lane.record[5] = kSelectedConfigurationMinor;
     if (submitted != CompanionGattSinkError::none) {
-        invalidate_companion_configuration();
-        observe_companion_app_factory_reset_command(false, tick);
+        invalidate();
         return;
     }
     g_indication_port.bind_exchange(lane.token, lane.exchange);
-    observe_companion_app_factory_reset_command(true, tick);
+    if (!phone) observe_companion_app_factory_reset_command(true, tick);
 }
 
 bool definition_is_pristine() {
@@ -825,6 +916,21 @@ bool definition_is_pristine() {
 }
 
 }  // namespace
+
+void install_companion_phone_text_backend(CompanionPhoneTextBackend& backend) {
+#if OPENTRAIL_LORA_F7_PHONE_TEST && !OPENTRAIL_CONFIRMATION_EVALUATION
+    if (g_configuration_mutex == nullptr && g_adapter == nullptr && g_phone_text_backend == nullptr) {
+        g_phone_text_backend = &backend;
+    }
+#else
+    (void)backend;
+#endif
+}
+
+bool companion_phone_text_link_current(const DeviceNameContext& context) {
+    GattLock lock;
+    return lock && phone_text_link_current_locked(context);
+}
 
 SelectedEnrollmentAdmission admit_selected_enrollment_request(
     const DeviceNameContext& context, std::uint32_t exchange_id) {
@@ -1042,6 +1148,7 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
             const auto disconnected =
                 g_adapter->disconnect(handle);
             if (disconnected == CompanionGattAdapterError::none) {
+                if (g_phone_text_connection == handle) g_phone_text_connection = BLE_HS_CONN_HANDLE_NONE;
                 if (pending_enrollment.connection_handle == handle &&
                     pending_enrollment.authority.transport_generation ==
                         before.transport_generation &&
@@ -1104,6 +1211,7 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
             if (g_configuration_lane.indicated && g_configuration_lane.matches(
                     pending.connection_handle, pending.transport_generation,
                     pending.session_nonce, pending.exchange_id, pending.delivery_token)) {
+                const bool phone = phone_text_wire_record(g_configuration_lane);
                 const bool confirmed = event->notify_tx.status == BLE_HS_EDONE &&
                     refresh_security(event->notify_tx.conn_handle) == 0;
                 update_configuration_authority();
@@ -1112,13 +1220,16 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
                 const bool delivered_current = confirmed &&
                     g_configuration_lane.current(g_configuration_authority) &&
                     !g_configuration_lane.expired(completed_ms);
-                g_phone_status.complete(g_configuration_lane, g_configuration_authority,
-                                        delivered_current, completed_ms, kSelectedConfigurationMinor);
+                if (!phone) {
+                    g_phone_status.complete(g_configuration_lane, g_configuration_authority,
+                                            delivered_current, completed_ms, kSelectedConfigurationMinor);
+                }
                 if (!delivered_current)
                     cancel_enrollment_for_lane(g_configuration_lane);
                 g_indication_port.observe_completion(pending.delivery_token);
+                if (phone) sodium_memzero(g_configuration_lane.record.data(), g_configuration_lane.record.size());
                 g_configuration_lane = {};
-                observe_companion_app_factory_reset_response(delivered_current);
+                if (!phone) observe_companion_app_factory_reset_response(delivered_current);
                 if (!delivered_current) {
                     g_configuration_blocked_generation = pending.transport_generation;
                     g_configuration_selected = false;
@@ -1293,9 +1404,83 @@ bool retire_selected_enrollment_request() {
            g_configuration_revoked && !g_configuration_lane.occupied;
 }
 
+namespace {
+void retire_inactive_phone_text_link() {
+    if (g_phone_text_backend_context.transport_generation == 0 ||
+        companion_phone_text_link_current(g_phone_text_backend_context)) return;
+    wipe_phone_text_event();
+    g_phone_text_backend->retire(g_phone_text_backend_context);
+    g_phone_text_backend_context = {};
+}
+
+void pump_phone_text_event() {
+    if (g_phone_text_backend_context.transport_generation == 0) return;
+    const auto& context = g_phone_text_backend_context;
+    if (!g_phone_text_event.occupied) {
+        {
+            GattLock lock;
+            if (!lock || g_configuration_lane.occupied ||
+                !phone_text_link_current_locked(context) ||
+                !g_phone_status.ready(g_configuration_authority, context.transport_generation)) return;
+        }
+        auto& pending = g_phone_text_event;
+        const auto tick = now_ms();
+        const auto bytes = g_phone_text_backend->next_event(context,
+            {pending.record.data(), pending.record.size()}, tick);
+        if (bytes == 0) {
+            wipe_phone_text_event();
+            return;
+        }
+        const auto event = phone_text_gatt::decode({pending.record.data(), bytes});
+        if (!event.event() || event.nonce != context.session_nonce) {
+            GattLock lock;
+            if (lock && phone_text_link_current_locked(context)) {
+                invalidate_companion_configuration_locked(false);
+            }
+            wipe_phone_text_event();
+            return;
+        }
+        pending.occupied = true;
+        pending.context = context;
+        pending.admitted_ms = tick;
+        pending.exchange = event.exchange;
+        pending.bytes = bytes;
+    }
+    {
+        GattLock lock;
+        if (!lock) return;
+        if (!phone_text_link_current_locked(context)) {
+            wipe_phone_text_event();
+            return;
+        }
+        if (g_phone_text_event.expired(now_ms())) {
+            // A consumed event must never let a later event skip its cursor.
+            invalidate_companion_configuration_locked(false);
+            wipe_phone_text_event();
+            return;
+        }
+        if (g_configuration_lane.occupied ||
+            !g_phone_status.ready(g_configuration_authority, context.transport_generation) ||
+            g_configuration_token == std::numeric_limits<std::uint64_t>::max()) return;
+        const auto token = ++g_configuration_token;
+        if (g_indication_port.reserve(g_phone_text_connection, context.transport_generation,
+                context.session_nonce, g_stream_handle, token, kConfigurationRecordBytes) !=
+                CompanionGattSinkError::none) return;
+        g_configuration_lane = g_phone_text_event;
+        g_configuration_lane.executing = true;
+        g_configuration_lane.connection = g_phone_text_connection;
+        g_configuration_lane.token = token;
+        g_configuration_lane.response_ready = true;
+        wipe_phone_text_event();
+    }
+    ble_npl_eventq_put(nimble_port_get_dflt_eventq(), &g_configuration_response_event);
+}
+}  // namespace
+
 void service_companion_configuration() {
     if (g_configuration_dispatcher == nullptr) return;
     if (!acquire_companion_factory_reset_serialization()) return;
+    retire_inactive_phone_text_link();
     // First app service follows successful marker-first boot/owner admission.
     // Cache a verified durable value once; display polling never opens NVS.
     if (!g_configuration_name_loaded && g_configuration_storage != nullptr) {
@@ -1319,8 +1504,9 @@ void service_companion_configuration() {
             update_configuration_authority();
             g_configuration_authority.now_ms = now_ms();
             if (g_configuration_lane.occupied && g_configuration_lane.expired(now_ms())) {
+                const bool phone = phone_text_wire_record(g_configuration_lane);
                 invalidate_companion_configuration();
-                observe_companion_app_factory_reset_response(false);
+                if (!phone) observe_companion_app_factory_reset_response(false);
             }
             if (g_configuration_lane.occupied && !g_configuration_lane.executing &&
                 !g_configuration_lane.indicated) {
@@ -1336,11 +1522,24 @@ void service_companion_configuration() {
     // No GATT mutex is held while source/owner/storage code executes.
     g_configuration_dispatcher->observe();
     ConfigurationDispatchResult result{};
-    if (work.occupied) {
+    const bool phone = phone_text_wire_record(work);
+    if (work.occupied && phone) {
+        if (phone_text_command_current(work)) {
+            const auto requested = phone_text_gatt::decode({work.record.data(), work.bytes});
+            g_phone_text_backend_context = work.context;
+            const auto bytes = g_phone_text_backend->command(work.context,
+                {work.record.data(), work.bytes}, {result.record.data(), result.record.size()}, now_ms());
+            const auto returned = phone_text_gatt::decode({result.record.data(), bytes});
+            if (phone_text_gatt::matches_response(requested, returned)) result.bytes = bytes;
+        }
+        sodium_memzero(work.record.data(), work.record.size());
+    } else if (work.occupied) {
         result = g_configuration_dispatcher->submit(work.context,
             work.record.data(), work.bytes, kConfigurationRecordBytes, work.admitted_ms);
         if (result.code == ConfigurationDispatchCode::accepted)
             result = g_configuration_dispatcher->execute();
+    } else {
+        pump_phone_text_event();
     }
     const auto confirmed = g_configuration_dispatcher->confirmed_name();
     if (confirmed.revision != 0 && confirmed.name_bytes != 0)
@@ -1355,9 +1554,10 @@ void service_companion_configuration() {
     if (!lock || !g_configuration_lane.occupied || g_configuration_lane.token != work.token) return;
     update_configuration_authority();
     if (result.bytes == 0 || g_configuration_authority.phase != DeviceNamePhase::connected ||
-        g_configuration_authority.context != work.context) {
+        g_configuration_authority.context != work.context ||
+        (phone && !phone_text_link_current_locked(work.context))) {
         clear_configuration_lane();
-        observe_companion_app_factory_reset_command(false, now_ms());
+        if (!phone) observe_companion_app_factory_reset_command(false, now_ms());
         return;
     }
     g_configuration_lane.record = result.record;

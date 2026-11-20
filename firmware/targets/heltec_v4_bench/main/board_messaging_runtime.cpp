@@ -1,4 +1,5 @@
 #include "board_messaging_runtime.hpp"
+#include "companion_nimble_gatt.hpp"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -11,7 +12,9 @@
 namespace opentrail::target::heltec_v4_bench {
 namespace {
 constexpr char kTag[]="f5_msg";
-constexpr bool kTextTest = OPENTRAIL_LORA_F7_TEXT_TEST;
+constexpr bool kFixedTextTest = OPENTRAIL_LORA_F7_TEXT_TEST;
+constexpr bool kPhoneText = OPENTRAIL_LORA_F7_PHONE_TEST;
+constexpr bool kTextTest = kFixedTextTest || kPhoneText;
 constexpr char kTestText[] = "MeshTrail text test.";
 constexpr std::uint64_t kArmMs=60000, kRetryMs=1000;
 bool same(const security_evaluation::F5RekeySession::Frame& a,
@@ -175,6 +178,7 @@ void BoardMessagingRuntime::observe_transmit() {
     if(counters.tx_completed!=completions_before_ && counters.tx_attempts!=attempts_before_) {
         if(tracked_data_ && packets_ && queued_lease_==packet_lease_) {
             packets_->on_data_transmitted();
+            if (kPhoneText && phone_text_lease_ == packet_lease_) phone_text_progress_.transmitted = true;
             if constexpr (kTextTest) ESP_LOGI(kTag, "text transmitted (DATA TxDone)");
             else ESP_LOGI(kTag,"status transmitted (DATA TxDone)");
         }
@@ -190,6 +194,71 @@ void BoardMessagingRuntime::observe_transmit() {
         tracked_=false; // one refund for this certain pre-launch drop
     }
 }
+bool BoardMessagingRuntime::observe_phone_text_pair(std::uint64_t now_ms, PhoneText::Pair& out) {
+    out = {};
+    if (!kPhoneText || !packets_ || packets_->closed() || !membership_ || !radio_.running() ||
+        !base_permitted(std::max(now_ms, clock(this))) ||
+        !rekey_->packet_eligible(packet_lease_, packet_allocation_)) return false;
+
+    // The rekey owner verifies the retained D-112 proof and frozen source
+    // images. Read the membership revision from that same serialized view.
+    security_evaluation::PeerMembershipStore membership(*membership_);
+    security_evaluation::PeerMembership record{};
+    if (!membership.initialize() || !membership.read(record) ||
+        record.state != security_evaluation::MembershipState::active ||
+        !rekey_->packet_eligible(packet_lease_, packet_allocation_)) return false;
+
+    const auto fresh = std::max(now_ms, clock(this));
+    if (!base_permitted(fresh)) return false;
+    const auto& binding = rekey_->data_tx().context;
+    const auto remaining = static_cast<std::uint32_t>(deadline_ms_ - fresh);
+    out = {binding.sender, binding.recipient, binding.group, packet_lease_, packet_allocation_,
+           record.generation, binding.epoch, remaining};
+    return true;
+}
+
+BoardMessagingRuntime::PhoneText::Submission BoardMessagingRuntime::submit_phone_text(
+    const companion::DeviceNameContext& link, std::uint64_t lease, PhoneText::View text,
+    std::uint64_t now_ms, std::uint64_t proof_deadline_ms) {
+    const auto fresh = std::max(now_ms, clock(this));
+    if (!kPhoneText || !packets_ || !lease || lease != packet_lease_ || text_arm_.sent ||
+        fresh >= proof_deadline_ms || !radio_.running() || !base_permitted(fresh) ||
+        !rekey_->packet_eligible(packet_lease_, packet_allocation_) ||
+        !companion_phone_text_link_current(link)) return {};
+
+    // Sample after the delegated retained-pair checks and exact owner check.
+    // The OTY0 proof may end before the original board RF arm.
+    const auto admitted_at = clock(this);
+    if (admitted_at >= proof_deadline_ms || !base_permitted(admitted_at)) return {};
+    if (!packets_->send_text(static_cast<std::uint32_t>(packet_allocation_), {text.data, text.size},
+                             admitted_at)) return {{}, text_arm_.sent};
+    const auto identity = packets_->sent_identity();
+    if (!identity) return {{}, true};
+    phone_text_lease_ = lease;
+    phone_text_progress_ = {};
+    return {PhoneText::Identity{identity->message_id, identity->counter}, false};
+}
+
+BoardMessagingRuntime::PhoneText::Progress BoardMessagingRuntime::phone_text_outgoing(
+    std::uint64_t lease) const {
+    return kPhoneText && lease && lease == phone_text_lease_ ? phone_text_progress_ : PhoneText::Progress{};
+}
+
+BoardMessagingRuntime::PhoneText::Inbound BoardMessagingRuntime::phone_text_incoming(
+    std::uint64_t lease) const {
+    if (!kPhoneText || !packets_ || !lease || lease != packet_lease_) return {};
+    const auto identity = packets_->received_identity();
+    if (!identity) return {};
+    const auto text = packets_->received_text();
+    return {{identity->message_id, identity->counter}, {text.data, text.size}};
+}
+
+void BoardMessagingRuntime::fail_pending_phone_text() {
+    if (kPhoneText && phone_text_lease_ && phone_text_progress_.terminal == PhoneText::Terminal::none) {
+        phone_text_progress_.terminal = PhoneText::Terminal::failed;
+    }
+}
+
 void BoardMessagingRuntime::retire_packet_queue() {
     if(tracked_ && !tracked_rekey_ && radio_.status().transmit_queue_depth) {
         radio_.discard_queued();tracked_=false;
@@ -205,6 +274,7 @@ bool BoardMessagingRuntime::start_packets() {
         retire_packet_queue();
         if(tracked_)return true;
     }
+    fail_pending_phone_text();
     packets_.reset();
     packet_stores_.reset();
     rekey_->release_retired_leases();
@@ -242,8 +312,12 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
     } else if(packets_) {
         const auto before=packets_->received_count();
         (void)packets_->receive({bytes, size}, kTextTest ? clock(this) : now_ms);
+        if (kPhoneText && phone_text_lease_ == packet_lease_ &&
+            packets_->state() == companion::F5StatusSession::State::acknowledged) {
+            phone_text_progress_.terminal = PhoneText::Terminal::delivered;
+        }
         if (packets_->received_count() > before) {
-            if constexpr (kTextTest) {
+            if constexpr (kFixedTextTest) {
                 const auto text = packets_->received_text();
                 if (text.data && text.size == sizeof(kTestText) - 1 &&
                     std::memcmp(text.data, kTestText, text.size) == 0) {
@@ -251,7 +325,7 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
                 } else {
                     ESP_LOGW(kTag, "peer text fixture mismatch bytes=%u", static_cast<unsigned>(text.size));
                 }
-            } else {
+            } else if constexpr (!kPhoneText) {
                 ESP_LOGI(kTag,"peer status authenticated");
             }
         }
@@ -264,6 +338,7 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
     if(!radio_permitted || now_ms>=deadline_ms_) {
         // RF authority ends, independently of public recovery history. No peer
         // message renews this arm; a later local rearm policy is separate.
+        fail_pending_phone_text();
         radio_.discard_queued();tracked_=false;packets_.reset();
         if(rekey_) { rekey_->retire_traffic();rekey_->release_retired_leases(); }
         pending_={};queued_frame_={};radio_permitted_=false;phase_=Phase::unarmed;
@@ -291,12 +366,13 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
     }
     if(!packets_)return;
     if(!rekey_->packet_eligible(packet_lease_,packet_allocation_)) {
+        fail_pending_phone_text();
         retire_packet_queue();
         if(!tracked_) { packets_.reset();rekey_->release_retired_leases(); }
         return;
     }
     const bool payload_sent = kTextTest ? text_arm_.sent : status_sent_;
-    if (!payload_sent && !tracked_ && fresh - packet_ready_ms_ >= (rekey_->initiator() ? 1500u : 2500u)) {
+    if (!kPhoneText && !payload_sent && !tracked_ && fresh - packet_ready_ms_ >= (rekey_->initiator() ? 1500u : 2500u)) {
         const auto id = static_cast<std::uint32_t>(packet_allocation_);
         if constexpr (kTextTest) {
             const radio::ByteView sample{reinterpret_cast<const std::uint8_t*>(kTestText), sizeof(kTestText) - 1};
@@ -308,6 +384,7 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
     }
     packets_->service(clock(this));
     if(packets_->state()==companion::F5StatusSession::State::failed) {
+        fail_pending_phone_text();
         retire_packet_queue();
         if(!tracked_) { packets_.reset();rekey_->release_retired_leases();phase_=Phase::rekey; }
         return;
@@ -322,6 +399,7 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
 void BoardMessagingRuntime::fail() {
     if(phase_==Phase::rekey || phase_==Phase::exchanging)ESP_LOGW(kTag,"exchange unavailable phase=%u",static_cast<unsigned>(phase_));
     phase_=Phase::failed;radio_permitted_=false;radio_.discard_queued();tracked_=false;
+    fail_pending_phone_text();
     packets_.reset();
     packet_stores_.reset();
     if(rekey_)rekey_->close();

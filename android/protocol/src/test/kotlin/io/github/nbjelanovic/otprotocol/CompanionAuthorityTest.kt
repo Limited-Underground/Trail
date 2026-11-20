@@ -53,6 +53,21 @@ class CompanionAuthorityTest {
         assertContentEquals(success, CompanionAuthorityCodec.encodeResponse(value))
     }
 
+    @Test fun restoredAllocationMustMatchAcrossBothGenerationFields() {
+        val generation = 0x1020304050607080uL
+        val wide = hex("8070605040302010")
+        val record = success.copyOf()
+        wide.copyInto(record, 104)
+        wide.copyInto(record, 112)
+        val value = assertNotNull(CompanionAuthorityCodec.decodeResponse(record))
+        assertEquals(generation, value.deviceGeneration)
+        assertEquals(generation, value.sessionGeneration)
+        assertContentEquals(record, CompanionAuthorityCodec.encodeResponse(value))
+
+        record[119] = 0x20
+        assertNull(CompanionAuthorityCodec.decodeResponse(record))
+    }
+
     @Test fun record_03_refusal_bothDirections() {
         val value = assertNotNull(CompanionAuthorityCodec.decodeResponse(refusal))
         assertTrue(value.isRefusal)
