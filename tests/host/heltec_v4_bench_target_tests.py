@@ -3722,6 +3722,29 @@ def test_f5_messaging_runtime_surface() -> None:
             "retirement cancels queued work before closing packet and key owners")
 
 
+
+def test_f7_link_test_text_surface() -> None:
+    build = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    component = (TARGET / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    owner = (TARGET / "main/board_messaging_runtime.cpp").read_text(encoding="utf-8")
+    require(bool(re.search(r'option\(OPENTRAIL_LORA_F7_TEXT_TEST "[^"]+" OFF\)', build)),
+            "typed text needs an explicit development build opt-in")
+    require("if(OPENTRAIL_LORA_F7_TEXT_TEST AND NOT OPENTRAIL_LORA_LINK_TEST)" in build and
+            'message(FATAL_ERROR "The F7 text test requires the LoRa link test")' in build,
+            "typed text must refuse configuration outside the LoRa Link Test")
+    require("OPENTRAIL_LORA_F7_TEXT_TEST=$<BOOL:${OPENTRAIL_LORA_F7_TEXT_TEST}>" in component,
+            "the opt-in must reach the compiled target")
+    require("kTextTest ? &text_arm_ : nullptr" in owner,
+            "only the text variant may select the typed session")
+    require("packets_->send_text(" in owner and "packets_->send_status(" in owner and
+            '"MeshTrail text test."' in owner,
+            "the test must send a fixed MeshTrail sample through the existing packet session")
+    require("packets_->received_text()" in owner and "std::memcmp(text.data, kTestText" in owner and
+            'ESP_LOGI(kTag, "peer text authenticated: %s", kTestText)' in owner and
+            '"peer text fixture mismatch bytes=%u"' in owner,
+            "USB logs must distinguish the checked sample from other peer content")
+
+
 def main() -> int:
     tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3739,7 +3762,7 @@ def main() -> int:
              test_configuration_transport_and_storage_surface, test_retained_identity_runtime_surface,
              test_selected_enrollment_request_route, test_pairing_result_protected_route,
              test_pairing_queued_launch_behavior)
-    tests = (*tests, test_f5_messaging_runtime_surface)
+    tests = (*tests, test_f5_messaging_runtime_surface, test_f7_link_test_text_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

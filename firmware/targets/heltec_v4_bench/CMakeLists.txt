@@ -9,6 +9,10 @@ option(OPENTRAIL_CONFIRMATION_EVALUATION "Enable OT216 protected BLE confirmatio
 # F5 step R1: bench LoRa link test (unauthenticated beacons between boards). Off in
 # every normal build; never combine with a release generation.
 option(OPENTRAIL_LORA_LINK_TEST "Enable the bench LoRa link test beacons" OFF)
+option(OPENTRAIL_LORA_F7_TEXT_TEST "Exercise typed board-to-board text in the LoRa link test" OFF)
+if(OPENTRAIL_LORA_F7_TEXT_TEST AND NOT OPENTRAIL_LORA_LINK_TEST)
+    message(FATAL_ERROR "The F7 text test requires the LoRa link test")
+endif()
 if(OPENTRAIL_LORA_LINK_TEST AND OPENTRAIL_CONFIRMATION_EVALUATION)
     message(FATAL_ERROR "The LoRa link test and the confirmation evaluation are separate builds")
 endif()

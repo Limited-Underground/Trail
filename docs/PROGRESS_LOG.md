@@ -1,5 +1,26 @@
 # OpenTrail Progress Log
 
+## 2026-11-19
+
+### OT-0312 Send one typed message between paired MeshTrail boards
+
+The board Link Test can opt into OTXT v1 over the authenticated F5 link.
+The bounded codec shares the Android vectors, and the complete frame is at
+most 158 bytes on this target. Packet admission checks the actual transport
+budget before counter allocation. Authenticated receive validates the text
+before replay persistence and ACK allocation. An exact duplicate can receive
+its cached ACK without another delivery.
+
+The text trial has one send and one inbound delivery per local RF arm, even
+when a successor Packet lease is established. It reuses the existing DATA and
+ACK lanes and the 7,564-entry combined storage budget. The ordinary Link Test
+continues to send OTQ0. F7 uses the fixed MeshTrail fixture and distinguishes
+queue, TxDone, accepted peer text and authenticated ACK in the USB log.
+
+The maintainer-local REPORT-5 records the regression, offline host matrix,
+matching image evidence and the later owner-present pass checks. The F5 phone
+reconnect gate I-084 still applies when pairing recovery needs the phones.
+
 ## 2026-11-18
 
 ### OT-0005i Recover a fresh MeshTrail session after one board restarts

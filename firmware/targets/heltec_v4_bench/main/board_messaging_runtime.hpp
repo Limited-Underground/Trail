@@ -75,6 +75,7 @@ private:
     std::optional<RetainedView> membership_, evidence_;
     std::optional<security_evaluation::F5PairingTrustView> trust_view_;
     std::optional<Rekey> rekey_;
+    companion::F5StatusSession::TextArm text_arm_;
     std::optional<companion::F5StatusSession> packets_;
     Rekey::Frame pending_{}, queued_frame_{};
     std::uint64_t deadline_ms_{0}, next_offer_ms_{0}, packet_ready_ms_{0};
