@@ -16,7 +16,7 @@ data class BleConfigurationState(
     val publicName: String? = null,
     val publiclyDiscoverable: Boolean? = null,
     val publicRevision: ULong? = null,
-    val notice: String = "Device configuration is unavailable.",
+    val notice: String = "Device settings are unavailable.",
 ) {
     override fun toString() = "BleConfigurationState(available=$available, busy=$busy, name=redacted)"
 }
@@ -43,7 +43,7 @@ internal class BleConfigurationSession(
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
     private var closed = false
-    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=(minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion==6),publicProfileAvailable=(minorVersion==CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion==6),notice="Read the device name before applying a change.")
+    var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=(minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion==6),publicProfileAvailable=(minorVersion==CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion==6),notice="Check the saved name before changing it.")
         private set
     val busy get() = namePending != null || timeExchange != null || regionPending != null || publicPending != null
 
@@ -59,11 +59,11 @@ internal class BleConfigurationSession(
         val exchange=allocate() ?: return false
         if(!isCurrent()) return false
         regionPending=RegionPending(exchange,request)
-        update(clearPublic(state).copy(busy=true,regionRevision=null,notice="Waiting for region readback..."))
+        update(clearPublic(state).copy(busy=true,regionRevision=null,notice="Waiting for your device to confirm its region."))
         return transmit(6,exchange,checkNotNull(CompanionConfigurationCodec.encodeRegion(request)))
     }
     private fun uncertainRegion() = update(state.copy(busy=false,regionRevision=null,
-        notice="Couldn't confirm the radio region. Read the saved region before trying again."))
+        notice="Couldn't confirm the radio region.\nCheck the saved region before trying again."))
     private fun clearPublic(value: BleConfigurationState) = value.copy(publicName=null, publiclyDiscoverable=null, publicRevision=null)
     private fun publicPrerequisites(): Boolean = state.available && state.nameRevision?.let { it>0uL }==true &&
         state.deviceName?.let(V1DeviceName::create)!=null && state.regionAvailable &&
@@ -80,11 +80,11 @@ internal class BleConfigurationSession(
         val exchange=allocate() ?: return false
         if(!isCurrent()) return false
         publicPending=PublicPending(exchange,request)
-        update(clearPublic(state).copy(busy=true,notice="Waiting for public settings readback..."))
+        update(clearPublic(state).copy(busy=true,notice="Waiting for your device to confirm your profile."))
         return transmit(CompanionPublicProfileCodec.REQUEST,exchange,payload)
     }
     private fun uncertainPublic() = update(clearPublic(state).copy(busy=false,
-        notice="Public settings were not confirmed. Read the device before applying another change."))
+        notice="Couldn't confirm your profile.\nCheck the saved profile before trying again."))
     fun readName(): Boolean = startName { names.beginRead() }
     fun writeName(name: V1DeviceName): Boolean {
         val revision=state.nameRevision ?: return false
@@ -95,7 +95,7 @@ internal class BleConfigurationSession(
         val request=create() ?: return false
         if(!isCurrent()) return false
         namePending=request
-        update(clearPublic(state).copy(busy=true,nameRevision=null,notice="Waiting for device readback…"))
+        update(clearPublic(state).copy(busy=true,nameRevision=null,notice="Waiting for your device to confirm its name."))
         return transmit(4,request.exchangeId,request.encodedPayload())
     }
     fun synchronizeTime(): Boolean {
@@ -103,7 +103,7 @@ internal class BleConfigurationSession(
         val id=allocate() ?: return false
         if(!isCurrent()) return false
         timeExchange=id;challenge=null
-        update(state.copy(busy=true,notice="Synchronizing the display clock…"))
+        update(state.copy(busy=true,notice="Setting your device clock."))
         return transmit(5,id,checkNotNull(CompanionConfigurationCodec.encodeTime(CompanionTimePayload(1))))
     }
     private fun transmit(kind: Int,id: UInt,payload: ByteArray): Boolean {
@@ -129,7 +129,7 @@ internal class BleConfigurationSession(
             if(publicPrerequisites() && (absent || snapshot || applied)) {
                 update(state.copy(busy=false,publicName=result!!.name.ifEmpty { null },
                     publiclyDiscoverable=result.visible,publicRevision=result.revision,
-                    notice=if(applied) "Public settings saved and read back. Public discovery is not enabled by this screen." else "Public settings read back."))
+                    notice=if(applied) "Your device confirmed your profile was saved.\nSaving it doesn't make you visible yet." else "Your device confirmed your saved profile."))
             } else uncertainPublic()
             return true
         }
@@ -140,11 +140,11 @@ internal class BleConfigurationSession(
             if(result?.kind==0x81 && region.request.kind==1 &&
                 (result.selectionId==0 || RegionSelectionCatalog.find(result.selectionId)!=null)) {
                 update(state.copy(busy=false,regionSelectionId=result.selectionId.takeIf { it!=0 },regionRevision=result.revision,
-                    notice=if(result.selectionId==0) "No radio region is saved." else "Saved radio region confirmed."))
+                    notice=if(result.selectionId==0) "No radio region is saved." else "Your device confirmed its saved region."))
             } else if(result?.kind==0x82 && region.request.kind==2 && region.request.revision!=ULong.MAX_VALUE &&
                 result.revision==region.request.revision+1u && result.selectionId==region.request.selectionId) {
                 update(state.copy(busy=false,regionSelectionId=result.selectionId,regionRevision=null,
-                    notice="Region saved. MeshTrail uses this region's radio rules."))
+                    notice="Your device saved the region and will follow its radio rules."))
             } else uncertainRegion()
             return true
         }
@@ -157,14 +157,14 @@ internal class BleConfigurationSession(
                     val snapshot=checkNotNull(result.snapshot)
                     update(state.copy(busy=false,deviceName=snapshot.name.ifEmpty { null },nameRevision=snapshot.revision,
                         suggestedDeviceName=if(snapshot.name.isEmpty()) context.setupLabel?.value else null,
-                        notice="Device name read back."))
+                        notice="Your device confirmed its saved name."))
                 }
                 V1NameResultCode.APPLIED -> {
                     val name=V1DeviceName.create(request.payload.name)
                     val receipt=result.receipt
                     if(name!=null && receipt!=null && names.consume(receipt,context.setupLabel,context.sessionToken,name)) {
                         update(state.copy(busy=false,deviceName=name.value,suggestedDeviceName=null,nameRevision=request.payload.revision+1u,
-                            notice="Device name saved and read back."))
+                            notice="Your device confirmed the new name was saved."))
                     } else uncertain()
                 }
                 else -> uncertain()
@@ -186,7 +186,7 @@ internal class BleConfigurationSession(
         }
         if(time.kind!=4 || time.challenge!=(challenge ?: 0uL)) return false
         timeExchange=null;challenge=null
-        update(state.copy(busy=false,notice=if(time.code==0) "Display clock synchronized." else "Clock sync was not accepted. Try again."))
+        update(state.copy(busy=false,notice=if(time.code==0) "Your device clock is set." else "Your device refused the time change.\nTry again."))
         return true
     }
     fun lost(exchange: UInt) {
@@ -197,7 +197,7 @@ internal class BleConfigurationSession(
             names.lostResult(context,exchange);namePending=null;uncertain()
         } else if(timeExchange==exchange) {
             timeExchange=null;challenge=null
-            update(state.copy(busy=false,notice="Clock sync was not confirmed. Try again."))
+            update(state.copy(busy=false,notice="Couldn't confirm the time change.\nTry again."))
         }
     }
     fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange ?: publicPending?.exchange
@@ -207,6 +207,6 @@ internal class BleConfigurationSession(
         names.lifecycle(context,V1NameLifecycle.DISCONNECTED)
     }
     private fun uncertain() = update(state.copy(busy=false,nameRevision=null,suggestedDeviceName=null,
-        notice="Name change was not confirmed. Read the device before trying another change."))
+        notice="Couldn't confirm the new name.\nCheck the saved name before trying again."))
     private fun update(next: BleConfigurationState) { state=next;changed(next) }
 }

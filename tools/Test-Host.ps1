@@ -1607,6 +1607,23 @@ $builds = @(
         )
     },
     @{
+        Name = 'MeshTrail radio profiles'
+        Output = Join-Path $buildDirectory 'radio_profile_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\radio_profile_tests.cpp')
+        )
+    },
+    @{
+        Name = 'MeshTrail hopping ledger and radio ordering'
+        Output = Join-Path $buildDirectory 'hopping_tx_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\radio\src\hopping_tx.cpp'),
+            (Join-Path $projectRoot 'firmware\components\radio\src\lora_airtime.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\hopping_tx_tests.cpp')
+        )
+    },
+    @{
         Name = 'LoRa airtime'
         Output = Join-Path $buildDirectory 'lora_airtime_tests.exe'
         Sources = @(

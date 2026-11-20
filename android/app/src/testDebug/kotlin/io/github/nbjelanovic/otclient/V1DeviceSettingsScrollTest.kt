@@ -46,10 +46,10 @@ class V1DeviceSettingsScrollTest {
 
     @Test fun verifiedAndEditableRegionCopyDoesNotPromiseActivity() {
         showConnectedDevice()
-        ui.onNodeWithText("Your MeshTrail board uses the radio rules for its saved region.")
+        ui.onNodeWithText("Your device follows the radio rules for its saved region.")
             .performScrollTo().assertIsDisplayed()
         ui.onNodeWithText("Edit saved name or region").performScrollTo().performClick()
-        ui.onNodeWithText("Choose the region where you use your MeshTrail board.")
+        ui.onNodeWithText("Choose the region where you use your device.")
             .performScrollTo().assertIsDisplayed()
     }
 
@@ -59,7 +59,7 @@ class V1DeviceSettingsScrollTest {
                 V1OnboardingScreen(V1OnboardingScreenState(stage = V1SetupStage.CONFIRM_RADIO_REGION), {})
             }
         }
-        ui.onNodeWithText("Choose the region where you use your MeshTrail board. Your board uses the radio rules for its saved region.")
+        ui.onNodeWithText("Choose the region where you use your device.")
             .performScrollTo().assertIsDisplayed()
     }
 

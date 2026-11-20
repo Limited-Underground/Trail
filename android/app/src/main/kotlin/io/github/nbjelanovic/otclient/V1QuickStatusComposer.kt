@@ -16,8 +16,8 @@ data class V1QuickStatusState(
 
 /** Only the four existing wire meanings. No truncation, inferred synonyms or text encoding. */
 object V1QuickStatusComposer {
-    const val TEXT_UNAVAILABLE = "Typed text is not supported yet. This message cannot be sent."
-    const val AUTHORITY_UNAVAILABLE = "Quick statuses require a current authenticated recipient. Production messaging remains disabled."
+    const val TEXT_UNAVAILABLE = "This message can't be sent as a quick message."
+    const val AUTHORITY_UNAVAILABLE = "This connection can't send quick messages yet."
     fun label(status: CompanionQuickStatus): String = when (status) {
         CompanionQuickStatus.OK -> "I'm OK"
         CompanionQuickStatus.NEED_ASSISTANCE -> "Need assistance"
@@ -28,13 +28,13 @@ object V1QuickStatusComposer {
         CompanionQuickStatus.entries.firstOrNull { label(it) == text }
 
     fun evidence(phase: BlePacketDeliveryPhase): String = when (phase) {
-        BlePacketDeliveryPhase.AWAITING_ACCEPTANCE -> "Awaiting device acceptance"
-        BlePacketDeliveryPhase.QUEUE_ACCEPTED -> "Queued on device; delivery not confirmed"
-        BlePacketDeliveryPhase.TRANSMISSION_COMPLETED -> "Transmission complete; peer receipt not confirmed"
-        BlePacketDeliveryPhase.PROTECTED_PEER_ACK -> "Protected peer ACK observed; not a human or read acknowledgment"
-        BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION -> "Rejected by device"
-        BlePacketDeliveryPhase.FAILED -> "Device reported failure"
-        BlePacketDeliveryPhase.OUTCOME_UNKNOWN -> "Outcome unknown; do not resend automatically"
+        BlePacketDeliveryPhase.AWAITING_ACCEPTANCE -> "Waiting for your device to accept it."
+        BlePacketDeliveryPhase.QUEUE_ACCEPTED -> "Your device is waiting to send it."
+        BlePacketDeliveryPhase.TRANSMISSION_COMPLETED -> "Your device sent it and hasn't confirmed delivery."
+        BlePacketDeliveryPhase.PROTECTED_PEER_ACK -> "The other device received it."
+        BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION -> "Your device refused to send it."
+        BlePacketDeliveryPhase.FAILED -> "Your device couldn't send it."
+        BlePacketDeliveryPhase.OUTCOME_UNKNOWN -> "Delivery is uncertain.\nCheck before sending again."
         BlePacketDeliveryPhase.NOT_SENT -> "Not sent"
     }
 }

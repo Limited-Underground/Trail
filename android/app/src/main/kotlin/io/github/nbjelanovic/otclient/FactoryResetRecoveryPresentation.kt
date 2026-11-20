@@ -9,14 +9,15 @@ internal data class FactoryResetRecoveryPresentation(
 /** The reset receipt proves firmware cleanup, not Android system-pairing removal. */
 internal fun factoryResetRecoveryPresentation(state: BleRuntimeState.FactoryResetComplete) =
     FactoryResetRecoveryPresentation(
-        detail="The device reset is confirmed. Its old app connection is closed.",
+        detail="Your device reset is confirmed.\nThe old connection is closed.",
         bondGuidance=if(state.systemBondRemovalRequired)
-            "Android may still have an old pairing. In Bluetooth settings, forget only the entry you know belongs " +
-                "to this device. Leave other entries alone. If you are unsure, do not remove anything. " +
-                "MeshTrail cannot check whether Android removed it."
+            "Android may still show the old pairing.\n" +
+                "In Bluetooth settings, forget only the entry you're sure belongs to this device.\n" +
+                "MeshTrail can't check whether Android removed it."
             else null,
-        windowGuidance="Start fresh setup, then choose your device and enter its PIN. The 60-second window keeps " +
-            "running. If the PIN is gone, restart the reset device when you are ready.",
+        windowGuidance="Tap Start fresh device setup, then choose your device and enter its PIN.\n" +
+            "The 60-second timer keeps running.\n" +
+            "If the PIN is gone, restart your device when you're ready.",
     )
 
 /** Returns dispatch only; never a pairing, cleanup or Ready receipt. */

@@ -19,6 +19,12 @@ See the [D-114 host progress entry](PROGRESS_LOG.md#ot-0170a-correct-five-androi
 and the [radio presentation entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radio-status-and-scroll-app-settings).
 Phone verification remains pending.
 
+The I-023 Android topic uses shorter tester wording and retains the support
+codes. Find device explains Nearby Devices access before asking Android for it.
+On a fresh launch, a returning device opens its unfinished setup after the app
+reads the current setup state. The [I-023 progress entry](PROGRESS_LOG.md#ot-0170a-clarify-tester-wording-and-resume-setup-i-023)
+describes the host regressions. Phone acceptance remains open.
+
 ## Android reconnect and status refresh
 
 The local I-083 correction rechecks Bluetooth when MeshTrail returns to the
@@ -31,9 +37,9 @@ Phone acceptance remains open.
 
 The local OT-0170a topic lets a visible app attach to an existing owner or
 recover a bonded board through the same protected claim and initial snapshot.
-First-use Nearby Devices permission now follows the Find device tap. The
-selected board profile refreshes status while the app is visible and shows the
-age of the last accepted read. These changes were on the November 15 bench build.
+The November 15 bench build requested Nearby Devices on the Find device tap
+and refreshed the selected board profile while the app was visible, showing the
+age of the last accepted read.
 That session exposed I-050 and I-052. The local correction bounds a silent service
 bind, retries the owned board after a link failure, and keeps the initiator's code
 visible during the pairing window. See the [OT-0170a progress entry](PROGRESS_LOG.md#ot-0170a-recover-the-owned-board-session-and-retain-the-pairing-code).
@@ -88,6 +94,17 @@ Android's share sheet. The F11 decoder uses host fixtures until protected
 firmware delivery is wired. Email receipt, cloud storage, and live board
 readings still need phone acceptance. See the
 [OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-record-pairing-outcomes-and-bluetooth-recovery).
+
+## US frequency-hopping preparation
+
+The D-140 work adds a host-only profile catalog and a simulated transmit
+ledger for the 64-channel hybrid candidate. The two new host suites
+exercise profile mismatch, the 236-byte admission cap, durable cursor
+recovery and dwell at the final simulated send boundary. The board target
+continues to select 925.100 MHz bench profile v2. Hopping transmit requires
+a separately qualified timing/storage adapter, the permitted burst length
+and the authorization basis for the exact configuration. See the
+[OT-0005i host progress entry](PROGRESS_LOG.md#ot-0005i-prepare-us-hopping-profile-and-dwell-accounting).
 
 ## Device parameters for logging
 

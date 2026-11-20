@@ -19,8 +19,8 @@ class ConnectedDevicePresentationTest {
 
     @Test fun unconfirmedOrPreviousSessionNameIsNotPresentedAsCurrent() {
         val result = connectedDevicePresentation(BleConfigurationState(available = true, deviceName = "Old device"))
-        assertEquals("Connected to Trail device", result.title)
+        assertEquals("Connected to a MeshTrail device", result.title)
         assertFalse(result.toString().contains("Old device"))
-        assertEquals("Connected to Trail device", connectedDevicePresentation(BleConfigurationState()).title)
+        assertEquals("Connected to a MeshTrail device", connectedDevicePresentation(BleConfigurationState()).title)
     }
 }

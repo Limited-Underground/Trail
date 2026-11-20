@@ -59,7 +59,7 @@ class V1BoardPairingResumeTest {
 
     @Test fun resumeJoinUsesTheNewMatchingCodeOnlyAfterExplicitSend() {
         render()
-        compose.onNodeWithText("On both phones, tap Resume pairing. Use Start pairing on the phone that started it before, and Join pairing on the other with the same new code.")
+        compose.onNodeWithText("Tap Resume pairing on both phones.\nTap Start pairing on the phone that started it before.\nTap Join pairing on the other phone and enter the same new code.")
             .assertIsDisplayed()
         compose.onNodeWithText("Resume pairing").performClick()
         compose.onNodeWithText("Join pairing").performClick()

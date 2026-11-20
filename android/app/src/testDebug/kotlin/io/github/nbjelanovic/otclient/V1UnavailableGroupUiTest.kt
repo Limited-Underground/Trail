@@ -36,7 +36,7 @@ class V1UnavailableGroupUiTest {
                 V1GroupScreen(v1LiveGroupScreenState(true, V1GroupConfirmationState.Idle), {})
             }
         }
-        ui.onNodeWithText("Check for device offer").assertExists()
+        ui.onNodeWithText("Check your device").assertExists()
         ui.onNodeWithText("Group name").assertDoesNotExist()
     }
 }
