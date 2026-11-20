@@ -2,6 +2,21 @@
 
 ## 2026-11-19
 
+### OT-0177a Record pairing outcomes and Bluetooth recovery
+
+The A8/A9 topic merges main through PR #285 and retains both dated histories.
+Format 2 adds fixed pairing result labels, previous outcomes, and typed reasons
+without the board identity used on screen. The active runtime records the
+adapter-on signal and foreground recheck at their own entry points. The
+Activity records typed retry refusals. The existing store can read older rows.
+Successful retry and retired callbacks do not create refusal rows.
+
+The UTF-8 share attachment still uses the existing private cache and chooser.
+Host decoding and privacy projection cover the F11 fixture. Live board delivery,
+actual email receipt and storage-link sharing remain open. The local report
+records the fail-before and final tests, both lint variants and the comparison
+against unchanged main's Compose fixture failures.
+
 ### OT-0005i Move the MeshTrail bench to 925.1 MHz
 
 D-135 moves the opt-in Heltec Link Test candidate to bench profile v2 at
@@ -137,6 +152,22 @@ D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-5.md.
 This fix increment follows 1ef64090 on the local pairing branch. TASK-5 explicitly
 authorizes fetching and merging current main next; no push, PR, signing, device
 work or physical/V1 acceptance is added. The future PR remains Part of #232.
+
+### OT-0177a Add the Android operation log and text export
+
+The local A8/A9 topic records typed app and Bluetooth owner transitions,
+including pairing and refusal reasons, outside the existing support report.
+Two app-private 32 KiB segments rotate oldest first and stay outside the
+share provider and backups. A readback check skips corrupt records.
+The Help & support action offers a UTF-8 .txt through Android's chooser,
+using the existing eight-file, 24-hour share cache.
+
+Android decodes a strict F11 record and retains approved typed measurements,
+availability and age. Free text, device and peer identifiers, names, codes,
+keys, precise location, raw frames, and the firmware version token stay out.
+The byte-exact C++ fixture and Android tests provide host evidence. Live F11
+producer and protected delivery, Android phone checks, and full OT-0320
+physical support-export acceptance remain open.
 
 ### OT-0341 Device parameters collector and codec for logging (F11)
 

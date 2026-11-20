@@ -446,6 +446,7 @@ class BleCompanionRuntime(
     private val confirmationClockMillis: () -> Long = { System.nanoTime() / 1_000_000L },
     private val packetV1Enabled: Boolean = false,
     private val packetAuthority: BlePacketAuthorityProvider = BlePacketAuthorityProvider { null },
+    private val bluetoothRecoveryObserver: (BluetoothRecoveryTrigger) -> Unit = {},
 ) : AutoCloseable {
     init {
         require(maximumReconnectAttempts in 0..16)
@@ -583,9 +584,7 @@ class BleCompanionRuntime(
         lifecycleActive = true
         val token = Any()
         bluetoothPowerToken = token
-        bluetoothPowerWatcher = facade.watchBluetoothEnabled {
-            if (bluetoothPowerToken === token) refreshBluetoothPreflight()
-        }
+        bluetoothPowerWatcher = facade.watchBluetoothEnabled { onBluetoothEnabled(token) }
         val resetTarget = factoryResetVerificationTarget ?: facade.loadPendingFactoryResetReceipt()?.let { receipt ->
             if (receipt == 0uL) null else FactoryResetVerificationTarget(receipt, companion = null)
         }
@@ -696,7 +695,23 @@ class BleCompanionRuntime(
     /** Foreground and adapter-on hints only recover an already blocked live owner. */
     @Synchronized
     fun refreshBluetoothPreflight() {
+        requireOwnerThread()
+        if (!deliveringObserver && !closed && lifecycleActive && state is BleRuntimeState.Blocked) {
+            observeRecovery(BluetoothRecoveryTrigger.FOREGROUND_RECHECK)
+        }
         recoverBlockedDiscovery(explicit = false)
+    }
+
+    @Synchronized
+    private fun onBluetoothEnabled(token: Any) {
+        requireOwnerThread()
+        if (bluetoothPowerToken !== token || closed || !lifecycleActive) return
+        observeRecovery(BluetoothRecoveryTrigger.BLUETOOTH_TURNED_ON)
+        recoverBlockedDiscovery(explicit = false)
+    }
+
+    private fun observeRecovery(trigger: BluetoothRecoveryTrigger) {
+        runCatching { bluetoothRecoveryObserver(trigger) }
     }
 
     /** An explicit retry preserves the last discovery route and all protection gates. */

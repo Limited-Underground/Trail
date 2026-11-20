@@ -496,8 +496,8 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
                           "receipt_bits", "issued_at_epoch_millis", "expires_at_epoch_millis"):
             assert forbidden not in source
 
-    # OT-177 grants only the reviewed support report's bounded private cache and
-    # narrow FileProvider path. It does not permit another production file store.
+    # Support and operation-log attachments share the reviewed bounded cache and
+    # the same narrow FileProvider path. The rotating history stays app-private.
     support = production_by_path[support_path]
     assert support.count("cacheDir") == 1
     assert 'File(context.cacheDir, "support-reports")' in support
@@ -535,10 +535,28 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
     assert forbidden_file_class.search("import java.io.File") is not None
     assert forbidden_file_class.search("import java.io.FileInputStream") is not None
     assert forbidden_file_class.search("import java.io.FileNotFoundException") is None
+    history_path = package / "MeshTrailOperationLog.kt"
+    history_owner_path = package / "MeshTrailOperationLogging.kt"
+    history = production_by_path[history_path]
+    history_owner = production_by_path[history_owner_path]
+    assert 'SEGMENT_BYTES = 32 * 1024' in history
+    assert 'require(segmentBytes in 128..SEGMENT_BYTES)' in history
+    assert 'ByteArray(segmentBytes + 1)' in history
+    assert re.findall(r'File\(directory, "([^"]+)"\)', history) == ["previous.log", "current.log"]
+    assert 'shape.matches(value)' in history and 'checksum(row.substringBeforeLast' in history
+    assert 'ArrayBlockingQueue(128)' in history_owner
+    assert 'context.noBackupFilesDir.resolve("meshtrail-operation-log")' in history_owner
+    assert 'variant?.onState(state)' in history_owner and 'variant?.close()' in history_owner
     for path, source in production_by_path.items():
-        if path != support_path:
+        if path not in (support_path, history_path):
             assert forbidden_file_class.search(source) is None
+        if path != support_path:
             assert "cacheDir" not in source
+        if path == package / "AndroidV1InboxStorage.kt":
+            assert source.count("noBackupFilesDir") == 1
+            assert "AtomicFile(context.noBackupFilesDir.resolve(FILE_NAME))" in source
+        elif path != history_owner_path:
+            assert "noBackupFilesDir" not in source
     # Admit the actual private store and its bounded data, not occurrences of a
     # type name (including explanatory comments). The verified-reset marker is
     # navigation state, never a persisted peer, PIN, key or authorization proof.
