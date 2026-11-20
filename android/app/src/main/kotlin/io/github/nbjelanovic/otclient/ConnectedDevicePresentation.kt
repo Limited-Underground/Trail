@@ -13,7 +13,7 @@ internal fun connectedDevicePresentation(state: BleConfigurationState): Connecte
             "Give this device a name below so you can recognize it.",
         )
         else -> ConnectedDevicePresentation(
-            "Connected to Trail device",
+            "Connected to a MeshTrail device",
             "Device name is not available yet.",
         )
     }

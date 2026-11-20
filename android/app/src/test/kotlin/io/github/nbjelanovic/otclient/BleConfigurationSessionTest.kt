@@ -65,15 +65,15 @@ class BleConfigurationSessionTest {
 
         assertTrue(f.session.writeRegion(1))
         assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x82, revision = 1u, selectionId = 1))))
-        assertEquals("Region saved. MeshTrail uses this region's radio rules.", f.session.state.notice)
+        assertEquals("Your device saved the region and will follow its radio rules.", f.session.state.notice)
 
         assertTrue(f.session.readRegion())
         assertTrue(f.session.receive(f.region(CompanionRegionPayload(0x81, revision = 1u, selectionId = 1))))
-        assertEquals("Saved radio region confirmed.", f.session.state.notice)
+        assertEquals("Your device confirmed its saved region.", f.session.state.notice)
 
         assertTrue(f.session.readRegion())
         f.session.lost(f.sent.last().exchangeId)
-        assertEquals("Couldn't confirm the radio region. Read the saved region before trying again.", f.session.state.notice)
+        assertEquals("Couldn't confirm the radio region.\nCheck the saved region before trying again.", f.session.state.notice)
     }
 
     @Test fun regionUncertaintyLossAndReconnectNeverInventConfirmation() {
@@ -116,7 +116,7 @@ class BleConfigurationSessionTest {
         assertFalse(f.session.receive(f.time(CompanionTimePayload(4,challenge=1u))))
         assertTrue(f.session.busy)
         assertTrue(f.session.receive(f.time(CompanionTimePayload(4,challenge=ULong.MAX_VALUE))))
-        assertFalse(f.session.busy);assertEquals("Display clock synchronized.",f.session.state.notice)
+        assertFalse(f.session.busy);assertEquals("Your device clock is set.",f.session.state.notice)
     }
     @Test fun writeFailureRequiresReadAndNoAutomaticRetry() {
         val f=Fixture();f.writeResult=false;assertFalse(f.session.readName());assertFalse(f.session.busy)

@@ -63,6 +63,7 @@ fun V1OnboardingScreen(
     modifier: Modifier = Modifier,
     footer: @Composable () -> Unit = {},
     connectionContent: @Composable () -> Unit = {},
+    showStepNumber: Boolean = true,
 ) {
     val currentState by rememberUpdatedState(state)
     val currentAction by rememberUpdatedState(onAction)
@@ -77,7 +78,7 @@ fun V1OnboardingScreen(
     ) {
         Text("Set up your device", style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.semantics { heading() })
-        if (state.stage != V1SetupStage.COMPLETE) {
+        if (showStepNumber && state.stage != V1SetupStage.COMPLETE) {
             Text("Step ${state.stage.ordinal + 1} of 5")
         }
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -105,7 +106,7 @@ fun V1OnboardingScreen(
 private fun V1OnboardingExplanation(state: V1OnboardingScreenState) {
     val title = when (state.stage) {
         V1SetupStage.MATCH_DEVICE -> "Find your MeshTrail device"
-        V1SetupStage.SECURE_PAIR_AND_AUTHORIZE -> "Connect securely"
+        V1SetupStage.SECURE_PAIR_AND_AUTHORIZE -> "Connect your phone"
         V1SetupStage.NAME_DEVICE -> "Name your device"
         V1SetupStage.CONFIRM_RADIO_REGION -> "Choose your radio region"
         V1SetupStage.PUBLIC_PROFILE -> "How people see you"
@@ -113,17 +114,17 @@ private fun V1OnboardingExplanation(state: V1OnboardingScreenState) {
     }
     val explanation = when (state.stage) {
         V1SetupStage.MATCH_DEVICE ->
-            "Keep your device nearby. Match the setup name on its display so you connect to your own device."
+            "Keep your device nearby and match the name on its screen."
         V1SetupStage.SECURE_PAIR_AND_AUTHORIZE ->
-            "Use the PIN shown on this device when Android asks. Setup continues after your phone is authorized."
+            "Enter the PIN on your device screen when Android asks."
         V1SetupStage.NAME_DEVICE ->
             "Choose a name you recognize. This name will also appear on your device's display."
         V1SetupStage.CONFIRM_RADIO_REGION ->
-            "Choose the region where you use your MeshTrail board. Your board uses the radio rules for its saved region."
+            "Choose the region where you use your device."
         V1SetupStage.PUBLIC_PROFILE ->
             "Choose the name nearby people can discover. They must request a chat before sending you messages."
         V1SetupStage.COMPLETE ->
-            "Device setup is complete. You can start from Messages and create or join a group whenever you need one."
+            "Device setup is complete.\nOpen Messages to get started."
     }
     Text(title, style = MaterialTheme.typography.titleLarge,
         modifier = Modifier.semantics { heading() })
@@ -157,7 +158,7 @@ private fun V1OnboardingFields(
         V1SetupStage.SECURE_PAIR_AND_AUTHORIZE -> {
             state.setupLabel?.let { Text(it, style = MaterialTheme.typography.titleMedium) }
             connectionContent()
-            Text("Waiting for secure device confirmation", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Waiting for your device to accept this phone.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         V1SetupStage.NAME_DEVICE -> {
             var name by rememberSaveable(state.setupLabel) { mutableStateOf(state.deviceName) }
@@ -182,7 +183,7 @@ private fun V1OnboardingFields(
             var selectedCode by rememberSaveable(state.setupLabel) { mutableStateOf<String?>(null) }
             V1SetupCard {
                 if (state.availableRegions.isEmpty()) {
-                    Text("Waiting for this device's supported regions. A compatible firmware update may be needed.")
+                    Text("Waiting for your device's list of regions.\nYour device may need an update.")
                 }
                 state.availableRegions.forEach { region ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -199,7 +200,7 @@ private fun V1OnboardingFields(
                     onClick = { selected?.let { onAction(V1OnboardingUiAction.VerifyRegion(it)) } },
                     enabled = enabled && selected != null,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Apply & verify region") }
+                ) { Text("Save and check region") }
             }
         }
         V1SetupStage.PUBLIC_PROFILE -> {

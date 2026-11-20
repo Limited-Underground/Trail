@@ -108,7 +108,7 @@ class BoardPairingCodeRetentionUiTest {
         render()
         start()
         compose.onNodeWithText("000042").assertDoesNotExist()
-        compose.onNodeWithText("Couldn't send the pairing request. Check the connection and try again.")
+        compose.onNodeWithText("Couldn't send the pairing request.\nCheck the connection and try again.")
             .assertIsDisplayed()
         compose.runOnIdle { assertNull(retention.expiresAtMillis) }
     }

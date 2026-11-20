@@ -83,7 +83,7 @@ internal fun V1StatusStrip(
         Spacer(Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier.semantics(mergeDescendants = true) {
-                contentDescription = "Heltec GPS ${metrics.gps.name.lowercase()}; satellites ${metrics.satellites ?: "unavailable"}"
+                contentDescription = "Device GPS ${metrics.gps.name.lowercase()}; satellites ${metrics.satellites ?: "unavailable"}"
             }) {
             Canvas(Modifier.size(16.dp)) {
                 val color = if (metrics.gps == V1DeviceGpsStatus.CURRENT) active else muted
@@ -97,7 +97,7 @@ internal fun V1StatusStrip(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
             modifier = Modifier.semantics(mergeDescendants = true) {
-                contentDescription = "Heltec battery ${metrics.batteryPercent?.let { "$it percent" } ?: "unavailable"}" +
+                contentDescription = "Device battery ${metrics.batteryPercent?.let { "$it percent" } ?: "unavailable"}" +
                     if (metrics.externalPower == true) "; external power" else ""
             }) {
             Canvas(Modifier.size(18.dp, 11.dp)) {
@@ -108,7 +108,7 @@ internal fun V1StatusStrip(
             if (metrics.externalPower == true) Text("+", fontSize = 12.sp, maxLines = statusMaxLines)
         }
         Row(modifier = Modifier.semantics(mergeDescendants = true) {
-            contentDescription = "Heltec transmit ${metrics.transmitting ?: "unavailable"}; receive ${metrics.receiving ?: "unavailable"}"
+            contentDescription = "Device sending ${metrics.transmitting?.let { if (it) "yes" else "no" } ?: "unavailable"}. Receiving ${metrics.receiving?.let { if (it) "yes" else "no" } ?: "unavailable"}"
         }) {
             Text("↑", color = if (metrics.transmitting == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)
             Text("↓", color = if (metrics.receiving == true) active else muted.copy(alpha = .45f), fontSize = 16.sp, maxLines = statusMaxLines)

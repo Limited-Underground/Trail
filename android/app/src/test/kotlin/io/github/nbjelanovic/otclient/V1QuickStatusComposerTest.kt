@@ -22,10 +22,16 @@ class V1QuickStatusComposerTest {
         assertEquals(listOf("I'm OK", "On my way"), before)
     }
     @Test fun onlyPeerAckHasPeerReceiptLanguageAndNeverHumanReadClaims() {
-        assertTrue(V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.QUEUE_ACCEPTED).contains("not confirmed"))
-        assertTrue(V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED).contains("not confirmed"))
-        assertTrue(V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.PROTECTED_PEER_ACK).contains("not a human"))
-        assertTrue(V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.OUTCOME_UNKNOWN).contains("do not resend"))
+        assertEquals("Your device is waiting to send it.",
+            V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.QUEUE_ACCEPTED))
+        assertEquals("Your device sent it and hasn't confirmed delivery.",
+            V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED))
+        assertEquals("The other device received it.",
+            V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.PROTECTED_PEER_ACK))
+        assertEquals("Delivery is uncertain.\nCheck before sending again.",
+            V1QuickStatusComposer.evidence(BlePacketDeliveryPhase.OUTCOME_UNKNOWN))
+        assertEquals(listOf(BlePacketDeliveryPhase.PROTECTED_PEER_ACK),
+            BlePacketDeliveryPhase.entries.filter { "received" in V1QuickStatusComposer.evidence(it) })
         assertNull(V1QuickStatusState().recipient)
         assertEquals("V1QuickStatusRecipient(redacted)", V1QuickStatusRecipient().toString())
     }

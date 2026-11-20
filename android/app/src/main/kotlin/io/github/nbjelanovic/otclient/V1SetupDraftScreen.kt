@@ -41,7 +41,7 @@ internal fun V1SetupDraftScreen(onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextButton(onClick = onBack) { Text("Back to Device") }
         Text("Prepare device setup", style = MaterialTheme.typography.headlineMedium)
-        Text("Save these choices on this phone. They are not applied to a device and do not complete setup. Device confirmation requires the upcoming firmware update.")
+        Text("Save your choices on this phone.\nYou'll finish setup when your device can confirm them.")
         OutlinedTextField(deviceName, { if (it.length <= V1_DEVICE_NAME_MAX_CHARS) { deviceName = it; status = null } },
             label = { Text("Device name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
         OutlinedTextField(publicName, { if (it.length <= V1_PUBLIC_NAME_MAX_CHARS) { publicName = it; status = null } },
@@ -51,16 +51,16 @@ internal fun V1SetupDraftScreen(onBack: () -> Unit) {
             Checkbox(regionSelected, { regionSelected = it; status = null })
             Text("United States · 915 MHz", modifier = Modifier.weight(1f))
         }
-        Text("Leave unselected if you will use another region. This draft does not authorize transmission or verify hardware compatibility.",
+        Text("Leave it blank if you use another region.\nSaving this choice won't change your device.",
             style = MaterialTheme.typography.bodySmall)
         Row(Modifier.fillMaxWidth()) {
             Text("Visible to nearby people", modifier = Modifier.weight(1f))
             Switch(visible, { visible = it; status = null })
         }
-        Text("Visibility takes effect only after device setup is confirmed. Direct-chat location sharing starts OFF.",
+        Text("Your device must confirm setup before people can see you.\nLocation sharing in new chats starts off.",
             style = MaterialTheme.typography.bodySmall)
         Button(onClick = { status = if (draft != null && repository.save(draft))
-            "Draft saved on this phone. Not applied to device." else "Draft could not be saved." }, enabled = draft != null) {
+            "Setup choices saved on this phone only." else "Couldn't save your setup choices." }, enabled = draft != null) {
             Text("Save setup draft")
         }
         status?.let { Text(it) }
