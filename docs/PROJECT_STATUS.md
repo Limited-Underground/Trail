@@ -1,6 +1,6 @@
 # Limited Underground Trail project status
 
-Current handoff reviewed 2026-11-19. Dated checkpoints retain their own dates
+Current handoff reviewed 2026-11-20. Dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
 including assumptions and older decision checkpoints, is preserved in the
 [2026-09-08 archive](history/PROJECT_STATUS_BEFORE_CLEANUP_2026-09-08.md).
@@ -20,6 +20,14 @@ and the [radio presentation entry](PROGRESS_LOG.md#ot-0170a-clarify-android-radi
 Phone verification remains pending.
 
 ## Android reconnect and status refresh
+
+The local I-083 correction rechecks Bluetooth when MeshTrail returns to the
+foreground, after it reattaches to an existing service and when Android reports
+that Bluetooth is on. Recovery uses the saved-board route or returns to Idle.
+Manual retry rechecks permission and explains any refusal while preserving
+the existing protected authorization and reset checks. See the
+[I-083 host progress entry](PROGRESS_LOG.md#ot-0170a-recover-bluetooth-after-adapter-enable-i-083).
+Phone acceptance remains open.
 
 The local OT-0170a topic lets a visible app attach to an existing owner or
 recover a bonded board through the same protected claim and initial snapshot.
@@ -185,12 +193,12 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-19 |
-| Task | OT-0312 — F7 typed text over the retained-pair F5 link (Messaging TASK-5, D-024). |
+| Reviewed | 2026-11-20 |
+| Task | OT-0312 — F7 typed text over the retained-pair F5 link (Messaging TASK-5B, D-024). |
 | Owner | Messaging owns the local feat/f7-board-text topic. The I-084 firmware task owns the overlapping Bluetooth files. |
 | Scope | One OTXT send and one received text per arm in the opt-in board Link Test, with runtime MTU checks, authenticated acknowledgement and the existing F5 storage and launch guards. |
 | State | Local Link Test development candidate. F5 is merged as PR #284. F11 source is merged and remains unwired. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/f7-board-text based on 0615e22221cc1a3a81ea9e51aea77765d60613e0. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Source | Topic feat/f7-board-text started from 0615e22221cc1a3a81ea9e51aea77765d60613e0 and integrates main 4c0ec882a883a5f9cbee9ef25ad66a72638ccdeb. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | REPORT-5 binds the shared vectors, the retained-session and expiry regressions, the existing F5 gates, the offline matrix and Link Test image evidence to the local candidate. |
 | Blocker | Physical F5 and F7 acceptance remain open. I-084 blocked the first F5 session at phone reconnect. A board session also needs the compatible restoration route and owner-present authority. |
 | Next action | Review the F7 candidate under firmware issue #75, then qualify the two-board path after the F5 prerequisites. |

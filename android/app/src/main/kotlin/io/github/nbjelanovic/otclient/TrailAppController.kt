@@ -267,16 +267,30 @@ class TrailAppController(
         }
     }
 
-    override fun retryBluetoothDiscovery() {
+    override fun refreshBluetoothPreflight() {
         requireOwnerThread()
-        if (
-            mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
-            canMutate() &&
-            !permissionRequestInFlight &&
-            permissionState == NearbyDevicesPermissionState.GRANTED
-        ) {
-            bluetoothRuntime.retryDiscovery()
+        if (bluetoothRuntime.state !is BleRuntimeState.Blocked || bluetoothRecoveryRefusal() != null) return
+        bluetoothRuntime.refreshBluetoothPreflight()
+    }
+
+    override fun retryBluetoothDiscovery(): BluetoothRecoveryRefusal? {
+        requireOwnerThread()
+        bluetoothRecoveryRefusal()?.let { return it }
+        return bluetoothRuntime.retryDiscovery()
+    }
+
+    private fun bluetoothRecoveryRefusal(): BluetoothRecoveryRefusal? {
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) {
+            return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
         }
+        if (permissionRequestInFlight) return BluetoothRecoveryRefusal.PERMISSION_PENDING
+        refreshPermissionState()
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) {
+            return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
+        }
+        if (permissionRequestInFlight) return BluetoothRecoveryRefusal.PERMISSION_PENDING
+        return if (permissionState == NearbyDevicesPermissionState.GRANTED) null
+        else BluetoothRecoveryRefusal.PERMISSION_REQUIRED
     }
 
     override fun selectBluetoothDevice(endpointToken: String) {

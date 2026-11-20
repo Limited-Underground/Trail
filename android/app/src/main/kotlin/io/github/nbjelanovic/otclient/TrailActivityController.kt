@@ -155,7 +155,10 @@ class TrailActivityController(
                 stopServiceIfOwned()
             }
         }
-        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) publishBluetooth()
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE) {
+            publishBluetooth()
+            recheckBoundBluetooth()
+        }
     }
 
     override fun startBluetoothService() {
@@ -225,7 +228,29 @@ class TrailActivityController(
     }
 
     override fun scanBluetoothDevices() = bluetoothOnly { it.scan() }
-    override fun retryBluetoothDiscovery() = bluetoothOnly { it.retryDiscovery() }
+    override fun retryBluetoothDiscovery(): BluetoothRecoveryRefusal? {
+        requireOwnerThread()
+        if (!canMutate() || !lifecycleActive || mode != TrailConnectionMode.BLUETOOTH_DEVICE) {
+            return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
+        }
+        if (permissionRequestInFlight) return BluetoothRecoveryRefusal.PERMISSION_PENDING
+        if (permissionReader.current() != NearbyDevicesPermissionState.GRANTED) {
+            refreshPermissionState()
+            return BluetoothRecoveryRefusal.PERMISSION_REQUIRED
+        }
+        val current = currentRecoveryPort() ?: return BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
+        return current.retryDiscovery()
+    }
+
+    private fun currentRecoveryPort(): ConnectedDeviceSessionPort? =
+        port?.takeIf { lifecycleActive && canMutate() && portGeneration > 0L &&
+            currentPortGeneration(it) == portGeneration }
+
+    private fun recheckBoundBluetooth() {
+        if (!permissionRequestInFlight && permissionState == NearbyDevicesPermissionState.GRANTED) {
+            currentRecoveryPort()?.refreshBluetoothPreflight()
+        }
+    }
     override fun refreshGroupConfirmation(): Boolean {
         requireOwnerThread()
         return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
@@ -516,8 +541,9 @@ class TrailActivityController(
                 if (pendingPublication || bindingRoute == BindingRoute.RETURNING_OWNER) {
                     onPortState(generation, nextPort, ownerGeneration, token)
                 } else publishBluetooth()
-                if (isCurrentObservation(generation, nextPort, ownerGeneration, token) && ownerGeneration == 0L) {
-                    armServiceStartupDeadline(generation, nextPort)
+                if (isCurrentObservation(generation, nextPort, ownerGeneration, token)) {
+                    if (ownerGeneration == 0L) armServiceStartupDeadline(generation, nextPort)
+                    else recheckBoundBluetooth()
                 }
             }
             ConnectedDeviceServiceConnection.Disconnected -> failServiceConnection()

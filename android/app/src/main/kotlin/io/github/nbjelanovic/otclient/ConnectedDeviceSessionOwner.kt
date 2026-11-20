@@ -62,9 +62,12 @@ class ConnectedDeviceSessionOwner(
         if (!closed) controller.scanBluetoothDevices()
     }
 
-    override fun retryDiscovery() {
-        if (!closed) controller.retryBluetoothDiscovery()
+    override fun refreshBluetoothPreflight() {
+        if (!closed) controller.refreshBluetoothPreflight()
     }
+
+    override fun retryDiscovery(): BluetoothRecoveryRefusal? =
+        if (closed) BluetoothRecoveryRefusal.OWNER_UNAVAILABLE else controller.retryBluetoothDiscovery()
 
     override fun authorize(endpointToken: String) {
         if (!closed) controller.selectBluetoothDevice(endpointToken)

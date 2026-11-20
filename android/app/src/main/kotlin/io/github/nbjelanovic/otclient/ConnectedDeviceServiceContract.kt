@@ -89,8 +89,9 @@ interface ConnectedDeviceSessionPort {
     /** Called only from a current foreground Activity's returning-owner binding. */
     fun activateReturningOwner(): Boolean = false
     fun refreshPermissionState()
+    fun refreshBluetoothPreflight() = Unit
     fun scan()
-    fun retryDiscovery() = Unit
+    fun retryDiscovery(): BluetoothRecoveryRefusal? = BluetoothRecoveryRefusal.OWNER_UNAVAILABLE
     fun authorize(endpointToken: String)
     fun disconnect()
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean = false
