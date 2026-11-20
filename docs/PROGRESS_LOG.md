@@ -1,5 +1,24 @@
 # OpenTrail Progress Log
 
+## 2026-11-19
+
+### OT-0005i Refresh bonded MeshTrail phones after a GATT layout update
+
+I-084 preserves the Companion table shipped in `0615e22` and signals
+Service Changed for an authenticated returning owner with the older stored
+Stream subscription. A saved current subscription keeps the normal path.
+The host regression reproduces the missing migration on the original source
+and pins the UUIDs, properties, registration order and registered handles.
+Android keeps the early discovery retry and handles the pre-claim late signal
+without promoting a cached profile to a protected session. Encryption,
+authentication, the owner claim and second-bond refusal remain in force.
+
+The 2026-11-19 F5 board session was stopped before the owner claim and both
+boards were restored. The isolated I-084 development branch is for local
+review. Exact host and Link Test receipts are in the maintainer's I-084 report.
+A separately authorized with-bonds upgrade check is required before the F5
+status trial. This change is part of firmware issue #75.
+
 ## 2026-11-18
 
 ### OT-0005i Recover a fresh MeshTrail session after one board restarts

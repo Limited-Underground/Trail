@@ -264,6 +264,7 @@ class AndroidBluetoothGattFacade(
     private val candidates = LinkedHashMap<BluetoothDevice, CandidateBinding>()
     private var activeScan: PlatformScanLease? = null
     private var activeGatt: PlatformGattLease? = null
+    private val serviceChangedReconnectBudget = AndroidServiceChangedReconnectBudget()
     private var systemBondGeneration: Long = 0
     private var verifiedResetReceipt: ULong? = null
     private var closed = false
@@ -345,6 +346,7 @@ class AndroidBluetoothGattFacade(
         if (!resetReceiptStore.completeVerified(receipt)) return FactoryResetLocalCleanupResult.FAILED
         verifiedResetReceipt = null
         candidates.clear()
+        serviceChangedReconnectBudget.reset()
         // The post-reset RPA cannot be linked back to Android's stale bond without retaining private
         // identity. Prompt the user to remove the old system pairing instead of guessing or using
         // hidden removeBond APIs.
@@ -364,7 +366,8 @@ class AndroidBluetoothGattFacade(
             generation,
             entry.key,
             purpose == BleConnectionPurpose.INITIAL_AUTHORIZATION && entry.value.allowSystemBondCreation,
-            observer,
+            returningOwner = purpose == BleConnectionPurpose.EXISTING_OWNER,
+            observer = observer,
         ).also { activeGatt = it }
     }
 
@@ -678,6 +681,7 @@ class AndroidBluetoothGattFacade(
         private val systemBondGeneration: Long,
         private val device: BluetoothDevice,
         private val allowSystemBondCreation: Boolean,
+        private val returningOwner: Boolean,
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         override var pairingResultSupported = false
@@ -709,6 +713,7 @@ class AndroidBluetoothGattFacade(
         private val serviceChangedDiscovery = AndroidServiceChangedDiscoveryGate()
         private var serviceChangedFailureGatt: BluetoothGatt? = null
         private var serviceRediscoveryGatt: BluetoothGatt? = null
+        private var invalidatedOperation: AndroidGattStage? = null
         private val serviceChangedFailureGrace = Runnable {
             val expectedGatt = serviceChangedFailureGatt
             serviceChangedFailureGatt = null
@@ -812,6 +817,7 @@ class AndroidBluetoothGattFacade(
                         callbackGatt, callbackAt, status)
                     if (!owns(callbackGatt)) return@postToMain
                     if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                    if (consumeInvalidatedOperation(callbackGatt, AndroidGattStage.MTU_PENDING)) return@postToMain
                     val statusFailure = AndroidGattStatusPolicy.failure(status)
                     if (statusFailure != null || !operations.acceptMtu()) {
                         fail(statusFailure ?: BleGattFailure.PLATFORM_FAILURE)
@@ -852,15 +858,26 @@ class AndroidBluetoothGattFacade(
                         callbackGatt, callbackAt, status)
                     if (!owns(callbackGatt)) return@postToMain
                     if (!requireProtectedCallbackPrerequisites()) return@postToMain
-                    val statusFailure = AndroidGattStatusPolicy.failure(status)
+                    if (consumeInvalidatedOperation(callbackGatt, AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING)) {
+                        return@postToMain
+                    }
+                    val exactStreamCccd = AndroidGattCharacteristicOwnershipPolicy.owns(streamCccd, descriptor) &&
+                        AndroidGattCharacteristicOwnershipPolicy.owns(stream, descriptor.characteristic)
                     if (
-                        !AndroidGattCharacteristicOwnershipPolicy.owns(streamCccd, descriptor) ||
-                        !AndroidGattCharacteristicOwnershipPolicy.owns(stream, descriptor.characteristic) ||
-                        statusFailure != null ||
-                        !operations.acceptIndicationSubscription()
+                        exactStreamCccd && status == BluetoothGatt.GATT_WRITE_NOT_PERMITTED &&
+                        operations.stage == AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING &&
+                        canReconnectAfterServiceChanged() && serviceChangedDiscovery.onStreamCccdWriteNotPermitted()
                     ) {
+                        scheduleServiceChangedFailureGrace(callbackGatt)
+                        return@postToMain
+                    }
+                    val statusFailure = AndroidGattStatusPolicy.failure(status)
+                    if (!exactStreamCccd || statusFailure != null || !operations.acceptIndicationSubscription()) {
                         fail(statusFailure ?: BleGattFailure.PLATFORM_FAILURE)
-                    } else observer(BleGattEvent.StreamIndicationsSubscribed)
+                    } else {
+                        if (returningOwner) serviceChangedReconnectBudget.reset()
+                        observer(BleGattEvent.StreamIndicationsSubscribed)
+                    }
                 }
             }
 
@@ -1220,6 +1237,7 @@ class AndroidBluetoothGattFacade(
             mainHandler.removeCallbacks(serviceRediscovery)
             serviceChangedFailureGatt = null
             serviceRediscoveryGatt = null
+            invalidatedOperation = null
             serviceChangedDiscovery.close()
             systemBond.fail(AndroidSystemBondFailure.LIFECYCLE_ENDED)
             cleanupBondAttempt()
@@ -1286,8 +1304,13 @@ class AndroidBluetoothGattFacade(
         private fun retryDiscoveryAfterServiceChanged(): Boolean {
             val current = gatt ?: return false
             if (!owns(current) || !operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) return false
-            if (!bondedPrerequisiteSatisfied() || !operations.retryDiscoveryAfterServiceChanged()) return false
-            return requestServiceDiscovery(current)
+            if (!bondedPrerequisiteSatisfied()) return false
+            val admitted = if (serviceChangedDiscovery.isRefreshingBeforeReconnect()) {
+                operations.canRestartBeforeClaim()
+            } else {
+                operations.retryDiscoveryAfterServiceChanged()
+            }
+            return admitted && requestServiceDiscovery(current)
         }
 
         @SuppressLint("MissingPermission")
@@ -1309,7 +1332,55 @@ class AndroidBluetoothGattFacade(
                     serviceChangedFailureGatt = null
                     scheduleServiceRediscovery(callbackGatt)
                 }
+                AndroidServiceChangedDiscoveryAction.REFRESH_BEFORE_RECONNECT -> {
+                    if (!canReconnectAfterServiceChanged()) {
+                        fail(BleGattFailure.PLATFORM_FAILURE)
+                    } else if (requireProtectedCallbackPrerequisites()) {
+                        refreshInvalidatedProfile(callbackGatt)
+                    }
+                }
                 else -> fail(BleGattFailure.PLATFORM_FAILURE)
+            }
+        }
+
+        private fun canReconnectAfterServiceChanged(): Boolean =
+            serviceChangedReconnectBudget.allows(returningOwner) && operations.canRestartBeforeClaim()
+
+        private fun refreshInvalidatedProfile(callbackGatt: BluetoothGatt) {
+            serviceChangedReconnectBudget.consume()
+            mainHandler.removeCallbacks(profileReadyRunnable)
+            queuedProfileReadyGatt = null
+            profileReadyGate.close()
+            val cccdWriteAlreadyFinished = serviceChangedFailureGatt === callbackGatt
+            mainHandler.removeCallbacks(serviceChangedFailureGrace)
+            serviceChangedFailureGatt = null
+
+            // One ATT operation can be outstanding. Drain its callback without advancing
+            // the stale handshake. Discovery keeps the platform's cache refresh alive.
+            // The upper runtime's existing deadline still closes this lease if a callback is lost.
+            invalidatedOperation = when (operations.stage) {
+                AndroidGattStage.MTU_PENDING, AndroidGattStage.PROTOCOL_INFO_PENDING -> operations.stage
+                AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING ->
+                    if (cccdWriteAlreadyFinished) null else operations.stage
+                else -> null
+            }
+            if (invalidatedOperation == null) scheduleServiceRediscovery(callbackGatt)
+        }
+
+        private fun consumeInvalidatedOperation(callbackGatt: BluetoothGatt, stage: AndroidGattStage): Boolean {
+            if (!serviceChangedDiscovery.isReplacingAcceptedProfile()) return false
+            if (invalidatedOperation == stage) {
+                invalidatedOperation = null
+                scheduleServiceRediscovery(callbackGatt)
+            }
+            return true
+        }
+
+        private fun scheduleServiceChangedFailureGrace(callbackGatt: BluetoothGatt) {
+            serviceChangedFailureGatt = callbackGatt
+            if (!mainHandler.postDelayed(serviceChangedFailureGrace, ANDROID_SERVICE_CHANGED_FAILURE_GRACE_MILLIS)) {
+                serviceChangedFailureGatt = null
+                fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
 
@@ -1328,7 +1399,9 @@ class AndroidBluetoothGattFacade(
 
         private fun handleServicesDiscovered(callbackGatt: BluetoothGatt, status: Int) {
             if (!owns(callbackGatt)) return
-            if (profileReadyGate.hasStarted()) return
+            if (serviceChangedDiscovery.isReplacingAcceptedProfile()) {
+                if (!serviceChangedDiscovery.isRefreshingBeforeReconnect()) return
+            } else if (profileReadyGate.hasStarted()) return
             if (!operationAllowed(AndroidBlePlatformOperation.DISCOVER_SERVICES)) {
                 fail(BleGattFailure.PERMISSION_REVOKED)
                 return
@@ -1402,20 +1475,13 @@ class AndroidBluetoothGattFacade(
                         }
                     }
                 }
-                AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE -> {
-                    serviceChangedFailureGatt = callbackGatt
-                    if (!mainHandler.postDelayed(
-                            serviceChangedFailureGrace,
-                            ANDROID_SERVICE_CHANGED_FAILURE_GRACE_MILLIS,
-                        )
-                    ) {
-                        serviceChangedFailureGatt = null
-                        serviceChangedDiscovery.onFailureGraceExpired()
-                        fail(BleGattFailure.PLATFORM_FAILURE)
-                    }
-                }
+                AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE ->
+                    scheduleServiceChangedFailureGrace(callbackGatt)
                 AndroidServiceChangedDiscoveryAction.SCHEDULE_REDISCOVERY ->
                     scheduleServiceRediscovery(callbackGatt)
+                // The upper returning-owner retry will create a new lease. This one
+                // only refreshed the platform cache and cannot start a claim.
+                AndroidServiceChangedDiscoveryAction.RECONNECT -> fail(BleGattFailure.TRANSIENT_LINK)
                 else -> fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
@@ -1437,6 +1503,7 @@ class AndroidBluetoothGattFacade(
                         callbackAt = callbackAt, handlingAt = handlingAt)
                     return@postToMain
                 }
+                if (consumeInvalidatedOperation(callbackGatt, AndroidGattStage.PROTOCOL_INFO_PENDING)) return@postToMain
                 val readWasPending = operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING
                 val admission = AndroidProtectedProtocolInfoReadPolicy.evaluate(
                         active = owns(callbackGatt),
@@ -1493,6 +1560,7 @@ class AndroidBluetoothGattFacade(
                     exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(stream, characteristic),
                     callbackAt = callbackAt)
                 if (!owns(callbackGatt)) return@postToMain
+                if (serviceChangedDiscovery.isReplacingAcceptedProfile()) return@postToMain
                 if (!requireProtectedCallbackPrerequisites()) return@postToMain
                 if (
                     !AndroidGattCharacteristicOwnershipPolicy.owns(stream, characteristic) ||

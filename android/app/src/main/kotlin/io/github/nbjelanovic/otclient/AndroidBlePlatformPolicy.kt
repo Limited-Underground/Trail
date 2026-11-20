@@ -229,6 +229,18 @@ internal class AndroidGattOperationGate {
     fun acceptsStreamIndication(): Boolean =
         stage == AndroidGattStage.READY || stage == AndroidGattStage.COMMAND_WRITE_PENDING
 
+    // A confirmed Stream subscription can synchronously start a claim. A later
+    // Protocol Info read in that subscribed session cannot reopen recovery.
+    fun canRestartBeforeClaim(): Boolean = when (stage) {
+        AndroidGattStage.PROFILE_READY,
+        AndroidGattStage.MTU_PENDING,
+        AndroidGattStage.MTU_READY,
+        AndroidGattStage.PROTOCOL_INFO_READY,
+        AndroidGattStage.INDICATION_SUBSCRIPTION_PENDING -> true
+        AndroidGattStage.PROTOCOL_INFO_PENDING -> !protocolInfoReturnsToSubscribedSession
+        else -> false
+    }
+
     fun close() {
         stage = AndroidGattStage.CLOSED
     }
@@ -240,12 +252,25 @@ internal class AndroidGattOperationGate {
     }
 }
 
+/** Shared by all GATT leases for the one returning owner, including fresh scan tokens. */
+internal class AndroidServiceChangedReconnectBudget {
+    private var used = false
+
+    fun allows(returningOwner: Boolean): Boolean = returningOwner && !used
+
+    fun consume() { used = true }
+
+    fun reset() { used = false }
+}
+
 internal enum class AndroidServiceChangedDiscoveryAction {
     WAIT,
     ACCEPT_PROFILE,
     SCHEDULE_FAILURE_GRACE,
     SCHEDULE_REDISCOVERY,
     CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY,
+    REFRESH_BEFORE_RECONNECT,
+    RECONNECT,
     FAIL,
 }
 
@@ -256,11 +281,16 @@ private enum class AndroidServiceChangedDiscoveryStage {
     REDISCOVERY_PENDING,
     REDISCOVERING,
     ACCEPTED,
+    REDISCOVERED,
+    CCCD_FAILURE_GRACE,
+    LATELY_INVALIDATED,
+    REFRESHING_BEFORE_RECONNECT,
+    RECONNECT_REQUIRED,
     FAILED,
     CLOSED,
 }
 
-/** Allows one ordered rediscovery when Android reports that its remote GATT cache is stale. */
+/** Allows one recovery when Android reports that its remote GATT cache is stale. */
 internal class AndroidServiceChangedDiscoveryGate {
     private var stage = AndroidServiceChangedDiscoveryStage.INITIAL_DISCOVERY
 
@@ -272,6 +302,11 @@ internal class AndroidServiceChangedDiscoveryGate {
         AndroidServiceChangedDiscoveryStage.INITIAL_FAILURE_GRACE -> {
             stage = AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING
             AndroidServiceChangedDiscoveryAction.CANCEL_FAILURE_AND_SCHEDULE_REDISCOVERY
+        }
+        AndroidServiceChangedDiscoveryStage.ACCEPTED,
+        AndroidServiceChangedDiscoveryStage.CCCD_FAILURE_GRACE -> {
+            stage = AndroidServiceChangedDiscoveryStage.LATELY_INVALIDATED
+            AndroidServiceChangedDiscoveryAction.REFRESH_BEFORE_RECONNECT
         }
         else -> fail()
     }
@@ -292,13 +327,33 @@ internal class AndroidServiceChangedDiscoveryGate {
         }
         AndroidServiceChangedDiscoveryStage.REDISCOVERING -> {
             if (profileAccepted) {
-                stage = AndroidServiceChangedDiscoveryStage.ACCEPTED
+                stage = AndroidServiceChangedDiscoveryStage.REDISCOVERED
                 AndroidServiceChangedDiscoveryAction.ACCEPT_PROFILE
             } else {
                 fail()
             }
         }
+        AndroidServiceChangedDiscoveryStage.REFRESHING_BEFORE_RECONNECT -> {
+            if (profileAccepted) {
+                stage = AndroidServiceChangedDiscoveryStage.RECONNECT_REQUIRED
+                AndroidServiceChangedDiscoveryAction.RECONNECT
+            } else {
+                fail()
+            }
+        }
         else -> fail()
+    }
+
+    fun isReplacingAcceptedProfile(): Boolean =
+        stage == AndroidServiceChangedDiscoveryStage.LATELY_INVALIDATED || isRefreshingBeforeReconnect()
+
+    fun isRefreshingBeforeReconnect(): Boolean =
+        stage == AndroidServiceChangedDiscoveryStage.REFRESHING_BEFORE_RECONNECT
+
+    fun onStreamCccdWriteNotPermitted(): Boolean {
+        if (stage != AndroidServiceChangedDiscoveryStage.ACCEPTED) return false
+        stage = AndroidServiceChangedDiscoveryStage.CCCD_FAILURE_GRACE
+        return true
     }
 
     fun onFailureGraceExpired(): AndroidServiceChangedDiscoveryAction =
@@ -310,13 +365,14 @@ internal class AndroidServiceChangedDiscoveryGate {
         }
 
     fun beginRediscovery(): Boolean {
-        if (stage != AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING) {
-            if (stage != AndroidServiceChangedDiscoveryStage.CLOSED) {
-                stage = AndroidServiceChangedDiscoveryStage.FAILED
+        stage = when (stage) {
+            AndroidServiceChangedDiscoveryStage.REDISCOVERY_PENDING -> AndroidServiceChangedDiscoveryStage.REDISCOVERING
+            AndroidServiceChangedDiscoveryStage.LATELY_INVALIDATED -> AndroidServiceChangedDiscoveryStage.REFRESHING_BEFORE_RECONNECT
+            else -> {
+                fail()
+                return false
             }
-            return false
         }
-        stage = AndroidServiceChangedDiscoveryStage.REDISCOVERING
         return true
     }
 
