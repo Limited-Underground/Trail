@@ -116,6 +116,7 @@ def run(output, cached_component=None):
         helper = ROOT / "tools/noise_xk_independent_interop.py"
         inputs.add(helper)
         inputs.add(ROOT / "android/protocol/src/test/resources/otxt-v1-vectors.tsv")
+        inputs.add(ROOT / "android/protocol/src/test/resources/text-carrier-v1-vectors.tsv")
         inputs.update(ROOT / "tools" / name for name in (
             "enrollment_candidate_controller.py", "enrollment_candidate_custody.py",
             "enrollment_candidate_rom_adapter.py", "enrollment_candidate_operator.py",
@@ -251,7 +252,18 @@ def run(output, cached_component=None):
         suite("f7_text_session_tests",
               [*common, *f5_sources, ROOT / "tests/host/f7_text_session_tests.cpp"],
               [*base, *f5_includes], (), " retained-pair F7 text session groups")
+        suite("companion_text_carrier_tests",
+              [ROOT / "tests/host/companion_text_carrier_tests.cpp"],
+              f5_includes, (), "TEXT-CARRIER-V1")
+        suite("companion_phone_text_trial_tests",
+              [*common, *f5_sources, f5_components / "companion/src/companion_device_name_owner.cpp",
+               f5_components / "companion/src/companion_device_name_codec.cpp",
+               ROOT / "tests/host/companion_phone_text_trial_tests.cpp"],
+              [*base, *f5_includes], (), " TASK-6 bridge owner", defines=("-DTASK6_REAL_F5=1",))
         f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+        suite("companion_phone_text_gatt_tests",
+              [ROOT / "tests/host/companion_phone_text_gatt_tests.cpp"],
+              [f5_target, f5_components / "radio/include"], (), " protected GATT phone-text routing groups")
         suite("companion_gatt_layout_tests",
               [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
               [f5_target], (), " Companion GATT layout migration groups")

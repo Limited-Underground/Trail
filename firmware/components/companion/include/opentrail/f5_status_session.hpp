@@ -41,6 +41,7 @@ class F5StatusSession final {
     };
 public:
     enum class State { idle, queued, transmitted, acknowledged, failed };
+    using MessageIdentity = Node::MessageIdentity;
 
     // The local RF arm owns these slots across replacement Packet leases.
     // A slot consumed by an admitted operation stays consumed on storage failure.
@@ -177,9 +178,19 @@ public:
     unsigned received_count() const { return received_; }
     protocol::QuickStatusKind received_status() const { return received_status_; }
 
+    // Queue identity tracks DATA before the radio confirms transmission.
+    std::optional<MessageIdentity> sent_identity() const {
+        if (!node_ || closed_ || (text_arm_ && text_arm_->expired)) return {};
+        return node_->sent_identity();
+    }
+    std::optional<MessageIdentity> received_identity() const {
+        if (!has_current_received_text()) return {};
+        return node_->received_identity();
+    }
+
     // Valid while this session retains the delivered plaintext.
     radio::ByteView received_text() const {
-        if (!text_arm_ || text_arm_->expired || !node_ || closed_ || received_ == 0) return {};
+        if (!has_current_received_text()) return {};
         const auto text = otxt::decode(node_->last_plain(), packet_mtu());
         return {text.data, text.size};
     }
@@ -195,6 +206,9 @@ public:
         if (state_!=State::acknowledged) state_=State::failed;
     }
 private:
+    bool has_current_received_text() const {
+        return text_arm_ && !text_arm_->expired && node_ && !closed_ && received_ != 0;
+    }
     std::size_t packet_mtu() const {
         return std::min(radio_.mtu(), kPacketMtu);
     }

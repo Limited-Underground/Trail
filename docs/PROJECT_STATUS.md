@@ -213,17 +213,17 @@ activation, signing, source publication and merge require separate authority.
 | Field | Current pickup state |
 | --- | --- |
 | Reviewed | 2026-11-20 |
-| Task | OT-0312 — F7 typed text over the retained-pair F5 link (Messaging TASK-5B, D-024). |
-| Owner | Messaging owns the local feat/f7-board-text topic. The I-084 firmware task owns the overlapping Bluetooth files. |
-| Scope | One OTXT send and one received text per arm in the opt-in board Link Test, with runtime MTU checks, authenticated acknowledgement and the existing F5 storage and launch guards. |
-| State | Local Link Test development candidate. F5 PR #284, I-084 PR #287 and the 925.1 MHz bench profile PR #288 are on main. The first F5 trial stopped before the owner claim and both boards were restored to b4c843b. F11 source is merged and remains unwired. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/f7-board-text started from 0615e22221cc1a3a81ea9e51aea77765d60613e0 and integrates main c26d3886a1bd5971cc54a526bfe7019b47480a3f. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | REPORT-5 binds the shared vectors, the retained-session and expiry regressions, the existing F5 gates, the offline matrix and Link Test image evidence to the local candidate. |
-| Blocker | Physical F5 and F7 acceptance remain open. I-084 host and Link Test evidence is available. The retained-bond upgrade check remains open. A board session also needs the compatible restoration route and owner-present authority. |
-| Next action | Review the F7 candidate under firmware issue #75, then qualify the two-board path after the F5 prerequisites. |
-| Restrictions | Local topic and host or Link Test evidence only. Physical testing and publication require separate owner authorization. |
-| Latest record | [OT-0312 Send one typed message between paired MeshTrail boards](PROGRESS_LOG.md#ot-0312-send-one-typed-message-between-paired-meshtrail-boards). See the [F5 record](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts) and [I-084 record](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). Bench profile: [OT-0005i Move the MeshTrail bench to 925.1 MHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz). |
-| Evidence access | Source and host tests are in the branch. D:/LimitedUnderground/Build/codex-messaging-plan/out/REPORT-5.md records the maintainer-local artifacts and command evidence. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
+| Task | OT-0312 — protected phone-to-phone typed text in the paired Link Test (TASK-6, D-024, D-035, D-143). |
+| Owner | Messaging owns feat/f7-phone-text across the opt-in Heltec target and Android trial. The I-086 reconnect task owns its separate refresh follow-up. |
+| Scope | One typed send and one receive per board RF arm. The bench app uses a provisioned pairing record and a live OTY0 proof on the existing protected Command and Stream. Runtime text stays within the existing F5 arm, MTU and ACK gates. |
+| State | Local development candidate. F5 and the fixed-text F7 trial are on main. The November 20 board-to-board F7 trial passed. F11 source remains unwired. Diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded evidence and consumed grant. |
+| Source | Topic feat/f7-phone-text starts at the PR #290 merge e762846fece287031285e81849485fbd5000eba4. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | The TASK-6 report binds carrier parity, retained F5 composition, handset projection and the independent build and test receipts to the candidate. |
+| Blocker | End-to-end phone-to-phone physical evidence remains open. The later two-phone trial needs provisioned pairing records, compatible restore and separate owner-present authority. |
+| Next action | Qualify the exact report-bound candidate in a separately authorized two-board, two-phone session. |
+| Restrictions | Local topic and host or Link Test evidence. Physical operations and publication require separate authority. |
+| Latest record | [OT-0312 Send typed text between phones through paired boards](PROGRESS_LOG.md#ot-0312-send-typed-text-between-phones-through-paired-boards). See the [F7 board record](PROGRESS_LOG.md#ot-0312-send-one-typed-message-between-paired-meshtrail-boards), [F5 record](PROGRESS_LOG.md#ot-0005i-recover-a-fresh-meshtrail-session-after-one-board-restarts) and [I-084 record](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). |
+| Evidence access | D:/LimitedUnderground/Build/codex-messaging-plan/out/REPORT-6.md records the maintainer-local artifacts and commands. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

@@ -2786,11 +2786,123 @@ class BleCompanionRuntimeTest {
         assertFalse(h.runtime.submitText(handle,"no wrap"));assertEquals(writes,h.gatt.commands.size);assertTrue(h.gatt.closed);h.runtime.close()
     }
 
+    @Test fun f7BenchSendsProtectedAuthorityQueryBeforeSnapshotAndProjectsTextOnce() {
+        val sender = ConfigurationFixture(profile = 6, benchTextRecord = f7BenchPinRecord(), withSessionOwner = true)
+        val receiver = ConfigurationFixture(profile = 6, benchTextRecord = f7BenchPinRecord(swapIds = true), withSessionOwner = true)
+        for (fixture in listOf(sender, receiver)) {
+            assertIs<BleRuntimeState.Negotiating>(fixture.runtime.state)
+            assertNull(fixture.runtime.textState().recipient)
+            val request = checkNotNull(CompanionAuthorityCodec.decodeRequest(fixture.gatt.commands.last()))
+            assertEquals(2u, request.exchange)
+            assertEquals(17u, request.nonce)
+            assertEquals(1uL, request.group)
+            assertEquals(2u, request.epoch)
+            val pinnedPeer = if (fixture === sender) 33 else 1
+            assertContentEquals(ByteArray(32) { (it + pinnedPeer).toByte() }, request.remoteIdentity)
+            fixture.completeBenchAuthority { response ->
+                if (fixture === receiver) {
+                    val local = response.copyOfRange(28, 60)
+                    response.copyOfRange(60, 92).copyInto(response, 28)
+                    local.copyInto(response, 60)
+                }
+            }
+            assertIs<BleRuntimeState.Ready>(fixture.runtime.state)
+            fixture.name()
+            fixture.clock()
+        }
+
+        val text = "Café 界, keep this private"
+        val senderOwner = checkNotNull(sender.owner)
+        val receiverOwner = checkNotNull(receiver.owner)
+        val log = mutableListOf<String>()
+        val transitions = MeshTrailLogTransitions { _, value -> log += value }
+        val messages = mutableListOf<String>()
+        checkNotNull(receiverOwner.observe { state ->
+            transitions.observeService(state)
+            state.textMessages.received?.let(messages::add)
+        }).use {
+            val handle = checkNotNull(sender.runtime.textState().recipient)
+            val before = sender.gatt.commands.size
+            assertFalse(senderOwner.submitText(handle, "界".repeat(31)))
+            assertEquals(before, sender.gatt.commands.size)
+            assertTrue(senderOwner.submitText(handle, text))
+            val sent = textWire(sender)
+            assertEquals(text, sent.text)
+            assertEquals(2u, sent.reference.authorityExchange)
+            assertTrue(sent.exchange > 3u)
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE, sender.runtime.textState().outbound)
+            textResult(sender)
+            assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED, sender.runtime.textState().outbound)
+            textDelivery(sender, 1u, 2)
+            assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED, sender.runtime.textState().outbound)
+            sender.now += ACTION_RESULT_TIMEOUT_MILLIS
+            sender.scheduler.advanceBy(ACTION_RESULT_TIMEOUT_MILLIS)
+            assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED, sender.runtime.textState().outbound)
+
+            val received = CompanionTextReceived(CompanionTextReference(17u, 2u, 3uL), 1u, 4097u, 1uL, sent.text)
+            textEmit(receiver, received)
+            textEmit(receiver, received)
+            textDelivery(sender, 2u, 3)
+            assertEquals(listOf(text), messages)
+            assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK, sender.runtime.textState().outbound)
+            assertTrue(log.none { text in it })
+            assertFalse(text in receiver.runtime.textState().toString())
+        }
+        senderOwner.close()
+        receiverOwner.close()
+    }
+
+    @Test fun f7BenchRejectsMismatchedLocalPinAndKeepsProfileFive() {
+        val mismatched = ConfigurationFixture(profile = 6, benchTextRecord = f7BenchPinRecord())
+        assertNotNull(CompanionAuthorityCodec.decodeRequest(mismatched.gatt.commands.last()))
+        val before = mismatched.gatt.commands.size
+        mismatched.completeBenchAuthority { it[28] = (it[28] + 1).toByte() }
+        assertIs<BleRuntimeState.Failed>(mismatched.runtime.state)
+        assertNull(mismatched.runtime.textState().recipient)
+        assertEquals(before, mismatched.gatt.commands.size)
+        mismatched.runtime.close()
+
+        for (record in listOf(null, "incorrect record".encodeToByteArray(), f7BenchPinRecord())) {
+            val legacy = ConfigurationFixture(profile = 5, benchTextRecord = record)
+            assertIs<BleRuntimeState.Ready>(legacy.runtime.state)
+            assertTrue(legacy.gatt.commands.none { CompanionAuthorityCodec.decodeRequest(it) != null })
+            assertNull(legacy.runtime.textState().recipient)
+            legacy.runtime.close()
+        }
+        val invalid = ConfigurationFixture(profile = 6, benchTextRecord = "incorrect record".encodeToByteArray())
+        assertIs<BleRuntimeState.Failed>(invalid.runtime.state)
+        assertTrue(invalid.gatt.commands.none { CompanionAuthorityCodec.decodeRequest(it) != null })
+        invalid.runtime.close()
+    }
+
+    @Test fun f7BenchRecordIsExactAndRejectsInvalidOrPartialPins() {
+        val record = f7BenchPinRecord()
+        val pins = assertNotNull(F7BenchPins.decode(record))
+        assertFalse(pins.toString().contains("01020304"))
+        val raw = record.decodeToString()
+        val localLine = raw.lineSequence().first { it.startsWith("local=") }.substringAfter('=')
+        val peerLine = raw.lineSequence().first { it.startsWith("peer=") }.substringAfter('=')
+        for (bad in listOf(raw.trimEnd(), raw + "\n", raw.replace("\n", "\r\n"),
+            raw.replace(localLine, localLine.uppercase()), raw.replace(localLine, "0".repeat(64)),
+            raw.replace(peerLine, localLine), raw.replace("0000000000000001", "0000000000000000"),
+            raw.replace("epoch=00000002", "epoch=00000000"),
+            raw.replace("revision=0000000000000004", "revision=0000000000000000"))) {
+            assertNull(F7BenchPins.decode(bad.encodeToByteArray()))
+        }
+    }
+
+    private fun f7BenchPinRecord(swapIds: Boolean = false): ByteArray {
+        fun hex(first: Int) = (first until first + 32).joinToString("") { it.toString(16).padStart(2, '0') }
+        val local = hex(if (swapIds) 33 else 1)
+        val peer = hex(if (swapIds) 1 else 33)
+        return ("meshtrail-f7-bench-v1\nlocal=$local\npeer=$peer\n" +
+            "group=0000000000000001\nepoch=00000002\nrevision=0000000000000004\n").encodeToByteArray()
+    }
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
         wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it },
-        pairingResults: Boolean = false) {
+        pairingResults: Boolean = false, private val benchTextRecord: ByteArray? = null) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
@@ -2806,7 +2918,7 @@ class BleCompanionRuntimeTest {
                 proofCalls++;proofHook?.invoke()
                 if(!packetAdmission) null else proofTransform(BlePacketAuthority(query.lease,query.callbackGeneration,
                     query.nonce,query.peer,21u,22u,99u,100000L))
-            })
+            }, benchTextRecord=benchTextRecord)
         val controller=if(withController || withSessionOwner) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
             NearbyDevicesPermissionReader { NearbyDevicesPermissionState.GRANTED },RuntimeDeviceAuthorizationClaimClient(runtime),scheduler,
             groupConfirmationAdapter=RuntimeV1GroupConfirmationAdapter(runtime),groupConfirmationClock={now}) else null
@@ -2859,12 +2971,37 @@ class BleCompanionRuntimeTest {
             gatt.emit(BleGattEvent.StreamIndication(authorizationAcceptedEnvelope(nonce.toLong(),firstId)))
             gatt.emit(BleGattEvent.ProtectedProtocolInfoRead(checkNotNull(codec.encodeInfo(
                 io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo(if(profile==127)0xdf else 0xff,minorVersion=profile),allowProfile06=profile==6))))
-            if(runtime.state is BleRuntimeState.Negotiating) {
-                val request=last()
-                val payload=checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(nonce.toLong(),1)).value).payload
-                respond(0x81,payload,request.exchangeId)
+            if (runtime.state is BleRuntimeState.Negotiating && (profile != 6 || benchTextRecord == null)) {
+                respondToInitialSnapshot()
             }
         }
+
+        fun completeBenchAuthority(mutate: (ByteArray) -> Unit = {}) {
+            val lease = facade.connections.last()
+            val request = checkNotNull(CompanionAuthorityCodec.decodeRequest(lease.commands.last()))
+            val response = "4f54433000068b000403020108070605000174004f545930010103000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f400100000000000000020000000300000000000000030000000000000004000000000000000403020130750000"
+                .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+            java.nio.ByteBuffer.wrap(response).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
+                putInt(8, request.nonce.toInt())
+                putInt(12, request.exchange.toInt())
+                putInt(128, request.nonce.toInt())
+            }
+            mutate(response)
+            lease.emit(BleGattEvent.StreamIndication(response))
+            if (runtime.state is BleRuntimeState.Negotiating) {
+                val snapshot = last()
+                assertEquals(1, snapshot.kind)
+                assertEquals(request.exchange + 1u, snapshot.exchangeId)
+                respondToInitialSnapshot()
+            }
+        }
+
+        private fun respondToInitialSnapshot() {
+            val request = last()
+            val payload = checkNotNull(CompanionProtocolCodec.decodeFragment(snapshotEnvelope(nonce.toLong(), 1)).value).payload
+            respond(0x81, payload, request.exchangeId)
+        }
+
         fun last()=checkNotNull(codec.decodeFrame(facade.connections.last().commands.last(),profile,allowProfile06=profile==6))
         fun respond(kind:Int,payload:ByteArray,id:UInt=last().exchangeId,stale:Boolean=false) {
             val lease = facade.connections.last()

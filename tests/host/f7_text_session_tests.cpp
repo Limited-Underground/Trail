@@ -217,6 +217,58 @@ void bilateral_delivery_and_ack() {
     check_text(pair.b, text_a);
 }
 
+void packet_identity_tracks_live_admission() {
+    Status::TextArm arm_a{}, arm_b{};
+    Pair pair;
+    f5_test::finish(pair.a, pair.b, f5_test::start(pair.a), 2);
+    const auto end_b = pair.b.now + 60000;
+    open_text(pair.a, arm_a);
+    open_text(pair.b, arm_b);
+    CHECK(!pair.a.status->sent_identity() && !pair.a.status->received_identity());
+    CHECK(!pair.b.status->sent_identity() && !pair.b.status->received_identity());
+
+    const Packet text{'o', 'k'};
+    CHECK(pair.a.status->send_text(71, view(text), pair.a.now));
+    CHECK(pair.a.radio.sent.empty() && pair.a.status->state() == Status::State::queued);
+    const auto queued = pair.a.status->sent_identity();
+    CHECK(queued && queued->message_id == 71 && queued->counter != 0);
+    pair.a.status->service(pair.a.now);
+    CHECK(pair.a.radio.sent.size() == 1);
+    pair.a.status->on_data_transmitted();
+    const auto data = pair.a.radio.sent.back();
+    const auto parsed = packet::decode_frame({data.data(), data.size()},
+        pair.a.rekey->data_tx().context, 163);
+    CHECK(parsed.error == packet::Error::none);
+    CHECK(queued->message_id == parsed.header.message_id && queued->counter == parsed.header.counter);
+
+    const auto ack = receive_text(pair.b, data, text);
+    auto incoming = pair.b.status->received_identity();
+    CHECK(incoming && incoming->message_id == parsed.header.message_id &&
+        incoming->counter == parsed.header.counter);
+    f5_test::accept_ack(pair.a, ack);
+    const auto acknowledged = pair.a.status->sent_identity();
+    CHECK(acknowledged && acknowledged->message_id == queued->message_id &&
+        acknowledged->counter == queued->counter);
+    CHECK(receive_text(pair.b, data, text) == ack);
+    incoming = pair.b.status->received_identity();
+    CHECK(incoming && incoming->message_id == parsed.header.message_id &&
+        incoming->counter == parsed.header.counter);
+
+    const auto& reverse = pair.b.rekey->data_tx();
+    CHECK(receive_text(pair.a, authenticated_frame(reverse, 82, 9, otxt(text)), text).size() == 68);
+    incoming = pair.a.status->received_identity();
+    CHECK(incoming && incoming->message_id == 82 && incoming->counter == 9);
+    refuse_input_without_writes(pair.a, authenticated_frame(reverse, 83, 10, otxt(text)));
+    incoming = pair.a.status->received_identity();
+    CHECK(incoming && incoming->message_id == 82 && incoming->counter == 9);
+
+    pair.b.now = end_b;
+    refuse_input_without_writes(pair.b, data);
+    CHECK(!pair.b.status->received_identity());
+    pair.a.status->close();
+    CHECK(!pair.a.status->sent_identity() && !pair.a.status->received_identity());
+}
+
 void refuse_outbound_before_allocation() {
     Status::TextArm arm{};
     Pair pair;
@@ -360,6 +412,8 @@ int main() {
     using namespace f7_test;
     active_case = "bidirectional delivery, matching ACK and duplicate cache";
     bilateral_delivery_and_ack();
+    active_case = "authoritative Packet IDs and counters across delivery";
+    packet_identity_tracks_live_admission();
     active_case = "empty, invalid and oversized outbound text";
     refuse_outbound_before_allocation();
     active_case = "malformed, oversized and wrong-kind authenticated input";
@@ -370,7 +424,7 @@ int main() {
     late_arrival_and_launch_deadline();
     active_case = "original text arm across peer restart and successor rekey";
     consumed_arm_survives_successor();
-    std::cout << "PASS 7 retained-pair F7 text session groups\n";
+    std::cout << "PASS 8 retained-pair F7 text session groups\n";
 #endif
     return 0;
 }

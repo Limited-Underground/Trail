@@ -7,6 +7,7 @@
 #include "opentrail/delivery_controller.hpp"
 #include <sodium/crypto_aead_chacha20poly1305.h>
 #include <cstring>
+#include <optional>
 #include <sodium/utils.h>
 namespace opentrail::protocol::v1::selected_packet_detail {
 struct Binding {
@@ -23,6 +24,10 @@ enum class Outcome {rejected,delivered,acknowledged,duplicate,storage_failure};
 class Node final {
 public:
  using DataAdmission = bool(*)(void*,View);
+ struct MessageIdentity {
+  std::uint32_t message_id{};
+  std::uint64_t counter{};
+ };
  Node(Binding& data_tx,Binding& ack_tx,Binding& data_rx,Binding& ack_rx,
  persistence::OutboundCounterAllocator& data_counter,persistence::OutboundCounterAllocator& ack_counter,
  security_eval::EvaluationReplayStore& data_replay,security_eval::EvaluationReplayStore& ack_replay,
@@ -70,6 +75,7 @@ public:
   }
   // Persistence precedes delivery authority; ACK failure cannot undo delivery.
   ++deliveries_;std::memcpy(last_plain_.data(),temporary.data(),length);last_size_=length;
+  received_identity_ = {parsed.header.message_id, parsed.header.counter};
   cached_data_={};std::memcpy(cached_data_.bytes.data(),frame.data,frame.size);cached_data_.size=frame.size;cache_valid_=false;
   unsigned char reference[8];put64(reference,parsed.header.counter);std::uint64_t unused=0;
   if(seal(at_,ac_,Type::ack,parsed.header.message_id,{reference,8},cached_ack_,unused)){cache_valid_=true;ack=cached_ack_;}else{close();}
@@ -79,6 +85,16 @@ public:
  bool uses_transport(const radio::RadioTransport& transport)const{return delivery_.uses_transport(transport);}
  unsigned deliveries()const{return deliveries_;}unsigned acknowledgements()const{return acknowledgements_;}
  View last_plain()const{return {last_plain_.data(),last_size_};}
+ // The outbound identity is available after successful queue admission and
+ // survives an ACK. The inbound identity is captured only for admitted DATA.
+ std::optional<MessageIdentity> sent_identity() const {
+  if (closed_ || !pending_id_ || !pending_counter_) return {};
+  return MessageIdentity{pending_id_, pending_counter_};
+ }
+ std::optional<MessageIdentity> received_identity() const {
+  if (closed_ || !received_identity_.message_id || !received_identity_.counter) return {};
+  return received_identity_;
+ }
 private:
  static bool same(const Binding&a,const Binding&b){const auto&x=a.context;const auto&y=b.context;return a.active&&a.validity==b.validity&&a.validity_context==b.validity_context&&a.close_owner==b.close_owner&&a.purpose==b.purpose&&a.key==b.key&&a.prefix==b.prefix&&a.domain==b.domain&&a.lease_domain==b.lease_domain&&x.sender==y.sender&&x.recipient==y.recipient&&x.transcript==y.transcript&&x.sender_alias==y.sender_alias&&x.recipient_alias==y.recipient_alias&&x.group==y.group&&x.epoch==y.epoch&&x.direction==y.direction;}
  void close(){if(closed_)return;closed_=true;pending_=false;cache_valid_=false;if(fdt_.close_owner)fdt_.close_owner(fdt_.validity_context);sodium_memzero(fdt_.key.data(),32);sodium_memzero(fat_.key.data(),32);sodium_memzero(fdr_.key.data(),32);sodium_memzero(far_.key.data(),32);sodium_memzero(&cached_data_,sizeof cached_data_);sodium_memzero(&cached_ack_,sizeof cached_ack_);sodium_memzero(last_plain_.data(),last_plain_.size());last_size_=0;}
@@ -103,6 +119,7 @@ private:
  Binding fdt_,fat_,fdr_,far_;bool closed_=false;bool pending_=false,cache_valid_=false;std::uint32_t pending_id_=0;std::uint64_t pending_counter_=0;
  bool(*validity_)(void*,std::uint64_t)=nullptr;void*validity_context_=nullptr;delivery::DeliveryPolicy policy_{};
  DataAdmission admit_data_{};void* admission_context_{};
+ MessageIdentity received_identity_{};
  Frame cached_data_{},cached_ack_{};std::array<unsigned char,195>last_plain_{};std::size_t last_size_=0;unsigned deliveries_=0,acknowledgements_=0;
 };
 }
