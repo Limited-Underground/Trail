@@ -5,7 +5,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
 const val CONNECTED_DEVICE_NOTIFICATION_CHANNEL_ID = "trail_connected_device"
 const val CONNECTED_DEVICE_NOTIFICATION_CHANNEL_NAME = "Connected device"
 const val CONNECTED_DEVICE_NOTIFICATION_TITLE = "Limited Underground MeshTrail"
-const val CONNECTED_DEVICE_NOTIFICATION_TEXT = "Bluetooth device connection service is running"
+const val CONNECTED_DEVICE_NOTIFICATION_TEXT = "MeshTrail is running in the background."
 
 enum class NotificationPermissionState {
     NOT_REQUIRED,

@@ -216,27 +216,27 @@ private fun V1DeviceGroupConfirmation(
     onAction: (V1GroupUiAction) -> Unit,
 ) {
     // The offer belongs to the current device session. Never retain or save a copy here.
-    V1GroupCard("Confirm nearby peer") {
+    V1GroupCard("Confirm someone nearby") {
         when (state) {
             V1GroupConfirmationState.Unsupported -> {
-                Text("Peer confirmation is unavailable with this device connection.")
+                Text("You can't confirm group changes with this connection.")
                 Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
                     Text("Confirm matching details")
                 }
             }
             V1GroupConfirmationState.Idle -> {
-                Text("Waiting for your device to offer peer confirmation.")
+                Text("Waiting for your device to ask for confirmation.")
                 OutlinedButton(
                     onClick = { onAction(V1GroupUiAction.RefreshDeviceOffer) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Check for device offer") }
+                ) { Text("Check your device") }
             }
             is V1GroupConfirmationState.Review -> {
                 val offer = state.offer
                 Text(if (offer.role == V1GroupConfirmationRole.INVITER)
-                    "Review the peer requesting to join." else "Review the peer inviting you.")
-                Text("Compare these details with the intended peer before confirming.")
-                Text("Peer fingerprint", style = MaterialTheme.typography.labelLarge)
+                    "Check who wants to join." else "Check who invited you.")
+                Text("Compare these details with the other person before confirming.")
+                Text("Device check code", style = MaterialTheme.typography.labelLarge)
                 Text(offer.peerFingerprint)
                 Text("Confirmation", style = MaterialTheme.typography.labelLarge)
                 Text(offer.confirmation)
@@ -251,19 +251,19 @@ private fun V1DeviceGroupConfirmation(
             }
             is V1GroupConfirmationState.Submitted -> {
                 Text(if (state.decision == V1GroupConfirmationDecision.CONFIRM)
-                    "Confirmation request submitted. Joining is not yet complete."
-                    else "Cancellation request submitted. Cancellation is not yet confirmed.")
+                    "MeshTrail asked your device to confirm.\nJoining is still pending."
+                    else "MeshTrail asked your device to cancel.\nWait for it to confirm.")
             }
             is V1GroupConfirmationState.DeviceResult -> Text(when (state.outcome) {
-                V1GroupConfirmationDeviceOutcome.LOCAL_CONFIRMED -> "Your device confirmed this step. Group joining is not complete."
+                V1GroupConfirmationDeviceOutcome.LOCAL_CONFIRMED -> "Your device confirmed this step.\nJoining is still pending."
                 V1GroupConfirmationDeviceOutcome.CANCELLED -> "Your device cancelled this confirmation."
-                V1GroupConfirmationDeviceOutcome.REFUSED -> "Your device refused this confirmation. Reconnect before reviewing another offer."
+                V1GroupConfirmationDeviceOutcome.REFUSED -> "Your device refused the confirmation.\nReconnect before reviewing a new invitation."
             })
             is V1GroupConfirmationState.Closed -> Text(when (state.reason) {
-                V1GroupConfirmationCloseReason.EXPIRED -> "This confirmation offer expired. Wait for a new device session and offer."
-                V1GroupConfirmationCloseReason.SESSION_ENDED -> "The device session ended. Reconnect to review a new offer."
-                V1GroupConfirmationCloseReason.SUBMISSION_FAILED -> "The request could not be verified as submitted. Review a new offer after reconnecting."
-                else -> "This confirmation is no longer available. Reconnect to review a new device offer."
+                V1GroupConfirmationCloseReason.EXPIRED -> "This invitation expired.\nReconnect and ask for a new one."
+                V1GroupConfirmationCloseReason.SESSION_ENDED -> "The connection ended.\nReconnect to review a new invitation."
+                V1GroupConfirmationCloseReason.SUBMISSION_FAILED -> "Couldn't confirm that the request reached your device.\nReconnect to review a new invitation."
+                else -> "This confirmation is no longer available.\nReconnect to review a new invitation."
             })
         }
     }

@@ -75,6 +75,7 @@ class TrailActivityController(
     override fun chooseBluetoothDeviceMode() {
         requireOwnerThread()
         if (!canMutate()) return
+        if (mode == TrailConnectionMode.BLUETOOTH_DEVICE && permissionRequestInFlight) return
         releaseLocalSession()
         returningOwnerSuppressed = false
         mode = TrailConnectionMode.BLUETOOTH_DEVICE

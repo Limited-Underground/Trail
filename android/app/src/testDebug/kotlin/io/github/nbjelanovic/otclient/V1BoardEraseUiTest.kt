@@ -26,7 +26,7 @@ class V1BoardEraseUiTest {
         ui.onNodeWithText("Review factory reset").performClick()
         ui.onNodeWithText("Erase Camp board?").assertExists()
         ui.onNodeWithText(APP_FACTORY_RESET_CONFIRMATION_PUBLIC_TEXT).assertExists()
-        ui.onNodeWithText("Erase this board").assertExists()
+        ui.onNodeWithText("Erase this device").assertExists()
         ui.runOnIdle { assertEquals(0, controller.resetConfirmations) }
         ui.onNodeWithText("Cancel").performClick()
         ui.onNodeWithText("Erase Camp board?").assertDoesNotExist()

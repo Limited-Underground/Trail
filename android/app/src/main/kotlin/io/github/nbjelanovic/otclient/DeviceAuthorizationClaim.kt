@@ -3,11 +3,9 @@ package io.github.nbjelanovic.otclient
 internal const val DEVICE_AUTHORIZATION_CLAIM_TIMEOUT_MILLIS = 30_000L
 internal const val MAX_DEVICE_AUTHORIZATION_TOKEN_CHARS = 128
 internal const val EXPIRED_AUTHORIZATION_PUBLIC_TEXT =
-    "No authoritative result reached this phone. Current device authority is unknown; reconnect and check " +
-        "the physical device before retrying."
+    "Your device didn't answer in time.\nCheck its screen before trying again."
 internal const val INVALID_AUTHORIZATION_RESULT_PUBLIC_TEXT =
-    "The app rejected an invalid or mismatched result and did not start a connection. Current device " +
-        "authority is unknown; check the physical device before retrying."
+    "MeshTrail couldn't confirm the device's answer.\nCheck its screen before trying again."
 
 enum class DeviceAuthorizationPurpose {
     AUTHORIZE_THIS_PHONE,

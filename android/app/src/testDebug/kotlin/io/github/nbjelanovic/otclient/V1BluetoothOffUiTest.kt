@@ -39,7 +39,7 @@ class V1BluetoothOffUiTest {
     }
 
     @Test fun refusedRetryShowsPermissionRecoveryAndClearsAfterAdmittedRetry() {
-        val guidance = "MeshTrail needs Nearby Devices access. Open app settings, tap Permissions, and allow Nearby devices."
+        val guidance = "Allow Nearby devices under Permissions in app settings."
         val controller = P1UiController(p1BluetoothState(BleRuntimeState.Blocked(BleRuntimeBlock.BLUETOOTH_DISABLED)))
         controller.discoveryRetryRefusal = BluetoothRecoveryRefusal.PERMISSION_REQUIRED
         ui.setContent { MaterialTheme { TrailApp(controller) } }
@@ -69,9 +69,9 @@ class V1BluetoothOffUiTest {
         ui.mainClock.advanceTimeBy(2_000)
         ui.onNodeWithText("Device").performClick()
         ui.onNodeWithText("Try again").performScrollTo().performClick()
-        ui.onNodeWithText("The earlier board reset still needs verification.", substring = true).assertExists()
+        ui.onNodeWithText("The earlier device reset still needs checking.", substring = true).assertExists()
         val appName = ui.activity.getString(R.string.app_name)
-        ui.onNodeWithText("choose $appName, and tap Force stop", substring = true).assertExists()
+        ui.onNodeWithText("Force stop $appName in app settings", substring = true).assertExists()
         ui.onNodeWithText("Open app settings").assertExists()
         ui.onNodeWithText("Scan again").assertDoesNotExist()
         ui.runOnIdle {

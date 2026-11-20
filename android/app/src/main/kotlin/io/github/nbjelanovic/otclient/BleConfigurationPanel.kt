@@ -19,7 +19,7 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
     onSetupComplete: (V1OnboardingScope) -> Unit = {}) {
     val state=session.configuration
     if(!state.available) {
-        if(onboarding) Text("Step 3 of 5 · Device name. Waiting for protected device configuration support.")
+        if(onboarding) Text("Step 3 of 5 · Your device can't share its settings yet.")
         return
     }
     val scope=remember(session.companion.endpointToken,session.sessionNonce,state.editorSessionId) {
@@ -86,32 +86,32 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
     }
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-            Text(if(onboarding && stage==V1SetupStage.COMPLETE) "Setup preferences verified" else if(onboarding) "Step ${stage.ordinal+1} of 5 · ${when(stage) {
+            Text(if(onboarding && stage==V1SetupStage.COMPLETE) "Device setup complete" else if(onboarding) "Step ${stage.ordinal+1} of 5 · ${when(stage) {
                 V1SetupStage.NAME_DEVICE -> "Name your device"
                 V1SetupStage.CONFIRM_RADIO_REGION -> "Choose your radio region"
                 else -> "Public name and visibility"
-            }}" else "Device configuration",style=MaterialTheme.typography.titleMedium)
+            }}" else "Name, region and profile",style=MaterialTheme.typography.titleMedium)
             Text(state.notice)
             if(!onboarding || stage==V1SetupStage.NAME_DEVICE) {
-            state.deviceName?.let { Text("Last device readback: $it") }
+            state.deviceName?.let { Text("Saved device name: $it") }
             state.suggestedDeviceName?.let {
-                Text("Suggested name from the device you matched: $it. Edit it or tap Apply name to save it.",
+                Text("Suggested device name: $it.",
                     style=MaterialTheme.typography.bodySmall)
             }
             OutlinedTextField(value=name,onValueChange={ editor=editor.edit(it) },label={ Text("Device name") },
                 enabled=!state.busy,singleLine=true,modifier=Modifier.fillMaxWidth())
             Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadName) },enabled=!state.busy) { Text("Read device") }
+                OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadName) },enabled=!state.busy) { Text("Check saved name") }
                 Button(onClick={ submit(V1OnboardingCommand.WriteName(name)) },enabled=!state.busy && state.nameRevision!=null && V1DeviceName.create(name)!=null) {
                     Text("Apply name")
                 }
             }
             }
-            OutlinedButton(onClick={ controller.synchronizeDisplayTime() },enabled=!state.busy) { Text("Sync display clock") }
+            OutlinedButton(onClick={ controller.synchronizeDisplayTime() },enabled=!state.busy) { Text("Set clock from phone") }
             if(state.regionAvailable && V1OnboardingProjection.nameVerified(state) && (!onboarding || stage==V1SetupStage.CONFIRM_RADIO_REGION)) {
                 HorizontalDivider()
-                Text("Radio region choice",style=MaterialTheme.typography.titleMedium)
-                Text("Saved choice: ${state.regionSelectionId?.let { RegionSelectionCatalog.find(it)?.code } ?: if(state.regionRevision == 0uL) "Not configured" else "Not read back"}")
+                Text("Radio region",style=MaterialTheme.typography.titleMedium)
+                Text("Saved choice: ${state.regionSelectionId?.let { RegionSelectionCatalog.find(it)?.code } ?: if(state.regionRevision == 0uL) "Not configured" else "Not checked yet"}")
                 Box {
                     OutlinedButton(onClick={ regionMenu=true },enabled=!state.busy) {
                         Text(regionChoice?.let { RegionSelectionCatalog.find(it)?.code } ?: "Choose region")
@@ -122,21 +122,21 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                         }
                     }
                 }
-                OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadRegion) },enabled=!state.busy) { Text(if(onboarding) "Read region to continue" else "Read region") }
+                OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadRegion) },enabled=!state.busy) { Text(if(onboarding) "Check region to continue" else "Check saved region") }
                 Button(onClick={ regionChoice?.let { submit(V1OnboardingCommand.WriteRegion(it)) } },
                     enabled=!state.busy && regionChoice!=null && state.regionRevision!=null && state.regionRevision!=ULong.MAX_VALUE) {
-                    Text("Apply region choice")
+                    Text("Save region")
                 }
-                Text("Choose the region where you use your MeshTrail board.",style=MaterialTheme.typography.bodySmall)
+                Text("Choose the region where you use your device.",style=MaterialTheme.typography.bodySmall)
             }
             if(onboarding && stage==V1SetupStage.CONFIRM_RADIO_REGION && !state.regionAvailable) {
-                Text("This firmware cannot read back a saved radio region. Setup is paused until compatible device support is available.")
+                Text("Your device needs an update before you can check its saved radio region.")
             }
             if(stage in listOf(V1SetupStage.PUBLIC_PROFILE,V1SetupStage.COMPLETE)) {
                 HorizontalDivider()
                 Text("Public name and visibility",style=MaterialTheme.typography.titleMedium)
                 if(state.publicProfileAvailable) {
-                    Text("Device readback: ${state.publicName ?: if(state.publicRevision==0uL) "Not configured" else "Not confirmed"}")
+                    Text("Saved public name: ${state.publicName ?: if(state.publicRevision==0uL) "Not configured" else "Not confirmed"}")
                     Text("Saved visibility: ${state.publiclyDiscoverable?.let { if(it) "On" else "Off" } ?: "Not confirmed"}")
                     OutlinedTextField(value=publicText,onValueChange={ publicText=it;publicEdited=true },
                         label={ Text("Public name") },enabled=!state.busy,singleLine=true,modifier=Modifier.fillMaxWidth())
@@ -147,16 +147,16 @@ internal fun BleConfigurationPanel(session: BleActiveSession, controller: TrailU
                     val validPublic=V1PublicName.create(publicText)!=null && CompanionPublicProfileCodec.validName(publicText)
                     if(publicText.isNotEmpty() && !validPublic) Text("Use a shorter public name with letters, numbers and ordinary name punctuation.")
                     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadPublicProfile) },enabled=!state.busy) { Text("Read public settings") }
+                        OutlinedButton(onClick={ submit(V1OnboardingCommand.ReadPublicProfile) },enabled=!state.busy) { Text("Check saved profile") }
                         Button(onClick={ submit(V1OnboardingCommand.WritePublicProfile(publicText,publicVisible)) },
-                            enabled=!state.busy && validPublic && state.publicRevision!=null && state.publicRevision!=ULong.MAX_VALUE) { Text("Apply public settings") }
+                            enabled=!state.busy && validPublic && state.publicRevision!=null && state.publicRevision!=ULong.MAX_VALUE) { Text("Save profile") }
                     }
-                    Text(if(stage==V1SetupStage.COMPLETE) "Setup preferences are verified on this device. Saving them does not start public discovery."
-                        else "Saving these preferences does not start public discovery. Setup resumes after protected readback.")
-                } else Text("This firmware cannot read back public name and visibility. Setup remains paused; saved phone choices are drafts.")
-                Text("Your MeshTrail board uses the radio rules for its saved region.")
+                    Text(if(stage==V1SetupStage.COMPLETE) "Your device confirmed your setup.\nSaving these settings doesn't make you visible yet."
+                        else "Setup continues when your device confirms these settings.\nSaving them doesn't make you visible yet.")
+                } else Text("Your device needs an update to check your profile.\nYour choices stay on this phone for now.")
+                Text("Your device follows the radio rules for its saved region.")
             }
-            Text("The clock syncs automatically on connection and when your phone's time changes, using its local time and 12/24-hour preference. You can also sync it here.",style=MaterialTheme.typography.bodySmall)
+            Text("Your device clock follows your phone's time and format.",style=MaterialTheme.typography.bodySmall)
         }
     }
 }

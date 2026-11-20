@@ -55,9 +55,9 @@ class AppBuildLabelLayoutTest {
 
     private fun statusIcons() = listOf(
         compose.onNodeWithContentDescription("Bluetooth disconnected"),
-        compose.onNodeWithContentDescription("Heltec GPS unknown; satellites unavailable"),
-        compose.onNodeWithContentDescription("Heltec battery unavailable"),
-        compose.onNodeWithContentDescription("Heltec transmit unavailable; receive unavailable"),
+        compose.onNodeWithContentDescription("Device GPS unknown; satellites unavailable"),
+        compose.onNodeWithContentDescription("Device battery unavailable"),
+        compose.onNodeWithContentDescription("Device sending unavailable. Receiving unavailable"),
     )
 
     private fun assertLayout(widthPixels: Float) {
