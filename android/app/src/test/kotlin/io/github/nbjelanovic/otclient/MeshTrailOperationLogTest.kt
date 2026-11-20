@@ -43,6 +43,16 @@ class MeshTrailOperationLogTest {
         assertFalse(log.exportText().contains("secret"))
     }
 
+    @Test fun protectedReadFailureExportsOnlyTheTypedReason() {
+        val directory = temp.newFolder()
+        val log = MeshTrailOperationLog(directory)
+        val kind = MeshTrailLogKind.PROTOCOL_INFO_CALLBACK_FAILURE
+        assertTrue(log.append(1, kind, AndroidProtocolInfoCallbackFailure.STACK_INTERNAL_ERROR_129.name))
+        assertFalse(log.append(2, kind, "STACK_INTERNAL_ERROR_129 arbitrary payload"))
+        val records = MeshTrailOperationLog(directory).exportText().lines().filter { it.startsWith("+") }
+        assertEquals(listOf("+1s  Protected read failed: STACK_INTERNAL_ERROR_129"), records)
+    }
+
     @Test fun textIsUtf8WithoutBomOrJsonAndEmptyLogHasAPlainExplanation() {
         val log = MeshTrailOperationLog(temp.newFolder())
         assertEquals("MeshTrail operation log\nLog format 2\nTimes are seconds since logging started and may restart when the app restarts.\nNo events recorded yet.\n", log.exportText())

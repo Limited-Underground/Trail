@@ -328,6 +328,7 @@ class AndroidBluetoothGattFacade(
 
     override fun createScan(observer: (BleScanEvent) -> Unit): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
+        serviceChangedReconnectBudget.discardSuccessor()
         candidates.clear()
         return PlatformScanLease(observer, ScanPurpose.ADD_DEVICE, emptySet()).also { activeScan = it }
     }
@@ -345,6 +346,7 @@ class AndroidBluetoothGattFacade(
     ): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         val bondedDevices = currentBondedDevices() ?: return null
+        serviceChangedReconnectBudget.discardSuccessor()
         candidates.clear()
         return PlatformScanLease(observer, ScanPurpose.RETURNING_OWNER, bondedDevices,
             timeoutMillis = timeoutMillis).also { activeScan = it }
@@ -365,6 +367,7 @@ class AndroidBluetoothGattFacade(
     ): BleScanLease? {
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         if (receipt == 0uL || resetReceiptStore.load() != receipt) return null
+        serviceChangedReconnectBudget.discardSuccessor()
         return PlatformScanLease(
             observer = observer,
             purpose = ScanPurpose.FACTORY_RESET_VERIFICATION,
@@ -404,12 +407,14 @@ class AndroidBluetoothGattFacade(
         if (!onMainThread() || closed || !preflight().isReady || activeScan != null || activeGatt != null) return null
         val entry = candidates.entries.singleOrNull { it.value.endpointToken == endpointToken } ?: return null
         val generation = nextSystemBondGeneration() ?: return null
+        val returningOwner = purpose == BleConnectionPurpose.EXISTING_OWNER
         return PlatformGattLease(
             endpointToken,
             generation,
             entry.key,
             purpose == BleConnectionPurpose.INITIAL_AUTHORIZATION && entry.value.allowSystemBondCreation,
-            returningOwner = purpose == BleConnectionPurpose.EXISTING_OWNER,
+            returningOwner = returningOwner,
+            retryReadAfterRefresh = serviceChangedReconnectBudget.takeSuccessor(returningOwner, endpointToken),
             observer = observer,
         ).also { activeGatt = it }
     }
@@ -427,6 +432,7 @@ class AndroidBluetoothGattFacade(
         bluetoothEnabledWatcher?.close()
         activeScan?.close()
         activeGatt?.close()
+        serviceChangedReconnectBudget.discardSuccessor()
         candidates.clear()
     }
 
@@ -726,6 +732,7 @@ class AndroidBluetoothGattFacade(
         private val device: BluetoothDevice,
         private val allowSystemBondCreation: Boolean,
         private val returningOwner: Boolean,
+        private var retryReadAfterRefresh: Boolean,
         private val observer: (BleGattEvent) -> Unit,
     ) : BleGattLease {
         override var pairingResultSupported = false
@@ -1525,7 +1532,12 @@ class AndroidBluetoothGattFacade(
                     scheduleServiceRediscovery(callbackGatt)
                 // The upper returning-owner retry will create a new lease. This one
                 // only refreshed the platform cache and cannot start a claim.
-                AndroidServiceChangedDiscoveryAction.RECONNECT -> fail(BleGattFailure.TRANSIENT_LINK)
+                AndroidServiceChangedDiscoveryAction.RECONNECT -> {
+                    if (requireProtectedCallbackPrerequisites()) {
+                        serviceChangedReconnectBudget.recordRefresh(endpointToken)
+                        fail(BleGattFailure.TRANSIENT_LINK)
+                    }
+                }
                 else -> fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
@@ -1549,11 +1561,14 @@ class AndroidBluetoothGattFacade(
                 }
                 if (consumeInvalidatedOperation(callbackGatt, AndroidGattStage.PROTOCOL_INFO_PENDING)) return@postToMain
                 val readWasPending = operations.stage == AndroidGattStage.PROTOCOL_INFO_PENDING
+                val exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic)
+                val mayRecover = retryReadAfterRefresh && operations.canRestartBeforeClaim()
+                retryReadAfterRefresh = false
                 val admission = AndroidProtectedProtocolInfoReadPolicy.evaluate(
                         active = owns(callbackGatt),
                         connectPermissionGranted = operationAllowed(AndroidBlePlatformOperation.READ_PROTOCOL_INFO),
                         bondedPrerequisite = bondedPrerequisiteSatisfied(),
-                        exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic),
+                        exactCharacteristic = exactCharacteristic,
                         status = status,
                         valueBytes = value.size,
                     )
@@ -1561,7 +1576,7 @@ class AndroidBluetoothGattFacade(
                     protocolInfoDiagnostics.record(origin, outcome, owns(callbackGatt),
                         readWasPending,
                         status = status, valueBytes = value.size,
-                        exactCharacteristic = AndroidGattCharacteristicOwnershipPolicy.owns(protocolInfo, characteristic),
+                        exactCharacteristic = exactCharacteristic,
                         callbackAt = callbackAt, handlingAt = handlingAt)
                 }
                 if (admission != AndroidProtectedReadAdmission.ACCEPT) {
@@ -1572,6 +1587,7 @@ class AndroidBluetoothGattFacade(
                     AndroidProtectedReadAdmission.ACCEPT -> {
                         if (!operations.acceptProtocolInfo()) {
                             record(ProtectedProtocolInfoDiagnosticOutcome.ORDER_REJECTED)
+                            recordProtocolInfoCallbackFailure(AndroidProtocolInfoCallbackFailure.OUT_OF_ORDER)
                             fail(BleGattFailure.PLATFORM_FAILURE)
                         } else {
                             record(ProtectedProtocolInfoDiagnosticOutcome.ACCEPT)
@@ -1584,9 +1600,20 @@ class AndroidBluetoothGattFacade(
                     AndroidProtectedReadAdmission.SECURITY_REQUIRED -> fail(BleGattFailure.SECURITY_REJECTED)
                     AndroidProtectedReadAdmission.AUTHORIZATION_REJECTED ->
                         fail(BleGattFailure.AUTHORIZATION_REJECTED)
-                    AndroidProtectedReadAdmission.PLATFORM_FAILURE -> fail(BleGattFailure.PLATFORM_FAILURE)
+                    AndroidProtectedReadAdmission.PLATFORM_FAILURE -> {
+                        val detail = AndroidProtocolInfoCallbackFailure.classify(readWasPending, exactCharacteristic, status)
+                        recordProtocolInfoCallbackFailure(detail)
+                        // Only the first protected read on the refresh successor may use
+                        // the existing fresh-lease retry. A failed read grants no authority.
+                        fail(if (mayRecover && detail.stackError) BleGattFailure.TRANSIENT_LINK
+                             else BleGattFailure.PLATFORM_FAILURE)
+                    }
                 }
             }
+        }
+
+        private fun recordProtocolInfoCallbackFailure(detail: AndroidProtocolInfoCallbackFailure) {
+            runCatching { MeshTrailOperationLogging.from(appContext).recordProtocolInfoCallbackFailure(detail) }
         }
 
         private fun handleStreamIndication(

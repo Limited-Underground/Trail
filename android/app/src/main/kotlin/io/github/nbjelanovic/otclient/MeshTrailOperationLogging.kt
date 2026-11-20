@@ -33,6 +33,9 @@ internal class MeshTrailOperationLogging private constructor(context: Context) {
 
     fun recordBluetoothRetryRefusal(reason: BluetoothRecoveryRefusal) = recoveryLog.observeBluetoothRetryRefusal(reason)
 
+    fun recordProtocolInfoCallbackFailure(detail: AndroidProtocolInfoCallbackFailure) =
+        record(MeshTrailLogKind.PROTOCOL_INFO_CALLBACK_FAILURE, detail.name)
+
     fun serviceObservation(variant: ConnectedDeviceSessionLifecycleObserver?) =
         object : ConnectedDeviceSessionLifecycleObserver {
             private val transitions = MeshTrailLogTransitions(::record)
