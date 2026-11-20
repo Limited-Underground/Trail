@@ -2,6 +2,27 @@
 
 ## 2026-11-20
 
+### OT-0312 Send typed text between phones through paired boards
+
+D-143 selects the existing reciprocal 60-second Link Test arms for the
+phone-text trial. The development app uses an independently provisioned
+public pairing record and the live protected OTY0 exchange before enabling
+the D-035 text carrier. The target reuses the protected Command and Stream
+attributes and the existing I-084 handle layout.
+
+The phone submits up to 90 UTF-8 bytes. The board validates the exact owner
+attachment and retained session, then queues one OTXT frame through F5.
+The other board emits one scoped receive event, with duplicate RF frames
+handled by the existing cached ACK. Queued, local TxDone, authenticated
+peer-board acknowledgement and failure remain separate evidence. Message
+contents are session-bound and excluded from diagnostic and operation logs.
+The standard profile and production radio policy keep their ordinary paths.
+
+The maintainer-local TASK-6 report records validation, exact artifacts and
+the two-board, two-phone acceptance procedure. Board-to-board F7 is covered
+by the November 20 session. The phone-to-phone trial awaits physical
+acceptance. This topic advances #116 and #75.
+
 ### OT-0005i Keep the MeshTrail board pairing result visible
 
 I-087 keeps `PAIRED - THIS BOARD` on the normal OLED screen for 60 seconds

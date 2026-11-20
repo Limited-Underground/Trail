@@ -9,6 +9,7 @@
 #include "opentrail/f5_rekey_session.hpp"
 #include "opentrail/f5_pairing_trust.hpp"
 #include "opentrail/f5_status_session.hpp"
+#include "opentrail/companion_phone_text_trial.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 class BoardMessagingRuntime final {
@@ -26,6 +27,14 @@ public:
     void service(std::uint64_t now_ms, bool radio_permitted);
     void close();
     Phase phase() const { return phase_; }
+
+    using PhoneText = companion::PhoneTextTrial;
+    bool observe_phone_text_pair(std::uint64_t now_ms, PhoneText::Pair&);
+    PhoneText::Submission submit_phone_text(
+        const companion::DeviceNameContext& link, std::uint64_t lease, PhoneText::View text,
+        std::uint64_t now_ms, std::uint64_t proof_deadline_ms);
+    PhoneText::Progress phone_text_outgoing(std::uint64_t lease) const;
+    PhoneText::Inbound phone_text_incoming(std::uint64_t lease) const;
 private:
     using Rekey = security_evaluation::F5RekeySession;
     class RetainedView final : public persistence::PersistentStorage {
@@ -67,6 +76,7 @@ private:
     void fail();
     bool start_packets(std::uint64_t now_ms);
     void offer(const Rekey::Frame& frame);
+    void fail_pending_phone_text();
     HeltecV4Lora& radio_;
     security::SecureRandomSource& random_;
     PacketRadio packet_radio_;
@@ -83,6 +93,8 @@ private:
     std::uint32_t attempts_before_{0}, completions_before_{0}, drops_before_{0};
     unsigned accepted_offers_{0};
     bool tracked_{false}, tracked_data_{false}, tracked_rekey_{false}, radio_permitted_{false}, status_sent_{false}, phase_completed_{false};
+    std::uint64_t phone_text_lease_{};
+    PhoneText::Progress phone_text_progress_{};
     Phase phase_{Phase::not_started};
 };
 } // namespace opentrail::target::heltec_v4_bench

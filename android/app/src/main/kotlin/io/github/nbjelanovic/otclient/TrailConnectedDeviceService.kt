@@ -16,8 +16,6 @@ import android.os.Looper
 import java.util.concurrent.atomic.AtomicLong
 
 class TrailConnectedDeviceService : Service() {
-    // Owned but unarmed: no protected exchange or production runtime wiring is enabled.
-    private val packetAuthority = BlePacketAuthorityAdapter(this) { android.os.SystemClock.elapsedRealtime() }
     private val binder = LocalBinder()
     private var owner: ConnectedDeviceSessionOwner? = null
     private var foregroundStarted = false
@@ -73,7 +71,6 @@ class TrailConnectedDeviceService : Service() {
         assertMainThread()
         if (!destroyed) {
             destroyed = true
-            packetAuthority.invalidate(BlePacketAuthorityAdapter.Invalidation.RESTART_AMBIGUITY)
             try {
                 binder.attach(null)
                 val current = owner
@@ -91,7 +88,6 @@ class TrailConnectedDeviceService : Service() {
     }
 
     private fun createOwner(generation: Long, requireReturningBond: Boolean): ConnectedDeviceSessionOwner? {
-        packetAuthority.invalidate(BlePacketAuthorityAdapter.Invalidation.OWNER_REPLACEMENT)
         val facade = AndroidBluetoothGattFacade(applicationContext)
         var controller: TrailAppController? = null
         return try {
@@ -103,6 +99,9 @@ class TrailConnectedDeviceService : Service() {
             val confirmationClock = { android.os.SystemClock.elapsedRealtime() }
             val evaluationConfirmation = application is EvaluationGroupConfirmationOptIn
             val operationLog = MeshTrailOperationLogging.from(applicationContext)
+            val benchTextRecord = if (BuildConfig.BUILD_TYPE == "debug" || BuildConfig.BUILD_TYPE == "v1Test") {
+                F7BenchPins.read(noBackupFilesDir)
+            } else null
             val runtime = BleCompanionRuntime(
                 facade = facade,
                 scheduler = scheduler,
@@ -110,6 +109,7 @@ class TrailConnectedDeviceService : Service() {
                 evaluationConfirmationEnabled = evaluationConfirmation,
                 confirmationClockMillis = confirmationClock,
                 bluetoothRecoveryObserver = operationLog::recordBluetoothRecovery,
+                benchTextRecord = benchTextRecord,
             )
             val createdController = TrailAppController(
                 localController = CompanionAppController(UnavailableProductionLocalTransport),

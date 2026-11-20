@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
@@ -9,6 +10,22 @@
 struct ble_gap_event;
 
 namespace opentrail::target::heltec_v4_bench {
+
+// App task owns the backend. These calls can read the existing radio grant and
+// exchange data on it, but they do not confer or extend any grant.
+class CompanionPhoneTextBackend {
+public:
+    virtual ~CompanionPhoneTextBackend() = default;
+    virtual std::size_t command(const companion::DeviceNameContext&, radio::ByteView,
+                                radio::MutableByteView, std::uint64_t now_ms) = 0;
+    virtual std::size_t next_event(const companion::DeviceNameContext&,
+                                  radio::MutableByteView, std::uint64_t now_ms) = 0;
+    virtual void retire(const companion::DeviceNameContext&) = 0;
+};
+
+// Install from app_main before starting NimBLE in the opt-in development build.
+void install_companion_phone_text_backend(CompanionPhoneTextBackend&);
+[[nodiscard]] bool companion_phone_text_link_current(const companion::DeviceNameContext&);
 
 // Configuration work is copied on the host and executed only by app_main.
 [[nodiscard]] bool initialize_companion_configuration(
