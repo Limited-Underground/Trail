@@ -2,6 +2,21 @@
 
 ## 2026-11-20
 
+### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)
+
+The Note20 refreshed its GATT services after the device update. The next
+connection reached the protected read, then Android reported that it could not
+send the ATT command over L2CAP. The S24 reached Ready on its second connection.
+The Note20 capture did not contain the read callback status.
+
+The refresh allows its immediate successor for the same bonded device one
+more retry if the first protected read fails with a native GATT stack error.
+The app closes that lease and uses its existing scheduler to start fresh.
+The new lease
+still needs its own protected read, indications and exact owner claim. The
+operation log records a fixed failure reason without device identity or read
+content. This local topic advances issue #97. Phone verification remains open.
+
 ### OT-0005i Keep the MeshTrail board pairing result visible
 
 I-087 keeps `PAIRED - THIS BOARD` on the normal OLED screen for 60 seconds

@@ -313,6 +313,39 @@ class AndroidBlePlatformPolicyTest {
     }
 
     @Test
+    fun refreshRetryBelongsOnlyToTheNextMatchingReturningOwnerLease() {
+        val budget = AndroidServiceChangedReconnectBudget()
+        budget.consume()
+        assertFalse(budget.takeSuccessor(true, "owner"))
+        budget.recordRefresh("owner")
+        assertTrue(budget.takeSuccessor(true, "owner"))
+        assertFalse(budget.takeSuccessor(true, "owner"))
+        assertFalse(budget.allows(returningOwner = true))
+
+        budget.recordRefresh("owner")
+        assertFalse(budget.takeSuccessor(true, "other"))
+        assertFalse(budget.takeSuccessor(true, "owner"))
+        budget.recordRefresh("owner")
+        assertFalse(budget.takeSuccessor(false, "owner"))
+        assertFalse(budget.takeSuccessor(true, "owner"))
+        budget.recordRefresh("owner")
+        budget.discardSuccessor()
+        assertFalse(budget.takeSuccessor(true, "owner"))
+    }
+
+    @Test
+    fun onlyNativeStackErrorsOnAnExactPendingReadQualifyForRefreshRetry() {
+        for (status in listOf(0x81, 0x85)) {
+            assertTrue(AndroidProtocolInfoCallbackFailure.classify(true, true, status).stackError)
+            assertFalse(AndroidProtocolInfoCallbackFailure.classify(true, false, status).stackError)
+            assertFalse(AndroidProtocolInfoCallbackFailure.classify(false, true, status).stackError)
+        }
+        for (status in listOf(0, 5, 8, 12, 15, 257)) {
+            assertFalse(AndroidProtocolInfoCallbackFailure.classify(true, true, status).stackError)
+        }
+    }
+
+    @Test
     fun serviceChangedRecoveryStillRequiresSignalAfterStaleCccdRejection() {
         val signalled = AndroidServiceChangedDiscoveryGate()
         val unsignalled = AndroidServiceChangedDiscoveryGate()

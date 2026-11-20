@@ -255,12 +255,26 @@ internal class AndroidGattOperationGate {
 /** Shared by all GATT leases for the one returning owner, including fresh scan tokens. */
 internal class AndroidServiceChangedReconnectBudget {
     private var used = false
+    private var refreshedEndpoint: String? = null
 
     fun allows(returningOwner: Boolean): Boolean = returningOwner && !used
 
     fun consume() { used = true }
 
-    fun reset() { used = false }
+    fun recordRefresh(endpoint: String) { refreshedEndpoint = endpoint }
+
+    fun takeSuccessor(returningOwner: Boolean, endpoint: String): Boolean {
+        val matches = returningOwner && refreshedEndpoint == endpoint
+        discardSuccessor()
+        return matches
+    }
+
+    fun discardSuccessor() { refreshedEndpoint = null }
+
+    fun reset() {
+        used = false
+        discardSuccessor()
+    }
 }
 
 internal enum class AndroidServiceChangedDiscoveryAction {
@@ -392,6 +406,28 @@ internal const val ANDROID_GATT_SUCCESS_STATUS = 0
 internal const val ANDROID_GATT_INSUFFICIENT_AUTHENTICATION_STATUS = 5
 internal const val ANDROID_GATT_INSUFFICIENT_AUTHORIZATION_STATUS = 8
 internal const val ANDROID_GATT_INSUFFICIENT_ENCRYPTION_STATUS = 15
+
+/** Allowed details for the stock operation log. No attribute, endpoint or payload data. */
+internal enum class AndroidProtocolInfoCallbackFailure(val stackError: Boolean = false) {
+    OUT_OF_ORDER,
+    WRONG_CHARACTERISTIC,
+    INVALID_LENGTH,
+    STACK_INTERNAL_ERROR_129(true),
+    STACK_ERROR_133(true),
+    OTHER_STATUS;
+
+    companion object {
+        fun classify(readPending: Boolean, exactCharacteristic: Boolean, status: Int) = when {
+            !readPending -> OUT_OF_ORDER
+            !exactCharacteristic -> WRONG_CHARACTERISTIC
+            status == ANDROID_GATT_SUCCESS_STATUS -> INVALID_LENGTH
+            // Native Android GATT_INTERNAL_ERROR and GATT_ERROR, not ATT permission errors.
+            status == 0x81 -> STACK_INTERNAL_ERROR_129
+            status == 0x85 -> STACK_ERROR_133
+            else -> OTHER_STATUS
+        }
+    }
+}
 
 internal enum class AndroidProtectedReadAdmission {
     IGNORE,

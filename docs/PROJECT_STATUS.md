@@ -27,6 +27,12 @@ describes the host regressions. Phone acceptance remains open.
 
 ## Android reconnect and status refresh
 
+The local I-086 correction gives a returning device one additional fresh
+connection after the first protected read fails with a native stack error
+following Service Changed. The operation log records the typed read failure.
+The [I-086 progress entry](PROGRESS_LOG.md#ot-0170a-recover-after-a-refreshed-bluetooth-connection-fails-i-086)
+covers the Note20 trace and the host-tested recovery. Phone verification remains open.
+
 The local I-083 correction rechecks Bluetooth when MeshTrail returns to the
 foreground, after it reattaches to an existing service and when Android reports
 that Bluetooth is on. Recovery uses the saved-board route or returns to Idle.

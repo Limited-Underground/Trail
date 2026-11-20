@@ -62,6 +62,7 @@ internal enum class MeshTrailLogKind(val label: String, private val shape: Regex
     CONNECTION_PHASE("Connection phase", enumChoices(BleNegotiationPhase.entries)),
     CONNECTION_ERROR("Connection error", enumChoices(BleRuntimeFailure.entries)),
     CONNECTION_DETAIL("Connection detail", enumChoices(BleConnectionDiagnostic.entries)),
+    PROTOCOL_INFO_CALLBACK_FAILURE("Protected read failed", enumChoices(AndroidProtocolInfoCallbackFailure.entries)),
     BLUETOOTH_RECOVERY("Bluetooth recovery", enumChoices(BluetoothRecoveryTrigger.entries)),
     BLUETOOTH_RETRY_REFUSED("Bluetooth retry refused", enumChoices(BluetoothRecoveryRefusal.entries)),
     AUTHORIZATION("Authorization", choices(
