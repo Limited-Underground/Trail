@@ -101,6 +101,17 @@ firmware delivery is wired. Email receipt, cloud storage, and live board
 readings still need phone acceptance. See the
 [OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-record-pairing-outcomes-and-bluetooth-recovery).
 
+## US frequency-hopping preparation
+
+The D-140 work adds a host-only profile catalog and a simulated transmit
+ledger for the 64-channel hybrid candidate. The two new host suites
+exercise profile mismatch, the 236-byte admission cap, durable cursor
+recovery and dwell at the final simulated send boundary. The board target
+continues to select 925.100 MHz bench profile v2. Hopping transmit requires
+a separately qualified timing/storage adapter, the permitted burst length
+and the authorization basis for the exact configuration. See the
+[OT-0005i host progress entry](PROGRESS_LOG.md#ot-0005i-prepare-us-hopping-profile-and-dwell-accounting).
+
 ## Device parameters for logging
 
 The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android decoding and export have a host candidate above. Polling and live age display remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
