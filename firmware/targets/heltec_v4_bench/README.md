@@ -413,14 +413,18 @@ image checksum) because debug information held the checkout path.
 
 Normal builds never start the radio. A development build with
 `-DOPENTRAIL_LORA_LINK_TEST=ON` (release generation 0 only) starts the SX1262
-in receive at boot (915 MHz, 125 kHz, SF7, CR 4/5, sync word 0x12, 2 dBm) and
-sends a 21-byte unauthenticated beacon about every 5 s. Each board logs
+in receive at boot on the interim MeshTrail bench profile v2 (D-135):
+925.100 MHz, 500 kHz, SF7, CR 4/5, eight preamble symbols, sync word 0x12,
+explicit header with CRC, and a +2 dBm chip command. Both boards must log
+`bench profile=2 frequency_hz=925100000 bandwidth_khz=500 sf=7` before the RF
+trial. The previous 915.000 MHz/125 kHz image cannot exchange packets with this
+image. The bench sends a 21-byte unauthenticated beacon about every 5 s. Each board logs
 `lora_link tx`, `lora_link rx from=... rssi=... snr_q=...` and, with the
 heartbeat, `lora_link counters`; the footer shows the LoRa TX/RX arrow. The
 beacon carries the board tag (low four bytes of the factory MAC), a sequence
 number and the last beacon it heard, so one log line shows both directions.
-It proves the radio works in the product firmware alongside Bluetooth; it is
-not messaging and has no identity or encryption.
+The beacons exercise the radio alongside Bluetooth and carry no authenticated
+identity or encrypted messaging. The new RF profile awaits board validation.
 
 The test transmits only while region US915 (catalog id 1) is saved through the
 owner's app (owner decision D-079); with no region, or any other region, it only

@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "heltec_v4_lora.hpp"
+#include "opentrail/lora_airtime.hpp"
 
 using opentrail::target::heltec_v4_bench::HeltecV4Lora;
 using opentrail::radio::RadioError;
@@ -68,6 +69,41 @@ bool take(HeltecV4Lora& d) {
 void poll(HeltecV4Lora& d, std::uint64_t now_ms) {
     d.service(now_ms);
     d.launch_queued(now_ms);
+}
+
+void test_active_bench_profile() {
+    mock::reset();
+    HeltecV4Lora driver{g_random};
+    begin(driver);
+    const auto& config = mock::begin_settings;
+    EXPECT(config.frequency_mhz == 925.1F && config.bandwidth_khz == 500.0F);
+    EXPECT(config.sf == 7 && config.cr == 5 && config.sync_word == 0x12);
+    EXPECT(config.power_dbm == 2 && config.preamble == 8);
+    EXPECT(config.tcxo_voltage == 1.8F && !config.use_regulator_ldo);
+    EXPECT(mock::count("header") == 1 && mock::crc_bytes == 2 && !mock::ldro_enabled);
+
+    // A legacy board and the configured receiver have disjoint nominal passbands.
+    constexpr float legacy_upper_edge_mhz = 915.0F + 0.125F / 2.0F;
+    EXPECT(config.frequency_mhz - config.bandwidth_khz / 2000.0F > legacy_upper_edge_mhz);
+
+    const opentrail::radio::LoRaAirtimeSettings airtime{
+        static_cast<std::uint32_t>(config.bandwidth_khz * 1000),
+        static_cast<std::uint16_t>(config.preamble), static_cast<std::uint8_t>(config.sf),
+        static_cast<std::uint8_t>(config.cr), mock::count("header") == 1,
+        mock::crc_bytes == 2, mock::ldro_enabled,
+    };
+    EXPECT(opentrail::radio::calculate_lora_airtime(airtime, 21).airtime_us == 14'144);
+    EXPECT(opentrail::radio::calculate_lora_airtime(airtime, 70).airtime_us == 32'064);
+    EXPECT(opentrail::radio::calculate_lora_airtime(airtime, 194).airtime_us == 76'864);
+    EXPECT(opentrail::radio::calculate_lora_airtime(airtime, 236).airtime_us == 92'224);
+    EXPECT(opentrail::radio::calculate_lora_airtime(airtime, 255).airtime_us == 99'904);
+
+    mock::irq = RADIOLIB_SX126X_IRQ_RX_DONE | RADIOLIB_SX126X_IRQ_HEADER_VALID;
+    driver.service(101);
+    std::array<std::uint8_t, 255> frame{};
+    const auto received = driver.receive({frame.data(), frame.size()});
+    EXPECT(received.has_frame() && received.metadata.frequency_valid);
+    EXPECT(received.metadata.frequency_hz == 925'100'000);
 }
 
 void test_normal_tx_and_rx() {
@@ -325,10 +361,11 @@ int main() {
     test_late_completion();
     test_discard_retires_only_unlaunched_queue_entry();
     test_command_failures();
+    test_active_bench_profile();
     if (failures != 0) {
         std::cerr << failures << " LoRa driver assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 10 LoRa driver scenario groups\n";
+    std::cout << "PASS: 11 LoRa driver scenario groups\n";
     return EXIT_SUCCESS;
 }

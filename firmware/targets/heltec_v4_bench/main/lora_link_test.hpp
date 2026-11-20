@@ -67,8 +67,8 @@ inline bool decode(const std::uint8_t* data, std::size_t size, Beacon& out) {
 }
 
 // Transmit grant (owner decision D-079, Portfolio DECISIONS.md): only when the
-// owner has saved region US915, catalog id 1, the only region the fixed 915 MHz
-// profile matches. Follows Trail decision 0104 (select the region before transmit
+// owner has saved region US915, catalog id 1, for the fixed US bench profile.
+// Follows decision 0104 (select the region before transmit
 // is enabled); for US915 it replaces decision 0110's "a saved region is not a TX
 // grant". Receiving needs no region.
 inline constexpr std::uint16_t kUs915RegionSelectionId = 1;

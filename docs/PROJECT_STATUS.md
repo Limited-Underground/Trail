@@ -68,6 +68,8 @@ picked up by Android until the board is paired again.
 
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b is underway on the host.
 
+The interim MeshTrail bench uses [profile v2 at 925.100 MHz and 500 kHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz) under D-135. Both Link Test boards need the new profile. The candidate awaits owner-present RF validation. V1 frequency hopping is separate under D-133.
+
 The second pairing session found that each board allowed only 2 pairing attempts in its lifetime; the capacity is now 32 and every refused start is logged with its reason (I-055). The third session found that the capacity change had broken the pairing storage index from the third attempt (I-058), and that the board started second never received the first board's hello (I-057); both are fixed. The fourth session got through the whole radio exchange, but ran out of the 2-minute window; the window is now 5 minutes (D-110) and storage reads are fast (I-066). The fifth session paired both boards; the remaining 26 s save and slow button polls came from repeated identity reads, now served from a verified RAM copy (I-068, I-069).
 
 The product is renamed Limited Underground MeshTrail (owner decision D-089). The Android app shows the name with the Linked Route home-screen artwork (D-091, D-092). On the board, the startup screen shows the Linked Route symbol and MeshTrail, and the reset question reads "ERASE MESHTRAIL DATA?". The application ID, signing, Bluetooth setup label and storage keys are unchanged.
@@ -205,16 +207,16 @@ activation, signing, source publication and merge require separate authority.
 | Field | Current pickup state |
 | --- | --- |
 | Reviewed | 2026-11-19 |
-| Task | OT-0005i — I-084 bonded-phone cache migration for the F5 status trial (Part of #75). |
+| Task | OT-0005i — F5 status trial prerequisites: I-084 bonded-phone cache migration (merged, PR #287) and the D-135 925.1 MHz bench profile v2 (Part of #232). |
 | Owner | MeshTrail Firmware owns the local fix and its host evidence. The F5 status trial remains with Messaging. |
 | Scope | Heltec Companion GATT handle stability, standard Service Changed for the retained legacy subscription, pre-claim Android cache recovery, and host regressions. |
 | State | F5 PR #284 is on main at 0615e22. The 2026-11-19 board trial stopped before the owner claim. Both boards were restored to b4c843b. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded unauthenticated exchange and closure; the grant is consumed. |
 | Source | Isolated local fix/i084-gatt-layout-change based on 0615e22221cc1a3a81ea9e51aea77765d60613e0. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | Prior incident evidence and the pinned NimBLE source identify the cached Stream CCCD write. I-084 host and Link Test evidence are recorded in the local report. |
 | Blocker | The two-phone with-bonds upgrade and the F5 status trial remain open. The combined restore still requires compatible storage handling under D-124. |
-| Next action | Review the exact I-084 host evidence, then arrange a separately authorized owner-present upgrade check with both previous bonds retained. |
+| Next action | Build one Link Test image from main with both changes, then a separately authorized owner-present session: with-bonds upgrade check on both phones, then the F5 status trial on bench profile v2. |
 | Restrictions | Local branch only. Device operations and publication require separate owner authorization. |
-| Latest record | [OT-0005i Refresh bonded MeshTrail phones after a GATT layout update](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
+| Latest record | [OT-0005i Move the MeshTrail bench to 925.1 MHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz). [OT-0005i Refresh bonded MeshTrail phones after a GATT layout update](PROGRESS_LOG.md#ot-0005i-refresh-bonded-meshtrail-phones-after-a-gatt-layout-update). F11 history: [OT-0341 Device parameters collector and codec for logging (F11)](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11). |
 | Evidence access | The local I-084 report holds the exact command and artifact identities. The 2026-11-19 F5 session record and logs are maintainer-held. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb. |
 <!-- current-handoff:end -->
 
