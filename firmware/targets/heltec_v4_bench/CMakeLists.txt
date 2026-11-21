@@ -2,14 +2,37 @@ cmake_minimum_required(VERSION 3.16)
 
 option(OPENTRAIL_CONNECTION_DIAGNOSTICS "Enable bounded OT0101e connection observations" OFF)
 option(OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY "Keep live sensor fields in diagnostic display" ON)
-if(NOT OPENTRAIL_CONNECTION_DIAGNOSTICS AND NOT OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY)
-    message(FATAL_ERROR "Sensor display isolation requires connection diagnostics")
-endif()
 option(OPENTRAIL_CONFIRMATION_EVALUATION "Enable OT216 protected BLE confirmation evaluation" OFF)
 # F5 step R1: bench LoRa link test (unauthenticated beacons between boards). Off in
 # every normal build; never combine with a release generation.
 option(OPENTRAIL_LORA_LINK_TEST "Enable the bench LoRa link test beacons" OFF)
 option(OPENTRAIL_LORA_F7_TEXT_TEST "Exercise typed board-to-board text in the LoRa link test" OFF)
+# Board-pinned qualification builds keep their existing release-generation path.
+# A V1 tester build must use a qualified product radio and security composition.
+option(OPENTRAIL_V1_PRODUCTION "Request a MeshTrail V1 tester build" OFF)
+if(OPENTRAIL_V1_PRODUCTION)
+    set(enabled_bench_switches)
+    foreach(bench_switch IN ITEMS
+            OPENTRAIL_CONNECTION_DIAGNOSTICS
+            OPENTRAIL_CONFIRMATION_EVALUATION
+            OPENTRAIL_LORA_LINK_TEST
+            OPENTRAIL_LORA_F7_TEXT_TEST)
+        if(${bench_switch})
+            list(APPEND enabled_bench_switches "${bench_switch}")
+        endif()
+    endforeach()
+    if(enabled_bench_switches)
+        list(JOIN enabled_bench_switches ", " bench_switch_list)
+        message(FATAL_ERROR "MeshTrail V1 production rejects enabled bench switches: ${bench_switch_list}")
+    endif()
+    message(FATAL_ERROR
+        "MeshTrail V1 production is unavailable on the Heltec V4 bench target. "
+        "With Link Test disabled this target has no product radio or messaging runtime.")
+endif()
+
+if(NOT OPENTRAIL_CONNECTION_DIAGNOSTICS AND NOT OPENTRAIL_DIAGNOSTIC_SENSOR_DISPLAY)
+    message(FATAL_ERROR "Sensor display isolation requires connection diagnostics")
+endif()
 if(OPENTRAIL_LORA_F7_TEXT_TEST AND NOT OPENTRAIL_LORA_LINK_TEST)
     message(FATAL_ERROR "The F7 text test requires the LoRa link test")
 endif()

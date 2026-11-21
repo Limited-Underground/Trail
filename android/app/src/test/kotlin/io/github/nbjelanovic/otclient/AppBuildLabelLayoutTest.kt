@@ -22,7 +22,8 @@ import org.robolectric.annotation.LooperMode
 @Config(sdk = [35], qualifiers = "w360dp-h800dp-mdpi")
 @LooperMode(LooperMode.Mode.PAUSED)
 class AppBuildLabelLayoutTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val composeHost = withRobolectricComposeHost(compose)
     private val label = "1.0.0-dev · f3aeb77-dirty · debug"
 
     private fun render(widthDp: Int, shown: Boolean = true) {

@@ -7,7 +7,7 @@ import io.github.nbjelanovic.otprotocol.CompanionActionRequest
  * only behind [ConnectedDeviceSessionPort]. Unbinding or Activity destruction never stops it.
  */
 class TrailActivityController(
-    private val localController: CompanionAppController,
+    private val localController: CompanionAppController?,
     private val permissionReader: NearbyDevicesPermissionReader,
     private val notificationPermissionReader: NotificationPermissionReader,
     private val serviceConnector: ConnectedDeviceServiceConnector,
@@ -54,7 +54,7 @@ class TrailActivityController(
 
     init {
         requireOwnerThread()
-        localController.observe(::onLocalState)
+        localController?.observe(::onLocalState)
     }
 
     override fun observe(observer: ((TrailAppUiState) -> Unit)?) {
@@ -66,6 +66,7 @@ class TrailActivityController(
 
     override fun chooseLocalTestMode() {
         requireOwnerThread()
+        val localController = localController ?: return
         if (!canMutate()) return
         stopServiceIfOwned(forceStop = true)
         mode = TrailConnectionMode.LOCAL_TEST
@@ -109,12 +110,12 @@ class TrailActivityController(
         publish(TrailAppUiState.ChooseMode)
     }
 
-    override fun chooseLocalDevice() = localOnly { localController.chooseDevice() }
-    override fun cancelLocalSelection() = localOnly { localController.cancelSelection() }
-    override fun connectLocalDevice(endpointToken: String) = localOnly { localController.connect(endpointToken) }
-    override fun disconnectLocalDevice() = localOnly { localController.disconnect() }
-    override fun retryLocalSelection() = localOnly { localController.retrySelection() }
-    override fun submitLocalAction(request: CompanionActionRequest) = localOnly { localController.submitAction(request) }
+    override fun chooseLocalDevice() = localOnly { it.chooseDevice() }
+    override fun cancelLocalSelection() = localOnly { it.cancelSelection() }
+    override fun connectLocalDevice(endpointToken: String) = localOnly { it.connect(endpointToken) }
+    override fun disconnectLocalDevice() = localOnly { it.disconnect() }
+    override fun retryLocalSelection() = localOnly { it.retrySelection() }
+    override fun submitLocalAction(request: CompanionActionRequest) = localOnly { it.submitAction(request) }
 
     override fun beginNearbyDevicesPermissionRequest(): Boolean {
         requireOwnerThread()
@@ -387,7 +388,7 @@ class TrailActivityController(
         closed = true
         cancelServiceOwnedFactoryResetConfirmation()
         observer = null
-        localController.observe(null)
+        localController?.observe(null)
         releaseLocalSession()
         unbindObservation()
         // Closing an Activity is observation cleanup only. The user-started service remains owner.
@@ -735,6 +736,7 @@ class TrailActivityController(
     }
 
     private fun releaseLocalSession() {
+        val localController = localController ?: return
         when (localController.state) {
             is CompanionUiState.Connected -> localController.disconnect()
             is CompanionUiState.Selecting -> localController.cancelSelection()
@@ -742,9 +744,10 @@ class TrailActivityController(
         }
     }
 
-    private inline fun localOnly(block: () -> Unit) {
+    private inline fun localOnly(block: (CompanionAppController) -> Unit) {
         requireOwnerThread()
-        if (canMutate() && mode == TrailConnectionMode.LOCAL_TEST) block()
+        val localController = localController ?: return
+        if (canMutate() && mode == TrailConnectionMode.LOCAL_TEST) block(localController)
     }
 
     private inline fun bluetoothOnly(block: (ConnectedDeviceSessionPort) -> Unit) {
