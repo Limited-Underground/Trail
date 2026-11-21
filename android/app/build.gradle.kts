@@ -73,6 +73,13 @@ android {
     sourceSets.getByName("test").java.srcDir(rootProject.file("buildSrc/src/main/java"))
     sourceSets.maybeCreate("testV1Test").java.srcDir("src/v1TestUnitTest/kotlin")
 
+    val developmentFixtures = "src/developmentFixtures/kotlin"
+    listOf("debug", "v1Test").forEach { variant ->
+        sourceSets.getByName(variant).java.srcDirs("src/development/kotlin", developmentFixtures)
+    }
+    // Release unit tests still exercise the shared controllers with the exact same fakes.
+    sourceSets.maybeCreate("testRelease").java.srcDir(developmentFixtures)
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -86,9 +93,7 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // Robolectric Activity/Compose state must not leak between independent test classes.
-            if (it.name == "testDebugUnitTest") {
-                it.forkEvery = 1
-            }
+            it.forkEvery = 1
             it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
             it.systemProperty("user.home", System.getProperty("user.home"))
         }

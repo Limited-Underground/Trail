@@ -7,6 +7,24 @@ import kotlin.test.*
 /** Real controller/runtime/owner composition; Android binding and GATT I/O are controlled host seams. */
 class ActivityServiceAttachmentTest {
     @Test
+    fun missingLocalControllerCannotInterruptTheBluetoothSession() {
+        val service = ServiceGraph()
+        val activity = service.activity(localController = null)
+        service.establishReady(activity)
+        val before = activity.state
+        val operations = service.operationCounts()
+
+        activity.chooseLocalTestMode()
+        activity.chooseLocalDevice()
+
+        assertEquals(before, activity.state)
+        assertEquals(operations, service.operationCounts())
+        assertTrue(service.running)
+        activity.close()
+        service.owner.close()
+    }
+
+    @Test
     fun activityReopenRecoversAnExistingOwnerStartedWithBluetoothOff() {
         for (hasSavedBoard in listOf(false, true)) {
             val facade = Facade().apply {
@@ -1040,10 +1058,13 @@ class ActivityServiceAttachmentTest {
         var notificationState = NotificationPermissionState.GRANTED
         val connectors = mutableListOf<Connector>()
 
-        fun activity(connector: Connector = Connector(this)): TrailActivityController {
+        fun activity(
+            connector: Connector = Connector(this),
+            localController: CompanionAppController? = CompanionAppController(FakeCompanionTransport()),
+        ): TrailActivityController {
             connectors += connector
             return TrailActivityController(
-                CompanionAppController(FakeCompanionTransport()), permissions,
+                localController, permissions,
                 NotificationPermissionReader { notificationState }, connector, scheduler,
             )
         }

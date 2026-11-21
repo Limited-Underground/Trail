@@ -18,7 +18,8 @@ import org.robolectric.annotation.LooperMode
 @Config(sdk = [35], qualifiers = "w360dp-h800dp-mdpi")
 @LooperMode(LooperMode.Mode.PAUSED)
 class V1BoardPairingResumeTest {
-    @get:Rule val compose = createComposeRule()
+    private val compose = createComposeRule()
+    @get:Rule val composeHost = withRobolectricComposeHost(compose)
     private val sent = mutableListOf<CompanionActionRequest>()
     private val incomplete = BoardPairingState.Result(CompanionPairingResult(
         CompanionPairingState.INCOMPLETE, originExchangeId = 900,
