@@ -150,6 +150,10 @@ log output and file save. A retained-bond upgrade, live readings, email
 receipt and cloud link access still require the owner phone test. This
 increment is part of issues #125 and #103.
 
+The PR #300 follow-up restores the BLE host stack observer's evaluation and
+connection-diagnostics guards. The topic rebases onto PR #298 and retains
+separate admission and response handling for group commands and F11 reads.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result

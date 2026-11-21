@@ -91,10 +91,12 @@ void companion_nimble_request_bluetooth_name(const ui::BluetoothDeviceName& name
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_stage();
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_detail();
 
-// Application owner only. False leaves bytes unchanged when no live exact
-// BLE host task can be observed.
+// Application-owner diagnostic only. False leaves bytes unchanged and means
+// that no live exact BLE host task is available to this calling task.
+#if (defined(OPENTRAIL_CONFIRMATION_EVALUATION) && OPENTRAIL_CONFIRMATION_EVALUATION) || OPENTRAIL_CONNECTION_DIAGNOSTICS
 [[nodiscard]] bool companion_nimble_host_stack_minimum_free_bytes(
     std::uint32_t& bytes);
+#endif
 
 // Independently requests complete BLE host/controller containment and reports
 // true only after the runtime owner has verified platform shutdown.

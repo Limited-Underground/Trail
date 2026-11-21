@@ -873,6 +873,12 @@ extern "C" void app_main() {
             // Pinned ESP-IDF task.h defines both stack results in bytes.
             const auto main_stack = static_cast<std::uint32_t>(uxTaskGetStackHighWaterMark(nullptr));
             ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u", static_cast<unsigned>(main_stack));
+            const auto free_heap = esp_get_free_heap_size();
+            const auto minimum_heap = std::min(free_heap, esp_get_minimum_free_heap_size());
+            const auto sampled_at_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+            parameter_inputs.heap = {true, sampled_at_ms, {free_heap, minimum_heap}};
+            parameter_inputs.main_stack = {true, sampled_at_ms, {main_stack}};
+#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
             std::uint32_t ble_host_stack_bytes = 0;
             const bool ble_stack_observed = opentrail::target::heltec_v4_bench::
                 companion_nimble_host_stack_minimum_free_bytes(ble_host_stack_bytes);
@@ -882,12 +888,8 @@ extern "C" void app_main() {
                          static_cast<unsigned>(ble_host_stack_bytes));
             }
 #endif
-            const auto free_heap = esp_get_free_heap_size();
-            const auto minimum_heap = std::min(free_heap, esp_get_minimum_free_heap_size());
-            const auto sampled_at_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
-            parameter_inputs.heap = {true, sampled_at_ms, {free_heap, minimum_heap}};
-            parameter_inputs.main_stack = {true, sampled_at_ms, {main_stack}};
             parameter_inputs.ble_stack = {ble_stack_observed, sampled_at_ms, {ble_host_stack_bytes}};
+#endif
             next_heartbeat_ms = elapsed_ms + kHeartbeatPeriodMs;
         }
         const auto collection_started_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);

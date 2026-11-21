@@ -117,7 +117,7 @@ The app collects once per second and each source retains its observation age.
 | Battery | Existing 30-second ADC sampling supplies millivolts and approximate percent. An invalid read leaves the previous valid measurement with its original age. |
 | Packet, radio counters, CAD | The link-test build copies the last accepted receive metadata with its original timestamp, native driver counters after successful initialization, and scheduled CAD deferrals. |
 | GNSS | The existing parser supplies fix and satellite state. Valid samples become stale after five seconds. Unknown satellite counts remain unknown. |
-| Heap and stack | The five-second heartbeat samples heap and app-task stack. The BLE host stack uses its exact live task observer when available. Stack values are ESP-IDF bytes. |
+| Heap and stack | The five-second heartbeat samples heap and app-task stack. Only confirmation evaluation and connection diagnostics can sample the BLE host stack. Other builds leave that group unavailable. Stack values are ESP-IDF bytes. |
 | Reset and firmware | One boot observation after self-check uses the coarse SDK reset mapping and validated public release metadata. |
 | Storage | The link-test build publishes the last successful existing ot_state budget observation. No diagnostic request scans NVS. |
 | Power | Unavailable on the current board. |

@@ -147,7 +147,8 @@ The Heltec V4 app task collects live readings with per-source age. A Ready
 phone reads two pages of the same 212-byte snapshot through the protected
 command lane. The app checks the complete record before displaying values or
 adding them to the log. Firmware without the feature version still supplies
-ordinary status. Bench verification covers age, update and reconnect on a
+ordinary status. BLE host stack headroom is available in evaluation and
+connection-diagnostics builds. Bench verification covers age, update and reconnect on a
 retained bond. See the [component guide](../firmware/components/device_parameters/README.md).
 
 ## MeshTrail Repeater pre-device work
@@ -319,7 +320,7 @@ Live Invite/Join and RF acceptance remain open.
 | Owner | MeshTrail Firmware owns the Heltec acquisition and protected reply. MeshTrail App owns polling, display and text export on feat/v1-logging. |
 | Scope | Collect board parameters with age, read one snapshot over the protected link, display board readings and export the redacted log by user-selected share or file save. |
 | State | F11/A8/A9 host candidate. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/v1-logging started at main e81db57a145b7172ed96bcd6db88d4aabd8c8ce9 and includes the naming-only main update 39375eb9. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Source | Topic feat/v1-logging rebased onto main aef88aa0f1ce381c7e1a0d386156c5138fcaa913 after PR #298. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | The topic includes the firmware collector from PR #280 and the Android text export from PR #286. The focused regressions cover authorization, page ordering and deadlines, structured log export and the Android file-save path. |
 | Blocker | Real board readings, retained-bond compatibility, email receipt and cloud link access require an owner-present test. |
 | Next action | Review the topic and arrange one authorized Heltec V4 and Android session. Check status age, reconnect, text attachment and cloud link access with the actual recipient. |
