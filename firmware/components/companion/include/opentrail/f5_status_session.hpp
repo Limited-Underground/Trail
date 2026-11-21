@@ -70,8 +70,7 @@ public:
         started_ = true; deadline_ = deadline;
         for (unsigned i=0; i<4; ++i) {
             for (unsigned j=0; j<i; ++j) if (stores_[i]==stores_[j]) return fail();
-            if (!bindings_[i]->active || !bindings_[i]->validity ||
-                !bindings_[i]->validity(bindings_[i]->validity_context, now)) return fail();
+            if (!bindings_[i]->active || !bindings_[i]->valid_at(now)) return fail();
             // Fresh epoch requires four never-used isolated namespaces. Unknown
             // bytes are retained and fail closed; this owner never clears them.
             for (unsigned d=0; d<persistence::kStorageDomainCount; ++d)
@@ -166,8 +165,7 @@ public:
     bool frame_eligible(radio::ByteView frame, std::uint64_t now) const {
         if (now < last_now_ || now >= frame_deadline(frame)) return false;
         for (auto* binding : bindings_) {
-            if (!binding->active || !binding->validity ||
-                !binding->validity(binding->validity_context, now)) return false;
+            if (!binding->active || !binding->valid_at(now)) return false;
         }
         return true;
     }
@@ -233,7 +231,7 @@ private:
         if (text_arm_expired(now) || now<last_now_ || now>=deadline_ || radio_.status().state==radio::RadioState::fault ||
             radio_.status().state==radio::RadioState::offline) return fail();
         last_now_=now;
-        for (auto* b:bindings_) if (!b->active || !b->validity || !b->validity(b->validity_context,now)) return fail();
+        for (auto* b:bindings_) if (!b->active || !b->valid_at(now)) return fail();
         return true;
     }
     bool fail() { state_=State::failed; close(); return false; }

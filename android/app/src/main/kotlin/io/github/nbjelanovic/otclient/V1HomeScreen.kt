@@ -151,13 +151,16 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
     val context = LocalContext.current
     var submissionNotice by remember(quickStatus.recipient) { mutableStateOf<String?>(null) }
     var messageDraft by remember { mutableStateOf("") }
-    fun chooseText(value: String) {
+    fun chooseText(value: String): Boolean {
         val recipient = textMessages.recipient
-        submissionNotice = V1TextComposer.refusal(value) ?: when {
-            recipient == null -> V1TextComposer.AUTHORITY_UNAVAILABLE
-            onSubmitText(recipient, value) -> "Waiting for the device to confirm your message."
-            else -> "Check whether your message arrived before sending it again."
+        val refusal = V1TextComposer.refusal(value)
+        if (refusal != null || recipient == null) {
+            submissionNotice = refusal ?: V1TextComposer.AUTHORITY_UNAVAILABLE
+            return false
         }
+        val accepted = onSubmitText(recipient, value)
+        submissionNotice = if (accepted) null else "Couldn't queue this message. Your draft is still here."
+        return accepted
     }
     fun chooseStatus(value: String) {
         val status = V1QuickStatusComposer.fromTemplate(value)
@@ -255,12 +258,21 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             OutlinedTextField(value = messageDraft, onValueChange = { messageDraft = it },
                 label = { Text("Write a message") }, minLines = 1, maxLines = 4, modifier = Modifier.fillMaxWidth())
             V1TextComposer.refusal(messageDraft)?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-            if (textMessages.recipient == null) Text(V1TextComposer.AUTHORITY_UNAVAILABLE)
-            OutlinedButton(onClick = { chooseText(messageDraft) },
+            if (textMessages.queueUnavailable) Text("Saved messages couldn't be opened or updated.")
+            else if (textMessages.recipient == null) Text(V1TextComposer.AUTHORITY_UNAVAILABLE)
+            OutlinedButton(onClick = { if (chooseText(messageDraft)) messageDraft = "" },
                 enabled = textMessages.recipient != null && V1TextComposer.refusal(messageDraft) == null,
                 modifier = Modifier.heightIn(min = 48.dp)) { Text("Send text") }
         }
-        if (textMessages.recipient != null) textMessages.received?.let { Text("Received text: " + it) }
+        textMessages.received?.let { Text("Received text: " + it) }
+        textMessages.queued.forEach { message ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(message.text)
+                    Text(message.status, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
         textMessages.outbound?.let {
             Text((if (textMessages.currentAttachment) "Message status: " else "Earlier connection: ") + V1QuickStatusComposer.evidence(it))
             if (textMessages.reason != 0) Text(V1TextComposer.reason(textMessages.reason))

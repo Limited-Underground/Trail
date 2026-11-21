@@ -4,13 +4,16 @@
 #include "opentrail/f5_pairing_trust.hpp"
 #include "opentrail/f5_rekey_session.hpp"
 #include "opentrail/f5_status_session.hpp"
+#include <map>
 #include <memory>
+#include <set>
 
 namespace f5_test {
 using Board = pairing_adapter_test::Board;
 using Rekey = opentrail::security_evaluation::F5RekeySession;
 using Status = opentrail::companion::F5StatusSession;
 using Frame = Rekey::Frame;
+using Journal = Rekey::Journal;
 using Packet = std::vector<std::uint8_t>;
 using PairingCompletionJournal = opentrail::security_evaluation::PairingCompletionJournal;
 constexpr std::uint32_t pairing_code = 123456;
@@ -53,7 +56,7 @@ InvitationKey local_identity(Board& board) {
 struct Side {
     Board& board;
     CallbackStorage state, tail;
-    std::array<std::array<CallbackStorage, 4>, 33> packets;
+    std::map<std::uint64_t, std::array<CallbackStorage, 4>> packets;
     Radio radio;
     std::optional<F5PairingTrustView> trust_view;
     std::optional<Rekey> rekey;
@@ -75,7 +78,7 @@ struct Side {
     static bool seed_allowed(void* context) {
         const auto& side = *static_cast<Side*>(context);
         for (const auto& allocation : side.packets) {
-            for (const auto& lane : allocation) {
+            for (const auto& lane : allocation.second) {
                 for (const auto& slot : pairing_adapter_test::persistent_bytes(lane)) {
                     if (!std::all_of(slot.begin(), slot.end(), [](auto byte) { return byte == 0xff; })) {
                         return false;
@@ -132,7 +135,7 @@ struct Side {
     void open_status() {
         CHECK(!status && rekey->ready());
         lease_generation = rekey->active_generation();
-        auto& lanes = packets.at(lease_generation);
+        auto& lanes = packets[lease_generation];
         status.emplace(rekey->data_tx(), rekey->ack_tx(), rekey->data_rx(), rekey->ack_rx(),
                        lanes[0], lanes[1], lanes[2], lanes[3], radio);
         CHECK(status->start(now, now+60000));
@@ -572,18 +575,58 @@ void region_or_trust_loss_has_no_pending_traffic() {
     CHECK(pair.b.radio.sent.empty());
 }
 
+// Shift the test's two valid copies of the committed record to just below the
+// logical limit. Retain its real signed proof and exercise actual restart
+// decoding, the last legal reservation, then refusal with epochs still free.
+void restore_near_allocation_limit(Side& side) {
+    side.power_cut();
+    const auto write_bank = [&](unsigned slot, const Journal::Bank& bank) {
+        unsigned offset = 0;
+        for (auto* part : {&side.state, &side.tail}) {
+            for (unsigned d = 0; d < persistence::kStorageDomainCount; ++d) {
+                std::array<std::uint8_t, persistence::kPersistentSlotBytes> bytes{};
+                std::copy_n(bank.data()+offset, bytes.size(), bytes.data());
+                part->inner.memory.seed_slot(static_cast<Domain>(d), slot, bytes);
+                offset += bytes.size();
+            }
+        }
+    };
+    Journal::Record latest{};
+    std::uint64_t latest_sequence = 0;
+    for (unsigned slot = 0; slot < 2; ++slot) {
+        Journal::Bank bank{};
+        unsigned offset = 0;
+        for (auto* part : {&side.state, &side.tail}) {
+            for (unsigned d = 0; d < persistence::kStorageDomainCount; ++d) {
+                const auto bytes = part->inner.memory.slot_bytes(static_cast<Domain>(d), slot);
+                std::copy(bytes.begin(), bytes.end(), bank.begin()+offset);
+                offset += bytes.size();
+            }
+        }
+        Journal::Record record{};
+        std::uint64_t sequence = 0;
+        CHECK(Journal::decode(bank, record, sequence));
+        if (sequence > latest_sequence) {
+            latest_sequence = sequence;
+            latest = record;
+        }
+    }
+    CHECK(latest.phase == Journal::Phase::committed && latest.allocation == 1);
+    latest.allocation = Journal::kMaxAllocation-2;
+    write_bank((latest_sequence-2)%2, Journal::encode(latest, latest_sequence-1));
+    ++latest.allocation;
+    write_bank((latest_sequence-1)%2, Journal::encode(latest, latest_sequence));
+    CHECK(side.open());
+    CHECK(side.rekey->generation() == Journal::kMaxAllocation-1);
+}
+
 void allocation_exhaustion_with_unconsumed_epoch(bool inbound_at_capacity) {
     Pair pair;
-    for (std::uint64_t expected = 1; expected < 32; ++expected) {
-        pair.a.refill_entropy();
-        (void)start(pair.a); // No peer receives these attempts.
-        CHECK(pair.a.rekey->generation() == expected);
-        CHECK(pair.a.rekey->used_epoch() == 1);
-        expire_attempt(pair.a);
-    }
-    pair.a.refill_entropy();
     finish(pair.a, pair.b, start(pair.a), 2);
-    CHECK(pair.a.rekey->active_generation() == 32);
+    restore_near_allocation_limit(pair.a);
+    pair.b.refill_entropy();
+    finish(pair.a, pair.b, start(pair.a), 3);
+    CHECK(pair.a.rekey->active_generation() == Journal::kMaxAllocation);
     const auto head = pairing_adapter_test::persistent_bytes(pair.a.state);
     const auto tail = pairing_adapter_test::persistent_bytes(pair.a.tail);
     const auto check_capacity = [&] {
@@ -593,14 +636,66 @@ void allocation_exhaustion_with_unconsumed_epoch(bool inbound_at_capacity) {
             Frame next{};
             CHECK(!pair.a.rekey->start(next) && next.size == 0);
         }
-        CHECK(pair.a.rekey->generation() == 32 && pair.a.rekey->used_epoch() == 2);
-        CHECK(pair.a.rekey->committed_epoch() == 2);
+        CHECK(pair.a.rekey->generation() == Journal::kMaxAllocation && pair.a.rekey->used_epoch() == 3);
+        CHECK(pair.a.rekey->committed_epoch() == 3);
         CHECK(pairing_adapter_test::persistent_bytes(pair.a.state) == head);
         CHECK(pairing_adapter_test::persistent_bytes(pair.a.tail) == tail);
     };
     check_capacity();
     pair.a.reboot();
     check_capacity();
+}
+
+void copied_binding_cannot_address_recycled_lease() {
+    Pair pair;
+    finish(pair.a, pair.b, start(pair.a), 2);
+    const auto* old_slot = &pair.a.rekey->data_tx();
+    const auto copied = *old_slot;
+    CHECK(copied.valid_at(pair.a.now));
+    for (std::uint32_t epoch = 3; epoch <= 4; ++epoch) {
+        pair.a.refill_entropy();
+        pair.b.refill_entropy();
+        finish(pair.a, pair.b, start(pair.a), epoch);
+        pair.a.rekey->release_retired_leases();
+        pair.b.rekey->release_retired_leases();
+    }
+    CHECK(&pair.a.rekey->data_tx() == old_slot);
+    CHECK(pair.a.rekey->data_tx().lease_id != copied.lease_id);
+    CHECK(!copied.valid_at(pair.a.now));
+    copied.close_owner(copied.validity_context, copied.lease_id);
+    CHECK(pair.a.rekey->ready() && pair.a.rekey->data_tx().valid_at(pair.a.now));
+    exchange_statuses(pair.a, pair.b, 91);
+}
+
+void generations_and_domains_survive_repeated_rekeys() {
+    Pair pair;
+    const auto owner = pair.a.rekey->packet_owner();
+    CHECK(owner == pair.b.rekey->packet_owner());
+    std::set<opentrail::persistence::CounterDomainId> domains;
+    for (std::uint32_t generation = 1; generation <= 104; ++generation) {
+        pair.a.refill_entropy();
+        pair.b.refill_entropy();
+        auto& starter = generation % 2 ? pair.a : pair.b;
+        auto& responder = generation % 2 ? pair.b : pair.a;
+        finish(starter, responder, start(starter), generation+1);
+        CHECK(pair.a.rekey->active_generation() == generation);
+        CHECK(pair.b.rekey->active_generation() == generation);
+        CHECK(pair.a.rekey->packet_owner() == owner && pair.b.rekey->packet_owner() == owner);
+        for (const auto* binding : {&pair.a.rekey->data_tx(), &pair.a.rekey->ack_tx(),
+                                   &pair.a.rekey->data_rx(), &pair.a.rekey->ack_rx()}) {
+            CHECK(domains.insert(binding->domain).second);
+        }
+        exchange_statuses(pair.a, pair.b, generation*2);
+        if (generation % 8 == 0) {
+            pair.a.reboot();
+            pair.b.reboot();
+            CHECK(pair.a.rekey->generation() == generation && pair.b.rekey->generation() == generation);
+        } else {
+            pair.a.quiet_old_status();
+            pair.b.quiet_old_status();
+        }
+    }
+    CHECK(domains.size() == 416);
 }
 
 void completed_corruption_refuses_without_fallback() {
@@ -624,8 +719,6 @@ void unreadable_bank_refuses_without_writing() {
     CHECK(!pair.a.open() && !pair.a.rekey->ready());
     CHECK(pairing_adapter_test::persistent_bytes(pair.a.state) == before);
 }
-
-using Journal = opentrail::security_evaluation::F5RekeyJournal;
 
 Journal::Record seed_record() {
     Journal::Record seed{};
@@ -1112,6 +1205,8 @@ int main(int argc, char** argv) {
     if (argc == 2) filter = argv[1];
     run_cases();
     scenario("seed_denies_old_packet_footprint", seed_denies_old_packet_footprint);
+    scenario("I-080 copied binding and recycled lease", copied_binding_cannot_address_recycled_lease);
+    scenario("I-080 repeated rekeys and fresh counter domains", generations_and_domains_survive_repeated_rekeys);
     unsigned cuts = 0, phase_cuts = 0;
     scenario("journal_io_cut_grid", [&] { cuts = journal_io_cut_grid(); });
     scenario("marker_prefix_grid", marker_prefix_grid);

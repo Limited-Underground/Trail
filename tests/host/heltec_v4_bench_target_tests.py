@@ -3716,8 +3716,18 @@ def test_f5_messaging_runtime_surface() -> None:
             "each queued class needs phase/deadline authority after CAD and actual phase quiet spacing")
     require("self.trust_view_->read(scope)" in owner and "Rekey::Trust{&read_trust,this,&seed_allowed,&trust_guard}" in owner,
             "raw local R2 commit cannot bypass D-112 peer-confirmed trust")
-    require("bind_packet_generation" not in storage and "packet_storage(" in storage and "generation_" in storage,
+    require("const PacketClaim claim_" in storage and "claim_packets(" in storage,
             "successor packet borrowers require immutable allocation views")
+    start_packets = owner[owner.index("bool BoardMessagingRuntime::start_packets("):
+                          owner.index("void BoardMessagingRuntime::on_receive(")]
+    require(start_packets.index("retire_packet_queue()") < start_packets.index("packets_.reset()") <
+            start_packets.index("release_retired_leases()") < start_packets.index("claim_packets(") <
+            start_packets.index("packets_.emplace("),
+            "the active queue and retired borrowers must drain before reclaim")
+    require(start_packets.index("claim_packets(") < start_packets.index("base_permitted(claimed_at)") <
+            start_packets.index("packets_->start(") < start_packets.index("base_permitted(ready_at)") <
+            start_packets.index("phase_=Phase::exchanging"),
+            "persistent reclaim and packet initialization must finish inside the live arm")
     retire = owner[owner.index("void BoardMessagingRuntime::fail()"):]
     require(retire.index("radio_.discard_queued()") < retire.index("packets_.reset()") < retire.index("rekey_->close()"),
             "retirement cancels queued work before closing packet and key owners")

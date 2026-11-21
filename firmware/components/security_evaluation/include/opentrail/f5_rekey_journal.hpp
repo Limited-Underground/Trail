@@ -14,6 +14,9 @@
 namespace opentrail::security_evaluation {
 class F5RekeyJournal final {
 public:
+    // This is a logical generation. The target budgets physical packet slots.
+    // Keep the upper bound representable by the existing packet message ID.
+    static constexpr std::uint64_t kMaxAllocation = std::numeric_limits<std::uint32_t>::max();
     enum class Phase : std::uint8_t { history, observed, prepared, activation_possible, committed };
     enum class ProofKind : std::uint8_t { base, start, binding };
     struct Record {
@@ -100,7 +103,7 @@ public:
             a.proof_size==b.proof_size && a.proof==b.proof;
     }
     static bool valid_record(const Record& r){
-        if(!r.used || r.committed>r.used || r.allocation>32 || r.flags ||
+        if(!r.used || r.committed>r.used || r.allocation>kMaxAllocation || r.flags ||
            static_cast<unsigned>(r.phase)>static_cast<unsigned>(Phase::committed) ||
            static_cast<unsigned>(r.kind)>static_cast<unsigned>(ProofKind::binding))return false;
         const unsigned bytes=r.kind==ProofKind::base?64:r.kind==ProofKind::start?236:536;
@@ -118,7 +121,7 @@ public:
         if(equal(a,b))return true;
         // Reservation changes A only. Proof can still name an older allocation.
         auto allocated=a;
-        if(a.allocation<32){++allocated.allocation;if(equal(allocated,b))return true;}
+        if(a.allocation<kMaxAllocation){++allocated.allocation;if(equal(allocated,b))return true;}
         if(b.allocation!=a.allocation || !b.allocation || b.committed!=a.committed){
             // A local COMMIT raises C only for the exact already-saved binding.
             return b.allocation==a.allocation && b.used==a.used && b.committed==b.used &&
@@ -221,7 +224,7 @@ private:
             return true;
         };
         auto next=previous;
-        if(previous.allocation<32){++next.allocation;if(match(next,false))return true;}
+        if(previous.allocation<kMaxAllocation){++next.allocation;if(match(next,false))return true;}
         for(unsigned burn=0;burn<2;++burn){
             if(burn && previous.used==std::numeric_limits<std::uint32_t>::max())continue;
             next=previous;next.used+=burn;next.phase=Phase::observed;next.kind=ProofKind::start;next.proof_size=236;next.proof.fill(0);

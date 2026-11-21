@@ -66,13 +66,14 @@ public:
     // 256 pages x 126 entries in ot_state.
     static constexpr std::size_t kTotalEntries = 256 * 126;
     // Preserve both previous allowances; F5 adds 20 fixed journal tuples
-    // plus four 10-tuple lane stores per immutable local allocation.
+    // plus four 10-tuple lane stores and one claim per physical packet slot.
+    // Reclamation clears the old lane names before enabling the new ones.
     static constexpr std::size_t kOriginalPairingEntries = (37 + 7 * kCapacity) * 4;
     static constexpr std::size_t kD112PairingEntries = (47 + 17 * kCapacity) * 4;
-    static constexpr std::size_t kF5Entries = (20 + 40 * kCapacity) * 4;
+    static constexpr std::size_t kF5Entries = (20 + 41 * kCapacity) * 4;
     static constexpr std::size_t kPairingEntries = kD112PairingEntries + kF5Entries;
     static_assert(kOriginalPairingEntries == 1044 && kD112PairingEntries == 2364);
-    static_assert(kPairingEntries == 7564 && kPairingEntries < kTotalEntries / 4);
+    static_assert(kPairingEntries == 7692 && kPairingEntries < kTotalEntries / 4);
 
     PairingNvsStorage();
     ~PairingNvsStorage() override;
@@ -88,15 +89,45 @@ public:
         if (store == Store::f5_state_tail) return views_[6];
         return denied_;
     }
-    // Each returned view is permanently pinned. Creating a successor never
-    // changes the generation of an earlier active/retired lease's references.
-    persistence::PersistentStorage* packet_storage(Store store, std::uint64_t generation) {
-        const auto n = static_cast<unsigned>(store);
-        if (!ready() || !generation || generation > kCapacity || n < 13 || n > 16) return nullptr;
-        auto& view = packet_views_[static_cast<std::size_t>(generation - 1)][n - 13];
-        if (!view) view.emplace(*this, store, generation);
-        return &*view;
-    }
+    using PacketOwner = std::array<std::uint8_t, 32>;
+    class PacketView;
+    class PacketClaim {
+        friend class PairingNvsStorage;
+        friend class PacketView;
+        PacketClaim(const PacketOwner& owner, std::uint64_t generation, unsigned slot)
+            : owner_(owner), generation_(generation), slot_(slot) {}
+        PacketOwner owner_;
+        std::uint64_t generation_;
+        unsigned slot_;
+    public:
+        PacketClaim(const PacketClaim&) = default;
+        PacketClaim& operator=(const PacketClaim&) = default;
+    };
+
+    // The caller must have reserved generation durably for this owner and
+    // destroyed all borrowers of older generations, including queued work.
+    // Only the verified sole legacy F5 owner may supply its retired legacy
+    // floor. This proof stays with the inventory for later claims of those
+    // legacy slots. Foreign live or interrupted claims are never reclaimed.
+    std::optional<PacketClaim> claim_packets(const PacketOwner&, std::uint64_t generation,
+                                             std::uint64_t legacy_floor = 0);
+    // The caller must stop all borrowers before explicitly retiring a claim.
+    bool retire_packets(const PacketClaim&);
+
+    class PacketView final : public persistence::PersistentStorage {
+    public:
+        PacketView(PairingNvsStorage& owner, Store store, const PacketClaim& claim)
+            : owner_(owner), store_(store), claim_(claim) {}
+        persistence::StorageReadResult read_slot(Domain, std::size_t, persistence::MutableStorageByteView) override;
+        Error erase_slot(Domain, std::size_t) override;
+        Error write_slot(Domain, std::size_t, std::size_t, persistence::StorageByteView) override;
+        Error sync_slot(Domain, std::size_t) override;
+    private:
+        unsigned lane_namespace() const;
+        PairingNvsStorage& owner_;
+        Store store_;
+        const PacketClaim claim_;
+    };
     // Seed recovery cannot rewind an allocation whose lane records exist.
     bool f5_packet_footprint_absent();
     persistence::PersistentStorage* archive_storage(std::uint64_t generation) override {
@@ -154,6 +185,21 @@ private:
     };
     using Bytes = std::array<std::uint8_t, persistence::kPersistentSlotBytes>;
 
+    enum class PacketState : std::uint8_t { absent, preparing, ready, retired };
+    struct PacketRecord {
+        PacketOwner owner{};
+        std::uint64_t generation{};
+        PacketState state{PacketState::absent};
+        std::uint8_t legacy_floor{};
+    };
+    static Bytes encode_packet_record(unsigned slot, const PacketRecord&);
+    static bool decode_packet_record(unsigned slot, const Bytes&, PacketRecord&);
+    bool inventory_packets();
+    bool has_packet_lanes(unsigned slot, unsigned first_namespace);
+    bool save_packet_record(unsigned slot, const PacketRecord&);
+    bool clear_packet_lanes(unsigned slot, unsigned first_namespace);
+    bool owns_packet_claim(const PacketClaim&) const;
+
     static const esp_partition_t* partition();
     static bool key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]);
     // Table position of a validated key; any other key faults and maps to the
@@ -183,7 +229,8 @@ private:
     DeniedView denied_;
     std::array<View, 7> views_;
     std::array<std::optional<View>, kCapacity> archive_views_;
-    std::array<std::array<std::optional<View>,4>,kCapacity> packet_views_;
+    std::array<PacketRecord, kCapacity> packet_records_{};
+    std::uint8_t legacy_floor_{};
     // One entry per possible key for generations 0..kCapacity, plus a guard slot.
     std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
 };

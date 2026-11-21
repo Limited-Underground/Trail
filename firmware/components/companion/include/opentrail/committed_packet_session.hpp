@@ -57,8 +57,8 @@ private:
    for(auto* prior:product_->storage_owners_)if(stores[i]==prior)return false;}
   return true;
  }
- static void close_owner(void*context){if(context)static_cast<CommittedPacketSession*>(context)->abort();}
- static bool gate(void* context,std::uint64_t now){return context&&static_cast<CommittedPacketSession*>(context)->valid(now);}
+ static void close_owner(void*context,std::uint64_t){if(context)static_cast<CommittedPacketSession*>(context)->abort();}
+ static bool gate(void* context,std::uint64_t,std::uint64_t now){return context&&static_cast<CommittedPacketSession*>(context)->valid(now);}
  bool retire(){const bool result=!claimed_||product_->close();clear();return result;}
 private:
  static void put(unsigned char*p,std::uint64_t value,unsigned n){for(unsigned i=0;i<n;++i)p[n-1-i]=static_cast<unsigned char>(value>>(8*i));}

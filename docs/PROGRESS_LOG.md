@@ -12,6 +12,53 @@ fixtures moved to the debug and V1-Test source sets, so the plain Release APK
 carries only the real Bluetooth path and passes the check. Production activation
 still waits for firmware security admission.
 
+### OT-0005i Reuse retired F5 packet storage (I-080)
+
+Each signed rekey reserves a higher logical generation before a frame can
+leave the board. The Heltec bench drains the old packet borrower, commits a
+claim for the new generation, erases and verifies only its retired lane
+records, and then enables the four new lanes. Interrupted claims stay disabled.
+A newer reservation by the same owner can finish cleanup. At capacity, the
+pool preserves live claims and refuses the request. Legacy lane keys remain
+readable for migration, and older firmware refuses the reclaimed format.
+
+Host coverage exercises repeat rekeys, restarts, stale handles, exhausted
+storage and interrupted writes. The pool supports distinct group and direct
+owners in host tests. The bench still composes the existing single F5 session.
+Hardware power-loss and the F9 integration remain open. Supports firmware
+issue #75 and the direct-conversation milestone #100.
+
+### OT-0174a Propose MeshTrail direct conversations
+
+The proposal covers verified invitation and acceptance, conversation recovery,
+blocking and the direct-pair storage budget. The design links requirement 5
+to the location choices in requirements 6 and 7 and applies D-133 to D-138.
+See [the direct conversation design](security/DIRECT_CONVERSATIONS_V1.md)
+and issue [#100](https://github.com/Limited-Underground/Trail/issues/100).
+
+### OT-0176a Propose MeshTrail location sharing
+
+The proposal covers group policy, independent direct sharing choices, stop
+behavior and the airtime budget. D-155 accepts all ten design decisions
+with phone GPS for V1. The revised design defines the foreground phone lease,
+permission states and location privacy. See [the location design](security/V1_LOCATION_SHARING.md)
+and issue [#102](https://github.com/Limited-Underground/Trail/issues/102).
+
+### OT-0314 Queue MeshTrail text while the board is away
+
+The Android service saves accepted text in an encrypted outbox. A fresh
+protected session for the same pairing drains it in order. A durable
+reservation precedes each Bluetooth write. Definite pre-send refusals have up
+to three attempts. An uncertain outcome stays visible and is never replayed
+automatically. The app shows Sent after correlated radio transmission and
+Delivered after a protected peer ACK.
+
+Host coverage exercises reconnect, cold reopen, Busy retries, interruption
+after a write, destination changes and storage failure. Live delivery needs
+a protected text-capable Android and firmware pair. I-023 cold recovery and
+setup are already on main through PRs #260 and #290. Phone confirmation
+remains open. Part of #118.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result
@@ -60,7 +107,7 @@ durable state, protected phone status and Bluetooth layout are unchanged.
 The prior board session recorded multi-step save delays without a watchdog
 warning or reboot. Keep the save and watchdog behavior unchanged until a
 separate trace isolates the delay. The display correction awaits an
-owner-present board check. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff).
+owner-present board check under firmware issue #232.
 
 ### OT-0005i Prepare US hopping profile and dwell accounting
 

@@ -65,7 +65,7 @@ private:
     radio::SendResult send(radio::ByteView frame, std::uint64_t now_ms, bool data, bool rekey = false);
     void observe_transmit();
     void fail();
-    bool start_packets(std::uint64_t now_ms);
+    bool start_packets();
     void offer(const Rekey::Frame& frame);
     HeltecV4Lora& radio_;
     security::SecureRandomSource& random_;
@@ -76,6 +76,15 @@ private:
     std::optional<security_evaluation::F5PairingTrustView> trust_view_;
     std::optional<Rekey> rekey_;
     companion::F5StatusSession::TextArm text_arm_;
+    struct PacketStores {
+        PacketStores(PairingNvsStorage& storage, const PairingNvsStorage::PacketClaim& claim)
+            : data_tx(storage, PairingNvsStorage::Store::packet_data_tx, claim),
+              ack_tx(storage, PairingNvsStorage::Store::packet_ack_tx, claim),
+              data_rx(storage, PairingNvsStorage::Store::packet_data_rx, claim),
+              ack_rx(storage, PairingNvsStorage::Store::packet_ack_rx, claim) {}
+        PairingNvsStorage::PacketView data_tx, ack_tx, data_rx, ack_rx;
+    };
+    std::optional<PacketStores> packet_stores_;
     std::optional<companion::F5StatusSession> packets_;
     Rekey::Frame pending_{}, queued_frame_{};
     std::uint64_t deadline_ms_{0}, next_offer_ms_{0}, packet_ready_ms_{0};
