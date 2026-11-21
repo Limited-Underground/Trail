@@ -177,6 +177,14 @@ production-input acceptance remains open on
 [OT-0101c](https://github.com/Limited-Underground/Trail/issues/191) retains its
 original completed evidence scope. No physical or release acceptance is added.
 
+## F12 host validation
+
+The counter store now checks consistency across committed slots before
+making a new reservation. The deterministic host regression covers refusal
+and checks that the store stays intact. The owner bench plan tracks open
+target persistence and retirement evidence under issues #204 and #205.
+Final admission remains open under issue #88.
+
 ## Firmware host composition
 
 [OT-0005i](https://github.com/Limited-Underground/Trail/issues/75) has a local,

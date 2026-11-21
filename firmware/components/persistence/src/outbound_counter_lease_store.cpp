@@ -220,11 +220,24 @@ OutboundCounterLease OutboundCounterLeaseStore::reserve(
         if (slots[index].state != OutboundCounterSlotState::valid) {
             continue;
         }
-        if (current != nullptr &&
-            slots[index].record.generation == current->record.generation &&
-            slots[index].bytes != current->bytes) {
-            result.error = OutboundCounterError::generation_conflict;
-            return result;
+        if (current != nullptr) {
+            const auto& first = current->record;
+            const auto& second = slots[index].record;
+            if (first.domain_id != second.domain_id ||
+                first.group_epoch != second.group_epoch) {
+                result.error = OutboundCounterError::domain_mismatch;
+                return result;
+            }
+            // Two individually valid slots must describe one advancing lease history.
+            const bool conflict = first.generation == second.generation
+                ? slots[index].bytes != current->bytes
+                : first.generation < second.generation
+                    ? first.reserved_through >= second.reserved_through
+                    : second.reserved_through >= first.reserved_through;
+            if (conflict) {
+                result.error = OutboundCounterError::generation_conflict;
+                return result;
+            }
         }
         if (current == nullptr ||
             slots[index].record.generation > current->record.generation) {

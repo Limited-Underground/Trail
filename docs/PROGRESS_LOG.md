@@ -1,5 +1,17 @@
 # OpenTrail Progress Log
 
+## 2026-11-21
+
+### OT-0237e Check counter-store consistency for F12
+
+The outbound lease store now verifies that two committed slots agree before
+issuing another lease. The host regression checks refusal without allocation
+or storage mutation in both slot orders. Exact-target interruption, retirement
+and final independent admission still need evidence under
+[#204](https://github.com/Limited-Underground/Trail/issues/204),
+[#205](https://github.com/Limited-Underground/Trail/issues/205) and
+[#88](https://github.com/Limited-Underground/Trail/issues/88).
+
 ## 2026-11-20
 
 ### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)
