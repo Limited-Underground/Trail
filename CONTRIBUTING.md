@@ -1,6 +1,6 @@
-# Contributing to Limited Underground Trail
+# Contributing to MeshTrail
 
-Limited Underground Trail is an early architecture and proof-of-concept project released under
+MeshTrail is an early architecture and proof-of-concept project released under
 the [Apache License 2.0](LICENSE). Contributions are welcome, but every claim
 must remain proportional to its evidence and the safety boundaries of the
 project.
@@ -38,8 +38,8 @@ portable records without restoring older development or physical permissions.
 
 - **Current rules (owner decision, 2026-11-11).** Development is active. The
   November 2 product freeze and its November 3 and November 4 exceptions have
-  ended. Priority: Trail Firmware, then Firmware Loader (in its separate
-  repository), then Trail Android. Work that serves an approved task may
+  ended. Priority: MeshTrail Firmware, then Firmware Loader (in its separate
+  repository), then MeshTrail App. Work that serves an approved task may
   proceed without asking: host implementation, tests, builds, documentation and
   pull requests on a topic branch. The owner approves each of these first,
   every time:
@@ -67,8 +67,8 @@ portable records without restoring older development or physical permissions.
   block local work. This historical checkpoint does not
   authorize indiscriminate deletion, a rewrite, device operations, publication
   or whole-portfolio resumption.
-- **One task authority per product.** [Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
-  and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+- **One task authority per product.** [MeshTrail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+  and [MeshTrail App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
   own their current scope, priority, status, dependencies and recorded owner decisions.
   [Concise architecture](docs/architecture/README.md), [protocol selection](docs/protocol/README.md),
   [detailed architecture](docs/ARCHITECTURE.md), [decisions](docs/decisions/) and
@@ -151,7 +151,7 @@ GitHub Projects owns live task scope, dependencies and status. Firmware uses
 [Project #8](https://github.com/orgs/Limited-Underground/projects/8). Routine evidence
 and status updates within authorized task scope belong to closeout; report failed
 updates explicitly. Board status grants no hardware or publication authority.
-These portable Trail rules contain only the applicable continuity obligations;
+These portable MeshTrail rules contain only the applicable continuity obligations;
 workspace routing and portfolio policy remain local and are not copied here.
 
 ## CI and publication cadence

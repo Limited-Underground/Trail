@@ -1,4 +1,4 @@
-# Limited Underground Trail architecture detail
+# MeshTrail architecture detail
 
 <a id="opentrail-architecture"></a>
 
@@ -20,7 +20,7 @@ bound to its original checkpoint and is not a claim of current implementation.
 
 ## Goals and constraints
 
-OpenTrail must remain useful offline, tolerate intermittent peers, isolate failures, fit ESP32-class resources, and respect LoRa bandwidth and regional radio regulations. Raspberry Pi-class hardware is outside the baseline unless measured requirements make it necessary.
+MeshTrail must remain useful offline, tolerate intermittent peers, isolate failures, fit ESP32-class resources, and respect LoRa bandwidth and regional radio regulations. Raspberry Pi-class hardware is outside the baseline unless measured requirements make it necessary.
 
 ## Logical layers
 
