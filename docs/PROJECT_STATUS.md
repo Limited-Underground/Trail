@@ -181,7 +181,9 @@ original completed evidence scope. No physical or release acceptance is added.
 
 The counter store now checks consistency across committed slots before
 making a new reservation. The deterministic host regression covers refusal
-and checks that the store stays intact. The owner bench plan tracks open
+and checks that the store stays intact. Current companion tests use the new
+source and historical operator tests use their pinned original input.
+The owner bench plan tracks open
 target persistence and retirement evidence under issues #204 and #205.
 Final admission remains open under issue #88.
 

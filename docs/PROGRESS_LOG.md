@@ -6,7 +6,9 @@
 
 The outbound lease store now verifies that two committed slots agree before
 issuing another lease. The host regression checks refusal without allocation
-or storage mutation in both slot orders. Exact-target interruption, retirement
+or storage mutation in both slot orders. The current companion recipe pins
+the new source. Historical operator tests reconstruct their original
+counter source using the exact retained hash and size. Exact-target interruption, retirement
 and final independent admission still need evidence under
 [#204](https://github.com/Limited-Underground/Trail/issues/204),
 [#205](https://github.com/Limited-Underground/Trail/issues/205) and

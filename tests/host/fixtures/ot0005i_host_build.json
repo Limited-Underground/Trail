@@ -4202,7 +4202,7 @@
     "${ROOT}/firmware/components/companion/src/companion_gatt_authorization_adapter.cpp": "314fbc85c9d21103130c134210c45b16fbb2449f4a8ecf3e2bd230a5ad71a604",
     "${ROOT}/firmware/components/companion/src/companion_gatt_authority_composition.cpp": "41e8955386551deba29912da789067525acb44f6f6363b428b4a8bb28992dd76",
     "${ROOT}/firmware/components/security/src/aead_nonce.cpp": "ff9269aad4d04c59ed6e98e226a9d1e9c0cc4a697ac83fac15c1381fb47a28ae",
-    "${ROOT}/firmware/components/persistence/src/outbound_counter_lease_store.cpp": "3a8013c9a963ce44a9d595eba8c0552dc300e75619897de197e7da705ca09a35",
+    "${ROOT}/firmware/components/persistence/src/outbound_counter_lease_store.cpp": "4f3f3b3bba81bdec770304c13340dede34e3bb666ad3e9d595f1f84c75cc67c5",
     "${ROOT}/firmware/components/persistence/test_support/memory_persistent_storage.cpp": "56a40013c20dc8c04600047a38c5d0d117ca5100b6fcf239d4b0640ba27ba414",
     "${ROOT}/firmware/components/security/test_support/fake_secure_random.cpp": "dbc721126d821f304942d99abbaccfac1c976d5544a9fc1ac332b0b521d9d589",
     "${ROOT}/tests/benchmarks/crypto/independent_noise_xk/nonnull_adapter/noise_xk_libsodium.c": "4f3852e9822eebfed1df8946f6d0ca8ae756a7790ee15b48f1748aa662ba66c0",
