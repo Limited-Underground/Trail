@@ -16,7 +16,12 @@ struct Binding {
  security::AeadNoncePrefix prefix{};
  persistence::CounterDomainId domain{},lease_domain{};
  bool active=false;
- bool(*validity)(void*,std::uint64_t)=nullptr;void*validity_context=nullptr;void(*close_owner)(void*)=nullptr;
+ // Copied with the binding so an old packet owner cannot see a recycled lease.
+ std::uint64_t lease_id{};
+ bool(*validity)(void*,std::uint64_t,std::uint64_t)=nullptr;
+ void* validity_context=nullptr;
+ void(*close_owner)(void*,std::uint64_t)=nullptr;
+ bool valid_at(std::uint64_t now)const{return validity&&validity(validity_context,lease_id,now);}
 };
 struct Frame {std::array<unsigned char,255> bytes{};std::size_t size=0;};
 enum class Outcome {rejected,delivered,acknowledged,duplicate,storage_failure};
@@ -80,10 +85,9 @@ public:
  unsigned deliveries()const{return deliveries_;}unsigned acknowledgements()const{return acknowledgements_;}
  View last_plain()const{return {last_plain_.data(),last_size_};}
 private:
- static bool same(const Binding&a,const Binding&b){const auto&x=a.context;const auto&y=b.context;return a.active&&a.validity==b.validity&&a.validity_context==b.validity_context&&a.close_owner==b.close_owner&&a.purpose==b.purpose&&a.key==b.key&&a.prefix==b.prefix&&a.domain==b.domain&&a.lease_domain==b.lease_domain&&x.sender==y.sender&&x.recipient==y.recipient&&x.transcript==y.transcript&&x.sender_alias==y.sender_alias&&x.recipient_alias==y.recipient_alias&&x.group==y.group&&x.epoch==y.epoch&&x.direction==y.direction;}
- void close(){if(closed_)return;closed_=true;pending_=false;cache_valid_=false;if(fdt_.close_owner)fdt_.close_owner(fdt_.validity_context);sodium_memzero(fdt_.key.data(),32);sodium_memzero(fat_.key.data(),32);sodium_memzero(fdr_.key.data(),32);sodium_memzero(far_.key.data(),32);sodium_memzero(&cached_data_,sizeof cached_data_);sodium_memzero(&cached_ack_,sizeof cached_ack_);sodium_memzero(last_plain_.data(),last_plain_.size());last_size_=0;}
- static bool current(Binding&b,std::uint64_t now){return b.validity&&b.validity(b.validity_context,now);}
- bool ready(std::uint64_t now){if(closed_||!current(dt_,now)||!current(at_,now)||!current(dr_,now)||!current(ar_,now)||(validity_&&!validity_(validity_context_,now))||!same(dt_,fdt_)||!same(at_,fat_)||!same(dr_,fdr_)||!same(ar_,far_)){close();return false;}return true;}
+ static bool same(const Binding&a,const Binding&b){const auto&x=a.context;const auto&y=b.context;return a.active&&a.validity==b.validity&&a.validity_context==b.validity_context&&a.lease_id==b.lease_id&&a.close_owner==b.close_owner&&a.purpose==b.purpose&&a.key==b.key&&a.prefix==b.prefix&&a.domain==b.domain&&a.lease_domain==b.lease_domain&&x.sender==y.sender&&x.recipient==y.recipient&&x.transcript==y.transcript&&x.sender_alias==y.sender_alias&&x.recipient_alias==y.recipient_alias&&x.group==y.group&&x.epoch==y.epoch&&x.direction==y.direction;}
+ void close(){if(closed_)return;closed_=true;pending_=false;cache_valid_=false;if(fdt_.close_owner)fdt_.close_owner(fdt_.validity_context,fdt_.lease_id);sodium_memzero(fdt_.key.data(),32);sodium_memzero(fat_.key.data(),32);sodium_memzero(fdr_.key.data(),32);sodium_memzero(far_.key.data(),32);sodium_memzero(&cached_data_,sizeof cached_data_);sodium_memzero(&cached_ack_,sizeof cached_ack_);sodium_memzero(last_plain_.data(),last_plain_.size());last_size_=0;}
+ bool ready(std::uint64_t now){if(closed_||!dt_.valid_at(now)||!at_.valid_at(now)||!dr_.valid_at(now)||!ar_.valid_at(now)||(validity_&&!validity_(validity_context_,now))||!same(dt_,fdt_)||!same(at_,fat_)||!same(dr_,fdr_)||!same(ar_,far_)){close();return false;}return true;}
  static void put64(unsigned char* p,std::uint64_t v){for(unsigned i=0;i<8;++i)p[7-i]=static_cast<unsigned char>(v>>(8*i));}
  static std::uint64_t get64(const unsigned char*p){std::uint64_t v=0;for(unsigned i=0;i<8;++i)v=(v<<8)|p[i];return v;}
  static security::AeadNonceResult nonce_for(const Binding& b,std::uint64_t counter){return security::compose_aead_nonce({b.lease_domain,b.domain,b.prefix,counter});}

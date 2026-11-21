@@ -88,6 +88,8 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
+V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. The November 20 bench session exchanged protected F5 status and F7 typed text between two boards and confirmed recovery after restarting each board separately. I-087 screen verification and the I-080 storage reuse candidate need separate physical evidence.
+
 The protected companion candidate defines Discover, Create and Stop Trust with
 qualified results on the authorized Command and Stream lane. The bench target
 returns unavailable pending the durable group backend. The next slice binds the
@@ -262,18 +264,18 @@ activation, signing, source publication and merge require separate authority.
 <!-- current-handoff:start -->
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-20 |
-| Task | OT-0005i — I-087 local board pairing result (firmware issue #232). |
-| Owner | Trail Firmware owns the bench app/OLED and focused panel test scope on the local fix/i087-paired-screen topic. |
-| Scope | Retain the local pairing result across the existing F5 storage and radio handoff. Diagnose existing save timings. Preserve pairing, storage, F5 and protected Bluetooth behavior. |
-| State | Local Heltec Link Test candidate. F5 and F7 exchanged status and typed text on main 3cd0e123 in the November 20 board session. The owner missed the pairing result on both screens. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic fix/i087-paired-screen based on Trail main 3cd0e123b4bfcb82bf0d55bed2d726aebf3c9935. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
-| Verified | Source traces the cleared result to pairing-owner closure. The panel regression covers the rendered line through the handoff and restores the normal row at its deadline. The slow-save logs measure whole service calls. |
-| Blocker | The local display fix needs an owner-present board check. Save timing has no per-operation or idle-task trace. |
-| Next action | Review the local fix under firmware issue #232. In a separately approved session, verify the local 60-second row on both boards while F5 proceeds and record save and watchdog timing. |
-| Restrictions | Local commit and host/Link Test evidence only. Preserve boards, release state and remote tracking. |
-| Latest record | [OT-0005i Keep the MeshTrail board pairing result visible](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). See the [F7 record](PROGRESS_LOG.md#ot-0312-send-one-typed-message-between-paired-meshtrail-boards). |
-| Evidence access | Source and panel regression are in the branch. The I-087 report, log references, build artifacts and bundle are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
+| Reviewed | 2026-11-21 |
+| Task | OT-0005i — I-080 F5 packet storage reuse (firmware issue #75, supports F9 issue #100). |
+| Owner | MeshTrail Firmware owns the storage adapter, rekey, packet lifetime and focused host test scope for I-080. |
+| Scope | Keep the Heltec bench pool at 32 physical slots. Reclaim retired lane records with durable claims and fresh logical generations. Preserve retained pairing and foreign live claims. |
+| State | Local Link Test candidate. The 2026-11-20 F5 board exchange and restart observations predate storage reuse. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
+| Source | Local topic codex/i080-f5-storage-reuse based on main d9cf6acb085b616c1cd8d5671037ac8a76a9522b, including the F12 counter-store safeguard from PR #297. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | The real host rekey suite completed 104 authenticated exchanges across 13 restarts. The NVS adapter checks full-capacity refusal, isolated owners, stale views and 248 simulated reclaim interruptions. |
+| Blocker | The current bench composes one F5 conversation. Group and direct integration, physical power-loss behavior and wear remain open. |
+| Next action | Review the local source for issue #75. Use a separately approved board session to validate the exact candidate and its compatible restore route. |
+| Restrictions | Local host and build work. Publication and device sessions require owner authority. |
+| Latest record | [OT-0005i Reuse retired F5 packet storage (I-080)](PROGRESS_LOG.md#ot-0005i-reuse-retired-f5-packet-storage-i-080) |
+| Evidence access | Code and regression tests are in the topic. The I-080 report and artifacts are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 
 The current reading path is [architecture](architecture/README.md) and

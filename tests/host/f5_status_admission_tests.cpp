@@ -46,7 +46,7 @@ Binding binding(std::uint8_t from, std::uint8_t to, packet::Type purpose) {
     b.domain.fill(b.key[0]);
     b.lease_domain = b.domain;
     b.active = true;
-    b.validity = [](void*, std::uint64_t) { return true; };
+    b.validity = [](void*, std::uint64_t, std::uint64_t) { return true; };
     return b;
 }
 

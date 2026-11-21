@@ -8,11 +8,15 @@
 #define pairing_key d124_pre_f5_key
 #include "fixtures/d124_pre_f5_pairing_storage_key.hpp"
 #undef pairing_key
+#define pairing_key i074_pre_reclamation_key
+#include "fixtures/i074_pre_reclamation_pairing_storage_key.hpp"
+#undef pairing_key
 
 #include "pairing_storage_key.hpp"
 
 namespace key = opentrail::target::heltec_v4_bench::pairing_key;
 namespace oldkey = opentrail::target::heltec_v4_bench::d124_pre_f5_key;
+namespace i074key = opentrail::target::heltec_v4_bench::i074_pre_reclamation_key;
 
 #define CHECK(x) do { if (!(x)) { std::printf("FAIL %s:%d %s\n", __FILE__, __LINE__, #x); std::exit(1); } } while (0)
 
@@ -39,7 +43,7 @@ std::size_t old_index(const char* k) {
 int main() {
     unsigned groups = 0;
     const auto size = key::table_size(kCapacity);
-    CHECK(size == 33u * 18u * 5u * 2u);
+    CHECK(size == 33u * 23u * 5u * 2u);
     // Every key the storage can write maps to its own slot inside the table.
     {
         std::set<std::size_t> seen;
@@ -47,14 +51,27 @@ int main() {
             for (unsigned n = 0; n < key::kNamespaces; ++n)
                 for (unsigned d = 0; d < key::kDomains; ++d)
                     for (unsigned s = 0; s < key::kSlots; ++s) {
-                        if ((n >= 7 && n <= 10 && g) || ((n == 12 || n == 17) && g) || (n >= 13 && n <= 16 && !g)) continue;  // generation 0 only
-                        char k[16]{};
-                        make(g, n, d, s, k);
-                        const auto i = key::slot(k, kCapacity);
-                        CHECK(i < size);
-                        CHECK(seen.insert(i).second);
+                        const bool generation_zero_only = (n >= 7 && n <= 10) || n == 12 || n == 17;
+                        const bool generation_nonzero_only = n >= 13 && n != 17;
+                        const bool valid = !(generation_zero_only && g) && !(generation_nonzero_only && !g) &&
+                            (n != key::kPacketClaim || (!d && !s));
+                        key::Key current{}, baseline{};
+                        CHECK(key::format(g, n, d, s, kCapacity, current) == valid);
+                        const bool original = i074key::format(g, n, d, s, kCapacity, baseline);
+                        CHECK(original == (valid && n < key::kPacketClaim));
+                        if (!valid) continue;
+                        const auto i = key::slot(current, kCapacity);
+                        CHECK(i < size && seen.insert(i).second);
+                        if (original) {
+                            CHECK(std::memcmp(current, baseline, sizeof current) == 0);
+                        } else {
+                            // Exact I-074 parser from 39375eb9. Inventory treats this
+                            // guard index as unreadable before any erase or write.
+                            CHECK(i074key::slot(current, kCapacity) == i074key::table_size(kCapacity));
+                            CHECK(oldkey::slot(current, kCapacity) == oldkey::table_size(kCapacity));
+                        }
                     }
-        CHECK(seen.size() == 3980);
+        CHECK(seen.size() == 3980 + 32 * (1 + 4 * 5 * 2));
         ++groups;
     }
     // The old index ran past its 330-entry table from generation 3 and collided at 10+.
@@ -165,7 +182,13 @@ int main() {
     {
         const char* bad[]={"f0000000012d0s0","f0000000111d0s0","f000000000dd0s0",
                            "f000000010cd0s0","g00000000ncd0s0","F0000000011d0s0",
-                           "f000000000Cd0s0","f0000000011D0s0"};
+                           "f000000000Cd0s0","f0000000011D0s0","f0000000117d0s0",
+                           "f0000000112d1s0","f0000000112d0s1","f0000000013d0s0"};
+        key::Key claim{}, last{};
+        make(1,key::kPacketClaim,0,0,claim);
+        make(32,key::kReclaimedLaneLast,4,1,last);
+        CHECK(std::strcmp(claim,"f0000000112d0s0")==0);
+        CHECK(std::strcmp(last,"f0000002016d4s1")==0);
         for(const auto text:bad) {
             key::Key bytes{};std::memcpy(bytes,text,16);
             const std::string before(bytes,sizeof bytes);
