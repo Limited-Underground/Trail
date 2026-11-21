@@ -17,6 +17,25 @@ a protected text-capable Android and firmware pair. I-023 cold recovery and
 setup are already on main through PRs #260 and #290. Phone confirmation
 remains open. Part of #118.
 
+### OT-0305 Add protected group command framing
+
+Added versioned group discovery, Create and Stop Trust request and result
+framing on the existing protected companion lane. Firmware without a durable
+group backend returns unavailable. See the
+[companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
+
+### OT-0237e Check counter-store consistency for F12
+
+The outbound lease store now verifies that two committed slots agree before
+issuing another lease. The host regression checks refusal without allocation
+or storage mutation in both slot orders. The current companion recipe pins
+the new source. Historical operator tests reconstruct their original
+counter source using the exact retained hash and size. Exact-target interruption, retirement
+and final independent admission still need evidence under
+[#204](https://github.com/Limited-Underground/Trail/issues/204),
+[#205](https://github.com/Limited-Underground/Trail/issues/205) and
+[#88](https://github.com/Limited-Underground/Trail/issues/88).
+
 ## 2026-11-20
 
 ### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)

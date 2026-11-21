@@ -43,6 +43,15 @@ class FrozenCounterInputTests(unittest.TestCase):
   before=self.counter.read_bytes();raw=pinned_source(self.root,self.fixture.COUNTER,self.fixture.PIN)
   self.assertEqual((len(raw),sha(raw)),(3267,self.fixture.PIN['sha256']))
   self.assertEqual(self.counter.read_bytes(),before)
+ def test_historical_implementation_is_exact(self):
+  source=self.root/self.fixture.COUNTER_SOURCE;source.parent.mkdir(parents=True)
+  current=b'current implementation uses different bytes'
+  source.write_bytes(current)
+  saved=self.root/self.fixture.SOURCE_FIXTURE
+  saved.write_bytes((ROOT/self.fixture.SOURCE_FIXTURE).read_bytes())
+  raw=pinned_source(self.root,self.fixture.COUNTER_SOURCE,self.fixture.SOURCE_PIN)
+  self.assertEqual((len(raw),sha(raw)),(13692,self.fixture.SOURCE_PIN['sha256']))
+  self.assertEqual(source.read_bytes(),current)
  def test_wrong_expected_digest_refuses(self):
   with self.assertRaises(ValueError):pinned_source(self.root,self.fixture.COUNTER,dict(self.fixture.PIN,sha256='0'*64))
  def test_unlisted_source_refuses(self):

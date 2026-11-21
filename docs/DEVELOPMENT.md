@@ -1,4 +1,4 @@
-# Limited Underground Trail development setup
+# MeshTrail development setup
 
 ## Before using these commands
 

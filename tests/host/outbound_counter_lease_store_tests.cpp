@@ -224,6 +224,35 @@ void test_corruption_conflict_and_future_version_fail_closed() {
            OutboundCounterError::unsupported_version);
 }
 
+void test_inconsistent_committed_slots_refuse_without_writing() {
+    for (const bool reverse_slots : {false, true}) {
+        const auto first_slot = reverse_slots ? 1U : 0U;
+        const auto second_slot = 1U - first_slot;
+        const auto verify_refusal = [&](const auto& second_record,
+                                        OutboundCounterError expected_error) {
+            MemoryPersistentStorage storage{};
+            storage.seed_slot(StorageDomain::outbound_counter_state, first_slot,
+                              record(domain(), kGroupEpoch, 8, 2));
+            storage.seed_slot(StorageDomain::outbound_counter_state, second_slot,
+                              second_record);
+            OutboundCounterLeaseStore store{storage};
+            const auto lease = store.reserve(request());
+            EXPECT(lease.error == expected_error);
+            EXPECT(lease.first_counter == 0 && lease.last_counter == 0);
+            const auto counts = storage.counters(StorageDomain::outbound_counter_state);
+            EXPECT(counts.erases == 0 && counts.writes == 0 && counts.syncs == 0);
+        };
+        verify_refusal(record(domain(2), kGroupEpoch, 12, 3),
+                       OutboundCounterError::domain_mismatch);
+        verify_refusal(record(domain(), kGroupEpoch + 1, 12, 3),
+                       OutboundCounterError::domain_mismatch);
+        verify_refusal(record(domain(), kGroupEpoch, 8, 3),
+                       OutboundCounterError::generation_conflict);
+        verify_refusal(record(domain(), kGroupEpoch, 4, 3),
+                       OutboundCounterError::generation_conflict);
+    }
+}
+
 void test_invalid_request_and_exhaustion_are_explicit() {
     MemoryPersistentStorage invalid_storage{};
     OutboundCounterLeaseStore invalid{invalid_storage};
@@ -346,6 +375,7 @@ int main() {
     test_restart_discards_unused_lease_without_reuse();
     test_domain_or_epoch_change_fails_without_writes();
     test_corruption_conflict_and_future_version_fail_closed();
+    test_inconsistent_committed_slots_refuse_without_writing();
     test_invalid_request_and_exhaustion_are_explicit();
     test_read_failure_returns_no_lease_and_makes_no_writes();
     test_power_loss_never_returns_an_uncertain_lease();
@@ -356,6 +386,6 @@ int main() {
                   << " outbound counter lease assertion(s) failed\n";
         return EXIT_FAILURE;
     }
-    std::cout << "PASS: 10 outbound counter lease scenario groups\n";
+    std::cout << "PASS: 11 outbound counter lease scenario groups\n";
     return EXIT_SUCCESS;
 }
