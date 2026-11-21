@@ -1,4 +1,4 @@
-# Trail tracking: scope and development sequence
+# Tracker scope and development sequence
 
 Date: 2026-09-07. Status: owner-authorized parallel server preparation;
 tracker firmware and release scheduling remain deferred. No tracking, relay,
@@ -6,10 +6,10 @@ third-party compatibility, battery runtime, or server capability is claimed test
 
 ## Governing priorities
 
-1. Continue the existing Trail communication firmware V1 unchanged. Tracking
+1. Continue the existing MeshTrail communication firmware V1 unchanged. Tracking
    cannot add a V1 prerequisite, change its protocol, or delay its acceptance.
 2. The server's first implementation priority is integration with the current
-   Trail firmware and all capabilities actually available through its supported
+   MeshTrail firmware and all capabilities actually available through its supported
    interfaces. Track unsupported and untested functions explicitly; do not equate
    source code or a server host being online with working integration.
 3. Server-side communication integration and tracker preparation may proceed in
@@ -17,7 +17,7 @@ third-party compatibility, battery runtime, or server capability is claimed test
    server components may be designed and implemented for both device types;
    this permission is not limited to documentation. It does not authorize
    tracker firmware or additional current V1 firmware options.
-4. Start tracker firmware only after Trail communication V1 is complete and
+4. Start tracker firmware only after MeshTrail communication V1 is complete and
    accepted against its canonical gates. A successful build is not that gate.
 5. Post-V1 eligibility is not a promise to precede already accepted enhancements.
    Reconcile the existing future-concepts order when scheduling actual work.
@@ -25,7 +25,7 @@ third-party compatibility, battery runtime, or server capability is claimed test
    do not authorize cross-system messaging, control, or shared radio forwarding.
 
 Owner clarification, 2026-09-07: this restriction applies to ALL additional
-options in the Trail communication firmware, not just tracking. No new option,
+options in the MeshTrail communication firmware, not just tracking. No new option,
 feature flag, relay mode, tracker hook, or speculative server-facing extension
 may be implemented before V1 is complete and accepted merely because it is easy
 or might avoid future rework. The sole exception is a demonstrated necessity to
@@ -43,7 +43,7 @@ V1.5, or V2 completion credit and requires no website publication.
 
 | Mode | What the user can see | Location recording |
 | --- | --- | --- |
-| Local tracking without a server | Permitted trackers' current or most recently received position through a Trail communicator and its communications app | Latest position only; no location history or logging |
+| Local tracking without a server | Permitted trackers' current or most recently received position through a MeshTrail communicator and its communications app | Latest position only; no location history or logging |
 | Server-connected tracking | Permitted people/assets/devices on a shared map, with source and report age | Server history only when explicitly enabled under a defined retention policy |
 
 Required local-mode wording:
@@ -99,7 +99,7 @@ A relay may eventually be a fixed repeater, communicator in client/repeater mode
 or tracker in tracker/repeater mode. Receiving or repeating radio packets does not
 itself provide a server connection; a reachable gateway and its backhaul are needed.
 
-Sharing Trail repeaters is an accepted design requirement, not proven compatibility.
+Sharing MeshTrail repeaters is an accepted design requirement, not proven compatibility.
 Existing V1 direct-LoRa authentication must not be assumed to authorize relaying.
 Freeze a reviewed versioned forwarding/security construction, role negotiation,
 region/profile compatibility, forwarding limits, duplicate/replay suppression,
@@ -163,7 +163,7 @@ time, position validity/precision, and optional power/status into a versioned co
 tracking record. Preserve source provenance, coordinate origin (GPS versus configured),
 and permission context. Exact fields and security semantics remain to be specified.
 
-Trail is the first supported source. Later third-party adapters use compatible
+MeshTrail is the first supported source. Later third-party adapters use compatible
 gateways or documented feeds with authorized access. The shared map does not imply
 radio compatibility, equal location accuracy, or equivalent security. Static positions
 and sparse advertisements are not live moving-tracker evidence. Unknown capabilities
@@ -182,9 +182,9 @@ heading per day and individual task entries. Split implementation into bounded i
 | C: Prepare shared server support | Authorized in parallel with B now, without delaying existing commitments | Shared communicator/tracker identity, roles, intake, permissions, latest/history and map components where useful; explicit synthetic contract tests; tracker-dependent acceptance pending firmware |
 | D: Specify tracker product and protocol | After accepted V1; reconcile other post-V1 priorities | Candidate board/power/GPS requirements, lifecycle/setup, approved no-log semantics, report/config contracts, capacity targets and test plan |
 | E: Implement direct tracker and local viewing | D plus loader and local enrollment prerequisites | Two trackers and a communicator/app; correct separate identities, latest-only map, access rejection, freshness and power/restart tests; no server required |
-| F: Integrate Trail tracking with server | B and working tracker report contract | Authenticated gateway intake, current map, dedupe, permissions, outage semantics; add optional history with separate retention/deletion acceptance |
-| G: Validate shared relay operation | Working direct path and separately accepted relay/security construction | Tracker through Trail relay; communicator and tracker relay roles validated separately; mixed traffic and power/loss evidence |
-| H: Add external tracking adapters | Stable Trail intake/map and explicit demand | One ecosystem at a time, actual gateway/device tests, identity/privacy/freshness validation; tracking only |
+| F: Integrate MeshTrail tracking with server | B and working tracker report contract | Authenticated gateway intake, current map, dedupe, permissions, outage semantics; add optional history with separate retention/deletion acceptance |
+| G: Validate shared relay operation | Working direct path and separately accepted relay/security construction | Tracker through MeshTrail relay; communicator and tracker relay roles validated separately; mixed traffic and power/loss evidence |
+| H: Add external tracking adapters | Stable MeshTrail intake/map and explicit demand | One ecosystem at a time, actual gateway/device tests, identity/privacy/freshness validation; tracking only |
 
 Review the relay compatibility contract during D so report design does not obstruct
 G. Implementation of relaying is not a prerequisite for the direct-tracker trial.

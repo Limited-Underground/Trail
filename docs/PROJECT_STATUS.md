@@ -1,4 +1,4 @@
-# Limited Underground Trail project status
+# MeshTrail project status
 
 Current handoff reviewed 2026-11-20. Dated checkpoints retain their own dates
 and artifact limits. Dated history belongs in [PROGRESS_LOG.md](PROGRESS_LOG.md). The complete prior status,
@@ -124,7 +124,7 @@ The F11 host candidate has a bounded collector and versioned codec with per-sour
 
 ## MeshTrail Repeater pre-device work
 
-The seven RadioLib command-header warning sites on the P1-Pro receive path have a source-bound bounds proof and host checks (I-011 closed for this exact candidate). The branch also documents keyless Repeater admission for current Trail frames, a conditional US915 review profile (transmission still refused, I-012), the battery planning target and a receive-only power session kit. No device was touched; the bench power measurement needs a separate owner-approved session. See the [bounds review entry](PROGRESS_LOG.md#ot-0266b-limited-underground-meshtrail-repeater-radiolib-bounds-review-i-011).
+The seven RadioLib command-header warning sites on the P1-Pro receive path have a source-bound bounds proof and host checks (I-011 closed for this exact candidate). The branch also documents keyless Repeater admission for current MeshTrail frames, a conditional US915 review profile (transmission still refused, I-012), the battery planning target and a receive-only power session kit. No device was touched; the bench power measurement needs a separate owner-approved session. See the [bounds review entry](PROGRESS_LOG.md#ot-0266b-limited-underground-meshtrail-repeater-radiolib-bounds-review-i-011).
 ## Capture runner host verification
 
 The I-027/I-048 change reduces path verification work by reading Windows file
@@ -182,6 +182,16 @@ production-input acceptance remains open on
 [LUF-0008b](https://github.com/Limited-Underground/Firmware-Loader/issues/37);
 [OT-0101c](https://github.com/Limited-Underground/Trail/issues/191) retains its
 original completed evidence scope. No physical or release acceptance is added.
+
+## F12 host validation
+
+The counter store now checks consistency across committed slots before
+making a new reservation. The deterministic host regression covers refusal
+and checks that the store stays intact. Current companion tests use the new
+source and historical operator tests use their pinned original input.
+The owner bench plan tracks open
+target persistence and retirement evidence under issues #204 and #205.
+Final admission remains open under issue #88.
 
 ## Firmware host composition
 
@@ -279,7 +289,7 @@ open. The [OT-177 C01 host report](testing/OT-177-C01-HOST-SCHEMA-EVIDENCE.md)
 records published synthetic schema tests. OT-0177a-1 remains Todo; full C01-C12
 execution, privacy, Save/Share, device and parent acceptance remain open.
 
-[Trail V1 Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+[MeshTrail V1 Project #1](https://github.com/orgs/Limited-Underground/projects/1)
 owns current task scope, status, priority and dependencies. Its
 [Firmware view](https://github.com/orgs/Limited-Underground/projects/1/views/2)
 and [Android App view](https://github.com/orgs/Limited-Underground/projects/1/views/3)
