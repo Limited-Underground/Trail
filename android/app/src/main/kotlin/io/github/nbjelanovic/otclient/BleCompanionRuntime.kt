@@ -61,6 +61,11 @@ internal const val INITIAL_GATT_PROFILE_TIMEOUT_MILLIS = 45_000L
 internal const val NEGOTIATION_STEP_TIMEOUT_MILLIS = 15_000L
 internal const val ACTION_RESULT_TIMEOUT_MILLIS = 10_000L
 private const val F7_TEXT_DELIVERY_TIMEOUT_MILLIS = 30_000L
+private const val CARRIER_DOMAIN_OFFSET = 22
+private val QUICK_STATUS_CARRIER_DOMAIN = byteArrayOf('Q'.code.toByte(), 'S'.code.toByte())
+private val TEXT_CARRIER_DOMAIN = byteArrayOf('X'.code.toByte(), 'C'.code.toByte())
+private val QUICK_STATUS_AUTHORITY_DOMAIN = byteArrayOf('Q'.code.toByte(), 'Y'.code.toByte())
+private val TEXT_AUTHORITY_DOMAIN = byteArrayOf('Y'.code.toByte(), '0'.code.toByte())
 internal const val STATUS_REFRESH_INTERVAL_MILLIS = 30_000L
 internal const val PAIRING_STATUS_REFRESH_INTERVAL_MILLIS = 5_000L
 internal const val PAIRING_RESULT_FEATURE_UUID = "8d53dc1d-1db7-4cd3-868b-8a527460aa84"
@@ -453,6 +458,7 @@ class BleCompanionRuntime(
     benchTextRecord: ByteArray? = null,
 ) : AutoCloseable {
     private val benchTextPins = F7BenchPins.decode(benchTextRecord)
+    private val benchQuickStatus = benchTextPins?.quickStatus == true
     private val packetV1Enabled = packetV1Enabled || benchTextPins != null
     private var benchAuthority: BlePacketAuthorityAdapter? = null
     private var pendingBenchAuthority: BlePacketAuthorityQuery? = null
@@ -516,6 +522,7 @@ class BleCompanionRuntime(
     internal fun attachTextOutbox(storage: V1TextOutboxStorage) {
         requireOwnerThread()
         check(state == BleRuntimeState.Inactive && textOutbox == null)
+        if (benchQuickStatus) return
         textOutbox = V1TextOutbox(storage, confirmationClockMillis)
     }
     private var textOperation = 0uL
@@ -995,7 +1002,8 @@ class BleCompanionRuntime(
     @Synchronized
     fun submitAction(request: CompanionActionRequest): Boolean {
         requireOwnerThread()
-        if (request.kind == CompanionActionKind.FACTORY_RESET) return false
+        if (request.kind == CompanionActionKind.FACTORY_RESET ||
+            (benchQuickStatus && request.kind == CompanionActionKind.QUICK_STATUS)) return false
         return submitActionInternal(request, factoryResetAuthorized = false)
     }
 
@@ -1097,6 +1105,7 @@ class BleCompanionRuntime(
     @Synchronized
     fun submitQuickStatus(recipient: V1QuickStatusRecipient, status: CompanionQuickStatus): Boolean {
         requireOwnerThread()
+        if (benchQuickStatus) return sendTextNow(recipient, status.wireValue.toString())
         if (benchTextPins != null || recipient !== quickStatusRecipient || !currentPacketAuthority()) return false
         // Reentrant provider calls cannot replace the selected recipient between these checks.
         if (recipient !== quickStatusRecipient) return false
@@ -1106,6 +1115,14 @@ class BleCompanionRuntime(
     @Synchronized
     fun quickStatusState(): V1QuickStatusState {
         requireOwnerThread()
+        if (benchQuickStatus) {
+            val recipient = carrierRecipient() ?: return V1QuickStatusState()
+            return V1QuickStatusState(
+                recipient,
+                textConversation.received?.let(::decodeBenchStatus),
+                textConversation.phase.takeIf { textConversation.currentAttachment },
+            )
+        }
         val recipient = quickStatusRecipient
         if (benchTextPins != null || state !is BleRuntimeState.Ready || !packetDelivery.available || recipient == null)
             return V1QuickStatusState()
@@ -1117,7 +1134,7 @@ class BleCompanionRuntime(
     /** The queue's local recipient token allows saving a message without granting send authority. */
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean {
         requireOwnerThread()
-        if (closed || deliveringObserver || queryingPacketAuthority) return false
+        if (benchQuickStatus || closed || deliveringObserver || queryingPacketAuthority) return false
         val outbox = textOutbox ?: return sendTextNow(recipient, text)
         val saved = outbox.enqueue(recipient, text)
         publish(state)
@@ -1208,6 +1225,7 @@ class BleCompanionRuntime(
         val request = CompanionTextSend(CompanionTextReference(binding.nonce, binding.exchange, binding.sessionGeneration),
             id.toUInt(), binding.epoch, textOperation + 1uL, text)
         val encoded = CompanionTextCarrierCodec.encode(request, allowProfile06 = true) ?: return false
+        if (benchQuickStatus) QUICK_STATUS_CARRIER_DOMAIN.copyInto(encoded, CARRIER_DOMAIN_OFFSET)
         if (currentTextBinding() !== binding || recipient !== quickStatusRecipient) return false
         if (!textConversation.begin(request)) return false
         outboxAttemptId = outboxId
@@ -1239,8 +1257,8 @@ class BleCompanionRuntime(
     /** Copied UI hints only; each command and incoming record rechecks the actual current provider. */
     fun textState(): V1TextState {
         requireOwnerThread()
-        if (!deliveringObserver && !queryingPacketAuthority && packetBinding?.wireBinding != null) currentTextBinding()
-        val liveRecipient = quickStatusRecipient?.takeIf { state is BleRuntimeState.Ready && packetBinding?.wireBinding != null }
+        if (benchQuickStatus) return V1TextState()
+        val liveRecipient = carrierRecipient()
         val received = textConversation.received.takeIf { liveRecipient != null }
         val outbox = textOutbox
         if (outbox != null) {
@@ -1262,6 +1280,16 @@ class BleCompanionRuntime(
         }
         return V1TextState(liveRecipient, received, textConversation.phase,
             textConversation.reason, textConversation.currentAttachment && liveRecipient != null)
+    }
+
+    private fun carrierRecipient(): V1QuickStatusRecipient? {
+        if (!deliveringObserver && !queryingPacketAuthority && packetBinding?.wireBinding != null) currentTextBinding()
+        return quickStatusRecipient?.takeIf { state is BleRuntimeState.Ready && packetBinding?.wireBinding != null }
+    }
+
+    private fun decodeBenchStatus(text: String): CompanionQuickStatus? {
+        val digit = text.singleOrNull()?.takeIf { it in '1'..'4' } ?: return null
+        return CompanionQuickStatus.fromWire(digit - '0')
     }
 
     private fun currentTextBinding(): io.github.nbjelanovic.otprotocol.CompanionAuthorityResponse? {
@@ -1292,8 +1320,20 @@ class BleCompanionRuntime(
         return accepts(local) && packetBinding === proof
     }
 
+    private fun normalizeBenchDomain(value: ByteArray, expected: ByteArray, standard: ByteArray): ByteArray? {
+        val end = CARRIER_DOMAIN_OFFSET + expected.size
+        if (value.size < end || !value.copyOfRange(CARRIER_DOMAIN_OFFSET, end).contentEquals(expected)) return null
+        return value.copyOf().also { standard.copyInto(it, CARRIER_DOMAIN_OFFSET) }
+    }
+
     private fun acceptTextRecord(value: ByteArray) {
-        val record = CompanionTextCarrierCodec.decode(value, allowProfile06 = true) ?: return
+        val quickStatusEvent = benchQuickStatus && (value[6].toInt() and 255) == CompanionTextCarrierCodec.RECEIVED
+        // Only quick-status data uses OTQS. Results and delivery retain the shared carrier.
+        val carrier = if (quickStatusEvent) {
+            normalizeBenchDomain(value, QUICK_STATUS_CARRIER_DOMAIN, TEXT_CARRIER_DOMAIN) ?: return
+        } else value
+        val record = CompanionTextCarrierCodec.decode(carrier, allowProfile06 = true) ?: return
+        if (quickStatusEvent && (record !is CompanionTextReceived || decodeBenchStatus(record.text) == null)) return
         if (record is CompanionTextSend) return // Device input can never submit an Android command.
         val binding = currentTextBinding() ?: run {
             if (packetBinding != null) retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED, unknown = textConversation.busy)
@@ -2329,6 +2369,8 @@ class BleCompanionRuntime(
         val adapter = BlePacketAuthorityAdapter(this, confirmationClockMillis)
         val request = pins.begin(adapter, this, query, exchange.toUInt())
             ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        // An F6 bench record requires a proof from the quick-status firmware mode.
+        if (benchQuickStatus) QUICK_STATUS_AUTHORITY_DOMAIN.copyInto(request, CARRIER_DOMAIN_OFFSET)
         if (!accepts(callbackGeneration) || gattLease !== lease ||
             !hasActiveGattPhase(BleNegotiationPhase.PROTOCOL_INFO) ||
             activeSessionNonce != query.nonce.toLong()) {
@@ -2360,7 +2402,11 @@ class BleCompanionRuntime(
             !authorizationTracker.allowsNormalCompanionTraffic(generation.toULong())) {
             return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
         }
-        adapter.complete(this, lease, generation, value)
+        val response = if (benchQuickStatus) {
+            normalizeBenchDomain(value, QUICK_STATUS_AUTHORITY_DOMAIN, TEXT_AUTHORITY_DOMAIN)
+                ?: return failAndRelease(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED)
+        } else value
+        adapter.complete(this, lease, generation, response)
         if (!accepts(query.callbackGeneration) || gattLease !== lease) return
         operationTimeoutLease?.close()
         operationTimeoutLease = null

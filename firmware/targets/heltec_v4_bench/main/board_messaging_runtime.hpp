@@ -91,6 +91,7 @@ private:
     std::optional<security_evaluation::F5PairingTrustView> trust_view_;
     std::optional<Rekey> rekey_;
     companion::F5StatusSession::TextArm text_arm_;
+    companion::F5StatusSession::StatusArm status_arm_;
     struct PacketStores {
         PacketStores(PairingNvsStorage& storage, const PairingNvsStorage::PacketClaim& claim)
             : data_tx(storage, PairingNvsStorage::Store::packet_data_tx, claim),

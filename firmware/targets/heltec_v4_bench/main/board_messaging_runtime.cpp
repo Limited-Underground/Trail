@@ -1,4 +1,5 @@
 #include "board_messaging_runtime.hpp"
+#include "companion_phone_text_gatt.hpp"
 #include "companion_nimble_gatt.hpp"
 #include <algorithm>
 #include <cstring>
@@ -28,7 +29,10 @@ namespace {
 constexpr char kTag[]="f5_msg";
 constexpr bool kFixedTextTest = OPENTRAIL_LORA_F7_TEXT_TEST;
 constexpr bool kPhoneText = OPENTRAIL_LORA_F7_PHONE_TEST;
+constexpr bool kPhoneStatus = OPENTRAIL_LORA_F6_PHONE_TEST;
+constexpr bool kPhoneTrial = kPhoneText || kPhoneStatus;
 constexpr bool kTextTest = kFixedTextTest || kPhoneText;
+constexpr std::array<std::uint8_t, 4> kStatusCodes{'1', '2', '3', '4'};
 constexpr char kTestText[] = "MeshTrail text test.";
 constexpr std::uint64_t kArmMs=60000, kRetryMs=1000;
 bool same(const security_evaluation::F5RekeySession::Frame& a,
@@ -77,6 +81,7 @@ void BoardMessagingRuntime::begin(std::uint64_t now_ms) {
     if(now_ms>std::numeric_limits<std::uint64_t>::max()-kArmMs)return fail();
     deadline_ms_=now_ms+kArmMs;radio_permitted_=true;
     if constexpr (kTextTest) text_arm_ = {};
+    if constexpr (kPhoneStatus) status_arm_ = {};
     storage_.emplace();
     if(!storage_->ready() || !register_pairing_storage(&*storage_))return fail();
     membership_.emplace(*storage_,security_evaluation::EvaluationNamespace::membership);
@@ -121,6 +126,7 @@ void BoardMessagingRuntime::begin(std::uint64_t now_ms) {
     offer(out);
     ESP_LOGI(kTag,"retained conversation armed window_ms=%u",static_cast<unsigned>(kArmMs));
     if constexpr (kTextTest) ESP_LOGI(kTag, "trial mode=typed text");
+    if constexpr (kPhoneStatus) ESP_LOGI(kTag, "trial mode=phone quick status");
 }
 void BoardMessagingRuntime::begin_after_pairing(std::uint64_t now_ms) {
     if(phase_!=Phase::absent)return;
@@ -201,7 +207,7 @@ void BoardMessagingRuntime::observe_transmit() {
     if(counters.tx_completed!=completions_before_ && counters.tx_attempts!=attempts_before_) {
         if(tracked_data_ && packets_ && queued_lease_==packet_lease_) {
             packets_->on_data_transmitted();
-            if (kPhoneText && phone_text_lease_ == packet_lease_) phone_text_progress_.transmitted = true;
+            if (kPhoneTrial && phone_text_lease_ == packet_lease_) phone_text_progress_.transmitted = true;
             if constexpr (kTextTest) ESP_LOGI(kTag, "text transmitted (DATA TxDone)");
             else ESP_LOGI(kTag,"status transmitted (DATA TxDone)");
         }
@@ -219,7 +225,7 @@ void BoardMessagingRuntime::observe_transmit() {
 }
 bool BoardMessagingRuntime::observe_phone_text_pair(std::uint64_t now_ms, PhoneText::Pair& out) {
     out = {};
-    if (!kPhoneText || !packets_ || packets_->closed() || !membership_ || !radio_.running() ||
+    if (!kPhoneTrial || !packets_ || packets_->closed() || !membership_ || !radio_.running() ||
         !base_permitted(std::max(now_ms, clock(this))) ||
         !rekey_->packet_eligible(packet_lease_, packet_allocation_)) return false;
 
@@ -244,7 +250,8 @@ BoardMessagingRuntime::PhoneText::Submission BoardMessagingRuntime::submit_phone
     const companion::DeviceNameContext& link, std::uint64_t lease, PhoneText::View text,
     std::uint64_t now_ms, std::uint64_t proof_deadline_ms) {
     const auto fresh = std::max(now_ms, clock(this));
-    if (!kPhoneText || !packets_ || !lease || lease != packet_lease_ || text_arm_.sent ||
+    if (!kPhoneTrial || !packets_ || !lease || lease != packet_lease_ ||
+        (kPhoneStatus ? status_arm_.sent : text_arm_.sent) ||
         fresh >= proof_deadline_ms || !radio_.running() || !base_permitted(fresh) ||
         !rekey_->packet_eligible(packet_lease_, packet_allocation_) ||
         !companion_phone_text_link_current(link)) return {};
@@ -253,8 +260,17 @@ BoardMessagingRuntime::PhoneText::Submission BoardMessagingRuntime::submit_phone
     // The OTY0 proof may end before the original board RF arm.
     const auto admitted_at = clock(this);
     if (admitted_at >= proof_deadline_ms || !base_permitted(admitted_at)) return {};
-    if (!packets_->send_text(static_cast<std::uint32_t>(packet_allocation_), {text.data, text.size},
-                             admitted_at)) return {{}, text_arm_.sent};
+    const auto id = static_cast<std::uint32_t>(packet_allocation_);
+    if constexpr (kPhoneStatus) {
+        const auto status = phone_text_gatt::quick_status_code({text.data, text.size});
+        if (!status) return {};
+        if (!packets_->send_status(id, static_cast<protocol::QuickStatusKind>(status), admitted_at)) {
+            return {{}, status_arm_.sent};
+        }
+        ESP_LOGI(kTag, "phone status queued kind=%u", static_cast<unsigned>(status));
+    } else if (!packets_->send_text(id, {text.data, text.size}, admitted_at)) {
+        return {{}, text_arm_.sent};
+    }
     const auto identity = packets_->sent_identity();
     if (!identity) return {{}, true};
     phone_text_lease_ = lease;
@@ -264,20 +280,25 @@ BoardMessagingRuntime::PhoneText::Submission BoardMessagingRuntime::submit_phone
 
 BoardMessagingRuntime::PhoneText::Progress BoardMessagingRuntime::phone_text_outgoing(
     std::uint64_t lease) const {
-    return kPhoneText && lease && lease == phone_text_lease_ ? phone_text_progress_ : PhoneText::Progress{};
+    return kPhoneTrial && lease && lease == phone_text_lease_ ? phone_text_progress_ : PhoneText::Progress{};
 }
 
 BoardMessagingRuntime::PhoneText::Inbound BoardMessagingRuntime::phone_text_incoming(
     std::uint64_t lease) const {
-    if (!kPhoneText || !packets_ || !lease || lease != packet_lease_) return {};
+    if (!kPhoneTrial || !packets_ || !lease || lease != packet_lease_) return {};
     const auto identity = packets_->received_identity();
     if (!identity) return {};
+    if constexpr (kPhoneStatus) {
+        const auto status = static_cast<std::uint8_t>(packets_->received_status());
+        if (status == 0 || status > kStatusCodes.size()) return {};
+        return {{identity->message_id, identity->counter}, {&kStatusCodes[status - 1], 1}};
+    }
     const auto text = packets_->received_text();
     return {{identity->message_id, identity->counter}, {text.data, text.size}};
 }
 
 void BoardMessagingRuntime::fail_pending_phone_text() {
-    if (kPhoneText && phone_text_lease_ && phone_text_progress_.terminal == PhoneText::Terminal::none) {
+    if (kPhoneTrial && phone_text_lease_ && phone_text_progress_.terminal == PhoneText::Terminal::none) {
         phone_text_progress_.terminal = PhoneText::Terminal::failed;
     }
 }
@@ -314,7 +335,8 @@ bool BoardMessagingRuntime::start_packets() {
     auto& stores = *packet_stores_;
     packets_.emplace(rekey_->data_tx(), rekey_->ack_tx(), rekey_->data_rx(), rekey_->ack_rx(),
                      stores.data_tx, stores.ack_tx, stores.data_rx, stores.ack_rx,
-                     packet_radio_, kTextTest ? &text_arm_ : nullptr);
+                     packet_radio_, kTextTest ? &text_arm_ : nullptr,
+                     kPhoneStatus ? &status_arm_ : nullptr);
     if (!packets_->start(claimed_at, deadline_ms_)) return false;
     const auto ready_at = clock(this);
     if (!base_permitted(ready_at)) return false;
@@ -334,10 +356,12 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
         if(!start_packets())fail();
     } else if(packets_) {
         const auto before=packets_->received_count();
-        (void)packets_->receive({bytes, size}, kTextTest ? clock(this) : now_ms);
-        if (kPhoneText && phone_text_lease_ == packet_lease_ &&
-            packets_->state() == companion::F5StatusSession::State::acknowledged) {
+        (void)packets_->receive({bytes, size}, (kTextTest || kPhoneStatus) ? clock(this) : now_ms);
+        if (kPhoneTrial && phone_text_lease_ == packet_lease_ &&
+            packets_->state() == companion::F5StatusSession::State::acknowledged &&
+            phone_text_progress_.terminal != PhoneText::Terminal::delivered) {
             phone_text_progress_.terminal = PhoneText::Terminal::delivered;
+            if constexpr (kPhoneStatus) ESP_LOGI(kTag, "phone status acknowledged (authenticated ACK)");
         }
         if (packets_->received_count() > before) {
             if constexpr (kFixedTextTest) {
@@ -348,6 +372,8 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
                 } else {
                     ESP_LOGW(kTag, "peer text fixture mismatch bytes=%u", static_cast<unsigned>(text.size));
                 }
+            } else if constexpr (kPhoneStatus) {
+                ESP_LOGI(kTag, "peer status authenticated kind=%u", static_cast<unsigned>(packets_->received_status()));
             } else if constexpr (!kPhoneText) {
                 ESP_LOGI(kTag,"peer status authenticated");
             }
@@ -395,7 +421,7 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
         return;
     }
     const bool payload_sent = kTextTest ? text_arm_.sent : status_sent_;
-    if (!kPhoneText && !payload_sent && !tracked_ && fresh - packet_ready_ms_ >= (rekey_->initiator() ? 1500u : 2500u)) {
+    if (!kPhoneTrial && !payload_sent && !tracked_ && fresh - packet_ready_ms_ >= (rekey_->initiator() ? 1500u : 2500u)) {
         const auto id = static_cast<std::uint32_t>(packet_allocation_);
         if constexpr (kTextTest) {
             const radio::ByteView sample{reinterpret_cast<const std::uint8_t*>(kTestText), sizeof(kTestText) - 1};

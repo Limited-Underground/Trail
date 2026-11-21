@@ -187,17 +187,17 @@ public:
 
     // Queue identity tracks DATA before the radio confirms transmission.
     std::optional<MessageIdentity> sent_identity() const {
-        if (!node_ || closed_ || (text_arm_ && text_arm_->expired)) return {};
+        if (!node_ || closed_ || (arm() && arm()->expired)) return {};
         return node_->sent_identity();
     }
     std::optional<MessageIdentity> received_identity() const {
-        if (!has_current_received_text()) return {};
+        if (!has_current_received()) return {};
         return node_->received_identity();
     }
 
     // Valid while this session retains the delivered plaintext.
     radio::ByteView received_text() const {
-        if (!has_current_received_text()) return {};
+        if (!text_arm_ || !has_current_received()) return {};
         const auto text = otxt::decode(node_->last_plain(), packet_mtu());
         return {text.data, text.size};
     }
@@ -213,8 +213,8 @@ public:
         if (state_!=State::acknowledged) state_=State::failed;
     }
 private:
-    bool has_current_received_text() const {
-        return text_arm_ && !text_arm_->expired && node_ && !closed_ && received_ != 0;
+    bool has_current_received() const {
+        return arm() && !arm()->expired && node_ && !closed_ && received_ != 0;
     }
     std::size_t packet_mtu() const {
         return std::min(radio_.mtu(), kPacketMtu);

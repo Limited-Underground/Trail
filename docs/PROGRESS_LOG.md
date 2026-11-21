@@ -2,6 +2,30 @@
 
 ## 2026-11-21
 
+### OT-0313 Send quick statuses between phones through paired boards
+
+The Link Test candidate sends the four fixed quick statuses from the MeshTrail
+composer through the protected Command and Stream used by the phone-text trial.
+The sending board puts the selected status in an OTQ0 packet on the retained
+F5 session. The peer board projects one authenticated receive event. The app
+tracks local queueing, radio transmission, peer-board ACK and phone receipt
+independently. See the [quick-status wire contract](protocol/QUICK_STATUS_PAYLOAD_V0.md#link-test-phone-path).
+
+Each board arm admits one send and one receive. The F6 proof is scoped to the
+current phone owner, paired boards, membership, epoch and remaining time. The
+bench mode must be explicitly selected on both boards and phones. The
+maintainer-local report records host and build results. Two boards and two
+phones still need an owner-present check. This advances #75 and #117.
+
+The follow-up carries this work forward with PR #294's developer Debug
+record reader. Its maintainer-local REPORT-2.md records the exact source,
+host checks and new artifact identities.
+
+On main after PR #294, quick statuses use the new F5 packet-store claims
+and retain their own per-arm allowance. The Debug quick-status mode keeps
+the durable text outbox detached. Maintainer-local REPORT-3.md records
+the post-merge validation and artifact identities.
+
 ### OT-0086a Guard V1 tester builds (A11)
 
 The firmware refuses `OPENTRAIL_V1_PRODUCTION=ON` while any bench switch is on,

@@ -272,6 +272,18 @@ release Android authenticated messaging from this host result. OT-0168c custom
 diagnostics remain paused by owner direction. Physical operations, production
 activation, signing, source publication and merge require separate authority.
 
+### Protected quick statuses (F6 and A3)
+
+The OT-0313 Link Test candidate carries all four fixed statuses through
+the protected F5 radio session and the Command and Stream from PR #294.
+Developer Debug reads the independently provisioned bench record. Each
+board arm allows one status to send and one to receive. A peer-board ACK
+and the receiving phone's status display are separate observations.
+
+See the [F6/A3 progress entry](PROGRESS_LOG.md#ot-0313-send-quick-statuses-between-phones-through-paired-boards)
+and maintainer-local REPORT-4.md for the exact tests and artifacts.
+The two-board, two-phone check still needs the owner.
+
 ## Current recovery handoff
 
 <!-- current-handoff:start -->

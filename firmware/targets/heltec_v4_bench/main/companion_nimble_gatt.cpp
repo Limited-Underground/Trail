@@ -797,7 +797,7 @@ int command_access(std::uint16_t connection_handle,
             length <= 5 || request[5] != wire_minor) {
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         }
-        const auto phone = phone_text_gatt::decode(encoded);
+        const auto phone = phone_text_gatt::decode(encoded, phone_text_gatt::target_payload);
         std::uint32_t nonce = 0, exchange = 0;
         if (g_phone_text_backend != nullptr && phone.command()) {
             if (!phone_text_link_current_locked(authority.context) ||
@@ -919,7 +919,7 @@ bool definition_is_pristine() {
 }  // namespace
 
 void install_companion_phone_text_backend(CompanionPhoneTextBackend& backend) {
-#if OPENTRAIL_LORA_F7_PHONE_TEST && !OPENTRAIL_CONFIRMATION_EVALUATION
+#if (OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST) && !OPENTRAIL_CONFIRMATION_EVALUATION
     if (g_configuration_mutex == nullptr && g_adapter == nullptr && g_phone_text_backend == nullptr) {
         g_phone_text_backend = &backend;
     }
@@ -1435,7 +1435,7 @@ void pump_phone_text_event(CompanionPhoneTextBackend& backend) {
             wipe_phone_text_event();
             return;
         }
-        const auto event = phone_text_gatt::decode({pending.record.data(), bytes});
+        const auto event = phone_text_gatt::decode({pending.record.data(), bytes}, phone_text_gatt::target_payload);
         if (!event.event() || event.nonce != context.session_nonce) {
             GattLock lock;
             if (lock && phone_text_link_current_locked(context)) {
@@ -1530,11 +1530,12 @@ void service_companion_configuration() {
     const bool phone = phone_text_wire_record(work);
     if (work.occupied && phone) {
         if (phone_backend != nullptr && phone_text_command_current(work)) {
-            const auto requested = phone_text_gatt::decode({work.record.data(), work.bytes});
+            const auto requested = phone_text_gatt::decode(
+                {work.record.data(), work.bytes}, phone_text_gatt::target_payload);
             g_phone_text_backend_context = work.context;
             const auto bytes = phone_backend->command(work.context,
                 {work.record.data(), work.bytes}, {result.record.data(), result.record.size()}, now_ms());
-            const auto returned = phone_text_gatt::decode({result.record.data(), bytes});
+            const auto returned = phone_text_gatt::decode({result.record.data(), bytes}, phone_text_gatt::target_payload);
             if (phone_text_gatt::matches_response(requested, returned)) result.bytes = bytes;
         }
         sodium_memzero(work.record.data(), work.record.size());

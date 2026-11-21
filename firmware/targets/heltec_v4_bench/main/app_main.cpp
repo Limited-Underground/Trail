@@ -33,7 +33,7 @@
 #include "board_pairing_runtime.hpp"
 #include "board_messaging_runtime.hpp"
 #endif
-#if OPENTRAIL_LORA_F7_PHONE_TEST
+#if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
 #include "board_phone_text_backend.hpp"
 #endif
 
@@ -141,7 +141,7 @@ bool lora_transmit_permitted(void*) {
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
 }
 #endif
-#if OPENTRAIL_LORA_F7_PHONE_TEST
+#if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
 opentrail::target::heltec_v4_bench::BoardPhoneTextBackend g_phone_text{g_board_messaging};
 #endif
 
@@ -447,7 +447,7 @@ extern "C" void app_main() {
     g_board_pairing_random.set_entropy_state(
         opentrail::security::EntropyState::ready);
 #endif
-#if OPENTRAIL_LORA_F7_PHONE_TEST
+#if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
     opentrail::target::heltec_v4_bench::install_companion_phone_text_backend(g_phone_text);
 #endif
     const auto runtime_start_result =

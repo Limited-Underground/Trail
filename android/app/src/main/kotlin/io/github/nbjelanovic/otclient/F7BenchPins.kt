@@ -7,6 +7,7 @@ internal class F7BenchPins private constructor(
     private val group: ULong,
     private val epoch: UInt,
     private val revision: ULong,
+    val quickStatus: Boolean,
 ) {
     fun begin(
         adapter: BlePacketAuthorityAdapter,
@@ -20,14 +21,14 @@ internal class F7BenchPins private constructor(
     companion object {
         const val RECORD_BYTES = 227
         private val RECORD = Regex(
-            "meshtrail-f7-bench-v1\nlocal=([0-9a-f]{64})\npeer=([0-9a-f]{64})\n" +
+            "meshtrail-(f6|f7)-bench-v1\nlocal=([0-9a-f]{64})\npeer=([0-9a-f]{64})\n" +
                 "group=([0-9a-f]{16})\nepoch=([0-9a-f]{8})\nrevision=([0-9a-f]{16})\n",
         )
 
         fun decode(record: ByteArray?): F7BenchPins? {
             if (record?.size != RECORD_BYTES) return null
             val fields = RECORD.matchEntire(record.toString(Charsets.US_ASCII))?.destructured ?: return null
-            val (localHex, peerHex, groupHex, epochHex, revisionHex) = fields
+            val (trial, localHex, peerHex, groupHex, epochHex, revisionHex) = fields
             fun identity(hex: String) = ByteArray(32) { i -> hex.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
             val local = identity(localHex)
             val peer = identity(peerHex)
@@ -36,7 +37,7 @@ internal class F7BenchPins private constructor(
             val revision = revisionHex.toULong(16)
             if (local.all { it == 0.toByte() } || peer.all { it == 0.toByte() } || local.contentEquals(peer) ||
                 group == 0uL || epoch == 0u || revision == 0uL) return null
-            return F7BenchPins(local, peer, group, epoch, revision)
+            return F7BenchPins(local, peer, group, epoch, revision, quickStatus = trial == "f6")
         }
     }
 }
