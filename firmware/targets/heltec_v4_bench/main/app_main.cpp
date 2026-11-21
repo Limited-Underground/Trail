@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstdio>
@@ -26,12 +27,14 @@
 #include "opentrail/companion_protocol.hpp"
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/companion_semantics.hpp"
+#include "opentrail/device_parameters.hpp"
 #if OPENTRAIL_LORA_LINK_TEST
 #include "esp_mac.h"
 #include "heltec_v4_lora.hpp"
 #include "lora_link_test.hpp"
 #include "board_pairing_runtime.hpp"
 #include "board_messaging_runtime.hpp"
+#include "pairing_nvs_storage.hpp"
 #endif
 #if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
 #include "board_phone_text_backend.hpp"
@@ -49,6 +52,8 @@ using opentrail::companion::CompanionFactoryResetGestureEvent;
 using opentrail::target::heltec_v4_bench::PairingPinDisplayPortAdapter;
 using opentrail::target::heltec_v4_bench::HeltecEnrollmentInputArbiter;
 using opentrail::target::heltec_v4_bench::HeltecV4SecureRandom;
+
+namespace parameters = opentrail::device_parameters;
 
 constexpr char kLogTag[] = "ot_bench";
 
@@ -77,13 +82,42 @@ unsigned long running_app_offset() {
     return offset;
 }
 
-void prepare_release_line() {
-    const esp_app_desc_t* description = esp_app_get_description();
+parameters::Firmware prepare_release_line() {
+    const auto* description = esp_app_get_description();
+    const auto partition = running_app_offset();
     std::snprintf(g_release_line, sizeof(g_release_line),
                   "generation=%lu version=%.32s partition=0x%lx",
                   static_cast<unsigned long>(OPENTRAIL_RELEASE_GENERATION),
                   description != nullptr ? description->version : "unknown",
-                  running_app_offset());
+                  partition);
+
+    parameters::Firmware firmware{};
+    if (description == nullptr) return firmware;
+    firmware.release_generation = OPENTRAIL_RELEASE_GENERATION;
+    firmware.application_partition_offset = static_cast<std::uint32_t>(partition);
+    while (firmware.version_length < firmware.version.size() &&
+           description->version[firmware.version_length] != '\0') {
+        firmware.version[firmware.version_length] = description->version[firmware.version_length];
+        ++firmware.version_length;
+    }
+    return firmware;
+}
+
+parameters::ResetReason map_reset_reason(esp_reset_reason_t reason) {
+    using Reason = parameters::ResetReason;
+    switch (reason) {
+        case ESP_RST_UNKNOWN: return Reason::unknown;
+        case ESP_RST_POWERON: return Reason::power_on;
+        case ESP_RST_EXT: return Reason::external;
+        case ESP_RST_SW: return Reason::software;
+        case ESP_RST_PANIC: return Reason::panic;
+        case ESP_RST_INT_WDT:
+        case ESP_RST_TASK_WDT:
+        case ESP_RST_WDT: return Reason::watchdog;
+        case ESP_RST_DEEPSLEEP: return Reason::deep_sleep;
+        case ESP_RST_BROWNOUT: return Reason::brownout;
+        default: return Reason::other;
+    }
 }
 constexpr std::uint32_t kHeartbeatPeriodMs = 5000;
 // D-088: long enough to read the firmware version on the logo (D-081).
@@ -91,6 +125,7 @@ constexpr std::uint32_t kMinimumLogoPeriodMs = 5000;
 constexpr std::uint64_t kBatterySamplePeriodMs = 30'000;
 constexpr std::uint64_t kBatteryFreshForMs = 60'000;
 constexpr std::uint64_t kGnssFreshForMs = 5'000;
+constexpr std::uint64_t kParameterCollectionPeriodMs = 1'000;
 HeltecV4Oled g_oled_port;
 StartupDisplayOwner g_startup_display{g_oled_port};
 PairingPinDisplayPortAdapter g_pairing_display{g_startup_display};
@@ -144,6 +179,31 @@ bool lora_transmit_permitted(void*) {
 #if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
 opentrail::target::heltec_v4_bench::BoardPhoneTextBackend g_phone_text{g_board_messaging};
 #endif
+
+parameters::Observation<parameters::Gnss> read_gnss_parameters(
+    std::uint64_t now_ms, std::uint64_t initialized_at_ms) {
+    using Fix = opentrail::target::heltec_v4_bench::GnssFixState;
+    using Satellites = opentrail::target::heltec_v4_bench::GnssSatelliteState;
+    using State = parameters::GnssState;
+
+    if (!g_gnss.initialized()) return {true, initialized_at_ms, {State::unavailable}};
+    const auto fix = g_gnss.fix(now_ms, kGnssFreshForMs);
+    State state{};
+    switch (fix.state) {
+        case Fix::valid: state = State::fix; break;
+        case Fix::no_fix: state = State::searching; break;
+        case Fix::stale: state = State::stale; break;
+        case Fix::unavailable: return {true, initialized_at_ms, {State::unknown}};
+        case Fix::invalid: return {};
+    }
+    // Preserve the measured count of an old sample. Its timestamp carries
+    // staleness and is shared with the fix parsed from the same sentence.
+    const auto satellites = g_gnss.satellites(now_ms, UINT64_MAX);
+    const bool known = satellites.state == Satellites::valid &&
+                       satellites.sampled_at_ms == fix.sampled_at_ms;
+    return {true, fix.sampled_at_ms,
+            {state, known, known ? satellites.satellites : std::uint8_t{0}}};
+}
 
 // D-081: the firmware version on the startup screen, the same version the boot
 // log reports; a Firmware Loader release adds its generation.
@@ -430,12 +490,19 @@ extern "C" void app_main() {
         contain_self_check_failure();
     }
     ESP_LOGI(kLogTag, "companion boot self-check PASS");
-    prepare_release_line();
+    const auto firmware = prepare_release_line();
     ESP_LOGI(kLogTag, "lu_ident %s self_check=PASS", g_release_line);
-    ESP_LOGI(kLogTag, "boot reset_reason=%u",
-             static_cast<unsigned>(esp_reset_reason()));
+    const auto reset_reason = esp_reset_reason();
+    ESP_LOGI(kLogTag, "boot reset_reason=%u", static_cast<unsigned>(reset_reason));
     const auto started_at_ms =
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+    // The app task owns both acquisition and the collector's boot-local sequence.
+    static parameters::Inputs parameter_inputs{};
+    static parameters::Collector parameter_collector{};
+    parameter_inputs.reset = {true, started_at_ms, map_reset_reason(reset_reason)};
+    if (parameters::valid_firmware(firmware)) {
+        parameter_inputs.firmware = {true, started_at_ms, firmware};
+    }
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
     if (!g_factory_reset_input.initialize()) {
         contain_runtime_failure("reset_input_init", 0);
@@ -494,7 +561,8 @@ extern "C" void app_main() {
 #if OPENTRAIL_LORA_LINK_TEST
     link_test::Beaconer beaconer{lora_link_test_tag()};
     g_lora.set_transmit_permission(&lora_transmit_permitted, nullptr);
-    if (g_lora.start()) {
+    const bool lora_started = g_lora.start();
+    if (lora_started) {
         ESP_LOGI(kLogTag, "lora_link start ok tag=%08lx period_ms=%llu",
                  static_cast<unsigned long>(beaconer.self()),
                  static_cast<unsigned long long>(link_test::period_ms(beaconer.self())));
@@ -508,6 +576,7 @@ extern "C" void app_main() {
     std::uint64_t next_heartbeat_ms = started_at_ms;
     std::uint64_t next_battery_sample_ms = started_at_ms;
     std::uint64_t next_gnss_diagnostic_ms = started_at_ms + 30'000;
+    std::uint64_t next_parameters_ms = started_at_ms;
     while (true) {
 #if OPENTRAIL_CONNECTION_DIAGNOSTICS
         const auto observed_ms =
@@ -638,6 +707,11 @@ extern "C" void app_main() {
             if (got.has_frame()) {
                 g_lora_activity = opentrail::ui::compact_status_footer::Direction::rx;
                 g_lora_activity_at_ms = got.metadata.received_at_ms;
+                if (got.metadata.rssi_valid && got.metadata.snr_valid && got.metadata.frequency_valid) {
+                    parameter_inputs.packet = {
+                        true, got.metadata.received_at_ms,
+                        {got.metadata.rssi_dbm, got.metadata.snr_db_quarter, got.metadata.frequency_hz}};
+                }
                 link_test::Beacon incoming{};
                 if (link_test::decode(rx.data(), got.received_bytes, incoming) &&
                     beaconer.heard(incoming)) {
@@ -745,6 +819,10 @@ extern "C" void app_main() {
                       opentrail::ui::compact_status_footer::ObservationState::invalid,
                       0,
                       sampled_at_ms};
+            if (reading.valid) {
+                parameter_inputs.battery = {
+                    true, sampled_at_ms, {reading.millivolts, reading.percent}};
+            }
             next_battery_sample_ms = sampled_at_ms + kBatterySamplePeriodMs;
         }
         const auto render_now_ms =
@@ -792,18 +870,55 @@ extern "C" void app_main() {
                          static_cast<unsigned long>(c.tx_prelaunch_dropped));
             }
 #endif
-            // Pinned ESP-IDF task.h defines this result in bytes, not words.
-            ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u",
-                     static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
-#if OPENTRAIL_CONFIRMATION_EVALUATION
+            // Pinned ESP-IDF task.h defines both stack results in bytes.
+            const auto main_stack = static_cast<std::uint32_t>(uxTaskGetStackHighWaterMark(nullptr));
+            ESP_LOGI(kLogTag, "app_stack minimum_free_bytes=%u", static_cast<unsigned>(main_stack));
             std::uint32_t ble_host_stack_bytes = 0;
-            if (opentrail::target::heltec_v4_bench::
-                    companion_nimble_host_stack_minimum_free_bytes(ble_host_stack_bytes)) {
+            const bool ble_stack_observed = opentrail::target::heltec_v4_bench::
+                companion_nimble_host_stack_minimum_free_bytes(ble_host_stack_bytes);
+#if OPENTRAIL_CONFIRMATION_EVALUATION
+            if (ble_stack_observed) {
                 ESP_LOGI(kLogTag, "ble_host_stack minimum_free_bytes=%u",
                          static_cast<unsigned>(ble_host_stack_bytes));
             }
 #endif
+            const auto free_heap = esp_get_free_heap_size();
+            const auto minimum_heap = std::min(free_heap, esp_get_minimum_free_heap_size());
+            const auto sampled_at_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+            parameter_inputs.heap = {true, sampled_at_ms, {free_heap, minimum_heap}};
+            parameter_inputs.main_stack = {true, sampled_at_ms, {main_stack}};
+            parameter_inputs.ble_stack = {ble_stack_observed, sampled_at_ms, {ble_host_stack_bytes}};
             next_heartbeat_ms = elapsed_ms + kHeartbeatPeriodMs;
+        }
+        const auto collection_started_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+        if (collection_started_ms >= next_parameters_ms) {
+            parameter_inputs.gnss = read_gnss_parameters(collection_started_ms, gnss_started_ms);
+#if OPENTRAIL_LORA_LINK_TEST
+            if (lora_started) {
+                const auto counters = g_lora.counters();
+                parameter_inputs.radio = {
+                    true, collection_started_ms,
+                    {counters.tx_attempts, counters.tx_completed, counters.rx_frames,
+                     counters.rx_errors, counters.rx_dropped, counters.tx_refused,
+                     counters.tx_busy_dropped, counters.tx_prelaunch_dropped}};
+                parameter_inputs.backoffs = {true, collection_started_ms, {counters.cad_backoffs_scheduled}};
+            }
+            const auto storage = opentrail::target::heltec_v4_bench::pairing_nvs_entry_usage();
+            if (storage) {
+                parameter_inputs.storage = {
+                    true, storage->observed_at_ms,
+                    {storage->used_entries, storage->free_entries, storage->total_entries}};
+            } else {
+                parameter_inputs.storage = {};
+            }
+#endif
+            const auto collected_at_ms = static_cast<std::uint64_t>(esp_timer_get_time() / 1000);
+            parameters::Snapshot snapshot{};
+            if (parameter_collector.collect(parameter_inputs, collected_at_ms, snapshot) ==
+                parameters::Error::none) {
+                opentrail::target::heltec_v4_bench::publish_companion_device_parameters(snapshot);
+            }
+            next_parameters_ms = collected_at_ms + kParameterCollectionPeriodMs;
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }

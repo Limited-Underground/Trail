@@ -13,6 +13,13 @@ inline constexpr std::uint8_t kConfigurationNameCapability = 0x40;
 inline constexpr std::uint8_t kConfigurationTimeCapability = 0x80;
 inline constexpr std::uint8_t kConfigurationRegionCapability = 0x10;
 inline constexpr std::size_t kConfigurationRegionBytes = 24;
+inline constexpr std::uint8_t kConfigurationParametersRequest = 0x09;
+inline constexpr std::uint8_t kConfigurationParametersResponse = 0x8b;
+inline constexpr std::size_t kConfigurationParametersHeaderBytes = 8;
+inline constexpr std::size_t kConfigurationParametersFirstPageBytes =
+    kConfigurationPayloadBytes - kConfigurationParametersHeaderBytes;
+inline constexpr std::size_t kConfigurationParametersRecordBytes = 212;
+inline constexpr std::uint64_t kConfigurationParametersLifetimeMs = 5000;
 enum class ConfigurationCodecError { none, invalid_argument, malformed, output_too_small };
 struct ConfigurationInfo { std::uint8_t capabilities{0}; std::uint8_t minor_version{2}; };
 struct ConfigurationFrame {
@@ -42,7 +49,10 @@ template<class T> struct ConfigurationDecodeResult {
     T value{};
     [[nodiscard]] bool decoded() const { return error == ConfigurationCodecError::none; }
 };
-// Separate strict candidate codec: never advertised, dispatched or used as authority.
+// Call only for a successfully decoded parameters request. The first page
+// has no previous exchange; the second carries the first page's exchange ID.
+[[nodiscard]] std::uint32_t configuration_parameters_first_exchange(const ConfigurationFrame&);
+// Wire validation is separate from session authority.
 // Fixed profile fields are not caller-configurable. Failure leaves output unchanged.
 [[nodiscard]] ConfigurationEncodeResult encode_configuration_info(const ConfigurationInfo&, std::uint8_t*, std::size_t);
 [[nodiscard]] ConfigurationDecodeResult<ConfigurationInfo> decode_configuration_info(const std::uint8_t*, std::size_t, std::uint8_t expected_minor_version=2);

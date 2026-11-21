@@ -125,6 +125,7 @@ struct DecodeResult {
     Snapshot snapshot{};
 };
 
+[[nodiscard]] bool valid_firmware(const Firmware& firmware);
 [[nodiscard]] bool valid(const Snapshot& snapshot);
 [[nodiscard]] std::uint32_t effective_age_ms(
     std::uint32_t source_age_ms, std::uint32_t snapshot_age_ms);

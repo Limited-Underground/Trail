@@ -51,8 +51,9 @@ internal fun V1StatusStrip(
     val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val statusMaxLines = if (landscape) 1 else Int.MAX_VALUE
     val metrics = V1DeviceStatusStripProjector.from(state)
-    val readAt = ((state as? TrailAppUiState.BluetoothDevice)?.runtimeState as? BleRuntimeState.Ready)
-        ?.session?.statusReadAtMillis
+    val session = ((state as? TrailAppUiState.BluetoothDevice)?.runtimeState as? BleRuntimeState.Ready)?.session
+    val readAt = session?.statusReadAtMillis
+    val parameters = session?.deviceParameters
     val clock by produceState(initialValue = DateFormat.getTimeFormat(context).format(Date())) {
         while (true) {
             value = DateFormat.getTimeFormat(context).format(Date())
@@ -127,6 +128,18 @@ internal fun V1StatusStrip(
                 modifier = Modifier.padding(start = 12.dp, end = 12.dp))
         }
     }
+    if (parameters != null) key(parameters) {
+        val seconds by produceState(
+            parameterAgeSeconds(parameters, android.os.SystemClock.elapsedRealtime()),
+        ) {
+            while (true) {
+                value = parameterAgeSeconds(parameters, android.os.SystemClock.elapsedRealtime())
+                delay(1_000)
+            }
+        }
+        Text("Board snapshot collected $seconds s ago", fontSize = 11.sp, lineHeight = 13.sp, color = muted,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp))
+    }
     if (showBuildLabel) {
         Text(buildLabel, fontSize = 11.sp, lineHeight = 13.sp,
             maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -137,3 +150,6 @@ internal fun V1StatusStrip(
     }
     }
 }
+
+private fun parameterAgeSeconds(reading: BleDeviceParameterReading, nowMillis: Long): Long =
+    (reading.snapshot.snapshotAgeMillis + (nowMillis - reading.requestedAtMillis).coerceAtLeast(0L)) / 1_000

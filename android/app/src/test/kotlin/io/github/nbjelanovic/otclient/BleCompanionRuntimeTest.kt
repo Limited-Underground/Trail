@@ -1649,6 +1649,79 @@ class BleCompanionRuntimeTest {
         owner.close()
     }
 
+    @Test fun protectedDeviceParametersReachSessionAndRedactedLogAfterBothPages() {
+        val directory = java.nio.file.Files.createTempDirectory("meshtrail-f11-test").toFile()
+        try {
+            val log = MeshTrailOperationLog(directory)
+            val f = ConfigurationFixture(profile = 5, parameterSupport = true, onParameters = { parameters ->
+                assertTrue(log.appendBatch(1, meshTrailParameterEntries(parameters)))
+            })
+            f.name(); f.clock()
+            f.runtime.setStatusRefreshForeground(true)
+            f.scheduler.advanceBy(0)
+            f.statusReply(f.readySession().snapshot)
+            val initial = f.last()
+            assertEquals(0x09, initial.kind)
+            assertContentEquals(byteArrayOf(0x4f, 0x54, 0x44, 0x51, 1, 0, 0, 0), initial.payload)
+            assertNull(f.readySession().deviceParameters)
+
+            val record = parameterRecord()
+            f.respond(0x8b, parameterPage(record, 0), initial.exchangeId - 1u)
+            assertEquals(initial.exchangeId, f.last().exchangeId)
+            f.respond(0x8b, parameterPage(record, 0))
+            val continuation = f.last()
+            assertEquals(0x09, continuation.kind)
+            assertEquals(initial.exchangeId + 1u, continuation.exchangeId)
+            assertEquals(initial.exchangeId.toInt(), java.nio.ByteBuffer.wrap(continuation.payload)
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt(8))
+            assertNull(f.readySession().deviceParameters)
+            assertFalse(f.runtime.readRadioRegion())
+            f.respond(0x8b, parameterPage(record, 1))
+            assertEquals(42, f.readySession().deviceParameters?.snapshot?.battery?.value?.percent)
+            assertTrue(log.exportText().contains("Board battery: age_ms=0 millivolts=3700 percent=42"))
+            f.respond(0x8b, parameterPage(record, 1))
+            assertEquals(1, log.exportText().lineSequence().count { "Board battery:" in it })
+            assertTrue(f.runtime.readRadioRegion())
+            f.runtime.close()
+        } finally {
+            directory.deleteRecursively()
+        }
+    }
+
+    @Test fun protectedDeviceParametersTimeoutUsesOriginalDeadlineAndKeepsStatusAvailable() {
+        val f = ConfigurationFixture(profile = 5, parameterSupport = true)
+        f.name(); f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        f.statusReply(f.readySession().snapshot)
+        val record = parameterRecord()
+        val partialDelay = 4_000L
+        f.now += partialDelay
+        f.scheduler.advanceBy(partialDelay)
+        f.respond(0x8b, parameterPage(record, 0))
+        val continuation = f.last().exchangeId
+        f.now += 1_000L
+        f.scheduler.advanceBy(1_000L)
+        f.respond(0x8b, parameterPage(record, 1), continuation)
+        assertNull(f.readySession().deviceParameters)
+        assertTrue(f.runtime.readRadioRegion())
+        f.runtime.close()
+    }
+
+    private fun parameterRecord(): ByteArray =
+        java.nio.ByteBuffer.allocate(212).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
+            put(byteArrayOf(0x4f, 0x54, 0x44, 0x50, 1, 0))
+            putShort(6, 212)
+            putInt(8, 1)
+            putInt(24, 1)
+            putShort(36, 3700)
+            put(38, 42)
+        }.array()
+
+    private fun parameterPage(record: ByteArray, page: Int): ByteArray =
+        byteArrayOf(0x4f, 0x54, 0x44, 0x52, 1, page.toByte(), 0, 0) +
+            if (page == 0) record.copyOfRange(0, 120) else record.copyOfRange(120, 212)
+
     @Test fun statusRefreshWaitsForConfigurationAndNeverPollsAfterDisconnect() {
         val f = ConfigurationFixture(profile = 5)
         val count = f.gatt.commands.size
@@ -3176,7 +3249,8 @@ class BleCompanionRuntimeTest {
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
         wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it },
         pairingResults: Boolean = false, outboxStorage: V1TextOutboxStorage? = null,
-        private val benchTextRecord: ByteArray? = null) {
+        private val benchTextRecord: ByteArray? = null, parameterSupport: Boolean = false,
+        onParameters: (io.github.nbjelanovic.otprotocol.CompanionDeviceParameters) -> Unit = {}) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
@@ -3189,6 +3263,7 @@ class BleCompanionRuntimeTest {
         private val elapsedMillis = { now + if (outboxStorage == null) 0L else scheduler.nowMillis }
         val wireAdapter = BlePacketAuthorityAdapter(authorityOwner, elapsedMillis)
         val runtime=BleCompanionRuntime(facade,scheduler,firstRequestId=firstId,evaluationConfirmationEnabled=optIn,confirmationClockMillis={clockHook?.invoke();elapsedMillis()},
+            deviceParameterObserver=onParameters,
             packetV1Enabled=packetOptIn,packetAuthority=if (wireAuthority) wireAdapter else BlePacketAuthorityProvider { query ->
                 proofCalls++;proofHook?.invoke()
                 if(!packetAdmission) null else proofTransform(BlePacketAuthority(query.lease,query.callbackGeneration,
@@ -3218,6 +3293,7 @@ class BleCompanionRuntimeTest {
             }
             gatt=facade.connections.single()
             gatt.pairingResultSupported = pairingResults
+            gatt.deviceParametersSupported = parameterSupport
             if (wireAuthority) {
                 // Explicit fixture protected exchange, completed before protocol6 negotiation queries it.
                 // Android callback generation comes from this actual host graph; wire device/session generation3 is a separate domain.
@@ -3878,6 +3954,7 @@ class BleCompanionRuntimeTest {
         enforceOperationGate: Boolean = false,
     ) : BleGattLease {
         override var pairingResultSupported = false
+        override var deviceParametersSupported = false
         var started = false
         var closed = false
         val requestedMtus = mutableListOf<Int>()

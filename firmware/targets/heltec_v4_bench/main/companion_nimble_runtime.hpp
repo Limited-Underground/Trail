@@ -6,6 +6,7 @@
 #include "opentrail/companion_ble_runtime_owner.hpp"
 #include "opentrail/companion_pairing_window.hpp"
 #include "opentrail/device_factory_reset_executor.hpp"
+#include "opentrail/device_parameters.hpp"
 #include "opentrail/secure_random.hpp"
 #include "opentrail/setup_label.hpp"
 
@@ -45,6 +46,9 @@ service_companion_nimble_runtime(std::uint64_t now_ms);
 // callbacks, unsolicited notification or authorization change is performed.
 void publish_companion_gnss_observation(
     bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms);
+
+// App task only, shared with the app-task configuration dispatcher.
+void publish_companion_device_parameters(const device_parameters::Snapshot&);
 
 #if OPENTRAIL_LORA_LINK_TEST
 // Bench diagnostic only: status replies served to a phone, refused reads, and
@@ -87,12 +91,10 @@ void companion_nimble_request_bluetooth_name(const ui::BluetoothDeviceName& name
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_stage();
 [[nodiscard]] std::uint8_t companion_nimble_security_failure_detail();
 
-// Application-owner diagnostic only. False leaves bytes unchanged and means
-// that no live exact BLE host task is available to this calling task.
-#if (defined(OPENTRAIL_CONFIRMATION_EVALUATION) && OPENTRAIL_CONFIRMATION_EVALUATION) || OPENTRAIL_CONNECTION_DIAGNOSTICS
+// Application owner only. False leaves bytes unchanged when no live exact
+// BLE host task can be observed.
 [[nodiscard]] bool companion_nimble_host_stack_minimum_free_bytes(
     std::uint32_t& bytes);
-#endif
 
 // Independently requests complete BLE host/controller containment and reports
 // true only after the runtime owner has verified platform shutdown.

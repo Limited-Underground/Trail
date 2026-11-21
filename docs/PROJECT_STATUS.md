@@ -123,14 +123,12 @@ composition and release activation remain open. See the
 
 ## Android operation log and text export
 
-The local A8/A9 topic includes the current main Bluetooth recovery and pairing
-changes. The private, rotating 64 KiB operation log uses format 2 for typed
-pairing results, previous results, reasons and recovery events. Device →
-Help & support → Share operation log (.txt) offers a UTF-8 attachment through
-Android's share sheet. The F11 decoder uses host fixtures until protected
-firmware delivery is wired. Email receipt, cloud storage, and live board
-readings still need phone acceptance. See the
-[OT-0177a progress entry](PROGRESS_LOG.md#ot-0177a-record-pairing-outcomes-and-bluetooth-recovery).
+PR #286 added the private, rotating 64 KiB operation log and the UTF-8 share
+attachment. The F11 topic adds validated board readings to that log. In
+Device → Help & support, Share sends the attachment to an app the tester
+chooses. Save writes the same text through the Android file picker so the
+tester can upload it and share a link. Phone acceptance covers both routes.
+See the [logging progress entry](PROGRESS_LOG.md#ot-0341-connect-board-readings-to-the-meshtrail-operation-log).
 
 ## US frequency-hopping preparation
 
@@ -145,7 +143,12 @@ and the authorization basis for the exact configuration. See the
 
 ## Device parameters for logging
 
-The F11 host candidate has a bounded collector and versioned codec with per-source availability and age. Host tests cover clock and sequence limits, canonical decoding and hostile input. It is unwired: the live source adapters and a separate protected two-fragment route require edits reserved for the concurrent status and bench work. Android decoding and export have a host candidate above. Polling and live age display remain separate. See the [record design and hooks](../firmware/components/device_parameters/README.md) and [progress entry](PROGRESS_LOG.md#ot-0341-device-parameters-collector-and-codec-for-logging-f11).
+The Heltec V4 app task collects live readings with per-source age. A Ready
+phone reads two pages of the same 212-byte snapshot through the protected
+command lane. The app checks the complete record before displaying values or
+adding them to the log. Firmware without the feature version still supplies
+ordinary status. Bench verification covers age, update and reconnect on a
+retained bond. See the [component guide](../firmware/components/device_parameters/README.md).
 
 ## MeshTrail Repeater pre-device work
 
@@ -306,6 +309,43 @@ The two-board, two-phone check still needs the owner.
 The separate [QR Invite and Join host contract](PROGRESS_LOG.md#ot-0306-add-the-qr-invite-and-join-host-contract)
 binds signed first contact, both local approvals and typed durable receipts.
 Live Invite/Join and RF acceptance remain open.
+
+### F11 logging handoff
+
+| Field | Current pickup state |
+| --- | --- |
+| Reviewed | 2026-11-21 |
+| Task | OT-0341 — F11 device parameters and A8/A9 logging and export (issues #125 and #103). |
+| Owner | MeshTrail Firmware owns the Heltec acquisition and protected reply. MeshTrail App owns polling, display and text export on feat/v1-logging. |
+| Scope | Collect board parameters with age, read one snapshot over the protected link, display board readings and export the redacted log by user-selected share or file save. |
+| State | F11/A8/A9 host candidate. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
+| Source | Topic feat/v1-logging started at main e81db57a145b7172ed96bcd6db88d4aabd8c8ce9 and includes the naming-only main update 39375eb9. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Verified | The topic includes the firmware collector from PR #280 and the Android text export from PR #286. The focused regressions cover authorization, page ordering and deadlines, structured log export and the Android file-save path. |
+| Blocker | Real board readings, retained-bond compatibility, email receipt and cloud link access require an owner-present test. |
+| Next action | Review the topic and arrange one authorized Heltec V4 and Android session. Check status age, reconnect, text attachment and cloud link access with the actual recipient. |
+| Restrictions | Host validation and topic review. Board, signing, merge and release each require owner approval. |
+| Latest record | [OT-0341 Connect board readings to the MeshTrail operation log](PROGRESS_LOG.md#ot-0341-connect-board-readings-to-the-meshtrail-operation-log). Previous [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
+| Evidence access | Source and host tests are in the topic. Exact command results and builds are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
+
+## F7 paired phone text
+
+PR #294 adds the opt-in phone path to main. Developer Debug requires the
+independently provisioned record and live OTY0 proof for the exact recipient.
+The A10 outbox waits for that protected attachment. F7 admits one typed send
+and receive per board RF arm under the existing F5 limits and ACK rules.
+The F8 group lane still requires a confirmed Snapshot. I-080 keeps a 32-slot
+pool with durable claims and fresh generations. I-087 keeps the local OLED
+pairing result visible through the messaging handoff.
+
+The November 20 board-only session passed on 3cd0e123 before storage reuse.
+I-080 host checks covered 104 authenticated exchanges across 13 restarts and
+248 simulated claim interruptions. Phone-to-phone acceptance requires both
+provisioned Debug phones, compatible restoration and an owner-approved
+session. Power loss, wear, the I-087 panel and slow-save timing still need
+their own checks. See the
+[F7 record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane),
+[I-080 record](PROGRESS_LOG.md#ot-0005i-reuse-retired-f5-packet-storage-i-080)
+and [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible).
 
 The current reading path is [architecture](architecture/README.md) and
 [protocol selection](protocol/README.md). Source/history retrieval, exact binary

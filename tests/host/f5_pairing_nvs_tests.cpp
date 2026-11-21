@@ -520,6 +520,7 @@ void combined_partition_budget() {
  constexpr std::size_t pairing_tuples=899;
  static_assert(roster_entries==136 && catalog_entries==48);
  static_assert(Storage::kPairingEntries==5*pairing_tuples);
+ constexpr auto expected_used_entries=4*(pairing_tuples+1)+roster_entries+catalog_entries+3;
 
  fake::reset();
  seed_pairing_history();
@@ -558,7 +559,7 @@ void combined_partition_budget() {
   CHECK(fake::entries(kRoster)==roster_entries && fake::entries(kCatalog)==catalog_entries);
   nvs_stats_t stats{};
   CHECK(nvs_get_stats(kPartition,&stats)==ESP_OK &&
-        stats.used_entries==4*(pairing_tuples+1)+roster_entries+catalog_entries+3);
+        stats.used_entries==expected_used_entries);
   CHECK(stats.total_entries==Storage::kTotalEntries && stats.namespace_count==3);
   CHECK(fake::mounts==1 && fake::deinits==0);
  }
@@ -569,6 +570,10 @@ void combined_partition_budget() {
   CHECK(roster.ready() && catalog.ready());
   Storage pairing; CHECK(pairing.ready());
   CHECK(fake::mounts==2);
+  const auto measured=target::pairing_nvs_entry_usage();
+  CHECK(measured && measured->used_entries==expected_used_entries &&
+        measured->total_entries==Storage::kTotalEntries &&
+        measured->free_entries==Storage::kTotalEntries-expected_used_entries);
   PacketView stale(pairing,Store::packet_data_tx,*claims.front());
   PacketView foreign(pairing,Store::packet_ack_rx,*claims.back());
   CHECK(fake::read_packet(stale)[0]==1 && fake::read_packet(foreign)[0]==32);
@@ -868,6 +873,23 @@ int main(int argc,char** argv) {
  CHECK(static_cast<unsigned>(Store::completion)==11);
  CHECK(static_cast<unsigned>(Store::f5_state)==12 && static_cast<unsigned>(Store::f5_state_tail)==17);
  ++groups;
+ // Telemetry uses a validated measurement from the existing storage budget
+ // check. Re-reading it does not mount NVS or refresh its source timestamp.
+ {
+  CHECK(!target::pairing_nvs_entry_usage());
+  fake::reset(); fake::extra_entries=12; fake::time=2'345'000;
+  Storage s; CHECK(s.ready());
+  const auto measured=target::pairing_nvs_entry_usage();
+  CHECK(measured && measured->used_entries==12 && measured->total_entries==Storage::kTotalEntries);
+  CHECK(measured->free_entries==Storage::kTotalEntries-12 && measured->observed_at_ms==2345);
+  fake::extra_entries=16; fake::time=2'350'000;
+  const auto cached=target::pairing_nvs_entry_usage();
+  CHECK(cached && cached->used_entries==12 && cached->observed_at_ms==2345 && fake::time==2'350'000);
+  CHECK(s.budget_ok());
+  const auto refreshed=target::pairing_nvs_entry_usage();
+  CHECK(refreshed && refreshed->used_entries==16 && refreshed->observed_at_ms==2350);
+  ++groups;
+ }
  {
   fake::reset(); Storage s; CHECK(s.ready()); CHECK(s.f5_packet_footprint_absent());
   fake::put(s.external(Store::completion),0x7f);
@@ -1154,6 +1176,7 @@ int main(int argc,char** argv) {
   CHECK(fake::handles.empty() && !fake::mounted && fake::deinits==1);
   CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
   CHECK(!s.claim_packets(owner(1),33) && !s.retire_packets(*claim));
+  CHECK(!target::pairing_nvs_entry_usage());
   const std::uint8_t byte=0;
   for(std::size_t i=0;i<ports.size();++i) {
    const auto domain=i==ports.size()-1?kLaneDomain:Domain::protocol_state;

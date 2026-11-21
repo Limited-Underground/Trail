@@ -1,6 +1,7 @@
 #pragma once
 #include "opentrail/companion_configuration_dispatcher.hpp"
 #include "opentrail/companion_semantics.hpp"
+#include "opentrail/companion_public_profile_codec.hpp"
 #include "opentrail/companion_gatt_authorization_adapter.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -12,6 +13,7 @@ struct ConfigurationLane {
     std::uint16_t connection{0xffff};
     std::uint64_t token{0}, admitted_ms{0};
     std::uint32_t exchange{0};
+    std::uint8_t request_kind{0};
     std::size_t bytes{0};
     std::array<std::uint8_t, companion::kConfigurationRecordBytes> record{};
     [[nodiscard]] bool current(const companion::DeviceNameAuthority& authority) const {
@@ -30,6 +32,44 @@ struct ConfigurationLane {
         return occupied && connection == handle && context.transport_generation == generation &&
             context.session_nonce == nonce && exchange == id && token == delivery;
     }
+};
+
+// Only a confirmed first-page indication grants one continuation. The exact
+// context includes the transport generation and protected session nonce.
+class ConfigurationParametersContinuation {
+public:
+    void clear() { context_ = {}; exchange_ = 0; admitted_ms_ = 0; }
+
+    [[nodiscard]] bool permits(const companion::ConfigurationFrame& request,
+                               const companion::DeviceNameAuthority& authority,
+                               std::uint64_t now_ms) const {
+        if (authority.phase != companion::DeviceNamePhase::connected) return false;
+        const auto first = companion::configuration_parameters_first_exchange(request);
+        if (first == 0) return true;
+        return context_ == authority.context && exchange_ == first &&
+            now_ms >= admitted_ms_ &&
+            now_ms - admitted_ms_ < companion::kConfigurationParametersLifetimeMs;
+    }
+
+    void complete(const ConfigurationLane& lane,
+                  const companion::DeviceNameAuthority& authority,
+                  bool confirmed, std::uint64_t now_ms) {
+        clear();
+        if (!confirmed || !lane.indicated || !lane.current(authority) || lane.expired(now_ms)) return;
+        const auto frame = companion::decode_configuration_frame(
+            lane.record.data(), lane.bytes, companion::kPublicProfileMinor);
+        if (!frame.decoded() || frame.value.kind != companion::kConfigurationParametersResponse ||
+            frame.value.payload[5] != 0 || frame.value.session_nonce != lane.context.session_nonce ||
+            frame.value.exchange_id != lane.exchange) return;
+        context_ = lane.context;
+        exchange_ = lane.exchange;
+        admitted_ms_ = lane.admitted_ms;
+    }
+
+private:
+    companion::DeviceNameContext context_{};
+    std::uint32_t exchange_{0};
+    std::uint64_t admitted_ms_{0};
 };
 
 // Pure admission predicate for the real selected Command lane. Callers supply

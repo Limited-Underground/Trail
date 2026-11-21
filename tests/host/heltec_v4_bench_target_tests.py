@@ -254,13 +254,15 @@ def admitted_target_sources(cmake: str) -> list[str]:
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp",
     }
-    require(len(ordinary_tokens) == 63 and len(set(ordinary_tokens)) == 63 and
+    require(len(ordinary_tokens) == 65 and len(set(ordinary_tokens)) == 65 and
             group_sources.issubset(ordinary_tokens) and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
+            "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_codec.cpp" in ordinary_tokens and
+            "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_collector.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must link the admitted shared group sources and retain both profile gates")
+            "ordinary build must link the admitted shared group and parameter sources and retain both profile gates")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -1369,7 +1371,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 69,
+    require(len(other_linked_sources) == 71,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1444,7 +1446,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 69,
+    require(len(other_linked_sources) == 71,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2423,6 +2425,7 @@ def test_application_surface() -> None:
         "companion_nimble_gatt.cpp",
         "companion_nimble_runtime.cpp",
         "companion/include",
+        "device_parameters/include",
         "heltec_startup_display.cpp",
         "heltec_v4_battery.cpp",
         "heltec_v4_gnss.cpp",
@@ -2438,8 +2441,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 70,
-            "target must admit 63 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 72,
+            "target must admit 65 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
@@ -3598,7 +3601,7 @@ def test_pairing_result_protected_route():
     metadata = gatt[gatt.index("int pairing_result_feature_access("):
                     gatt.index("ble_gatt_dsc_def kPairingResultDescriptors[]")]
     require("BLE_GATT_ACCESS_OP_READ_DSC" in metadata and
-            "constexpr std::uint8_t version = 1;" in metadata and
+            "constexpr std::uint8_t version = 2;" in metadata and
             "os_mbuf_append(context->om, &version, sizeof(version))" in metadata and
             metadata.count("os_mbuf_append(") == 1 and
             "g_pairing_result" not in metadata and "snapshot" not in metadata,

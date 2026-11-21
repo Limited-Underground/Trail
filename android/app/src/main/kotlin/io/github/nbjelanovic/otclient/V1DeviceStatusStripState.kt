@@ -2,6 +2,8 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionGnssState
 import io.github.nbjelanovic.otprotocol.CompanionPowerState
+import io.github.nbjelanovic.otprotocol.DeviceParameterGnssState
+import io.github.nbjelanovic.otprotocol.DeviceParameterPowerSource
 
 enum class V1DeviceGpsStatus {
     UNKNOWN,
@@ -51,17 +53,31 @@ internal object V1DeviceStatusStripProjector {
     fun from(state: TrailAppUiState): V1DeviceStatusStripState {
         val ready = (state as? TrailAppUiState.BluetoothDevice)?.runtimeState as? BleRuntimeState.Ready
             ?: return V1DeviceStatusStripState.disconnected()
+        val parameters = ready.session.deviceParameters?.snapshot
+        val gnss = parameters?.gnss?.value
+        val gps = ready.session.snapshot.gnss.toDeviceStatus()
         return V1DeviceStatusStripState(
             bluetoothConnected = true,
-            gps = ready.session.snapshot.gnss.toDeviceStatus(),
-            satellites = null,
-            batteryPercent = null,
-            externalPower = ready.session.snapshot.power
-                .takeIf { it == CompanionPowerState.EXTERNAL }
-                ?.let { true },
+            gps = gps,
+            satellites = gnss?.satellites?.takeIf { gnss.state.toDeviceStatus() == gps },
+            batteryPercent = parameters?.battery?.value?.percent,
+            externalPower = when (parameters?.power?.value) {
+                DeviceParameterPowerSource.EXTERNAL, DeviceParameterPowerSource.CHARGING -> true
+                DeviceParameterPowerSource.BATTERY_ONLY -> false
+                else -> true.takeIf { ready.session.snapshot.power == CompanionPowerState.EXTERNAL }
+            },
             transmitting = null,
             receiving = null,
         )
+    }
+
+    private fun DeviceParameterGnssState.toDeviceStatus(): V1DeviceGpsStatus = when (this) {
+        DeviceParameterGnssState.UNKNOWN -> V1DeviceGpsStatus.UNKNOWN
+        DeviceParameterGnssState.UNAVAILABLE -> V1DeviceGpsStatus.UNAVAILABLE
+        DeviceParameterGnssState.SEARCHING -> V1DeviceGpsStatus.SEARCHING
+        DeviceParameterGnssState.FIX -> V1DeviceGpsStatus.CURRENT
+        DeviceParameterGnssState.STALE -> V1DeviceGpsStatus.STALE
+        DeviceParameterGnssState.INVALID -> V1DeviceGpsStatus.FAULT
     }
 
     private fun CompanionGnssState.toDeviceStatus(): V1DeviceGpsStatus = when (this) {

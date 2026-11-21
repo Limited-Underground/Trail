@@ -125,7 +125,8 @@ internal class MeshTrailOperationLog(
         return appendBatch(seconds, meshTrailParameterEntries(snapshot))
     }
 
-    private fun appendBatch(seconds: Long, entries: List<Pair<MeshTrailLogKind, String>>): Boolean {
+    @Synchronized
+    internal fun appendBatch(seconds: Long, entries: List<Pair<MeshTrailLogKind, String>>): Boolean {
         if (!elapsedSeconds.matches(seconds.toString()) || entries.any { !it.first.accepts(it.second) }) return false
         val payload = buildString {
             for ((kind, value) in entries) {

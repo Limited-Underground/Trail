@@ -737,6 +737,8 @@ class AndroidBluetoothGattFacade(
     ) : BleGattLease {
         override var pairingResultSupported = false
             private set
+        override var deviceParametersSupported = false
+            private set
         private val operations = AndroidGattOperationGate()
         private val protocolInfoDiagnostics = ProtectedProtocolInfoDiagnostics.create(
             appContext as? ProtectedProtocolInfoDiagnosticObserver,
@@ -752,6 +754,7 @@ class AndroidBluetoothGattFacade(
         private val bondPrerequisite = AndroidLeaseBondPrerequisite()
         private val profileReadyGate = AndroidDeferredProfileReadyGate()
         private var queuedProfileReadyGatt: BluetoothGatt? = null
+        private var pendingFeatureRead: BluetoothGattDescriptor? = null
         private val profileReadyRunnable = Runnable {
             val expectedGatt = queuedProfileReadyGatt
             queuedProfileReadyGatt = null
@@ -896,6 +899,25 @@ class AndroidBluetoothGattFacade(
                 val value = characteristic.value?.copyOf() ?: byteArrayOf()
                 handleProtocolInfoRead(callbackGatt, characteristic, value, status,
                     ProtectedProtocolInfoDiagnosticOrigin.READ_CALLBACK_LEGACY)
+            }
+
+            override fun onDescriptorRead(
+                callbackGatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int,
+                value: ByteArray,
+            ) {
+                handleFeatureRead(callbackGatt, descriptor, status, value)
+            }
+
+            @Suppress("DEPRECATION")
+            override fun onDescriptorRead(
+                callbackGatt: BluetoothGatt,
+                descriptor: BluetoothGattDescriptor,
+                status: Int,
+            ) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) return
+                handleFeatureRead(callbackGatt, descriptor, status, descriptor.value ?: byteArrayOf())
             }
 
             override fun onDescriptorWrite(
@@ -1415,7 +1437,9 @@ class AndroidBluetoothGattFacade(
                     if (cccdWriteAlreadyFinished) null else operations.stage
                 else -> null
             }
-            if (invalidatedOperation == null) scheduleServiceRediscovery(callbackGatt)
+            if (invalidatedOperation == null && pendingFeatureRead == null) {
+                scheduleServiceRediscovery(callbackGatt)
+            }
         }
 
         private fun consumeInvalidatedOperation(callbackGatt: BluetoothGatt, stage: AndroidGattStage): Boolean {
@@ -1437,6 +1461,7 @@ class AndroidBluetoothGattFacade(
 
         private fun scheduleServiceRediscovery(callbackGatt: BluetoothGatt) {
             pairingResultSupported = false
+            deviceParametersSupported = false
             protocolInfo = null
             command = null
             stream = null
@@ -1483,7 +1508,7 @@ class AndroidBluetoothGattFacade(
                 return
             }
             val pairingFeature = try {
-                info?.getDescriptor(pairingResultFeatureUuid) != null
+                info?.getDescriptor(pairingResultFeatureUuid)
             } catch (_: SecurityException) {
                 fail(BleGattFailure.PERMISSION_REVOKED)
                 return
@@ -1506,7 +1531,7 @@ class AndroidBluetoothGattFacade(
                         return
                     }
                     protocolInfo = info
-                    pairingResultSupported = pairingFeature
+                    pairingResultSupported = pairingFeature != null
                     command = commandCharacteristic
                     stream = streamCharacteristic
                     streamCccd = cccd
@@ -1518,12 +1543,8 @@ class AndroidBluetoothGattFacade(
                         fail(BleGattFailure.PLATFORM_FAILURE)
                         return
                     }
-                    queuedProfileReadyGatt = callbackGatt
-                    if (!mainHandler.post(profileReadyRunnable)) {
-                        queuedProfileReadyGatt = null
-                        if (profileReadyGate.rejectPost()) {
-                            fail(BleGattFailure.PLATFORM_FAILURE)
-                        }
+                    if (pairingFeature == null || !requestFeatureRead(callbackGatt, pairingFeature)) {
+                        postProfileReady(callbackGatt)
                     }
                 }
                 AndroidServiceChangedDiscoveryAction.SCHEDULE_FAILURE_GRACE ->
@@ -1541,6 +1562,51 @@ class AndroidBluetoothGattFacade(
                 else -> fail(BleGattFailure.PLATFORM_FAILURE)
             }
         }
+        @SuppressLint("MissingPermission")
+        private fun requestFeatureRead(callbackGatt: BluetoothGatt, descriptor: BluetoothGattDescriptor): Boolean {
+            if (!operationAllowed(AndroidBlePlatformOperation.READ_FEATURE_DESCRIPTOR)) return false
+            pendingFeatureRead = descriptor
+            val started = try {
+                callbackGatt.readDescriptor(descriptor)
+            } catch (_: SecurityException) {
+                false
+            } catch (_: IllegalStateException) {
+                false
+            }
+            if (!started) pendingFeatureRead = null
+            return started
+        }
+
+        private fun handleFeatureRead(
+            callbackGatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int,
+            value: ByteArray,
+        ) {
+            val supportsParameters = status == BluetoothGatt.GATT_SUCCESS && value.size == 1 && value[0] == 2.toByte()
+            postToMain {
+                if (!owns(callbackGatt) ||
+                    !AndroidGattCharacteristicOwnershipPolicy.owns(pendingFeatureRead, descriptor)
+                ) return@postToMain
+                pendingFeatureRead = null
+                if (!requireProtectedCallbackPrerequisites()) return@postToMain
+                if (serviceChangedDiscovery.isReplacingAcceptedProfile()) {
+                    scheduleServiceRediscovery(callbackGatt)
+                    return@postToMain
+                }
+                deviceParametersSupported = supportsParameters
+                postProfileReady(callbackGatt)
+            }
+        }
+
+        private fun postProfileReady(callbackGatt: BluetoothGatt) {
+            queuedProfileReadyGatt = callbackGatt
+            if (!mainHandler.post(profileReadyRunnable)) {
+                queuedProfileReadyGatt = null
+                if (profileReadyGate.rejectPost()) fail(BleGattFailure.PLATFORM_FAILURE)
+            }
+        }
+
         private fun handleProtocolInfoRead(
             callbackGatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,

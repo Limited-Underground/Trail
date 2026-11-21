@@ -28,6 +28,7 @@ struct LoraCounters {
     std::uint32_t tx_refused{0};  // queued frames dropped because transmit was not permitted
     std::uint32_t tx_busy_dropped{0};  // busy with no further backoff available
     std::uint32_t tx_prelaunch_dropped{0};  // accepted queue entries discarded before TX launch
+    std::uint32_t cad_backoffs_scheduled{0};  // cumulative actual deferrals, including later drops
 };
 
 // Transmit grant, asked at the moment each frame would be launched (review F4).

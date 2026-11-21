@@ -3,6 +3,7 @@ package io.github.nbjelanovic.otclient
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,9 +38,11 @@ import java.io.File
 internal fun V1SupportScreen(
     snapshot: V1SafeDiagnosticSnapshot,
     modifier: Modifier = Modifier,
+    deviceReading: BleDeviceParameterReading? = null,
 ) {
     val context = LocalContext.current
     var problemNote by rememberSaveable { mutableStateOf("") }
+    var readingsVisible by rememberSaveable { mutableStateOf(false) }
     var pendingSaveText by rememberSaveable { mutableStateOf<String?>(null) }
     var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
     val report = remember(snapshot, problemNote) {
@@ -50,11 +54,11 @@ internal fun V1SupportScreen(
         val text = pendingSaveText
         pendingSaveText = null
         if (destination != null && text != null) {
-            statusMessage = runCatching {
-                val output = requireNotNull(context.contentResolver.openOutputStream(destination, "wt"))
-                output.bufferedWriter(Charsets.UTF_8).use { it.write(text) }
+            statusMessage = if (saveV1TextDocument(context, destination, text)) {
                 "Support report saved."
-            }.getOrElse { "Support report could not be saved." }
+            } else {
+                "Support report could not be saved."
+            }
         }
     }
 
@@ -67,6 +71,17 @@ internal fun V1SupportScreen(
     ) {
         Text("Help and support")
         Text("Nothing is sent automatically. Review the report before saving or sharing it.")
+        if (deviceReading != null) {
+            TextButton(onClick = { readingsVisible = !readingsVisible }) {
+                Text(if (readingsVisible) "Hide device readings" else "Show device readings")
+            }
+            if (readingsVisible) {
+                val readings = remember(deviceReading) { meshTrailParameterEntries(deviceReading.snapshot) }
+                for ((kind, values) in readings) {
+                    Text(kind.label + "\n" + values)
+                }
+            }
+        }
         MeshTrailLogExportAction()
         OutlinedTextField(
             value = problemNote,
@@ -113,6 +128,11 @@ internal fun V1SupportScreen(
         statusMessage?.let { Text(it) }
     }
 }
+
+internal fun saveV1TextDocument(context: Context, destination: Uri, text: String): Boolean = runCatching {
+    val output = requireNotNull(context.contentResolver.openOutputStream(destination, "wt"))
+    output.bufferedWriter(Charsets.UTF_8).use { it.write(text) }
+}.isSuccess
 
 internal fun shareSupportReport(
     context: Context,

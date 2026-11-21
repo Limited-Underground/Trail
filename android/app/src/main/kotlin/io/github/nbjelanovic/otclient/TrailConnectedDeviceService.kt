@@ -106,6 +106,7 @@ class TrailConnectedDeviceService : Service() {
                 evaluationConfirmationEnabled = evaluationConfirmation,
                 confirmationClockMillis = confirmationClock,
                 bluetoothRecoveryObserver = operationLog::recordBluetoothRecovery,
+                deviceParameterObserver = operationLog::recordDeviceParameters,
                 benchTextRecord = applicationContext.readF7BenchRecord(),
             ).apply { attachTextOutbox(AndroidV1TextOutboxStorage(applicationContext)) }
             val createdController = TrailAppController(

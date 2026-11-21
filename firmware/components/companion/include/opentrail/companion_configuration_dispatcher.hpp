@@ -14,6 +14,10 @@ public:
     // authority checks; true means a complete validated corresponding response.
     [[nodiscard]] virtual bool execute(const DeviceNameContext&, const ConfigurationFrame& request,
         ConfigurationFrame& response) = 0;
+    // Optional, app-task-owned source. Success returns one canonical OTDP record
+    // with its cache age stamped using the request's monotonic clock.
+    virtual bool read_device_parameters(std::uint64_t,
+        std::array<std::uint8_t, kConfigurationParametersRecordBytes>&) { return false; }
 };
 enum class ConfigurationDispatchCode { accepted, responded, replayed, busy, rejected,
     unauthorized, stale, conflict, no_result, no_pending, contained, output_too_small };
@@ -84,6 +88,8 @@ private:
     };
     [[nodiscard]] bool refresh();
     [[nodiscard]] ConfigurationDispatchResult finish(const ConfigurationFrame*);
+    [[nodiscard]] ConfigurationDispatchResult execute_parameters(
+        const ConfigurationFrame&, ConfigurationFrame&);
     DeviceNameAuthoritySource& source_;
     ConfigurationBaseHandler& base_;
     ConfigurationConfirmationBackend* confirmation_;
@@ -109,5 +115,8 @@ private:
     std::array<std::uint8_t,kConfigurationRecordBytes> request_{};
     ConfigurationDispatchResult cached_{};
     DeviceNamePayload confirmed_name_{};
+    std::array<std::uint8_t, kConfigurationParametersRecordBytes> parameters_record_{};
+    std::uint32_t parameters_exchange_{0};
+    std::uint64_t parameters_admitted_ms_{0};
 };
 } // namespace opentrail::companion

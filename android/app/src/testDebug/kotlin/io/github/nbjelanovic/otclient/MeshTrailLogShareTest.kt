@@ -86,6 +86,24 @@ class MeshTrailLogShareTest {
         prior.filterKeys { it != expired.name }.forEach { (name, bytes) -> assertEquals(bytes, after[name]) }
     }
 
+    @Test fun saveWritesTheSameUtf8TextToTheSelectedDocument() {
+        val host = CaptureContext(context)
+        val report = requireNotNull(meshTrailLogAttachment(sample))
+        assertEquals("MeshTrail-operation-log.txt", report.fileName)
+        assertEquals("text/plain", report.mimeType)
+        val document = File(context.cacheDir, report.fileName).apply { writeText("stale".repeat(100)) }
+
+        assertTrue(saveV1TextDocument(host, Uri.fromFile(document), report.text))
+        assertArrayEquals(sample.toByteArray(Charsets.UTF_8), document.readBytes())
+        assertTrue(host.launches.isEmpty())
+        assertTrue(requireNotNull(directory.listFiles()).isEmpty())
+    }
+
+    @Test fun missingSaveDestinationReportsFailure() {
+        val destination = Uri.fromFile(File(context.cacheDir, "missing/MeshTrail-operation-log.txt"))
+        assertFalse(saveV1TextDocument(context, destination, sample))
+    }
+
     @Test fun oversizeUtf8IsRejectedBeforePreparingAnAttachment() = withHostProvider {
         val host = CaptureContext(context)
         assertFalse(shareMeshTrailLog(host, "é".repeat(65 * 1024)))

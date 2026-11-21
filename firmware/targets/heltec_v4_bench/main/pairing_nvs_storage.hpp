@@ -32,6 +32,16 @@
 
 namespace opentrail::target::heltec_v4_bench {
 
+struct PairingNvsEntryUsage {
+    std::uint64_t observed_at_ms;
+    std::uint32_t used_entries;
+    std::uint32_t free_entries;
+    std::uint32_t total_entries;
+};
+
+// Last successful read of ot_state allocation entries. Never mounts or scans NVS.
+[[nodiscard]] std::optional<PairingNvsEntryUsage> pairing_nvs_entry_usage();
+
 class PairingNvsStorage final : public security_evaluation::EvaluationGenerationBackend,
                               public security_evaluation::PairingCompletionArchive {
 public:

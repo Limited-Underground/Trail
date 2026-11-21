@@ -61,6 +61,7 @@ std::size_t g_pairing_tuples = 0;
 std::size_t g_d112_tuples = 0;
 constexpr unsigned kLegacyLaneFirst = static_cast<unsigned>(PairingNvsStorage::Store::packet_data_tx);
 constexpr unsigned kLaneCount = 4;
+std::optional<PairingNvsEntryUsage> g_entry_usage;
 
 // One recursive lock serializes every storage operation with retire() and the
 // factory-reset hook, which may run on another task (review R2A-6): reset waits
@@ -310,6 +311,11 @@ bool PairingNvsStorage::acquire_partition() {
     return true;
 }
 
+std::optional<PairingNvsEntryUsage> pairing_nvs_entry_usage() {
+    Guard guard;
+    return g_entry_usage;
+}
+
 PairingNvsStorage::PairingNvsStorage()
     : views_{{{*this, Store::identity}, {*this, Store::journal},
               {*this, Store::binding}, {*this, Store::boot}, {*this, Store::completion},
@@ -351,6 +357,7 @@ bool register_pairing_storage(PairingNvsStorage* storage) {
 bool retire_pairing_storage_for_reset() {
     Guard guard;
     g_reset_retired = true;
+    g_entry_usage.reset();
     if (g_pairing_owner != nullptr) g_pairing_owner->retire();
     for (auto* owner : g_group_owners) if (owner != nullptr) owner->retire();
     return g_mount_users == 0 && !g_unmount_uncertain;
@@ -578,9 +585,20 @@ bool PairingNvsStorage::budget_ok() {
     const auto started_us = esp_timer_get_time();
     const bool read_ok = partition_stats(stats) && within_budget(kPairingScope, handle_, stats);
     ++budget_checks_;
-    budget_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
-    if (!read_ok) (void)fault();
-    return read_ok;
+    const auto observed_us = esp_timer_get_time();
+    budget_us_ += static_cast<std::uint64_t>(observed_us - started_us);
+    if (!read_ok) {
+        (void)fault();
+        return false;
+    }
+    if (stats.free_entries == stats.total_entries - stats.used_entries) {
+        g_entry_usage = PairingNvsEntryUsage{
+            static_cast<std::uint64_t>(observed_us / 1000),
+            static_cast<std::uint32_t>(stats.used_entries),
+            static_cast<std::uint32_t>(stats.free_entries),
+            static_cast<std::uint32_t>(stats.total_entries)};
+    }
+    return true;
 }
 
 bool PairingNvsStorage::authorize_mutation(std::size_t bytes, bool grows) {

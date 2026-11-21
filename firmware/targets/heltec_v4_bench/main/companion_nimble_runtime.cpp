@@ -5,9 +5,7 @@
 #include "heltec_v4_gnss_snapshot.hpp"
 #include "confirmation_evaluation_config.hpp"
 #include "companion_connection_diagnostics.hpp"
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
 #include "companion_host_stack_observer.hpp"
-#endif
 #if OPENTRAIL_CONFIRMATION_EVALUATION
 #include "confirmation_runtime_guard.hpp"
 #endif
@@ -78,6 +76,8 @@ public:
 
 portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;
 HeltecV4GnssSnapshot g_gnss_snapshot;
+// Both the collector's publication and ConfigurationBaseAuthority run on app_main.
+device_parameters::Snapshot g_parameters_snapshot;
 
 #if OPENTRAIL_LORA_LINK_TEST
 // Bench diagnostic: every status reply served to a phone.
@@ -282,6 +282,19 @@ public:
         } else return false;
         response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
         return encoded.encoded();
+    }
+
+    bool read_device_parameters(std::uint64_t now_ms,
+        std::array<std::uint8_t, kConfigurationParametersRecordBytes>& record) override {
+        static_assert(kConfigurationParametersRecordBytes == device_parameters::kRecordBytes);
+        device_parameters::Snapshot served{};
+        if (g_parameters_snapshot.sequence == 0 ||
+            device_parameters::serve(g_parameters_snapshot, now_ms, served) !=
+                device_parameters::Error::none) {
+            return false;
+        }
+        const auto encoded = device_parameters::encode(served, record.data(), record.size());
+        return encoded.error == device_parameters::Error::none && encoded.bytes == record.size();
     }
 };
 ConfigurationBaseAuthority g_configuration_base;
@@ -667,17 +680,13 @@ public:
         if (result != pdPASS) return false;
         host_started_ = true;
         g_bluetooth_name_host_ready.store(true, std::memory_order_release);
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.record_created(host_task_);
-#endif
         return true;
     }
 
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
     bool host_stack_minimum_free_bytes(std::uint32_t& bytes) const {
         return host_stack_observer_.minimum_free_bytes(bytes);
     }
-#endif
 
     bool configure_public_service_advertising() override {
         if (!host_started_ || !clear_pending_cccd_value_changes()) return false;
@@ -748,9 +757,7 @@ public:
         // returned or the run loop had already published its exit, delete the
         // exact task before deinitializing host/controller state. No callback
         // is required for cleanup.
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
         host_stack_observer_.clear_before_delete();
-#endif
         if (host_task_ != nullptr) {
             vTaskDelete(host_task_);
             host_task_ = nullptr;
@@ -852,9 +859,7 @@ private:
     bool host_run_exited_{false};
     std::uint8_t own_address_type_{BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT};
     TaskHandle_t host_task_{nullptr};
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
     CompanionHostStackObserver host_stack_observer_{};
-#endif
 };
 
 EspNimbleRuntimePort g_runtime_port;
@@ -1595,11 +1600,9 @@ bool companion_confirmation_runtime_current() {
 #endif
 }
 
-#if OPENTRAIL_CONFIRMATION_EVALUATION || OPENTRAIL_CONNECTION_DIAGNOSTICS
 bool companion_nimble_host_stack_minimum_free_bytes(std::uint32_t& bytes) {
     return g_runtime_port.host_stack_minimum_free_bytes(bytes);
 }
-#endif
 
 #if OPENTRAIL_LORA_LINK_TEST
 SnapshotServedDiagnostic snapshot_served_diagnostic() {
@@ -1607,6 +1610,10 @@ SnapshotServedDiagnostic snapshot_served_diagnostic() {
             g_snapshot_served_gnss.load(), g_snapshot_served_revision.load()};
 }
 #endif
+
+void publish_companion_device_parameters(const device_parameters::Snapshot& snapshot) {
+    g_parameters_snapshot = snapshot;
+}
 
 void publish_companion_gnss_observation(
     bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms) {
