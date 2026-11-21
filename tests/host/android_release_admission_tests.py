@@ -548,12 +548,28 @@ def test_ot088_source_privacy_boundary_is_explicit() -> None:
     assert 'ArrayBlockingQueue(128)' in history_owner
     assert 'context.noBackupFilesDir.resolve("meshtrail-operation-log")' in history_owner
     assert 'variant?.onState(state)' in history_owner and 'variant?.close()' in history_owner
+    outbox_path = package / "AndroidV1TextOutboxStorage.kt"
+    outbox = production_by_path[outbox_path]
+    # This store holds real message bodies. Only authenticated ciphertext may
+    # reach its one private file. The Keystore alias is local to the app.
+    for required in (
+        'const val KEYSTORE = "AndroidKeyStore"',
+        'const val TRANSFORMATION = "AES/GCM/NoPadding"',
+        "cipher.init(Cipher.ENCRYPT_MODE, key)",
+        "cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(",
+        "val bytes = byteArrayOf(FILE_VERSION) + cipher.iv + cipher.doFinal(cleartext)",
+        "val output = file.startWrite()",
+        "readFile().contentEquals(bytes)",
+    ):
+        assert required in outbox
+    assert re.findall(r"output\.write\(([^\n]+)\)", outbox) == ["bytes"]
+    assert outbox.count("file.startWrite()") == 1
     for path, source in production_by_path.items():
         if path not in (support_path, history_path):
             assert forbidden_file_class.search(source) is None
         if path != support_path:
             assert "cacheDir" not in source
-        if path == package / "AndroidV1InboxStorage.kt":
+        if path in (package / "AndroidV1InboxStorage.kt", outbox_path):
             assert source.count("noBackupFilesDir") == 1
             assert "AtomicFile(context.noBackupFilesDir.resolve(FILE_NAME))" in source
         elif path != history_owner_path:

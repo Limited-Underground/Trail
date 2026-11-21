@@ -2,6 +2,21 @@
 
 ## 2026-11-21
 
+### OT-0314 Queue MeshTrail text while the board is away
+
+The Android service saves accepted text in an encrypted outbox. A fresh
+protected session for the same pairing drains it in order. A durable
+reservation precedes each Bluetooth write. Definite pre-send refusals have up
+to three attempts. An uncertain outcome stays visible and is never replayed
+automatically. The app shows Sent after correlated radio transmission and
+Delivered after a protected peer ACK.
+
+Host coverage exercises reconnect, cold reopen, Busy retries, interruption
+after a write, destination changes and storage failure. Live delivery needs
+a protected text-capable Android and firmware pair. I-023 cold recovery and
+setup are already on main through PRs #260 and #290. Phone confirmation
+remains open. Part of #118.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result

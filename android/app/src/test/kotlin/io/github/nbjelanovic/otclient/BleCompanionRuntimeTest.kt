@@ -2673,6 +2673,112 @@ class BleCompanionRuntimeTest {
         val r=textWire(f)
         textEmit(f,io.github.nbjelanovic.otprotocol.CompanionTextDelivery(r.reference,event,origin,r.operation,100uL,4097u,counter,phase,reason))
     }
+    @Test fun textOutboxKeepsOfflineIntentThroughOwnerRecreationThenDrainsWithFreshAuthority() {
+        val storage = MemoryTextOutboxStorage()
+        val first = textOutboxFixture(storage)
+        val owner = checkNotNull(first.owner)
+        first.scheduler.advanceBy(0)
+        val draft = "Meet at the trailhead"
+        first.gatt.emit(BleGattEvent.Disconnected)
+        val recipient = assertNotNull(owner.state.textMessages.recipient)
+        assertTrue(owner.submitText(recipient, draft))
+        assertEquals(V1QueuedText(draft, "Waiting"), owner.state.textMessages.queued.single())
+        assertTrue(textOutboxCommands(first).isEmpty())
+        owner.close()
+
+        val reopened = textOutboxFixture(storage)
+        val newOwner = checkNotNull(reopened.owner)
+        assertEquals(V1QueuedText(draft, "Waiting"), newOwner.state.textMessages.queued.single())
+        assertTrue(textOutboxCommands(reopened).isEmpty())
+        reopened.scheduler.advanceBy(0)
+        assertEquals(draft, textOutboxCommands(reopened).single().text)
+        textResult(reopened)
+        assertEquals("Waiting", newOwner.state.textMessages.queued.single().status)
+        textDelivery(reopened, 1u, 2)
+        assertEquals("Sent", newOwner.state.textMessages.queued.single().status)
+        textDelivery(reopened, 2u, 3)
+        assertEquals(V1QueuedText(draft, "Delivered"), newOwner.state.textMessages.queued.single())
+        assertEquals(1, textOutboxCommands(reopened).size)
+        newOwner.close()
+    }
+
+    @Test fun textOutboxDoesNotReplayAWriteInterruptedByDisconnect() {
+        val storage = MemoryTextOutboxStorage()
+        val first = textOutboxFixture(storage)
+        val owner = checkNotNull(first.owner)
+        first.scheduler.advanceBy(0)
+        val draft = "Trying the north route"
+        assertTrue(owner.submitText(assertNotNull(owner.state.textMessages.recipient), draft))
+        first.scheduler.advanceBy(0)
+        assertEquals(draft, textOutboxCommands(first).single().text)
+        first.gatt.emit(BleGattEvent.Disconnected)
+        assertEquals(V1QueuedText(draft, "Delivery unconfirmed"), owner.state.textMessages.queued.single())
+        textDelivery(first, 1u, 3) // A stale indication from the released GATT link.
+        owner.close()
+
+        val reopened = textOutboxFixture(storage)
+        val newOwner = checkNotNull(reopened.owner)
+        reopened.scheduler.advanceBy(0)
+        assertTrue(textOutboxCommands(reopened).isEmpty())
+        assertEquals(V1QueuedText(draft, "Delivery unconfirmed"), newOwner.state.textMessages.queued.single())
+        newOwner.close()
+    }
+
+    @Test fun textOutboxBacksOffAndStopsAfterThreeAuthoritativeBusyRefusals() {
+        val storage = MemoryTextOutboxStorage()
+        val f = textOutboxFixture(storage)
+        val owner = checkNotNull(f.owner)
+        f.scheduler.advanceBy(0)
+        val draft = "Waiting here"
+        assertTrue(owner.submitText(assertNotNull(owner.state.textMessages.recipient), draft))
+        f.scheduler.advanceBy(0)
+        assertEquals(draft, textOutboxCommands(f).single().text)
+        textResult(f, disposition = 2, reason = 9, known = false)
+        assertEquals("Waiting", owner.state.textMessages.queued.single().status)
+
+        f.scheduler.advanceBy(4_999)
+        assertEquals(1, textOutboxCommands(f).size)
+        f.scheduler.advanceBy(1)
+        assertEquals(2, textOutboxCommands(f).size)
+        textResult(f, disposition = 2, reason = 9, known = false)
+
+        f.scheduler.advanceBy(14_999)
+        assertEquals(2, textOutboxCommands(f).size)
+        f.scheduler.advanceBy(1)
+        val requests = textOutboxCommands(f)
+        assertEquals(List(3) { draft }, requests.map { it.text })
+        assertEquals(3, requests.map { it.operation }.distinct().size)
+        textResult(f, disposition = 2, reason = 9, known = false)
+        assertEquals(V1QueuedText(draft, "Failed"), owner.state.textMessages.queued.single())
+        f.scheduler.advanceBy(5_000)
+        assertEquals(3, textOutboxCommands(f).size)
+        owner.close()
+    }
+
+    private fun textOutboxFixture(storage: V1TextOutboxStorage) = ConfigurationFixture(
+        profile = 6, packetOptIn = true, wireAuthority = true, withSessionOwner = true,
+        outboxStorage = storage,
+    ).also {
+        it.name()
+        it.clock()
+    }
+
+    private fun textOutboxCommands(fixture: ConfigurationFixture) = fixture.gatt.commands.mapNotNull {
+        CompanionTextCarrierCodec.decode(it, allowProfile06 = true) as? CompanionTextSend
+    }
+
+    private class MemoryTextOutboxStorage : V1TextOutboxStorage {
+        private var snapshot = V1TextOutboxSnapshot()
+
+        override fun load(): V1TextOutboxSnapshot = snapshot
+
+        override fun save(snapshot: V1TextOutboxSnapshot): Boolean {
+            this.snapshot = snapshot
+            return true
+        }
+    }
+
+
     @Test fun textComposerUsesActualCompletedOtyBindingAndByteBoundaries() {
         for(n in 89..91) for(text in listOf("x".repeat(n),"界".repeat(n/3)+"x".repeat(n%3),"🚲".repeat(n/4)+"x".repeat(n%4))) {
             val f=fixedStatusFixture();val recipient=assertNotNull(f.runtime.textState().recipient);val before=f.gatt.commands.size
@@ -2790,7 +2896,7 @@ class BleCompanionRuntimeTest {
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
         wireAuthority: Boolean = false, wireResponse: (ByteArray) -> ByteArray = { it },
-        pairingResults: Boolean = false) {
+        pairingResults: Boolean = false, outboxStorage: V1TextOutboxStorage? = null) {
         val facade=TestBluetoothFacade(returningOwnerScanSupported=true,enforceOperationGate=true)
         val scheduler=TestRuntimeScheduler()
         var now=100L
@@ -2800,13 +2906,14 @@ class BleCompanionRuntimeTest {
         var clockHook: (() -> Unit)? = null
         var nonce=17u
         val authorityOwner = Any()
-        val wireAdapter = BlePacketAuthorityAdapter(authorityOwner) { now }
-        val runtime=BleCompanionRuntime(facade,scheduler,firstRequestId=firstId,evaluationConfirmationEnabled=optIn,confirmationClockMillis={clockHook?.invoke();now},
+        private val elapsedMillis = { now + if (outboxStorage == null) 0L else scheduler.nowMillis }
+        val wireAdapter = BlePacketAuthorityAdapter(authorityOwner, elapsedMillis)
+        val runtime=BleCompanionRuntime(facade,scheduler,firstRequestId=firstId,evaluationConfirmationEnabled=optIn,confirmationClockMillis={clockHook?.invoke();elapsedMillis()},
             packetV1Enabled=packetOptIn,packetAuthority=if (wireAuthority) wireAdapter else BlePacketAuthorityProvider { query ->
                 proofCalls++;proofHook?.invoke()
                 if(!packetAdmission) null else proofTransform(BlePacketAuthority(query.lease,query.callbackGeneration,
                     query.nonce,query.peer,21u,22u,99u,100000L))
-            })
+            }).also { runtime -> outboxStorage?.let(runtime::attachTextOutbox) }
         val controller=if(withController || withSessionOwner) TrailAppController(CompanionAppController(FakeCompanionTransport()),runtime,
             NearbyDevicesPermissionReader { NearbyDevicesPermissionState.GRANTED },RuntimeDeviceAuthorizationClaimClient(runtime),scheduler,
             groupConfirmationAdapter=RuntimeV1GroupConfirmationAdapter(runtime),groupConfirmationClock={now}) else null
@@ -3508,7 +3615,8 @@ class BleCompanionRuntimeTest {
 
     private class TestRuntimeScheduler : BleRuntimeScheduler {
         val pending = mutableListOf<TestReconnectLease>()
-        private var nowMillis = 0L
+        var nowMillis = 0L
+            private set
         override fun schedule(delayMillis: Long, callback: () -> Unit): BleReconnectLease =
             TestReconnectLease(delayMillis, callback, nowMillis + delayMillis).also(pending::add)
 
