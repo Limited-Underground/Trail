@@ -1,6 +1,6 @@
 # Community conduct
 
-Trail welcomes people with different backgrounds, skill levels and interests.
+MeshTrail welcomes people with different backgrounds, skill levels and interests.
 This applies to repository issues, discussions, pull requests and other
 maintainer-operated project spaces.
 

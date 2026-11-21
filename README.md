@@ -1,13 +1,13 @@
-# Limited Underground Trail
+# MeshTrail
 
-## About Trail
+## About MeshTrail
 
-Trail is an open-source project for sharing messages, location, and status between
+MeshTrail is an open-source project for sharing messages, location, and status between
 people exploring, working, or traveling together. The intended system pairs a
 phone with a portable radio device and carries compact traffic over direct LoRa.
 
 ```text
-Phone ← BLE → Trail device ← direct LoRa → Trail device ← BLE → Phone
+Phone ← BLE → MeshTrail device ← direct LoRa → MeshTrail device ← BLE → Phone
 ```
 
 This is the planned product topology. An internet service is not required by the
@@ -20,7 +20,7 @@ freeze and its exceptions. Device sessions, pushing, merging, signing and
 releases each need the owner's approval first; see the
 [working contract](CONTRIBUTING.md#working-contract).
 
-Trail is an experimental project, not a production release. Android and Heltec
+MeshTrail is an experimental project, not a production release. Android and Heltec
 bench work demonstrates bounded secure pairing, saved-owner reconnection,
 protected device configuration, and display-clock synchronization. Each result
 applies only to the setup and limitations in its evidence record.
@@ -30,7 +30,7 @@ directions through BLE/direct LoRa/BLE, matching diagnostic ACKs and verified
 closure. Its RF was unauthenticated. Coherent protected product messaging,
 supported hardware, field range/endurance and release acceptance remain open.
 Earlier secure-radio experiments retain their exact evidence limits. An iPhone app is not yet
-implemented. Trail is a supplemental communication aid, not a guaranteed rescue
+implemented. MeshTrail is a supplemental communication aid, not a guaranteed rescue
 system.
 
 See [current project status](docs/PROJECT_STATUS.md), the
@@ -41,8 +41,8 @@ See [current project status](docs/PROJECT_STATUS.md), the
 
 Start with the [working contract](CONTRIBUTING.md#working-contract) and the
 [current handoff](docs/PROJECT_STATUS.md#current-recovery-handoff).
-[Trail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
-and [Trail Android App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
+[MeshTrail Firmware Project #1](https://github.com/orgs/Limited-Underground/projects/1)
+and [MeshTrail App Project #8](https://github.com/orgs/Limited-Underground/projects/8)
 own their current task scope, status and dependencies; repository records hold the
 technical evidence. On the owner's recovery machine, use the maintainer-approved checkout;
 historical copies are provenance, not active source. The October 23 bounded
@@ -53,7 +53,7 @@ or these setup examples do not authorize device operations or publication.
 
 ## Get started
 
-1. Read the [Trail Firmware V1 guide](docs/firmware/README.md) for its nine
+1. Read the [MeshTrail Firmware V1 guide](docs/firmware/README.md) for its nine
    assessment areas, [build/recovery evidence](docs/firmware/BUILD_AND_RECOVERY.md)
    and [remaining V1 criteria](docs/firmware/V1_ACCEPTANCE.md).
 2. Explore the [Android client](android/README.md),
@@ -99,4 +99,4 @@ from current release commitments.
 
 ## License
 
-Trail is available under the [Apache License 2.0](LICENSE).
+MeshTrail is available under the [Apache License 2.0](LICENSE).

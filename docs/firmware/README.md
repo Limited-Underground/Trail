@@ -1,4 +1,4 @@
-# Limited Underground Trail Firmware V1
+# MeshTrail Firmware V1
 
 Start here for the firmware's current scope, implementation, evidence and remaining V1 criteria. Development is active under the [working contract](../../CONTRIBUTING.md#working-contract); device sessions and releases each need the owner's approval first. OT-0005i still waits for accepted security admission and exact production-source selection; those production prerequisites remain unmet. [Current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies the documentation task, artifact identities and evidence-access limits.
 
