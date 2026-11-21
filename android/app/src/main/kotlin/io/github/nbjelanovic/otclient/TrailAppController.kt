@@ -38,6 +38,7 @@ sealed interface TrailAppUiState {
         val quickStatus: V1QuickStatusState = V1QuickStatusState(),
         val textMessages: V1TextState = V1TextState(),
         val serviceFailure: ConnectedDeviceServiceStartFailure? = null,
+        val groupRoster: V1BoardGroupState = V1BoardGroupState(),
     ) : TrailAppUiState
 }
 
@@ -323,6 +324,10 @@ class TrailAppController(
     }
     override fun readRadioRegion(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readRadioRegion() }
     override fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writeRadioRegion(selectionId) }
+    override fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean {
+        requireOwnerThread()
+        return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitBoardGroupAction(action)
+    }
     override fun readPublicProfile(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readPublicProfile() }
     override fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writePublicProfile(name,visible) }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readDeviceName() }
@@ -640,6 +645,7 @@ class TrailAppController(
                 authorizationState = authorizationState,
                 factoryResetConfirmationVisible = factoryResetConfirmation != null,
                 groupConfirmation = groupConfirmationCoordinator?.state ?: V1GroupConfirmationState.Unsupported,
+                groupRoster = bluetoothRuntime.boardGroupState(),
             ),
         )
     }

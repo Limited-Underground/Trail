@@ -39,6 +39,7 @@ internal fun V1HomeScreen(
     additionalDeviceTools: @Composable () -> Unit = {},
     onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
+    onBoardGroupAction: (V1BoardGroupAction) -> Boolean = { false },
     deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit, onSetUpLater: () -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
@@ -90,17 +91,22 @@ internal fun V1HomeScreen(
                 textMessages = bluetooth?.textMessages ?: V1TextState(), onSubmitText = onSubmitText)
         } },
         group = { retainedPages.SaveableStateProvider("group") {
-            V1GroupScreen(
-                v1LiveGroupScreenState(connected, confirmation),
-                onAction = { action ->
-                    when (action) {
-                        V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
-                        is V1GroupUiAction.ConfirmDeviceOffer -> if (connected) onConfirmGroupConfirmation(action.offer)
-                        is V1GroupUiAction.CancelDeviceOffer -> if (connected) onCancelGroupConfirmation(action.offer)
-                        else -> Unit
+            V1BoardGroupPanel(
+                state = bluetooth?.groupRoster ?: V1BoardGroupState(),
+                connected = connected,
+                onAction = onBoardGroupAction,
+            ) {
+                if (confirmation != V1GroupConfirmationState.Unsupported) {
+                    V1DeviceGroupConfirmation(confirmation) { action ->
+                        when (action) {
+                            V1GroupUiAction.RefreshDeviceOffer -> if (connected) onRefreshGroupConfirmation()
+                            is V1GroupUiAction.ConfirmDeviceOffer -> if (connected) onConfirmGroupConfirmation(action.offer)
+                            is V1GroupUiAction.CancelDeviceOffer -> if (connected) onCancelGroupConfirmation(action.offer)
+                            else -> Unit
+                        }
                     }
-                },
-            )
+                }
+            }
         } },
         device = { retainedPages.SaveableStateProvider("device") {
             var support by rememberSaveable { mutableStateOf(false) }
@@ -236,7 +242,7 @@ internal fun V1MessagesScreen(connectionStatus: String, onConnect: () -> Unit,
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (direct) "No conversations yet" else "No group conversation", style = MaterialTheme.typography.titleLarge)
                 Text(if (direct) "People who are visible nearby will appear here.\nThey need to accept your chat request first."
-                    else "You can set up a group from the Group tab after a device update.")
+                    else "Use the Group tab to see groups on your device.")
                 if (direct) {
                     OutlinedButton(onClick = { nearby = true }) { Text("Find nearby people") }
                     Text("Finding nearby people needs a device update.", style = MaterialTheme.typography.bodySmall)

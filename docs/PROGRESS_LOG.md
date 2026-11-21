@@ -59,6 +59,18 @@ a protected text-capable Android and firmware pair. I-023 cold recovery and
 setup are already on main through PRs #260 and #290. Phone confirmation
 remains open. Part of #118.
 
+### OT-0305 Show protected group rosters in the MeshTrail App
+
+The Group tab uses the board's protected Discover, Create, Read Roster
+and Stop Trust commands. Read Roster assembles the same scope and trust
+state through all chunks before showing the board-verified signed roster.
+Create and Stop Trust require readback before success appears. A changed
+attachment clears the display and an uncertain mutation is never replayed.
+Invite and Join practice is isolated to Debug and uses local fake data.
+
+Part of #109 and #111. Group-qualified invitations and live group traffic
+remain open, along with the owner phone and board checks.
+
 ### OT-0305 Bind the protected Heltec group lifecycle
 
 Connected first-roster signing to the retained enrollment identity and grouped

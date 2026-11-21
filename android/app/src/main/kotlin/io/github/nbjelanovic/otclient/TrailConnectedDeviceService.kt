@@ -325,6 +325,10 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             return attached?.writeRadioRegion(selectionId) == true
         }
+        override fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean {
+            assertMainThread()
+            return attached?.submitBoardGroupAction(action) == true
+        }
         override fun readPublicProfile(): Boolean {
             assertMainThread()
             return attached?.readPublicProfile() == true

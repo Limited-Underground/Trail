@@ -106,6 +106,13 @@ Step 1 of the [V1 group design](security/GROUP_PAIRWISE_V1.md#implementation-ord
 
 Step 3b reserves the sender's group message numbers durably against the full group and sender identities, and resumes above the last reserved range after a restart. See [OT-0305 Reserve durable group message numbers on the host](PROGRESS_LOG.md#ot-0305-reserve-durable-group-message-numbers-on-the-host). The [per-pair storage index](PROGRESS_LOG.md#ot-0305-index-durable-group-pair-storage-on-the-host) maps qualified peers to durable slots after the roster commits. The host candidate retains roster watermarks and issues a fresh incarnation when a pair slot is reused. The [durable receive window](PROGRESS_LOG.md#ot-0305-persist-the-group-receive-window-on-the-host) suppresses duplicates across host reopen and refuses delivery on uncertain storage. Step 3c adds the [durable roster owner](PROGRESS_LOG.md#ot-0305-persist-signed-group-rosters-and-apply-pair-changes-after-commit), [indexed pair records](PROGRESS_LOG.md#ot-0305-bind-group-pair-records-to-the-current-roster) and [D-120 board-receipt ACK](PROGRESS_LOG.md#ot-0305-acknowledge-durable-group-board-receipt) on the host. Authenticated Packet-v1 group routing, roster fragmentation and fetch, and target storage and wear verification remain open. Live lane rollback is now refused against the [retained verified image](PROGRESS_LOG.md#ot-0305-refuse-same-epoch-rollback-of-live-group-lanes). The [roster transaction workspace](PROGRESS_LOG.md#ot-0305-bound-the-group-roster-transaction-workspace) is bounded and guards callback reentry. The stock security gate now accepts a fully verified local dependency cache. The D-122 catalog is versioned and bounded to 1,413 serialized bytes. Durable D-074 replies and confirms now follow the [verified history transition](PROGRESS_LOG.md#ot-0305-persist-verified-group-catch-up-before-reply) and fresh owners hydrate validated roster consent and pair epochs before starting.
 
+The MeshTrail App's A5 candidate uses the profile 5 protected group commands
+from the Heltec roster lifecycle. The Group tab reads the signed roster,
+creates a group with the selected location rule and stops trust for the
+group selected from the current readback. Invite and Join are Debug
+practice only. See the [OT-0305 app entry](PROGRESS_LOG.md#ot-0305-show-protected-group-rosters-in-the-meshtrail-app).
+Real phone and board acceptance remain open.
+
 ## V1 tester build guards
 
 A11 checks exist for both halves: the firmware refuses a production request on the

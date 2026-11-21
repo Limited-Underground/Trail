@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -20,9 +21,10 @@ class V1UnavailableGroupUiTest {
         ui.setContent { MaterialTheme { TrailApp(controller) } }
         ui.mainClock.advanceTimeBy(2_000)
         ui.onNodeWithText("Group").performClick()
-        ui.onNodeWithText("Creating and joining groups, including QR invitations, is coming in a future update.").assertExists()
+        ui.onNodeWithText("Connect to your device to see groups.").assertExists()
+        ui.onNodeWithText("Refresh groups").assertIsNotEnabled()
         for (label in listOf("Create", "Create ✓", "Join", "Join ✓", "Group name",
-            "Invitation PIN", "Create private group", "Review invitation", "Scan invitation QR",
+            "Invitation PIN", "Create private group", "Create group", "Review invitation", "Scan invitation QR",
             "Confirm matching details")) {
             ui.onNodeWithText(label).assertDoesNotExist()
         }
@@ -33,7 +35,9 @@ class V1UnavailableGroupUiTest {
     @Test fun supportedDeviceConfirmationRemainsReachableWithoutGroupForms() {
         ui.setContent {
             MaterialTheme {
-                V1GroupScreen(v1LiveGroupScreenState(true, V1GroupConfirmationState.Idle), {})
+                V1BoardGroupPanel(V1BoardGroupState(), connected = true, onAction = { false }) {
+                    V1DeviceGroupConfirmation(V1GroupConfirmationState.Idle, {})
+                }
             }
         }
         ui.onNodeWithText("Check your device").assertExists()

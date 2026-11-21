@@ -45,7 +45,20 @@ internal class BleConfigurationSession(
     private var closed = false
     var state = BleConfigurationState(available=true,editorSessionId=context.device,regionAvailable=(minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion==6),publicProfileAvailable=(minorVersion==CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion==6),notice="Check the saved name before changing it.")
         private set
-    val busy get() = namePending != null || timeExchange != null || regionPending != null || publicPending != null
+    private val groups: BleGroupRosterSession? = if (minorVersion == CompanionPublicProfileCodec.PROFILE) BleGroupRosterSession(
+        isCurrent = isCurrent,
+        allocate = allocate,
+        send = { exchange, payload -> transmit(CompanionGroupConfigurationCodec.REQUEST_KIND, exchange, payload) },
+        changed = { update(state.copy(busy = busy)) },
+    ) else null
+
+    val busy: Boolean get() = namePending != null || timeExchange != null || regionPending != null ||
+        publicPending != null || groups?.busy == true
+
+    fun boardGroupState() = groups?.state ?: V1BoardGroupState()
+
+    fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean =
+        !closed && !busy && groups?.submit(action) == true
 
     fun readRegion(): Boolean = startRegion(CompanionRegionPayload(1))
     fun writeRegion(selectionId: Int): Boolean {
@@ -116,6 +129,9 @@ internal class BleConfigurationSession(
     }
     fun receive(frame: CompanionConfigurationFrame): Boolean {
         if(closed || !isCurrent() || minorVersion==6 && !allowProfile06 || frame.sessionNonce!=context.sessionNonce || frame.minorVersion!=minorVersion) return false
+        if (frame.kind == CompanionGroupConfigurationCodec.RESPONSE_KIND) {
+            return groups?.receive(frame.exchangeId, frame.payload) == true
+        }
         val profile=publicPending
         if(frame.kind==CompanionPublicProfileCodec.RESPONSE && profile?.exchange==frame.exchangeId) {
             publicPending=null
@@ -191,6 +207,10 @@ internal class BleConfigurationSession(
     }
     fun lost(exchange: UInt) {
         if(closed || !isCurrent()) return
+        if (groups?.pendingExchange == exchange) {
+            groups.lost(exchange)
+            return
+        }
         if(publicPending?.exchange==exchange) { publicPending=null;uncertainPublic();return }
         if(regionPending?.exchange==exchange) { regionPending=null;uncertainRegion();return }
         if(namePending?.exchangeId==exchange) {
@@ -200,8 +220,10 @@ internal class BleConfigurationSession(
             update(state.copy(busy=false,notice="Couldn't confirm the time change.\nTry again."))
         }
     }
-    fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange ?: publicPending?.exchange
+    fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange ?:
+        publicPending?.exchange ?: groups?.pendingExchange
     fun close() {
+        groups?.close()
         state=clearPublic(state).copy(available=false,publicProfileAvailable=false,suggestedDeviceName=null)
         closed=true;regionPending=null;publicPending=null;namePending=null;timeExchange=null;challenge=null
         names.lifecycle(context,V1NameLifecycle.DISCONNECTED)

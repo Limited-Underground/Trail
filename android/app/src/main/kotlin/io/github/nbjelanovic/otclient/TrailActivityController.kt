@@ -280,6 +280,11 @@ class TrailActivityController(
 
     override fun readRadioRegion(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readRadioRegion()==true }
     override fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.writeRadioRegion(selectionId)==true }
+    override fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean {
+        requireOwnerThread()
+        return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
+            port?.submitBoardGroupAction(action) == true
+    }
     override fun readPublicProfile(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readPublicProfile()==true }
     override fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.writePublicProfile(name,visible)==true }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readDeviceName()==true }
