@@ -30,8 +30,9 @@ std::uint8_t time_code(time::OledTimeCode c) {
 }
 }
 ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b,
-    RegionPersistence* region,std::uint8_t selected_minor,ConfigurationConfirmationBackend* confirmation,PublicProfilePersistence* public_profile)
-    : source_(s),base_(b),confirmation_(confirmation),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
+    RegionPersistence* region,std::uint8_t selected_minor,ConfigurationConfirmationBackend* confirmation,PublicProfilePersistence* public_profile,
+    ConfigurationGroupBackend* group)
+    : source_(s),base_(b),confirmation_(confirmation),group_(group),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
       selected_minor_(selected_minor),time_owner_(time_source_) {
     confirmed_name_.kind=DeviceNameKind::snapshot;
     if(region) region_owner_.emplace(name_source_,*region);
@@ -131,7 +132,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
     if(frame.kind!=1 && frame.kind!=2 && frame.kind!=4 && frame.kind!=5 &&
         !(frame.kind==6 && (selected_minor_==3 || selected_minor_==kPublicProfileMinor || selected_minor_==kConfirmationEvaluationMinor) && region_owner_) &&
         !(frame.kind==8 && selected_minor_==kPublicProfileMinor && public_profile_owner_) &&
-        !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor)) return status(ConfigurationDispatchCode::rejected);
+        !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor) &&
+        !(frame.kind==kConfigurationGroupCommandKind && selected_minor_==kPublicProfileMinor)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
         if(size!=request_bytes_ || !std::equal(bytes,bytes+size,request_.begin())) return status(ConfigurationDispatchCode::conflict);
         if(pending_) return status(ConfigurationDispatchCode::busy);
@@ -164,7 +166,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationF
     pending_=false; terminal_=true; cached_=status(ConfigurationDispatchCode::no_result);
     if(!refresh() || authority_.context!=request_context_ || frame==nullptr ||
         frame->minor_version!=selected_minor_) return cached_;
-    if(frame->kind==0x8a && (authority_.now_ms<request_admitted_ms_ ||
+    if((frame->kind==0x8a || frame->kind==kConfigurationGroupResultKind) &&
+        (authority_.now_ms<request_admitted_ms_ ||
         authority_.now_ms-request_admitted_ms_>=5000)) return cached_;
     const auto encoded=encode_configuration_frame(*frame,cached_.record.data(),cached_.record.size());
     if(encoded.encoded()) { cached_.bytes=encoded.encoded_bytes; cached_.code=ConfigurationDispatchCode::responded; }
@@ -200,6 +203,33 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         return finish(&response);
     }
     if(!ready_) return finish(nullptr);
+    if (request.kind == kConfigurationGroupCommandKind) {
+        if (authority_.now_ms < request_admitted_ms_ ||
+            authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);
+        const auto command = decode_group_configuration_command(request.payload.data(), request.payload_bytes);
+        if (!command.decoded()) return finish(nullptr);
+
+        GroupConfigurationResult result{command.value.operation, GroupConfigurationStatus::unavailable};
+        if (group_ && group_->available()) {
+            if (command.value.operation == GroupConfigurationOperation::discover) {
+                result.status = GroupConfigurationStatus::ok;
+            } else {
+                if (!refresh() || !ready_ || authority_.context != request_context_ ||
+                    authority_.now_ms < request_admitted_ms_ ||
+                    authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);
+                result = group_->execute(request_context_, command.value);
+                if (result.operation != command.value.operation ||
+                    (result.status == GroupConfigurationStatus::ok &&
+                        command.value.operation == GroupConfigurationOperation::stop_trust &&
+                        result.scope != command.value.scope)) return finish(nullptr);
+            }
+        }
+        response.kind = kConfigurationGroupResultKind;
+        const auto encoded = encode_group_configuration_result(result, response.payload.data(), response.payload.size());
+        if (!encoded.encoded()) return finish(nullptr);
+        response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return finish(&response);
+    }
     if(request.kind==7) {
         if(authority_.now_ms<request_admitted_ms_ || authority_.now_ms-request_admitted_ms_>=5000) return finish(nullptr);
         if(!confirmation_ || selected_minor_!=kConfirmationEvaluationMinor ||

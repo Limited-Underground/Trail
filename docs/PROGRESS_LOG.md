@@ -2,6 +2,13 @@
 
 ## 2026-11-21
 
+### OT-0305 Add protected group command framing
+
+Added versioned group discovery, Create and Stop Trust request and result
+framing on the existing protected companion lane. Firmware without a durable
+group backend returns unavailable. See the
+[companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
+
 ### OT-0237e Check counter-store consistency for F12
 
 The outbound lease store now verifies that two committed slots agree before

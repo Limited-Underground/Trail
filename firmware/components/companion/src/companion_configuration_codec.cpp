@@ -1,4 +1,5 @@
 #include "opentrail/companion_configuration_codec.hpp"
+#include "opentrail/companion_group_configuration.hpp"
 #include "opentrail/companion_device_name_codec.hpp"
 #include "opentrail/companion_confirmation_codec.hpp"
 #include <algorithm>
@@ -56,6 +57,12 @@ bool frame_valid(const ConfigurationFrame& f) {
         const auto d=decode_public_profile_payload(f.payload.data(),f.payload_bytes);
         return d.decoded() && ((f.kind==8)==(d.value.kind==DeviceNameKind::read || d.value.kind==DeviceNameKind::write));
     }
+    case kConfigurationGroupCommandKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_group_configuration_command(f.payload.data(), f.payload_bytes).decoded();
+    case kConfigurationGroupResultKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_group_configuration_result(f.payload.data(), f.payload_bytes).decoded();
     case 7: case 0x89: {
         if(f.minor_version!=kConfirmationEvaluationMinor) return false;
         const auto d=decode_confirmation_payload(f.payload.data(),f.payload_bytes);
@@ -152,4 +159,113 @@ ConfigurationDecodeResult<ConfigurationRegionPayload> decode_configuration_regio
         std::any_of(b+18,b+24,[](auto value){return value!=0;}) || !region_valid(p)) return {ConfigurationCodecError::malformed,{}};
     return {ConfigurationCodecError::none,p};
 }
+namespace {
+constexpr std::size_t kGroupHeaderBytes = 8;
+constexpr std::size_t kGroupIdOffset = kGroupHeaderBytes + GroupConfigurationScope{}.admin.size();
+constexpr std::size_t kRosterDigestOffset = kGroupIdOffset + sizeof(std::uint64_t);
+constexpr std::size_t kGroupScopedBytes = kRosterDigestOffset + GroupConfigurationScope{}.roster_digest.size();
+static_assert(kGroupScopedBytes == 80 && kGroupScopedBytes <= kConfigurationPayloadBytes);
+
+bool group_header_valid(const std::uint8_t* b, std::size_t size) {
+    return b != nullptr && size >= kGroupHeaderBytes && magic(b, "OTGC") && b[4] == 1 && b[7] == 0;
+}
+
+std::size_t group_command_size(GroupConfigurationOperation operation) {
+    switch (operation) {
+    case GroupConfigurationOperation::discover: return kGroupHeaderBytes;
+    case GroupConfigurationOperation::create: return kGroupHeaderBytes + 1;
+    case GroupConfigurationOperation::stop_trust: return kGroupScopedBytes;
+    }
+    return 0;
+}
+
+bool group_scope_valid(const GroupConfigurationScope& scope) {
+    const auto nonzero = [](std::uint8_t value) { return value != 0; };
+    return scope.group_id != 0 &&
+        std::any_of(scope.admin.begin(), scope.admin.end(), nonzero) &&
+        std::any_of(scope.roster_digest.begin(), scope.roster_digest.end(), nonzero);
+}
+
+GroupConfigurationScope read_group_scope(const std::uint8_t* b) {
+    GroupConfigurationScope scope{};
+    std::copy_n(b + kGroupHeaderBytes, scope.admin.size(), scope.admin.begin());
+    scope.group_id = read<std::uint64_t>(b + kGroupIdOffset);
+    std::copy_n(b + kRosterDigestOffset, scope.roster_digest.size(), scope.roster_digest.begin());
+    return scope;
+}
+
+void write_group_scope(const GroupConfigurationScope& scope, std::uint8_t* b) {
+    std::copy(scope.admin.begin(), scope.admin.end(), b + kGroupHeaderBytes);
+    write(b + kGroupIdOffset, scope.group_id);
+    std::copy(scope.roster_digest.begin(), scope.roster_digest.end(), b + kRosterDigestOffset);
+}
+
+std::size_t group_result_size(GroupConfigurationOperation operation, GroupConfigurationStatus status) {
+    if (group_command_size(operation) == 0 || status > GroupConfigurationStatus::uncertain) return 0;
+    if (operation == GroupConfigurationOperation::discover) {
+        return status == GroupConfigurationStatus::ok || status == GroupConfigurationStatus::unavailable ?
+            kGroupHeaderBytes : 0;
+    }
+    return status == GroupConfigurationStatus::ok ? kGroupScopedBytes : kGroupHeaderBytes;
+}
+} // namespace
+
+ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigurationCommand& command,
+    std::uint8_t* out, std::size_t capacity) {
+    const auto size = group_command_size(command.operation);
+    const bool scoped = command.operation == GroupConfigurationOperation::stop_trust;
+    const auto max_rule = command.operation == GroupConfigurationOperation::create ? 2 : 0;
+    if (size == 0 || command.location_rule > max_rule ||
+        (scoped ? !group_scope_valid(command.scope) : command.scope != GroupConfigurationScope{}))
+        return {ConfigurationCodecError::malformed, 0};
+
+    std::array<std::uint8_t, kGroupScopedBytes> bytes{'O','T','G','C',1,
+        static_cast<std::uint8_t>(command.operation)};
+    if (scoped) write_group_scope(command.scope, bytes.data());
+    if (command.operation == GroupConfigurationOperation::create) bytes[kGroupHeaderBytes] = command.location_rule;
+    return emit(bytes.data(), size, out, capacity);
+}
+
+ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_command(
+    const std::uint8_t* b, std::size_t size) {
+    if (!group_header_valid(b, size) || b[6] != 0) return {ConfigurationCodecError::malformed, {}};
+    GroupConfigurationCommand command{static_cast<GroupConfigurationOperation>(b[5])};
+    if (size != group_command_size(command.operation)) return {ConfigurationCodecError::malformed, {}};
+    if (command.operation == GroupConfigurationOperation::create) {
+        command.location_rule = b[kGroupHeaderBytes];
+        if (command.location_rule > 2) return {ConfigurationCodecError::malformed, {}};
+    }
+    if (command.operation == GroupConfigurationOperation::stop_trust) {
+        command.scope = read_group_scope(b);
+        if (!group_scope_valid(command.scope)) return {ConfigurationCodecError::malformed, {}};
+    }
+    return {ConfigurationCodecError::none, command};
+}
+
+ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigurationResult& result,
+    std::uint8_t* out, std::size_t capacity) {
+    const auto size = group_result_size(result.operation, result.status);
+    if (size == 0 || (size == kGroupScopedBytes ? !group_scope_valid(result.scope) :
+        result.scope != GroupConfigurationScope{})) return {ConfigurationCodecError::malformed, 0};
+
+    std::array<std::uint8_t, kGroupScopedBytes> bytes{'O','T','G','C',1,
+        static_cast<std::uint8_t>(result.operation), static_cast<std::uint8_t>(result.status)};
+    if (size == kGroupScopedBytes) write_group_scope(result.scope, bytes.data());
+    return emit(bytes.data(), size, out, capacity);
+}
+
+ConfigurationDecodeResult<GroupConfigurationResult> decode_group_configuration_result(
+    const std::uint8_t* b, std::size_t size) {
+    if (!group_header_valid(b, size)) return {ConfigurationCodecError::malformed, {}};
+    GroupConfigurationResult result{static_cast<GroupConfigurationOperation>(b[5]),
+        static_cast<GroupConfigurationStatus>(b[6])};
+    if (size != group_result_size(result.operation, result.status))
+        return {ConfigurationCodecError::malformed, {}};
+    if (size == kGroupScopedBytes) {
+        result.scope = read_group_scope(b);
+        if (!group_scope_valid(result.scope)) return {ConfigurationCodecError::malformed, {}};
+    }
+    return {ConfigurationCodecError::none, result};
+}
+
 } // namespace opentrail::companion
