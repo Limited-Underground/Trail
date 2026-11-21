@@ -15,7 +15,12 @@ struct GroupConfigurationScope {
     std::array<std::uint8_t, 32> admin{};
     std::uint64_t group_id{0};
     std::array<std::uint8_t, 32> roster_digest{};
-    bool operator==(const GroupConfigurationScope&) const = default;
+    bool operator==(const GroupConfigurationScope& other) const {
+        return admin == other.admin && group_id == other.group_id && roster_digest == other.roster_digest;
+    }
+    bool operator!=(const GroupConfigurationScope& other) const {
+        return !(*this == other);
+    }
 };
 
 struct GroupConfigurationCommand {
