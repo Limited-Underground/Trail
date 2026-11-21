@@ -499,6 +499,16 @@ class BleCompanionRuntime(
     private var quickStatusRecipient: V1QuickStatusRecipient? = null
     private var packetBinding: BlePacketAuthority? = null
     private val textConversation = V1TextConversation()
+    private var textOutbox: V1TextOutbox? = null
+    private var outboxBinding: io.github.nbjelanovic.otprotocol.CompanionAuthorityResponse? = null
+    private var outboxTimer: BleReconnectLease? = null
+    private var outboxAttemptId: Long? = null
+
+    internal fun attachTextOutbox(storage: V1TextOutboxStorage) {
+        requireOwnerThread()
+        check(state == BleRuntimeState.Inactive && textOutbox == null)
+        textOutbox = V1TextOutbox(storage, confirmationClockMillis)
+    }
     private var textOperation = 0uL
     private var textHandedOff = false
     private var textTimeout: BleReconnectLease? = null
@@ -1095,16 +1105,93 @@ class BleCompanionRuntime(
             packetDelivery.currentRequest?.takeIf { it.currentAttachment }?.phase)
     }
 
-    /** Text never supplies peer, identity, group, epoch or authority. */
+    /** The queue's local recipient token allows saving a message without granting send authority. */
     fun submitText(recipient: V1QuickStatusRecipient, text: String): Boolean {
         requireOwnerThread()
+        if (closed || deliveringObserver || queryingPacketAuthority) return false
+        val outbox = textOutbox ?: return sendTextNow(recipient, text)
+        val saved = outbox.enqueue(recipient, text)
+        publish(state)
+        return saved
+    }
+
+    private fun scheduleTextOutbox(delayMillis: Long? = null) {
+        val outbox = textOutbox ?: return
+        val wire = packetBinding?.wireBinding
+        if (closed || state !is BleRuntimeState.Ready || outbox.unavailable || wire == null) {
+            outboxTimer?.close()
+            outboxTimer = null
+            return
+        }
+        if (outboxTimer != null) return
+        val delay = delayMillis ?: if (outboxBinding !== wire) 0L else outbox.nextDelayMillis() ?: return
+        outboxTimer = scheduler.schedule(delay) {
+            requireOwnerThread()
+            outboxTimer = null
+            pumpTextOutbox(outbox)
+        }
+    }
+
+    private fun pumpTextOutbox(outbox: V1TextOutbox) {
+        val binding = currentTextBinding() ?: return
+        val recipient = quickStatusRecipient ?: return
+        if (outboxBinding !== binding) {
+            outboxBinding = binding
+            outbox.bindRecipient(textOutboxRecipient(binding))
+            publish(state)
+            return
+        }
+        val delay = outbox.nextDelayMillis() ?: return
+        if (delay > 0 || textLaneBusy() || packetOrigin?.terminal == false) {
+            scheduleTextOutbox(maxOf(delay, 1_000L))
+            return
+        }
+        val attempt = outbox.beginAttempt()
+        if (attempt != null) {
+            if (sendTextNow(recipient, attempt.text, attempt.id)) return
+            // Any write which may have reached the board is resolved by the conversation instead.
+            outbox.finishAttempt(attempt.id, V1TextOutboxResult.RETRYABLE)
+        }
+        publish(state)
+    }
+
+    private fun textOutboxRecipient(binding: io.github.nbjelanovic.otprotocol.CompanionAuthorityResponse): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        digest.update(binding.localIdentity)
+        digest.update(binding.remoteIdentity)
+        digest.update(java.nio.ByteBuffer.allocate(16).putLong(binding.group.toLong())
+            .putLong(binding.membershipRevision.toLong()).array())
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private fun finishTextOutboxAttempt() {
+        val id = outboxAttemptId ?: return
+        val result = when (textConversation.phase) {
+            BlePacketDeliveryPhase.PROTECTED_PEER_ACK -> V1TextOutboxResult.SENT
+            BlePacketDeliveryPhase.OUTCOME_UNKNOWN -> V1TextOutboxResult.UNCONFIRMED
+            BlePacketDeliveryPhase.NOT_SENT -> V1TextOutboxResult.RETRYABLE
+            BlePacketDeliveryPhase.AUTHORITATIVE_REJECTION -> {
+                if (textConversation.reason == 9) V1TextOutboxResult.RETRYABLE else V1TextOutboxResult.FAILED
+            }
+            BlePacketDeliveryPhase.FAILED -> V1TextOutboxResult.FAILED
+            else -> return
+        }
+        outboxAttemptId = null
+        textOutbox?.finishAttempt(id, result)
+    }
+
+    private fun textLaneBusy() = textConversation.busy || pendingAction != null ||
+        pendingStatusRefresh != null || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
+        configurationSession?.busy == true || groupConfirmationSession?.busy == true
+
+    /** Text never supplies peer, identity, group, epoch or authority. */
+    private fun sendTextNow(recipient: V1QuickStatusRecipient, text: String, outboxId: Long? = null): Boolean {
         if (deliveringObserver || queryingPacketAuthority || V1TextComposer.refusal(text) != null) return false
         val ready = state as? BleRuntimeState.Ready ?: return false
         val lease = gattLease ?: return false
         if (recipient !== quickStatusRecipient) return false
         val binding = currentTextBinding() ?: return false
-        if (textConversation.busy || pendingAction != null || pendingStatusRefresh != null || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
-            configurationSession?.busy == true || groupConfirmationSession?.busy == true) return false
+        if (textLaneBusy()) return false
         val id = nextRequestId
         if (id !in 1..0xffff_ffffL || textOperation == ULong.MAX_VALUE) {
             retirePacket(BleRuntimeFailure.SESSION_COUNTER_EXHAUSTED, unknown = false); return false
@@ -1114,6 +1201,7 @@ class BleCompanionRuntime(
         val encoded = CompanionTextCarrierCodec.encode(request, allowProfile06 = true) ?: return false
         if (currentTextBinding() !== binding || recipient !== quickStatusRecipient) return false
         if (!textConversation.begin(request)) return false
+        outboxAttemptId = outboxId
         textHandedOff = false; nextRequestId = id + 1; textOperation = request.operation
         publish(BleRuntimeState.Ready(ready.session))
         if (currentTextBinding() !== binding || recipient !== quickStatusRecipient || textConversation.origin !== request) {
@@ -1142,9 +1230,28 @@ class BleCompanionRuntime(
     fun textState(): V1TextState {
         requireOwnerThread()
         if (!deliveringObserver && !queryingPacketAuthority && packetBinding?.wireBinding != null) currentTextBinding()
-        val recipient = quickStatusRecipient?.takeIf { state is BleRuntimeState.Ready && packetBinding?.wireBinding != null }
-        return V1TextState(recipient, textConversation.received.takeIf { recipient != null }, textConversation.phase,
-            textConversation.reason, textConversation.currentAttachment && recipient != null)
+        val liveRecipient = quickStatusRecipient?.takeIf { state is BleRuntimeState.Ready && packetBinding?.wireBinding != null }
+        val received = textConversation.received.takeIf { liveRecipient != null }
+        val outbox = textOutbox
+        if (outbox != null) {
+            return V1TextState(
+                recipient = outbox.recipient,
+                received = received,
+                queued = outbox.entries.map { entry ->
+                    V1QueuedText(entry.text, when (entry.state) {
+                        V1TextOutboxPhase.WAITING -> "Waiting"
+                        V1TextOutboxPhase.IN_FLIGHT -> if (outboxAttemptId == entry.id &&
+                            textConversation.phase == BlePacketDeliveryPhase.TRANSMISSION_COMPLETED) "Sent" else "Waiting"
+                        V1TextOutboxPhase.SENT -> "Delivered"
+                        V1TextOutboxPhase.FAILED -> "Failed"
+                        V1TextOutboxPhase.UNCONFIRMED -> "Delivery unconfirmed"
+                    })
+                },
+                queueUnavailable = outbox.unavailable,
+            )
+        }
+        return V1TextState(liveRecipient, received, textConversation.phase,
+            textConversation.reason, textConversation.currentAttachment && liveRecipient != null)
     }
 
     private fun currentTextBinding(): io.github.nbjelanovic.otprotocol.CompanionAuthorityResponse? {
@@ -1202,7 +1309,11 @@ class BleCompanionRuntime(
         }
         if (event) packetEventCursor = record.exchange
         if (receipt > packetReceiptFloor) packetReceiptFloor = receipt
-        if (!textConversation.busy) { textTimeout?.close(); textTimeout = null }
+        if (!textConversation.busy) {
+            textTimeout?.close()
+            textTimeout = null
+            finishTextOutboxAttempt()
+        }
         val ready = state as? BleRuntimeState.Ready ?: return
         publish(BleRuntimeState.Ready(ready.session))
     }
@@ -3226,6 +3337,10 @@ class BleCompanionRuntime(
 
     private fun clearSessionState() {
         textConversation.retire(textHandedOff); textHandedOff = false
+        finishTextOutboxAttempt()
+        outboxBinding = null
+        outboxTimer?.close()
+        outboxTimer = null
         textTimeout?.close(); textTimeout = null; textExpiry?.close(); textExpiry = null
         packetEventCursor = 0u; textOperation = 0uL
         val origin=packetOrigin
@@ -3283,6 +3398,7 @@ class BleCompanionRuntime(
     private fun publish(next: BleRuntimeState) {
         state = next
         deliverState(observer, next)
+        scheduleTextOutbox()
     }
 
     private fun deliverState(callback: ((BleRuntimeState) -> Unit)?, next: BleRuntimeState) {

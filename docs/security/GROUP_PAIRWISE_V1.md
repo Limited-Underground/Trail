@@ -11,9 +11,10 @@ Step 2 (the group state as single authority, the signed binding, epochs and
 interruption rules) is implemented on the host, without the handshake suite or
 key derivation; see
 [`group_pair.hpp`](../../firmware/components/identity/include/opentrail/group_pair.hpp).
-Nothing else is implemented. No algorithm, library
-or radio setting is selected here; the byte sizes given are budgets for the
-current Heltec V4 radio, not a frozen wire format.
+Later host work adds durable roster, pair catalog and message state. The first
+[protected companion commands](#protected-companion-commands) are a separate
+candidate. Group algorithms and radio encodings still need selection. The
+Heltec radio budget is at most 236 bytes per payload (D-137).
 
 ## Purpose
 
@@ -602,6 +603,47 @@ implementation; host implementation and its tests still need review.
 Still open, for implementation: the handshake suite, key derivation and
 fingerprint encoding (not selected); the production storage layout; handshake
 and acknowledgement airtime; physical reboot and range behaviour.
+
+## Protected companion commands
+
+This candidate adds group discovery, Create and Stop Trust to the existing
+protected Configuration Command and Stream lane. It uses OTC0 minor 5 with
+command kind `0x0b` and correlated result kind `0x8f`. It requires the normal
+authorized phone session and the confirmed base Snapshot on that attachment.
+Both directions use the existing nonce, exchange, 148-byte record limit and
+5-second response window. Legacy and evaluation profiles reject the new kinds.
+No public capability bit or GATT attribute changes.
+
+`OTGC` payloads start with the four ASCII magic bytes, the version byte (1),
+operation byte, status byte and one reserved zero byte. Commands use status
+zero. The table lists the bytes after that header.
+
+| Operation | Code | Command body | Successful result body |
+|---|---:|---|---|
+| Discover | 1 | Empty | Empty |
+| Create | 2 | Location rule (0 off, 1 preferred, 2 required) | Qualified group and initial roster digest |
+| Stop Trust | 3 | Qualified group and current roster digest | Same qualified group and digest |
+
+A qualified result body contains the full 32-byte admin fingerprint, the nonzero
+8-byte little-endian group ID and the full 32-byte roster digest. Nonzero
+status values are 1 unavailable, 2 refused, 3 stale and 4 uncertain. They carry
+no body. Discover uses only success or unavailable. Application labels are
+presentation metadata. Board identity and roster contents remain board-owned.
+
+Create success means the qualified first roster was signed, committed and read
+back. Stop Trust is local to the board and covers the whole named group. Success
+requires durable distrust and retirement of that group's pairs. The target
+currently reports unavailable because it has no backend that can meet those
+conditions. The exact last command within an attachment can recover its cached
+result without repeating the operation. An uncertain result or disconnect calls
+for state readback before retrying a mutation. A result is a receipt for its
+exchange. Current membership requires a separate authoritative snapshot.
+
+The next increment needs a roster signer bound to the enrollment identity,
+protected storage and reset integration, and coherent snapshot readback. It can
+then enable Create and Stop Trust on the target. Group-qualified invitation and
+join, introduced pairs, member messaging and board receipt events follow.
+Invitation and message operations remain unavailable to the app.
 
 ## Implementation order
 

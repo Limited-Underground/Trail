@@ -9,8 +9,14 @@ data class V1TextState(
     val outbound: BlePacketDeliveryPhase? = null,
     val reason: Int = 0,
     val currentAttachment: Boolean = false,
+    val queued: List<V1QueuedText> = emptyList(),
+    val queueUnavailable: Boolean = false,
 ) {
     override fun toString() = "V1TextState(outbound=$outbound, reason=$reason, content=redacted)"
+}
+
+data class V1QueuedText(val text: String, val status: String) {
+    override fun toString() = "V1QueuedText(status=$status, text=redacted)"
 }
 
 object V1TextComposer {
