@@ -181,7 +181,8 @@ original completed evidence scope. No physical or release acceptance is added.
 
 The [direct conversation proposal](security/DIRECT_CONVERSATIONS_V1.md)
 covers F9/A6 through issue #100. The [location sharing proposal](security/V1_LOCATION_SHARING.md)
-covers F10/A7 through issue #102. Owner decisions and implementation remain open.
+covers F10/A7 through issue #102. D-155 accepts both designs with phone GPS
+for V1 location. Implementation and device validation remain open.
 
 ## Firmware host composition
 

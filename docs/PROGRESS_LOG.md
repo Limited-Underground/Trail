@@ -13,8 +13,9 @@ and issue [#100](https://github.com/Limited-Underground/Trail/issues/100).
 ### OT-0176a Propose MeshTrail location sharing
 
 The proposal covers group policy, independent direct sharing choices, stop
-behavior and the airtime budget. The owner can review the policy and location
-defaults before implementation. See [the location design](security/V1_LOCATION_SHARING.md)
+behavior and the airtime budget. D-155 accepts all ten design decisions
+with phone GPS for V1. The revised design defines the foreground phone lease,
+permission states and location privacy. See [the location design](security/V1_LOCATION_SHARING.md)
 and issue [#102](https://github.com/Limited-Underground/Trail/issues/102).
 
 ## 2026-11-20
