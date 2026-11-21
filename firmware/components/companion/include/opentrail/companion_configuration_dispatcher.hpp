@@ -1,6 +1,7 @@
 #pragma once
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_owner.hpp"
+#include "opentrail/companion_group_configuration.hpp"
 #include "opentrail/companion_region_owner.hpp"
 #include "opentrail/companion_public_profile_owner.hpp"
 #include "opentrail/oled_time_admission.hpp"
@@ -26,6 +27,16 @@ public:
     virtual void observe() = 0;
     [[nodiscard]] virtual bool close() = 0;
 };
+// All calls run on the application owner. The backend must independently bind the
+// live attachment at mutation time and confirm the durable write before returning ok.
+// Stop Trust requires an exact current roster and must retire the group's live pairs.
+class ConfigurationGroupBackend {
+public:
+    virtual ~ConfigurationGroupBackend() = default;
+    [[nodiscard]] virtual bool available() const noexcept = 0;
+    [[nodiscard]] virtual GroupConfigurationResult execute(
+        const DeviceNameContext&, const GroupConfigurationCommand&) noexcept = 0;
+};
 struct ConfigurationDispatchResult {
     ConfigurationDispatchCode code{ConfigurationDispatchCode::rejected};
     std::size_t bytes{0};
@@ -43,7 +54,8 @@ class ConfigurationDispatcher final {
 public:
     ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
         RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2,
-        ConfigurationConfirmationBackend* confirmation = nullptr, PublicProfilePersistence* public_profile = nullptr);
+        ConfigurationConfirmationBackend* confirmation = nullptr, PublicProfilePersistence* public_profile = nullptr,
+        ConfigurationGroupBackend* group = nullptr);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -75,6 +87,7 @@ private:
     DeviceNameAuthoritySource& source_;
     ConfigurationBaseHandler& base_;
     ConfigurationConfirmationBackend* confirmation_;
+    ConfigurationGroupBackend* group_;
     NameSource name_source_;
     TimeSource time_source_;
     DeviceNameOwner name_owner_;

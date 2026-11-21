@@ -1,4 +1,4 @@
-# Limited Underground Trail hardware integration and troubleshooting runbook
+# MeshTrail hardware integration and troubleshooting runbook
 
 Current boundary: only the separately authorized V1 host tasks may proceed. No
 hardware operation is authorized by this runbook. Wio firmware code waits for
@@ -15,7 +15,7 @@ This is not a release qualification or a replacement for the
 [porting preflight](firmware-porting-lessons.md), [inventory](../hardware/INVENTORY.md)
 or [current handoff](PROJECT_STATUS.md).
 
-For Trail hardware integration or troubleshooting tasks, use the relevant sections
+For MeshTrail hardware integration or troubleshooting tasks, use the relevant sections
 as the starting reference and reuse unchanged evidence. Unrelated work does not
 require rereading this runbook.
 
@@ -244,22 +244,22 @@ source presence does not prove the installed APK's behavior.
 Use official chip-manufacturer datasheets, SDK documentation, application notes
 and licensed reference drivers; official board-manufacturer schematics and pin
 definitions; published technical standards and general public LoRa specifications;
-and independently developed Trail implementations. Do not use Meshtastic or
+and independently developed MeshTrail implementations. Do not use Meshtastic or
 MeshCore source code, architecture or implementation patterns as references for
-new Trail development.
+new MeshTrail development.
 
 Keep working drivers. RadioLib and other third-party libraries are existing
 dependencies only where actually used; their source is not a recommended starting
 point for new implementations. Preserve dependency, licensing and attribution
 records. The recorded physical evidence qualifies only its exact artifacts.
 
-| Permitted reference / existing dependency | Trail already reuses | Remains Trail-specific | Hardware adaptations | License | Compatibility / maintenance risks |
+| Permitted reference / existing dependency | MeshTrail already reuses | Remains MeshTrail-specific | Hardware adaptations | License | Compatibility / maintenance risks |
 |---|---|---|---|---|---|
 | [Semtech SX1262 documentation](https://www.semtech.com/products/wireless-rf/lora-connect/sx1262) and [SX126x C driver](https://github.com/Lora-net/sx126x_driver) | Chip/API reference; inspected Heltec targets use RadioLib, not this separate C driver. | Protocol, admission, queues and bounded lifecycle. | A direct-driver port would need the vendor HAL's reset/wakeup/read/write, plus board SPI, BUSY/IRQ, TCXO, regulator and RF/FEM handling. | Driver: [BSD-3-Clause-Clear](https://github.com/Lora-net/sx126x_driver/blob/master/LICENSE.txt); no patent license granted. | Chip support does not establish board wiring, RF power or regional acceptance; do not introduce a second driver without a concrete need. |
-| RadioLib 7.7.1 — existing dependency only | SX1262/Module APIs; [diagnostic dependency lock](../firmware/targets/heltec_v4_radio_diag/dependencies.lock) pins 7.7.1. | [ESP-IDF HAL](../firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp), FEM switching and bounded driver policy. | Match SPI/CS/BUSY/DIO1/reset, TCXO voltage and external PA/LNA truth table to the actual revision. | [MIT](https://github.com/jgromes/RadioLib/blob/7.7.1/license.txt). | Trail's [TX BUSY](../tools/radiolib_busy_source.py) and [pair-driver calibration](../tools/pair_radio_driver_source.py) derivatives are source-hash pinned; an upgrade can invalidate them. Managed upstream inputs remain untouched. |
+| RadioLib 7.7.1 — existing dependency only | SX1262/Module APIs; [diagnostic dependency lock](../firmware/targets/heltec_v4_radio_diag/dependencies.lock) pins 7.7.1. | [ESP-IDF HAL](../firmware/targets/heltec_v4_radio_diag/main/esp32_radiolib_hal.cpp), FEM switching and bounded driver policy. | Match SPI/CS/BUSY/DIO1/reset, TCXO voltage and external PA/LNA truth table to the actual revision. | [MIT](https://github.com/jgromes/RadioLib/blob/7.7.1/license.txt). | MeshTrail's [TX BUSY](../tools/radiolib_busy_source.py) and [pair-driver calibration](../tools/pair_radio_driver_source.py) derivatives are source-hash pinned; an upgrade can invalidate them. Managed upstream inputs remain untouched. |
 | [Espressif ESP-IDF 6.0.2](https://docs.espressif.com/projects/esp-idf/en/v6.0.2/esp32s3/) | GPIO/interrupts, SPI, timers, RTOS, NVS and BLE facilities; bench/radio locks select 6.0.2. | Task/session ownership, persistence rules, security admission and error containment. | Board pinmux, SPI ownership/timing, clock, USB console and sdkconfig. | [Apache-2.0](https://github.com/espressif/esp-idf/blob/v6.0.2/LICENSE); bundled components retain their own licenses. | SDK/API and target changes need matching toolchain/configuration evidence. Use the [versioned SPI reference](https://docs.espressif.com/projects/esp-idf/en/v6.0.2/esp32s3/api-reference/peripherals/spi_master.html), not an unreviewed move to latest. |
-| [Espressif esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/esptool/index.html) | Guarded ROM adapters pin esptool 5.3.1 and pySerial 3.5; accepted read/write/restore evidence above. | Identity/range/image grants, readback, restoration, first-error retention and SDK command allowlists. | USB/serial route and reviewed reset sequence for the exact chip; use the documented Windows execution context. | esptool: [GPL-2.0-or-later](https://github.com/espressif/esptool/blob/v5.3.1/pyproject.toml); pySerial: [BSD-3-Clause](https://github.com/pyserial/pyserial/blob/v3.5/LICENSE.txt). | SDK hooks, stub defaults and FLASH_END can cross Trail's bounds. Keep the approved frozen adapter; generic CLI commands are not substitutes. |
-| Existing [HeltecPairRadioDriver](../firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp) and [ROM adapter](../tools/enrollment_candidate_rom_adapter.py) | Existing RadioLib/ESP-IDF and esptool boundaries; reuse their interfaces and accepted fixtures first. | MTU, queue/retry/stop budgets, peer/session authority and recovery custody. | New boards need their own HAL, power-off behavior, geometry and recovery binding. | Trail-created code: root [Apache-2.0](../LICENSE); upstream/derived files keep their own notices. | Source presence or host tests do not activate a target or replace a frozen operator's acceptance evidence. |
+| [Espressif esptool](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/esptool/index.html) | Guarded ROM adapters pin esptool 5.3.1 and pySerial 3.5; accepted read/write/restore evidence above. | Identity/range/image grants, readback, restoration, first-error retention and SDK command allowlists. | USB/serial route and reviewed reset sequence for the exact chip; use the documented Windows execution context. | esptool: [GPL-2.0-or-later](https://github.com/espressif/esptool/blob/v5.3.1/pyproject.toml); pySerial: [BSD-3-Clause](https://github.com/pyserial/pyserial/blob/v3.5/LICENSE.txt). | SDK hooks, stub defaults and FLASH_END can cross MeshTrail's bounds. Keep the approved frozen adapter; generic CLI commands are not substitutes. |
+| Existing [HeltecPairRadioDriver](../firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp) and [ROM adapter](../tools/enrollment_candidate_rom_adapter.py) | Existing RadioLib/ESP-IDF and esptool boundaries; reuse their interfaces and accepted fixtures first. | MTU, queue/retry/stop budgets, peer/session authority and recovery custody. | New boards need their own HAL, power-off behavior, geometry and recovery binding. | MeshTrail-created code: root [Apache-2.0](../LICENSE); upstream/derived files keep their own notices. | Source presence or host tests do not activate a target or replace a frozen operator's acceptance evidence. |
 
 For an authorized change to an existing dependency, record the exact tag/commit and lock,
 retain applicable notices, and check the affected adapter against that version.
@@ -274,10 +274,10 @@ implementation-reference recommendations.
 
 | Layer/target | Reuse | Evidence boundary and differences |
 |---|---|---|
-| All Trail targets | LUProtocol contracts, correlation/recipient identity, bounded ACK/retry/queue rules, fresh authorization, staged diagnostics, first-error retention, exact artifact provenance and recoverable originals | Reuse interfaces and test vectors, not board pin assignments or a diagnostic ACK as a production ACK. See [protocols](protocol/) and [components](../firmware/components/). |
+| All MeshTrail targets | LUProtocol contracts, correlation/recipient identity, bounded ACK/retry/queue rules, fresh authorization, staged diagnostics, first-error retention, exact artifact provenance and recoverable originals | Reuse interfaces and test vectors, not board pin assignments or a diagnostic ACK as a production ACK. See [protocols](protocol/) and [components](../firmware/components/). |
 | ESP32-S3 Heltec | Scoped ROM/esptool sequence, partition/erase math, no-stub read-before-return and native USB observations | Proven only for the recorded hardware/profile; other layouts need their own validation. |
-| SenseCAP P1-Pro, nRF52840/SX1262 | Protocol/transport abstractions and source-bound build methods | Inventory records bounded historical MeshCore behavior, not Trail firmware acceptance. Confirm exact board revision, bootloader/recovery tool, memory map, SPI/IRQ/BUSY/RESET, TCXO and RF-switch wiring. ESP32 ROM/esptool procedures do not apply. Trail build-only evidence does not prove radio or recovery. |
-| Wio Tracker L1 Pro candidate | Same abstraction, observation and recovery principles | Owner identity and public descriptor do not establish exact Pro SKU/revision or pinout. Confirm received hardware and its own bootloader, GNSS, power and radio configuration. Trail integration and role qualification require physical validation. |
+| SenseCAP P1-Pro, nRF52840/SX1262 | Protocol/transport abstractions and source-bound build methods | Inventory records bounded historical MeshCore behavior, not MeshTrail firmware acceptance. Confirm exact board revision, bootloader/recovery tool, memory map, SPI/IRQ/BUSY/RESET, TCXO and RF-switch wiring. ESP32 ROM/esptool procedures do not apply. MeshTrail build-only evidence does not prove radio or recovery. |
+| Wio Tracker L1 Pro candidate | Same abstraction, observation and recovery principles | Owner identity and public descriptor do not establish exact Pro SKU/revision or pinout. Confirm received hardware and its own bootloader, GNSS, power and radio configuration. MeshTrail integration and role qualification require physical validation. |
 
 ## Integrate the next device without repeating investigations
 
@@ -294,7 +294,7 @@ implementation-reference recommendations.
 6. **Requires Physical Validation:** Under exact authority, install/verify/boot one
    target, observe fresh diagnostics, test permitted real peripherals, then recover
    and confirm ordinary health. Passes and failed attempts retain their distinct scope.
-7. **Requires Physical Validation:** Exercise the intended end-to-end Trail role,
+7. **Requires Physical Validation:** Exercise the intended end-to-end MeshTrail role,
    including adverse conditions, actual peers, authorization and user-facing state.
    A USB console, build or diagnostic RF pair alone does not qualify the product.
 8. **Proposed release decision:** Compare results to the role's existing measurable
@@ -326,7 +326,7 @@ Still open: exact original exceptions in collapsed historical connection/read
 failures; missing RF metrics/distance; sustained reliability and full phone-to-phone
 authenticated delivery on frozen V1 candidates; cold-power/other lifecycle cases
 outside each bounded observation; exact received nRF board revisions/pinouts and
-Trail bootloader/radio/recovery qualification. The one-use health-session warning
+MeshTrail bootloader/radio/recovery qualification. The one-use health-session warning
 above is source-supported; its specific original physical failure is not independently
 reconstructed. No missing measurement is supplied by guessing or synthetic tests.
 

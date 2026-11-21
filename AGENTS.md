@@ -1,12 +1,12 @@
-# Limited Underground Trail agent guide
+# MeshTrail agent guide
 
 ## Scope
 
-This repository contains Limited Underground Trail Firmware and Limited Underground Trail Android App. Keep project files within the maintainer-approved checkout and assigned scope. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first. The human-readable rules and handoff linked below govern any developer or AI; user-local skills are optional routing aids, never additional authority or prerequisites.
+This repository contains MeshTrail Firmware and MeshTrail App. Keep project files within the maintainer-approved checkout and assigned scope. If reusable code becomes justified, document the dependency and evaluate a separately versioned library first. The human-readable rules and handoff linked below govern any developer or AI; user-local skills are optional routing aids, never additional authority or prerequisites.
 
 ## Current phase
 
-Development is active. On 2026-11-11 the owner ended the November 2, 2026 product freeze and its November 3 and November 4 exceptions. Priority: Trail Firmware, then Firmware Loader (separate repository), then Trail Android. Work that serves an approved task may proceed without asking. The owner approves each of these first, every time: a device session (the owner is present), pushing to GitHub, merging, anything involving signing keys or credentials, and releases or deployment. Select the exact task/source/evidence, preserve dirty overlays and use a clean isolated topic before mutation. Bounded evidence retains its exact source/setup limits; full product acceptance remains open. Read the human-readable working contract in `CONTRIBUTING.md`, the current handoff in `docs/PROJECT_STATUS.md`, and the dedicated Firmware Project #1 or Android App Project #8 before future work. A board status is not execution permission.
+Development is active. On 2026-11-11 the owner ended the November 2, 2026 product freeze and its November 3 and November 4 exceptions. Priority: MeshTrail Firmware, then Firmware Loader (separate repository), then MeshTrail App. Work that serves an approved task may proceed without asking. The owner approves each of these first, every time: a device session (the owner is present), pushing to GitHub, merging, anything involving signing keys or credentials, and releases or deployment. Select the exact task/source/evidence, preserve dirty overlays and use a clean isolated topic before mutation. Bounded evidence retains its exact source/setup limits; full product acceptance remains open. Read the human-readable working contract in `CONTRIBUTING.md`, the current handoff in `docs/PROJECT_STATUS.md`, and the dedicated Firmware Project #1 or Android App Project #8 before future work. A board status is not execution permission.
 
 Wio Tracker work may start; it follows the device playbook from the beginning.
 
@@ -14,7 +14,7 @@ Use `docs/firmware/README.md` for firmware's V1 reading path, `android/README.md
 
 ## Current names and retained identifiers
 
-- Use the full owner-approved names in current prose: Limited Underground Trail Firmware, Limited Underground Trail Android App and Limited Underground Firmware Loader. Other products retain their full Limited Underground names. Do not invent replacements or abbreviations as new product names.
+- Use MeshTrail, MeshTrail Firmware and MeshTrail App in current project prose. Use Limited Underground MeshTrail on organization profiles, repository descriptions and other public product entry points. Use Firmware Loader and Display in project prose. Use Limited Underground Business throughout.
 - Never use `®` without documented federal registration for the exact mark and relevant goods or services. Use `™` only where an unregistered trademark symbol is appropriate.
 - New public product or family names require documented preliminary screening and explicit owner approval; obtain professional clearance before permanent hardware marking, packaging, sales, or another hard-to-reverse release.
 - Keep working names out of protocol fields, compatibility identifiers, device IDs, persistent schemas, API contracts, cryptographic material, and board identifiers so branding remains replaceable.
@@ -28,17 +28,17 @@ Use `docs/firmware/README.md` for firmware's V1 reading path, `android/README.md
 4. Avoid giant `.ino` files. Prefer bounded components with host-testable protocol and state logic.
 5. Version every over-the-air protocol and defensively reject malformed or incompatible packets.
 6. Do not hard-code credentials, group secrets, private keys, or device-specific identifiers.
-7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or Trail Display must degrade independently.
+7. Treat emergency functions as safety aids, not guaranteed rescue systems. Loss of GPS, radio, maps, or Display must degrade independently.
 8. Record hardware model, radio region/frequency plan, firmware version, test setup, and observed result for hardware tests.
 9. Keep LoRa payloads compact. Do not transport map data or high-rate vehicle telemetry over LoRa.
 10. Do not use public OpenStreetMap tile servers for bulk/offline downloads. Verify provider, license, attribution, and redistribution terms before selecting a map pipeline.
 11. Before implementing or materially changing any firmware target, read and apply `docs/firmware-porting-lessons.md`. Record the applicable preflight results and a reason for each skipped item; do not begin hardware execution while an applicable checklist gate is unresolved.
-12. The in-tree `tools/windows-loader` is a frozen historical predecessor. Current Firmware Loader implementation and acceptance belong to the separate `Firmware-Loader` repository; its older Trail tests do not accept the current Loader. Cross-repository changes require explicit scope and provenance review.
+12. The in-tree `tools/windows-loader` is a frozen historical predecessor. Current Firmware Loader implementation and acceptance belong to the separate `Firmware-Loader` repository; its older MeshTrail tests do not accept the current Loader. Cross-repository changes require explicit scope and provenance review.
 13. A successful build never authorizes a physical write. Current foundation work excludes device operations. If an owner later grants an exact physical procedure, retain its target/artifact/endpoint/recovery checks and sequential device-write safeguards; never reuse a consumed grant.
 
 14. For authorized Windows serial operations, use the [documented hardware-access route](docs/HARDWARE_INTEGRATION_RUNBOOK.md#windows-serial-access-from-codex) outside AppContainer through tool approval; retain per-operation physical authorization and never reuse a consumed attempt.
 
-15. For new Trail development, use manufacturer documentation/schematics/reference drivers, published standards/public LoRa specifications and independently developed Trail code; exclude Meshtastic and MeshCore source, architecture and implementation patterns, and treat third-party libraries only as actually used dependencies with preserved licenses/attribution, not implementation starting points.
+15. For new MeshTrail development, use manufacturer documentation/schematics/reference drivers, published standards/public LoRa specifications and independently developed MeshTrail code; exclude Meshtastic and MeshCore source, architecture and implementation patterns, and treat third-party libraries only as actually used dependencies with preserved licenses/attribution, not implementation starting points.
 
 ## Validation expectations
 
@@ -99,14 +99,14 @@ privacy completeness, source reproducibility or product/device acceptance.
 ## Completion and publication gate
 
 - Follow the portable human-readable working contract in [CONTRIBUTING.md](CONTRIBUTING.md#working-contract); the six-section ceremony is retired. On the owner's recovery machine, local parent routing selects the approved firmware/Android checkout; it is not a prerequisite for other clones. Verify the actual checkout before acting. GitHub Projects owns current task scope, status, priority and dependencies; repository records own engineering evidence. Legacy trackers, hosted-checklist approval and historical checkout paths are not execution prerequisites.
-- Once a Trail task is implemented and validated, update the affected repository records only within the accepted scope. Commit, push, open a PR, merge and verify remote main only when the corresponding operation is explicitly authorized for the named repository/ref. Use a topic branch and require all configured required checks before an authorized merge. Do not bypass branch protection or disable documentation checks.
+- Once a MeshTrail task is implemented and validated, update the affected repository records only within the accepted scope. Commit, push, open a PR, merge and verify remote main only when the corresponding operation is explicitly authorized for the named repository/ref. Use a topic branch and require all configured required checks before an authorized merge. Do not bypass branch protection or disable documentation checks.
 - If accepted evidence changes public project status or V1 progress, identify the corresponding website synchronization. Perform its validation, publication, deployment and live verification only when those operations are explicitly in scope; otherwise report the pending website work.
 - If no public website status changed, say so explicitly in the completion report. If any required push, synchronization, deployment, or verification is blocked, report `implementation complete; publication pending` and identify the remaining step.
 - Do not bundle unrelated or unvalidated dirty-worktree changes merely to satisfy this gate, and never publish private or unsafe material.
 
 ## V1 progress completion gate
 
-- `docs/V1_PROGRESS.json` is the canonical Trail V1 progress record, with separate historical standalone and Companion tracks. Do not maintain a separate percentage in the README, firmware, or website source. A dated score is not a fresh readiness measurement; documentation alone changes no score.
+- `docs/V1_PROGRESS.json` is the canonical MeshTrail V1 progress record, with separate historical standalone and Companion tracks. Do not maintain a separate percentage in the README, firmware, or website source. A dated score is not a fresh readiness measurement; documentation alone changes no score.
 - Before calling any task complete, compare its accepted evidence with every affected V1 milestone. Planning, code volume, or an unvalidated implementation does not increase completion.
 - When evidence changes a milestone, update its completion, evidence references, next gate, and `as_of` date; append a dated `change_log` entry with the newly calculated weighted overall. Never rewrite prior history.
 - Milestone weights must remain positive and total exactly 100. A regression or newly discovered blocker may lower completion and must be recorded just like an increase.

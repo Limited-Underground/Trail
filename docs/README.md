@@ -1,4 +1,4 @@
-# Trail documentation
+# MeshTrail documentation
 
 Use this index to find design contracts, accepted evidence, and contribution
 guidance. The [project README](../README.md) is the product overview.
@@ -12,7 +12,7 @@ merging, signing and releases).
 | Document | Purpose |
 | --- | --- |
 | [Current status](PROJECT_STATUS.md) | Accepted capabilities, limitations, and next gates |
-| [Trail Firmware V1](firmware/README.md) | Nine assessment areas, source/build/recovery and existing V1 criteria |
+| [MeshTrail Firmware V1](firmware/README.md) | Nine assessment areas, source/build/recovery and existing V1 criteria |
 | [Concise architecture](architecture/README.md) | Twelve arc42 sections, C4 model, source/evidence boundaries and limitations |
 | [Detailed architecture](ARCHITECTURE.md) | Preserved design detail, original decisions and dated evidence scopes |
 | [Protocol selection](protocol/README.md) | Standard/custom interfaces and diagnostic/production contract status |

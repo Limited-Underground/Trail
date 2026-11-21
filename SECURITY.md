@@ -1,6 +1,6 @@
 # Security Policy
 
-Limited Underground Trail is pre-release research software and is not suitable for emergency-response dependency, safety-critical control, or protection of sensitive information.
+MeshTrail is pre-release research software and is not suitable for emergency-response dependency, safety-critical control, or protection of sensitive information.
 
 ## Reporting a security concern
 

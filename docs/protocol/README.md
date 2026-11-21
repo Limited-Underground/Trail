@@ -1,4 +1,4 @@
-# Trail communication contract selection
+# MeshTrail communication contract selection
 
 The [working contract](../../CONTRIBUTING.md#working-contract) has the current development rules; this page selects or admits no production protocol. This maintained index maps existing contracts; it does not select a new wire format, algorithm, profile, acceptance rule or implementation. Read [current status](../PROJECT_STATUS.md#current-recovery-handoff), the [architecture](../architecture/README.md) and controlling decisions before treating a versioned document as current.
 
