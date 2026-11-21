@@ -78,6 +78,12 @@ picked up by Android until the board is paired again.
 
 ## Group messaging (V1)
 
+The protected companion candidate defines Discover, Create and Stop Trust with
+qualified results on the authorized Command and Stream lane. The bench target
+returns unavailable pending the durable group backend. The next slice binds the
+board identity signer and protected roster storage and provides coherent
+readback. See the [companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
+
 V1 F5 uses the product SX1262 transport for first board pairing. The opt-in bench link test demonstrated unauthenticated beacons between two boards. Firmware R2a includes the reviewed pairing and storage changes (PRs #253-#255) and shows the pairing state on the board screen (PR #256). Android R2b starts or joins pairing on the protected BLE configuration lane and displays correlated firmware refusals; it passed full protocol and Android JVM validation. The startup screen shows the firmware version (D-081). The first owner-present two-board pairing session (2026-11-15) reached the review pages, then board A overflowed its main-task stack; link-test builds now use a 24,576-byte main task stack. A second session and authenticated message exchange remain pending. Group step 3b is underway on the host.
 
 The interim MeshTrail bench uses [profile v2 at 925.100 MHz and 500 kHz](PROGRESS_LOG.md#ot-0005i-move-the-meshtrail-bench-to-9251-mhz) under D-135. Both Link Test boards need the new profile. The candidate awaits owner-present RF validation. V1 frequency hopping is separate under D-133.
