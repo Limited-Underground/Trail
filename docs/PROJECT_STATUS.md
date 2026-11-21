@@ -55,6 +55,16 @@ I-053 restores V1-Test compilation by recording a denied Bluetooth state read
 as its own trace reason. The host workflow checks V1-Test compilation and the
 variant's JVM tests cover log write, reload, and export.
 
+## Android text delivery
+
+The A10 outbox holds short text while a previously verified paired board is
+away. A current protected text session to that pairing sends the queue in
+order. The app retries definite pre-send refusals within a fixed limit and
+shows uncertain outcomes without repeating them. The main Android service
+still needs a live protected text provider for phone-to-phone delivery. See
+the [OT-0314 progress entry](PROGRESS_LOG.md#ot-0314-queue-meshtrail-text-while-the-board-is-away).
+Phone and board acceptance remain open.
+
 ## Heltec V4 factory reset fixes
 
 On 2026-11-11 the button factory reset on the Heltec V4 bench target was fixed
