@@ -134,5 +134,5 @@ int main() {
     typed_routes();
     quick_status_routes();
     refusals();
-    std::cout << "PASS 3 protected GATT phone trial routing groups\n";
+    std::cout << "PASS 3 protected GATT phone-text routing groups (including quick-status mode)\n";
 }
