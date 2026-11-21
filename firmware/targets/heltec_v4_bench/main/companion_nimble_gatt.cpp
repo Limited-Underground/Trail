@@ -734,8 +734,9 @@ int command_access(std::uint16_t connection_handle,
             frame.value.session_nonce != g_configuration_authority.context.session_nonce ||
             (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 && frame.value.kind != 5 && frame.value.kind != 6 &&
              !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
+             !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8) &&
              !(kSelectedConfigurationMinor == kPublicProfileMinor &&
-                (frame.value.kind == 8 || frame.value.kind == kConfigurationGroupCommandKind))) ||
+                frame.value.kind == kConfigurationGroupCommandKind)) ||
             (frame.value.kind == kConfigurationGroupCommandKind &&
                 !g_phone_status.ready(g_configuration_authority, status.transport_generation)) ||
             g_configuration_token == std::numeric_limits<std::uint64_t>::max())
