@@ -269,7 +269,7 @@ def run(output, cached_component=None):
               [f5_target], (), " Companion GATT layout migration groups")
         suite("f5_pairing_nvs_tests",
               [f5_target / "pairing_nvs_storage.cpp", ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
-              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, f5_components / "identity/include"],
               (), " actual F5 pairing NVS host groups")
         suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
               base, (), " pairing completion journal groups")
@@ -342,13 +342,20 @@ def run(output, cached_component=None):
               base, (), " enrollment commit journal groups")
         suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
               base, (), " identity store groups")
+        roster_points = output / "roster-ed25519-points.o"
+        compile_source(module.SOURCE / "src/libsodium/crypto_core/ed25519/core_ed25519.c", roster_points, c=True)
+        crypto_objects.append(roster_points)
         suite("heltec_enrollment_identity_owner_tests", [*common,
               ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
+              ROOT / "firmware/components/identity/src/group_roster.cpp",
               *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in
-                ("heltec_enrollment_identity_owner.cpp", "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
+                ("heltec_enrollment_identity_owner.cpp", "heltec_group_roster_identity.cpp",
+                 "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
               [*base, ROOT / "tests/host/fixtures/identity_nvs", ROOT / "firmware/targets/heltec_v4_bench/main",
-               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "radio", "protocol", "location", "time")]],
-              (), " actual retained identity owner groups")
+               *[ROOT / "firmware/components" / name / "include" for name in
+                 ("companion", "identity", "radio", "protocol", "location", "time")]],
+              (), " actual retained identity owner groups", cases=("boot-and-sign", "roster-handoff", "roster-early-handoff"))
+        crypto_objects.pop()
         suite("enrollment_possession_proof_tests", [*common, ROOT / "tests/host/enrollment_possession_proof_tests.cpp"],
               base, (), " enrollment possession:")
         suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],

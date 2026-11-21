@@ -13,6 +13,16 @@ bool same_epoch(const DeviceNameContext& a,const DeviceNameContext& b) {
 time::OledTimeContext time_context(const DeviceNameContext& c) {
     return {c.device,c.runtime,c.owner,c.owner_generation,c.transport_generation,c.controller,c.session_nonce};
 }
+bool group_result_matches(const GroupConfigurationCommand& command, const GroupConfigurationResult& result) {
+    if (result.operation != command.operation) return false;
+    if (result.status != GroupConfigurationStatus::ok) return true;
+    if (command.operation == GroupConfigurationOperation::stop_trust) return result.scope == command.scope;
+    if (command.operation != GroupConfigurationOperation::read_roster) return true;
+    const auto& read = command.read;
+    const auto& fragment = result.fragment;
+    return fragment.slot == read.slot && fragment.offset == read.offset &&
+        (read.offset == 0 || (fragment.state == read.state && result.scope == command.scope));
+}
 ConfigurationDispatchResult status(ConfigurationDispatchCode code) { ConfigurationDispatchResult r{}; r.code=code; return r; }
 std::uint8_t time_code(time::OledTimeCode c) {
     using C=time::OledTimeCode;
@@ -217,11 +227,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
                 if (!refresh() || !ready_ || authority_.context != request_context_ ||
                     authority_.now_ms < request_admitted_ms_ ||
                     authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);
-                result = group_->execute(request_context_, command.value);
-                if (result.operation != command.value.operation ||
-                    (result.status == GroupConfigurationStatus::ok &&
-                        command.value.operation == GroupConfigurationOperation::stop_trust &&
-                        result.scope != command.value.scope)) return finish(nullptr);
+                result = group_->execute(request_context_, command.value, request_admitted_ms_);
+                if (!group_result_matches(command.value, result)) return finish(nullptr);
             }
         }
         response.kind = kConfigurationGroupResultKind;

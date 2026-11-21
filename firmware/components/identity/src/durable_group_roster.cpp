@@ -184,9 +184,10 @@ bool DurableGroupRoster::decode_record(const Record& record, RosterState& state)
     return true;
 }
 
-DurableRosterError DurableGroupRoster::read(const char* key, Record& record) {
+DurableRosterError DurableGroupRoster::read(persistence::PersistentKvBackend& backend, const char* key,
+                                         Record& record) {
     std::size_t size = 0;
-    const auto result = backend_.read_blob(
+    const auto result = backend.read_blob(
         kPartition, kNamespace, key, record.bytes.data(), record.bytes.size(), size);
     if (result == KvError::not_found) return Error::missing;
     if (result == KvError::invalid_argument) return Error::invalid_record;
@@ -194,12 +195,33 @@ DurableRosterError DurableGroupRoster::read(const char* key, Record& record) {
     return size == record.bytes.size() && record.intact() ? Error::none : Error::invalid_record;
 }
 
+DurableRosterError DurableGroupRoster::inspect_slot(persistence::PersistentKvBackend& backend,
+                                                   std::size_t slot, DurableRosterSlot& output) {
+    if (slot >= std::size(kKeys)) return Error::invalid_scope;
+    Record record{};
+    const auto loaded = read(backend, kKeys[slot], record);
+    if (loaded != Error::none) return loaded;
+
+    DurableRosterSlot candidate{};
+    const auto* in = record.bytes.data() + kMagic.size();
+    candidate.group_id = get<std::uint64_t>(in);
+    candidate.admin = get_bytes<kPublicKeyBytes>(in);
+    candidate.local = get_bytes<kPublicKeyBytes>(in);
+    candidate.minimum_version = get<std::uint32_t>(in);
+    if (!candidate.group_id || !candidate.minimum_version ||
+        candidate.admin == PublicKey{} || candidate.local == PublicKey{}) {
+        return Error::invalid_record;
+    }
+    output = candidate;
+    return Error::none;
+}
+
 DurableRosterError DurableGroupRoster::verify_current() {
     if (faulted_) return Error::storage_failure;
     if (!ready_) return Error::not_ready;
     auto& stored = workspace_.readback;
     auto& expected = workspace_.serialized;
-    const auto loaded = read(key_, stored);
+    const auto loaded = read(backend_, key_, stored);
     if (loaded != Error::none || !encode_record(state_, expected) || stored.bytes != expected.bytes) {
         ready_ = false;
         return loaded == Error::none ? Error::invalid_record : loaded;
@@ -208,7 +230,8 @@ DurableRosterError DurableGroupRoster::verify_current() {
 }
 
 DurableRosterError DurableGroupRoster::reconcile() {
-    if (state_.state() == State::active || state_.state() == State::left) {
+    if (state_.state() == State::active || state_.state() == State::left ||
+        (state_.state() == State::distrusted && state_.has_roster())) {
         if (index_.prune(state_) != IndexError::none) return Error::index_failure;
     } else {
         const auto status = index_.group_status(group_name_);
@@ -226,7 +249,7 @@ DurableRosterError DurableGroupRoster::save(const char* key, const RosterState& 
     if (!encode_record(next, bytes)) return Error::invalid_record;
     if (backend_.write_blob(kPartition, kNamespace, key, bytes.bytes.data(), bytes.bytes.size()) != KvError::none ||
         backend_.commit(kPartition, kNamespace) != KvError::none ||
-        read(key, check) != Error::none || check.bytes != bytes.bytes) {
+        read(backend_, key, check) != Error::none || check.bytes != bytes.bytes) {
         ready_ = false;
         faulted_ = true;
         return Error::storage_failure;
@@ -237,7 +260,7 @@ DurableRosterError DurableGroupRoster::save(const char* key, const RosterState& 
     return reconcile();
 }
 
-DurableRosterError DurableGroupRoster::open(bool create) {
+DurableRosterError DurableGroupRoster::open(bool create, const std::uint8_t* initial, std::size_t size) {
     if (busy_) return Error::not_ready;
     const Busy hold(busy_);
     ready_ = false;
@@ -256,7 +279,7 @@ DurableRosterError DurableGroupRoster::open(bool create) {
     next = RosterState{};
     for (const char* key : kKeys) {
         auto& record = workspace_.readback;
-        const auto loaded = read(key, record);
+        const auto loaded = read(backend_, key, record);
         if (loaded == Error::missing) {
             if (!vacant) vacant = key;
             continue;
@@ -267,20 +290,31 @@ DurableRosterError DurableGroupRoster::open(bool create) {
         matched = key;
     }
     if (matched) {
+        if (initial) return Error::refused;
         key_ = matched;
         state_ = next;
         return reconcile();
     }
     if (!create) return Error::missing;
-    const auto in_index = index_.group_status(group_name_);
+    const auto in_index = index_.group_status(group_name_, initial != nullptr);
     if (in_index == IndexError::none) return Error::missing;
+    if (in_index == IndexError::capacity) return Error::capacity;
     if (in_index != IndexError::not_indexed) return Error::index_failure;
     if (!vacant) return Error::capacity;
     if (!next.initialize(admin_, group_, local_, minimum_version_)) return Error::invalid_scope;
+    if (initial && (next.offer(initial, size, crypto_) != Outcome::accepted ||
+                    next.roster().version != 1)) return Error::invalid_record;
     return save(vacant, next);
 }
 
 DurableRosterError DurableGroupRoster::initialize() { return open(true); }
+
+DurableRosterError DurableGroupRoster::create_owned(const std::uint8_t* bytes, std::size_t size) {
+    if (admin_ != local_ || minimum_version_ != 1) return Error::invalid_scope;
+    if (!bytes || size == 0) return Error::invalid_record;
+    return open(true, bytes, size);
+}
+
 DurableRosterError DurableGroupRoster::reopen() { return open(false); }
 
 DurableRosterError DurableGroupRoster::hydrate_group(GroupState& live) {
@@ -345,6 +379,22 @@ DurableRosterError DurableGroupRoster::stop_trusting() {
     next.stop_trusting();
     next.conflict_digest_ = {};
     return save(key_, next);
+}
+
+DurableRosterError DurableGroupRoster::snapshot(DurableRosterSnapshot& output, std::uint8_t* out,
+                                               std::size_t capacity) {
+    if (busy_) return Error::not_ready;
+    const Busy hold(busy_);
+    const auto ready = verify_current();
+    if (ready != Error::none) return ready;
+    const auto trust = state_.state();
+    if ((trust != State::active && trust != State::distrusted) || !state_.has_roster()) {
+        return Error::refused;
+    }
+    const auto encoded = encode(state_.roster(), out, capacity);
+    if (encoded == 0) return Error::refused;
+    output = {group_name_, state_.digest(), trust, state_.roster().version, encoded};
+    return Error::none;
 }
 
 std::size_t DurableGroupRoster::copy_signed_roster(std::uint8_t* out, std::size_t capacity) {

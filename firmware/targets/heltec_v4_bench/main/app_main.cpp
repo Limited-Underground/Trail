@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "companion_boot_self_check.hpp"
+#include "companion_group_runtime.hpp"
 #include "companion_authorization_storage.hpp"
 #include "companion_nimble_gatt.hpp"
 #include "companion_nimble_runtime.hpp"
@@ -392,6 +393,16 @@ bool run_companion_codec_self_check() {
 }
 
 }  // namespace
+
+opentrail::target::heltec_v4_bench::CompanionGroupInputs
+opentrail::target::heltec_v4_bench::companion_group_inputs() {
+    CompanionGroupInputs inputs{g_pairing_random};
+#if OPENTRAIL_LORA_LINK_TEST
+    inputs.pairing = &g_board_pairing;
+    inputs.messaging = &g_board_messaging;
+#endif
+    return inputs;
+}
 
 extern "C" void app_main() {
     prepare_firmware_line();

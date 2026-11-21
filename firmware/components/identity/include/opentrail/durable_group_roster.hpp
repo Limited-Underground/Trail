@@ -24,6 +24,20 @@ struct DurableRosterResult {
     Outcome outcome{Outcome::not_initialized};
 };
 
+struct DurableRosterSlot {
+    PublicKey admin{}, local{};
+    std::uint64_t group_id{0};
+    std::uint32_t minimum_version{0};
+};
+
+struct DurableRosterSnapshot {
+    GroupName group{};
+    Digest digest{};
+    State state{State::uninitialized};
+    std::uint32_t version{0};
+    std::size_t bytes{0};
+};
+
 struct DurablePairScope {
     GroupName group;
     Fingerprint local, peer;
@@ -38,6 +52,10 @@ struct DurablePairScope {
 // replays the idempotent index reconciliation before releasing a pair scope.
 class DurableGroupRoster {
 public:
+    static constexpr std::size_t kStorageRecordBytes = 4 + 8 + 2 * kPublicKeyBytes +
+        4 + 5 + 2 + kDigestBytes + kKnownDigests * (4 + kDigestBytes) +
+        kResolvedConflicts * kDigestBytes + kMaximumRosterBytes + sizeof(std::uint32_t);
+
     DurableGroupRoster(persistence::PersistentKvBackend& backend, persistence::GroupPairIndex& index,
                        const RosterCrypto& crypto, const PublicKey& admin, std::uint64_t group,
                        const PublicKey& local, std::uint32_t minimum_version = 1);
@@ -46,7 +64,14 @@ public:
 
     // Explicit creation of a fresh roster, after commissioning the pair index.
     [[nodiscard]] DurableRosterError initialize();
+    // Commits a signed version-one self-admin roster as the initial record.
+    [[nodiscard]] DurableRosterError create_owned(const std::uint8_t* bytes, std::size_t size);
     [[nodiscard]] DurableRosterError reopen();
+    // Slot metadata locates the owner. Reopen verifies its signed roster and trust state.
+    [[nodiscard]] static DurableRosterError inspect_slot(persistence::PersistentKvBackend& backend,
+                                                         std::size_t slot, DurableRosterSlot& output);
+    [[nodiscard]] DurableRosterError snapshot(DurableRosterSnapshot& output, std::uint8_t* bytes,
+                                               std::size_t capacity);
     // Restore the verified roster and retained member consent into a fresh
     // durable GroupState. Pair epoch history is imported separately.
     [[nodiscard]] DurableRosterError hydrate_group(GroupState& live);
@@ -63,9 +88,8 @@ public:
 private:
     struct Record {
         static constexpr std::size_t kScope = 4 + 8 + 2 * kPublicKeyBytes;
-        static constexpr std::size_t kCrc = kScope + 4 + 5 + 2 + kDigestBytes +
-            kKnownDigests * (4 + kDigestBytes) + kResolvedConflicts * kDigestBytes + kMaximumRosterBytes;
-        std::array<std::uint8_t, kCrc + 4> bytes{};
+        static constexpr std::size_t kCrc = kStorageRecordBytes - sizeof(std::uint32_t);
+        std::array<std::uint8_t, kStorageRecordBytes> bytes{};
         bool intact() const;
         bool names(std::uint64_t group, const PublicKey& admin, const PublicKey& local) const;
     };
@@ -74,8 +98,8 @@ private:
         Roster parsed;
         Record serialized, readback;
     };
-    DurableRosterError open(bool create);
-    DurableRosterError read(const char* key, Record& record);
+    DurableRosterError open(bool create, const std::uint8_t* initial = nullptr, std::size_t size = 0);
+    static DurableRosterError read(persistence::PersistentKvBackend& backend, const char* key, Record& record);
     DurableRosterError verify_current();
     DurableRosterError reconcile();
     DurableRosterError save(const char* key, const RosterState& next);

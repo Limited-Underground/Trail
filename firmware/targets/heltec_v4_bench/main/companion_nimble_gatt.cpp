@@ -6,6 +6,7 @@
 #include "companion_connection_diagnostics.hpp"
 #include "companion_nimble_runtime.hpp"
 #include "companion_configuration_lane.hpp"
+#include "companion_group_runtime.hpp"
 #include "opentrail/selected_enrollment_request_owner.hpp"
 #include "opentrail/pairing_result_owner.hpp"
 #include "confirmation_evaluation_config.hpp"
@@ -1350,12 +1351,15 @@ bool initialize_companion_configuration(DeviceNamePersistence& storage, Configur
     if (g_configuration_mutex != nullptr || g_configuration_dispatcher != nullptr) return false;
     g_configuration_mutex = xSemaphoreCreateRecursiveMutexStatic(&g_configuration_mutex_storage);
     if (g_configuration_mutex == nullptr) return false;
+    ConfigurationGroupBackend* group = nullptr;
 #if OPENTRAIL_CONFIRMATION_EVALUATION
     g_confirmation_backend = &confirmation_evaluation_backend(g_confirmation_source);
+#else
+    group = &companion_group_backend(g_configuration_source);
 #endif
     static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage,
         kSelectedConfigurationMinor, g_confirmation_backend,
-        kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr};
+        kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr, group};
     g_configuration_dispatcher = &dispatcher;
     g_configuration_storage = &storage;
     g_configuration_region_storage = &region_storage;

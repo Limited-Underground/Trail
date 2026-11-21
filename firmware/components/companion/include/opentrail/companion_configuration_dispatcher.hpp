@@ -28,14 +28,14 @@ public:
     [[nodiscard]] virtual bool close() = 0;
 };
 // All calls run on the application owner. The backend must independently bind the
-// live attachment at mutation time and confirm the durable write before returning ok.
+// live attachment and original admission time at mutation, and confirm the durable write before returning ok.
 // Stop Trust requires an exact current roster and must retire the group's live pairs.
 class ConfigurationGroupBackend {
 public:
     virtual ~ConfigurationGroupBackend() = default;
     [[nodiscard]] virtual bool available() const noexcept = 0;
     [[nodiscard]] virtual GroupConfigurationResult execute(
-        const DeviceNameContext&, const GroupConfigurationCommand&) noexcept = 0;
+        const DeviceNameContext&, const GroupConfigurationCommand&, std::uint64_t admitted_ms) noexcept = 0;
 };
 struct ConfigurationDispatchResult {
     ConfigurationDispatchCode code{ConfigurationDispatchCode::rejected};

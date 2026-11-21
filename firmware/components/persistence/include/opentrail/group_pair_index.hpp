@@ -60,15 +60,17 @@ public:
 
     // Explicit commissioning only. Normal lookups and mutations refuse a missing catalog.
     [[nodiscard]] GroupPairIndexError initialize();
+    [[nodiscard]] GroupPairIndexError reopen();
     [[nodiscard]] const identity::roster::Fingerprint& local_identity() const { return local_; }
-    [[nodiscard]] GroupPairIndexError group_status(const identity::roster::GroupName& group);
+    [[nodiscard]] GroupPairIndexError group_status(const identity::roster::GroupName& group,
+                                                    bool require_capacity = false);
     [[nodiscard]] GroupPairIndexResult find(const identity::roster::RosterState& roster,
                                             const identity::roster::Fingerprint& peer);
     [[nodiscard]] GroupPairIndexResult reserve(const identity::roster::RosterState& roster,
                                                const identity::roster::Fingerprint& peer);
 
     // Apply the committed, current roster watermark and retire obsolete pairs atomically.
-    // Keep the watermark after the last pair or the local member is removed.
+    // A left or distrusted roster retires all of its pairs and keeps its watermark.
     // All inactive rosters block lookup and reserve.
     [[nodiscard]] GroupPairIndexError prune(const identity::roster::RosterState& roster);
 

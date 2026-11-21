@@ -72,7 +72,7 @@ bool BoardPairingRuntime::start(const companion::SelectedEnrollmentRequest& phon
     }
     storage_->reset_read_stats();  // I-066: log this attempt's storage cost at its end
     // The session becomes the only owner of the board identity (ot_identity_v1).
-    targets::heltec_v4_bench::retire_retained_enrollment_identity();
+    targets::heltec_v4_bench::hand_off_retained_enrollment_identity();
     identity_.emplace();
     device_.emplace(input_);
     companion::DeviceNameAuthoritySource& authority_source = *this;  // private base

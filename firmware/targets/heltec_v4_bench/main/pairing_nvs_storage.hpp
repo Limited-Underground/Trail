@@ -1,10 +1,10 @@
 #pragma once
-// Board pairing storage (V1 F5, step R2a; owner decision D-086).
+// Shared retained state storage (D-086 pairing and D-116 groups).
 //
 // A standard NVS instance inside the existing raw `ot_state` partition (1 MB,
-// application type 0x40), opened only when pairing starts. Factory reset erases
+// application type 0x40), mounted on demand by admitted owners. Factory reset erases
 // every byte of `ot_state`; it must call retire_pairing_storage_for_reset()
-// first so no NVS instance stays mounted over the erased flash.
+// first so no NVS handle stays open over the erased flash.
 //
 // The storage logic follows the board-tested enrollment evaluation storage
 // (heltec_v4_enrollment_candidate_eval/main/candidate_nvs_storage.hpp): sparse
@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include "opentrail/group_pair_index.hpp"
 #include "opentrail/pairing_completion_archive.hpp"
 
 #include "nvs.h"
@@ -200,7 +201,6 @@ private:
     bool clear_packet_lanes(unsigned slot, unsigned first_namespace);
     bool owns_packet_claim(const PacketClaim&) const;
 
-    static const esp_partition_t* partition();
     static bool key_for(std::uint64_t g, unsigned n, Domain d, std::size_t s, char (&key)[16]);
     // Table position of a validated key; any other key faults and maps to the
     // guard slot at the end, never past the table (I-058).
@@ -235,10 +235,44 @@ private:
     std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
 };
 
-// Factory reset calls this before erasing `ot_state`. Safe when no pairing
-// storage was ever opened. After it, no PairingNvsStorage may be constructed.
-void retire_pairing_storage_for_reset();
-// Registers the single live instance so reset can retire it.
+// Each instance exclusively owns one group namespace. Construction does no I/O.
+// ready() admits the shared partition and opens an existing namespace read-only.
+// A mutation is staged in RAM, then committed using the exact namespace handle.
+class GroupNvsStorage final : public persistence::PersistentKvBackend {
+public:
+    enum class Store { roster, catalog };
+
+    explicit GroupNvsStorage(Store store) : store_(store) {}
+    ~GroupNvsStorage() override;
+    GroupNvsStorage(const GroupNvsStorage&) = delete;
+    GroupNvsStorage& operator=(const GroupNvsStorage&) = delete;
+
+    [[nodiscard]] bool ready();
+    void retire();
+
+    using Error = persistence::PersistentKvBackendError;
+    Error read_blob(const char*, const char*, const char*, std::uint8_t*, std::size_t, std::size_t&) override;
+    Error write_blob(const char*, const char*, const char*, const std::uint8_t*, std::size_t) override;
+    Error erase_key(const char*, const char*, const char*) override;
+    Error commit(const char*, const char*) override;
+
+private:
+    Error fault();
+
+    const Store store_;
+    nvs_handle_t handle_{};
+    bool mounted_{false}, good_{false}, retired_{false}, writable_{false};
+    std::array<std::uint8_t, persistence::GroupPairIndex::kMaximumSerializedBytes> staged_{};
+    std::array<char, 16> staged_key_{};
+    std::size_t staged_size_{0};
+};
+
+// Factory reset calls this before erasing `ot_state`. After it, no storage
+// owner can remount. False means teardown could not establish an unmounted
+// partition and the caller must refuse to erase.
+[[nodiscard]] bool retire_pairing_storage_for_reset();
+// Registers the single live pairing owner. Reset can retire its mount even
+// before the registration call.
 bool register_pairing_storage(PairingNvsStorage*);
 
 }  // namespace opentrail::target::heltec_v4_bench

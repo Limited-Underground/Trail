@@ -161,20 +161,27 @@ ConfigurationDecodeResult<ConfigurationRegionPayload> decode_configuration_regio
 }
 namespace {
 constexpr std::size_t kGroupHeaderBytes = 8;
-constexpr std::size_t kGroupIdOffset = kGroupHeaderBytes + GroupConfigurationScope{}.admin.size();
+constexpr std::size_t kGroupIdOffset = GroupConfigurationScope{}.admin.size();
 constexpr std::size_t kRosterDigestOffset = kGroupIdOffset + sizeof(std::uint64_t);
-constexpr std::size_t kGroupScopedBytes = kRosterDigestOffset + GroupConfigurationScope{}.roster_digest.size();
-static_assert(kGroupScopedBytes == 80 && kGroupScopedBytes <= kConfigurationPayloadBytes);
+constexpr std::size_t kGroupScopeBytes = kRosterDigestOffset + GroupConfigurationScope{}.roster_digest.size();
+constexpr std::size_t kGroupScopedBytes = kGroupHeaderBytes + kGroupScopeBytes;
+constexpr std::size_t kGroupReadCommandBytes = kGroupHeaderBytes + 4;
+constexpr std::size_t kGroupReadResultScopeOffset = kGroupReadCommandBytes + sizeof(std::uint16_t);
+constexpr std::size_t kGroupReadResultBytes = kGroupReadResultScopeOffset + kGroupScopeBytes;
+static_assert(kGroupScopeBytes == 72);
+static_assert(kGroupReadResultBytes + kConfigurationRosterFragmentBytes == kConfigurationPayloadBytes);
 
 bool group_header_valid(const std::uint8_t* b, std::size_t size) {
     return b != nullptr && size >= kGroupHeaderBytes && magic(b, "OTGC") && b[4] == 1 && b[7] == 0;
 }
 
-std::size_t group_command_size(GroupConfigurationOperation operation) {
+std::size_t group_command_size(GroupConfigurationOperation operation, std::uint16_t offset) {
     switch (operation) {
     case GroupConfigurationOperation::discover: return kGroupHeaderBytes;
     case GroupConfigurationOperation::create: return kGroupHeaderBytes + 1;
     case GroupConfigurationOperation::stop_trust: return kGroupScopedBytes;
+    case GroupConfigurationOperation::read_roster:
+        return kGroupReadCommandBytes + (offset == 0 ? 0 : kGroupScopeBytes);
     }
     return 0;
 }
@@ -188,41 +195,105 @@ bool group_scope_valid(const GroupConfigurationScope& scope) {
 
 GroupConfigurationScope read_group_scope(const std::uint8_t* b) {
     GroupConfigurationScope scope{};
-    std::copy_n(b + kGroupHeaderBytes, scope.admin.size(), scope.admin.begin());
+    std::copy_n(b, scope.admin.size(), scope.admin.begin());
     scope.group_id = read<std::uint64_t>(b + kGroupIdOffset);
     std::copy_n(b + kRosterDigestOffset, scope.roster_digest.size(), scope.roster_digest.begin());
     return scope;
 }
 
 void write_group_scope(const GroupConfigurationScope& scope, std::uint8_t* b) {
-    std::copy(scope.admin.begin(), scope.admin.end(), b + kGroupHeaderBytes);
+    std::copy(scope.admin.begin(), scope.admin.end(), b);
     write(b + kGroupIdOffset, scope.group_id);
     std::copy(scope.roster_digest.begin(), scope.roster_digest.end(), b + kRosterDigestOffset);
 }
 
-std::size_t group_result_size(GroupConfigurationOperation operation, GroupConfigurationStatus status) {
-    if (group_command_size(operation) == 0 || status > GroupConfigurationStatus::uncertain) return 0;
+GroupConfigurationReadRequest read_group_position(const std::uint8_t* b) {
+    return {b[0], static_cast<GroupConfigurationRosterState>(b[1]), read<std::uint16_t>(b + 2)};
+}
+
+void write_group_position(std::uint8_t* b, std::uint8_t slot,
+    GroupConfigurationRosterState state, std::uint16_t offset) {
+    b[0] = slot;
+    b[1] = static_cast<std::uint8_t>(state);
+    write(b + 2, offset);
+}
+
+bool group_position_valid(std::uint8_t slot, std::uint16_t offset) {
+    return slot < kConfigurationGroupSlots && offset < kConfigurationGroupRosterBytes &&
+        offset % kConfigurationRosterFragmentBytes == 0;
+}
+
+bool group_roster_state_valid(GroupConfigurationRosterState state) {
+    return state == GroupConfigurationRosterState::active ||
+        state == GroupConfigurationRosterState::distrusted;
+}
+
+bool group_command_valid(const GroupConfigurationCommand& command) {
+    const auto& position = command.read;
+    if (command.operation == GroupConfigurationOperation::read_roster) {
+        if (command.location_rule != 0 || !group_position_valid(position.slot, position.offset)) return false;
+        if (position.offset == 0) {
+            return position.state == GroupConfigurationRosterState::none &&
+                command.scope == GroupConfigurationScope{};
+        }
+        return group_roster_state_valid(position.state) && group_scope_valid(command.scope);
+    }
+    if (position.slot != 0 || position.state != GroupConfigurationRosterState::none ||
+        position.offset != 0) return false;
+    const auto max_rule = command.operation == GroupConfigurationOperation::create ? 2 : 0;
+    return command.location_rule <= max_rule &&
+        (command.operation == GroupConfigurationOperation::stop_trust ?
+            group_scope_valid(command.scope) : command.scope == GroupConfigurationScope{});
+}
+
+std::size_t group_result_header_size(GroupConfigurationOperation operation, GroupConfigurationStatus status) {
+    if (group_command_size(operation, 0) == 0 || status > GroupConfigurationStatus::missing ||
+        (status == GroupConfigurationStatus::missing && operation != GroupConfigurationOperation::read_roster))
+        return 0;
     if (operation == GroupConfigurationOperation::discover) {
         return status == GroupConfigurationStatus::ok || status == GroupConfigurationStatus::unavailable ?
             kGroupHeaderBytes : 0;
     }
-    return status == GroupConfigurationStatus::ok ? kGroupScopedBytes : kGroupHeaderBytes;
+    if (status != GroupConfigurationStatus::ok) return kGroupHeaderBytes;
+    return operation == GroupConfigurationOperation::read_roster ? kGroupReadResultBytes : kGroupScopedBytes;
+}
+
+std::size_t group_result_size(const GroupConfigurationResult& result) {
+    const auto header_size = group_result_header_size(result.operation, result.status);
+    if (header_size == 0) return 0;
+    const auto& fragment = result.fragment;
+    if (header_size == kGroupReadResultBytes) {
+        if (!group_position_valid(fragment.slot, fragment.offset) ||
+            !group_roster_state_valid(fragment.state) || !group_scope_valid(result.scope) ||
+            fragment.offset >= fragment.total_bytes || fragment.total_bytes > kConfigurationGroupRosterBytes)
+            return 0;
+        const auto count = std::min(kConfigurationRosterFragmentBytes,
+            static_cast<std::size_t>(fragment.total_bytes - fragment.offset));
+        return fragment.size == count ? header_size + count : 0;
+    }
+    if (fragment.slot != 0 || fragment.state != GroupConfigurationRosterState::none ||
+        fragment.offset != 0 || fragment.total_bytes != 0 || fragment.size != 0) return 0;
+    const bool scope_valid = header_size == kGroupScopedBytes ?
+        group_scope_valid(result.scope) : result.scope == GroupConfigurationScope{};
+    return scope_valid ? header_size : 0;
 }
 } // namespace
 
 ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigurationCommand& command,
     std::uint8_t* out, std::size_t capacity) {
-    const auto size = group_command_size(command.operation);
-    const bool scoped = command.operation == GroupConfigurationOperation::stop_trust;
-    const auto max_rule = command.operation == GroupConfigurationOperation::create ? 2 : 0;
-    if (size == 0 || command.location_rule > max_rule ||
-        (scoped ? !group_scope_valid(command.scope) : command.scope != GroupConfigurationScope{}))
-        return {ConfigurationCodecError::malformed, 0};
+    const auto size = group_command_size(command.operation, command.read.offset);
+    if (size == 0 || !group_command_valid(command)) return {ConfigurationCodecError::malformed, 0};
 
-    std::array<std::uint8_t, kGroupScopedBytes> bytes{'O','T','G','C',1,
+    std::array<std::uint8_t, kGroupReadCommandBytes + kGroupScopeBytes> bytes{'O','T','G','C',1,
         static_cast<std::uint8_t>(command.operation)};
-    if (scoped) write_group_scope(command.scope, bytes.data());
     if (command.operation == GroupConfigurationOperation::create) bytes[kGroupHeaderBytes] = command.location_rule;
+    if (command.operation == GroupConfigurationOperation::stop_trust)
+        write_group_scope(command.scope, bytes.data() + kGroupHeaderBytes);
+    if (command.operation == GroupConfigurationOperation::read_roster) {
+        const auto& position = command.read;
+        write_group_position(bytes.data() + kGroupHeaderBytes, position.slot, position.state, position.offset);
+        if (position.offset != 0) write_group_scope(command.scope, bytes.data() + kGroupReadCommandBytes);
+    }
     return emit(bytes.data(), size, out, capacity);
 }
 
@@ -230,27 +301,36 @@ ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_
     const std::uint8_t* b, std::size_t size) {
     if (!group_header_valid(b, size) || b[6] != 0) return {ConfigurationCodecError::malformed, {}};
     GroupConfigurationCommand command{static_cast<GroupConfigurationOperation>(b[5])};
-    if (size != group_command_size(command.operation)) return {ConfigurationCodecError::malformed, {}};
-    if (command.operation == GroupConfigurationOperation::create) {
-        command.location_rule = b[kGroupHeaderBytes];
-        if (command.location_rule > 2) return {ConfigurationCodecError::malformed, {}};
+    if (command.operation == GroupConfigurationOperation::read_roster) {
+        if (size < kGroupReadCommandBytes) return {ConfigurationCodecError::malformed, {}};
+        command.read = read_group_position(b + kGroupHeaderBytes);
     }
-    if (command.operation == GroupConfigurationOperation::stop_trust) {
-        command.scope = read_group_scope(b);
-        if (!group_scope_valid(command.scope)) return {ConfigurationCodecError::malformed, {}};
-    }
+    if (size != group_command_size(command.operation, command.read.offset))
+        return {ConfigurationCodecError::malformed, {}};
+    if (command.operation == GroupConfigurationOperation::create) command.location_rule = b[kGroupHeaderBytes];
+    if (command.operation == GroupConfigurationOperation::stop_trust)
+        command.scope = read_group_scope(b + kGroupHeaderBytes);
+    if (command.operation == GroupConfigurationOperation::read_roster && command.read.offset != 0)
+        command.scope = read_group_scope(b + kGroupReadCommandBytes);
+    if (!group_command_valid(command)) return {ConfigurationCodecError::malformed, {}};
     return {ConfigurationCodecError::none, command};
 }
 
 ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigurationResult& result,
     std::uint8_t* out, std::size_t capacity) {
-    const auto size = group_result_size(result.operation, result.status);
-    if (size == 0 || (size == kGroupScopedBytes ? !group_scope_valid(result.scope) :
-        result.scope != GroupConfigurationScope{})) return {ConfigurationCodecError::malformed, 0};
+    const auto size = group_result_size(result);
+    if (size == 0) return {ConfigurationCodecError::malformed, 0};
 
-    std::array<std::uint8_t, kGroupScopedBytes> bytes{'O','T','G','C',1,
+    std::array<std::uint8_t, kConfigurationPayloadBytes> bytes{'O','T','G','C',1,
         static_cast<std::uint8_t>(result.operation), static_cast<std::uint8_t>(result.status)};
-    if (size == kGroupScopedBytes) write_group_scope(result.scope, bytes.data());
+    if (size == kGroupScopedBytes) write_group_scope(result.scope, bytes.data() + kGroupHeaderBytes);
+    if (size > kGroupReadResultBytes) {
+        const auto& fragment = result.fragment;
+        write_group_position(bytes.data() + kGroupHeaderBytes, fragment.slot, fragment.state, fragment.offset);
+        write(bytes.data() + kGroupReadCommandBytes, fragment.total_bytes);
+        write_group_scope(result.scope, bytes.data() + kGroupReadResultScopeOffset);
+        std::copy_n(fragment.bytes.begin(), fragment.size, bytes.data() + kGroupReadResultBytes);
+    }
     return emit(bytes.data(), size, out, capacity);
 }
 
@@ -259,12 +339,22 @@ ConfigurationDecodeResult<GroupConfigurationResult> decode_group_configuration_r
     if (!group_header_valid(b, size)) return {ConfigurationCodecError::malformed, {}};
     GroupConfigurationResult result{static_cast<GroupConfigurationOperation>(b[5]),
         static_cast<GroupConfigurationStatus>(b[6])};
-    if (size != group_result_size(result.operation, result.status))
+    const auto header_size = group_result_header_size(result.operation, result.status);
+    if (header_size == 0 || size < header_size || size > kConfigurationPayloadBytes)
         return {ConfigurationCodecError::malformed, {}};
-    if (size == kGroupScopedBytes) {
-        result.scope = read_group_scope(b);
-        if (!group_scope_valid(result.scope)) return {ConfigurationCodecError::malformed, {}};
+    if (header_size == kGroupScopedBytes) result.scope = read_group_scope(b + kGroupHeaderBytes);
+    if (header_size == kGroupReadResultBytes) {
+        const auto position = read_group_position(b + kGroupHeaderBytes);
+        result.fragment.slot = position.slot;
+        result.fragment.state = position.state;
+        result.fragment.offset = position.offset;
+        result.fragment.total_bytes = read<std::uint16_t>(b + kGroupReadCommandBytes);
+        result.fragment.size = static_cast<std::uint8_t>(size - header_size);
+        result.scope = read_group_scope(b + kGroupReadResultScopeOffset);
     }
+    if (size != group_result_size(result)) return {ConfigurationCodecError::malformed, {}};
+    if (header_size == kGroupReadResultBytes)
+        std::copy_n(b + header_size, result.fragment.size, result.fragment.bytes.begin());
     return {ConfigurationCodecError::none, result};
 }
 

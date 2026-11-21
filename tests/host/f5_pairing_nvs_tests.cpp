@@ -5,11 +5,13 @@
 #include <cstring>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 #include "pairing_nvs_storage.hpp"
 #include "nvs_flash.h"
+#include "opentrail/durable_group_roster.hpp"
 
 #define CHECK(x) do { if(!(x)) { std::printf("FAIL %s:%d %s\n",__FILE__,__LINE__,#x); std::exit(1); } } while(0)
 namespace target=opentrail::target::heltec_v4_bench;
@@ -29,31 +31,55 @@ PacketOwner owner(std::uint8_t id) {
  result[0]=id;
  return result;
 }
+using GroupStore=target::GroupNvsStorage;
+using GroupError=GroupStore::Error;
+using RosterBytes=std::array<std::uint8_t,opentrail::identity::roster::DurableGroupRoster::kStorageRecordBytes>;
+using CatalogBytes=std::array<std::uint8_t,opentrail::persistence::GroupPairIndex::kMaximumSerializedBytes>;
+constexpr const char* kPartition="ot_state";
+constexpr const char* kRoster="ot_group_rost";
+constexpr const char* kCatalog="ot_group_idx";
 namespace fake {
 struct Entry { std::vector<std::uint8_t> value; int type=NVS_TYPE_BLOB; bool operator==(const Entry& o) const { return type==o.type && value==o.value; } };
 using Key=std::pair<std::string,std::string>;
+struct Handle { std::string space; int mode; };
 std::map<Key,Entry> media;
 struct Mutation { Key key; std::optional<Entry> prior; };
-std::optional<Mutation> mutation;
-std::size_t extra_entries=0, sets=0, erases=0, commits=0, mounts=0;
+std::map<nvs_handle_t,Mutation> mutations;
+std::set<std::string> namespaces;
+std::map<nvs_handle_t,Handle> handles;
+nvs_handle_t next_handle=0;
+std::size_t extra_entries=0, sets=0, erases=0, commits=0, mounts=0, deinits=0;
 esp_partition_t partition{0xf00000,0x100000,"ot_state",false,false};
 std::uint64_t time=0;
-bool fail_commit=false, corrupt_next_read=false, discard_failed_commit=false;
+bool mounted=false, fail_commit=false, corrupt_next_read=false, fail_deinit=false;
+bool discard_failed_commit=false;
 std::size_t fail_at_commit=0, fail_at_erase=0;
 
-void snapshot(const Key& key) {
+void snapshot(nvs_handle_t handle,const Key& key) {
  const auto found=media.find(key);
- mutation=Mutation{key,found==media.end()?std::nullopt:std::optional{found->second}};
+ mutations.insert_or_assign(handle,Mutation{key,found==media.end()?std::nullopt:std::optional{found->second}});
 }
-std::size_t entries() { return extra_entries+media.size()*4; }
+std::size_t entries(const std::string& space="ot_pair") {
+ std::size_t count=space=="ot_pair"?extra_entries:0;
+ for(const auto& e:media)
+  if(e.first.first==space) count+=space=="ot_pair"?4:3+(e.second.value.size()+31)/32;
+ return count;
+}
 std::size_t changes() { return sets+erases+commits; }
 void reset() {
- media.clear(); mutation.reset(); extra_entries=sets=erases=commits=mounts=0;
+ CHECK(!mounted && handles.empty() && mutations.empty());
+ media.clear();
+ namespaces.clear();
+ next_handle=0;
+ extra_entries=sets=erases=commits=mounts=deinits=0;
  partition={0xf00000,0x100000,"ot_state",false,false};
- fail_commit=corrupt_next_read=discard_failed_commit=false;
+ fail_commit=corrupt_next_read=fail_deinit=discard_failed_commit=false;
  fail_at_commit=fail_at_erase=0;
 }
-void seed(const std::string& key,std::size_t bytes=64,const std::string& space="ot_pair",int type=NVS_TYPE_BLOB) { media[{space,key}]={std::vector<std::uint8_t>(bytes,0xff),type}; }
+void seed(const std::string& key,std::size_t bytes=64,const std::string& space="ot_pair",int type=NVS_TYPE_BLOB) {
+ namespaces.insert(space);
+ media[{space,key}]={std::vector<std::uint8_t>(bytes,0xff),type};
+}
 void put(Port& p,std::uint8_t value,Domain d=Domain::protocol_state,std::size_t slot=0) {
  const std::array<std::uint8_t,4> data{value,value,value,value};
  CHECK(p.write_slot(d,slot,0,{data.data(),data.size()})==Error::none);
@@ -72,15 +98,36 @@ struct Iterator { std::vector<fake::Key> keys; std::size_t position=0; };
 const esp_partition_t* esp_partition_find_first(esp_partition_type_t type,esp_partition_subtype_t sub,const char* label) {
  return type==0x40 && sub==0 && std::strcmp(label,"ot_state")==0 ? &fake::partition : nullptr;
 }
-esp_err_t nvs_flash_init_partition_ptr(const esp_partition_t*) { ++fake::mounts; return ESP_OK; }
-esp_err_t nvs_flash_deinit_partition(const char*) { return ESP_OK; }
-esp_err_t nvs_open_from_partition(const char* partition,const char* space,int mode,nvs_handle_t* out) {
- if(std::strcmp(partition,"ot_state") || std::strcmp(space,"ot_pair") || mode!=NVS_READWRITE) return ESP_FAIL;
- *out=1; return ESP_OK;
+esp_err_t nvs_flash_init_partition_ptr(const esp_partition_t*) {
+ CHECK(!fake::mounted && fake::handles.empty());
+ fake::mounted=true;
+ ++fake::mounts;
+ if(fake::extra_entries) fake::namespaces.insert("ot_pair");
+ return ESP_OK;
 }
-void nvs_close(nvs_handle_t) { fake::mutation.reset(); }
-esp_err_t nvs_get_blob(nvs_handle_t,const char* key,void* data,std::size_t* count) {
- const auto found=fake::media.find({"ot_pair",key}); if(found==fake::media.end()) return ESP_ERR_NVS_NOT_FOUND;
+esp_err_t nvs_flash_deinit_partition(const char* partition) {
+ CHECK(std::strcmp(partition,"ot_state")==0 && fake::handles.empty());
+ if(fake::fail_deinit) return ESP_FAIL;
+ if(!fake::mounted) return ESP_ERR_NVS_NOT_INITIALIZED;
+ fake::mounted=false;
+ ++fake::deinits;
+ return ESP_OK;
+}
+esp_err_t nvs_open_from_partition(const char* partition,const char* space,int mode,nvs_handle_t* out) {
+ if(std::strcmp(partition,"ot_state") || !fake::mounted) return ESP_FAIL;
+ if(mode==NVS_READONLY && !fake::namespaces.count(space)) return ESP_ERR_NVS_NOT_FOUND;
+ if(mode==NVS_READWRITE) fake::namespaces.insert(space);
+ *out=++fake::next_handle;
+ fake::handles.emplace(*out,fake::Handle{space,mode});
+ return ESP_OK;
+}
+void nvs_close(nvs_handle_t handle) {
+ CHECK(fake::handles.erase(handle)==1);
+ fake::mutations.erase(handle);
+}
+esp_err_t nvs_get_blob(nvs_handle_t handle,const char* key,void* data,std::size_t* count) {
+ const auto& space=fake::handles.at(handle).space;
+ const auto found=fake::media.find({space,key}); if(found==fake::media.end()) return ESP_ERR_NVS_NOT_FOUND;
  if(found->second.type!=NVS_TYPE_BLOB) return ESP_FAIL;
  const auto n=found->second.value.size(); if(!data) { *count=n; return ESP_OK; }
  if(*count<n) { *count=n; return ESP_ERR_NVS_INVALID_LENGTH; }
@@ -88,36 +135,58 @@ esp_err_t nvs_get_blob(nvs_handle_t,const char* key,void* data,std::size_t* coun
  if(fake::corrupt_next_read && n) { static_cast<std::uint8_t*>(data)[0]^=1; fake::corrupt_next_read=false; }
  *count=n; return ESP_OK;
 }
-esp_err_t nvs_set_blob(nvs_handle_t,const char* key,const void* data,std::size_t count) {
+esp_err_t nvs_set_blob(nvs_handle_t handle,const char* key,const void* data,std::size_t count) {
+ const auto& opened=fake::handles.at(handle);
+ CHECK(opened.mode==NVS_READWRITE);
  ++fake::sets; const auto* bytes=static_cast<const std::uint8_t*>(data);
- const fake::Key location{"ot_pair",key};
- fake::snapshot(location);
+ const fake::Key location{opened.space,key};
+ fake::snapshot(handle,location);
  fake::media[location]={std::vector<std::uint8_t>(bytes,bytes+count),NVS_TYPE_BLOB};
  return ESP_OK;
 }
-esp_err_t nvs_erase_key(nvs_handle_t,const char* key) {
+esp_err_t nvs_erase_key(nvs_handle_t handle,const char* key) {
+ const auto& opened=fake::handles.at(handle);
+ CHECK(opened.mode==NVS_READWRITE);
  ++fake::erases;
  if(fake::fail_at_erase==fake::erases) return ESP_FAIL;
- const fake::Key location{"ot_pair",key};
- fake::snapshot(location);
+ const fake::Key location{opened.space,key};
+ fake::snapshot(handle,location);
  return fake::media.erase(location)?ESP_OK:ESP_ERR_NVS_NOT_FOUND;
 }
-esp_err_t nvs_commit(nvs_handle_t) {
+esp_err_t nvs_commit(nvs_handle_t handle) {
+ CHECK(fake::handles.at(handle).mode==NVS_READWRITE);
  ++fake::commits;
  const bool failed=fake::fail_commit || fake::fail_at_commit==fake::commits;
- if(failed && fake::discard_failed_commit && fake::mutation) {
-  const auto& write=*fake::mutation;
-  if(write.prior) fake::media[write.key]=*write.prior;
-  else fake::media.erase(write.key);
+ const auto mutation=fake::mutations.find(handle);
+ if(mutation!=fake::mutations.end()) {
+  if(failed && fake::discard_failed_commit) {
+   const auto& write=mutation->second;
+   if(write.prior) fake::media[write.key]=*write.prior;
+   else fake::media.erase(write.key);
+  }
+  fake::mutations.erase(mutation);
  }
- fake::mutation.reset();
  return failed?ESP_FAIL:ESP_OK;
 }
-esp_err_t nvs_get_used_entry_count(nvs_handle_t,std::size_t* out) { *out=fake::entries(); return ESP_OK; }
-esp_err_t nvs_get_stats(const char*,nvs_stats_t* out) { *out={fake::entries(),32256-fake::entries(),32256,1}; return ESP_OK; }
-esp_err_t nvs_entry_find(const char*,const char*,nvs_type_t,nvs_iterator_t* out) {
- if(fake::media.empty()) { *out=nullptr; return ESP_ERR_NVS_NOT_FOUND; }
- auto* i=new Iterator; for(const auto& e:fake::media) i->keys.push_back(e.first); *out=i; return ESP_OK;
+esp_err_t nvs_get_used_entry_count(nvs_handle_t handle,std::size_t* out) {
+ *out=fake::entries(fake::handles.at(handle).space);
+ return ESP_OK;
+}
+esp_err_t nvs_get_stats(const char* partition,nvs_stats_t* out) {
+ CHECK(std::strcmp(partition,"ot_state")==0 && fake::mounted);
+ auto used=fake::namespaces.size();
+ for(const auto& space:fake::namespaces) used+=fake::entries(space);
+ *out={used,32256-used,32256,fake::namespaces.size()};
+ return ESP_OK;
+}
+esp_err_t nvs_entry_find(const char* partition,const char* space,nvs_type_t type,nvs_iterator_t* out) {
+ CHECK(std::strcmp(partition,"ot_state")==0 && fake::mounted);
+ auto* i=new Iterator;
+ for(const auto& e:fake::media)
+  if((!space || e.first.first==space) && (type==NVS_TYPE_ANY || e.second.type==type)) i->keys.push_back(e.first);
+ if(i->keys.empty()) { delete i; *out=nullptr; return ESP_ERR_NVS_NOT_FOUND; }
+ *out=i;
+ return ESP_OK;
 }
 esp_err_t nvs_entry_info(nvs_iterator_t i,nvs_entry_info_t* out) {
  if(!i || i->position>=i->keys.size()) return ESP_FAIL;
@@ -301,6 +370,7 @@ void interrupted_reclaim(bool legacy) {
   }
  }
  const auto initial=fake::media;
+ const auto initial_namespaces=fake::namespaces;
  const auto protected_entry=[](const fake::Key& key) {
   return key.second.compare(0,9,"f00000001")!=0;
  };
@@ -311,6 +381,7 @@ void interrupted_reclaim(bool legacy) {
  const auto run=[&](std::size_t at,bool erase_failure,bool discard) {
   fake::reset();
   fake::media=initial;
+  fake::namespaces=initial_namespaces;
   {
    Storage s;
    CHECK(s.ready());
@@ -356,7 +427,109 @@ void interrupted_reclaim(bool legacy) {
  for(std::size_t erase=1;erase<=tuples;++erase) run(erase,true,false);
 }
 
-int main() {
+void combined_partition_budget() {
+ constexpr std::array<const char*,4> roster_keys{"g0","g1","g2","g3"};
+ static_assert(roster_keys.size()==opentrail::persistence::GroupPairIndex::kMaximumGroups);
+ constexpr auto blob_entries=[](std::size_t bytes) { return 3+(bytes+31)/32; };
+ constexpr auto roster_entries=roster_keys.size()*blob_entries(RosterBytes{}.size());
+ constexpr auto catalog_entries=blob_entries(CatalogBytes{}.size());
+ constexpr auto combined=Storage::kPairingEntries+roster_entries+catalog_entries+3;
+ static_assert(roster_entries==136 && catalog_entries==48);
+ static_assert(combined==7879 && Storage::kTotalEntries/4-combined==185);
+
+ fake::reset();
+ // Model other admitted pairing entries while exercising two real claim/lane pairs.
+ fake::extra_entries=Storage::kPairingEntries-4*4;
+ std::optional<Storage::PacketClaim> first, second;
+ RosterBytes roster_blob{};
+ CatalogBytes catalog_blob{};
+ catalog_blob.fill(0x37);
+ {
+  Storage pairing; CHECK(pairing.ready());
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready());
+  first=pairing.claim_packets(owner(1),1);
+  second=pairing.claim_packets(owner(2),1);
+  CHECK(first && second);
+  PacketView first_lane(pairing,Store::packet_data_tx,*first);
+  PacketView second_lane(pairing,Store::packet_ack_rx,*second);
+  fake::put(first_lane,0x5f);
+  fake::put(second_lane,0x3f);
+  for(std::size_t i=0;i<roster_keys.size();++i) {
+   roster_blob.fill(static_cast<std::uint8_t>(0x40+i));
+   CHECK(roster.write_blob(kPartition,kRoster,roster_keys[i],roster_blob.data(),roster_blob.size())==GroupError::none);
+   CHECK(roster.commit(kPartition,kRoster)==GroupError::none);
+  }
+  CHECK(catalog.write_blob(kPartition,kCatalog,"catalog",catalog_blob.data(),catalog_blob.size())==GroupError::none);
+  CHECK(catalog.commit(kPartition,kCatalog)==GroupError::none);
+  CHECK(fake::entries("ot_pair")==Storage::kPairingEntries);
+  CHECK(fake::entries(kRoster)==roster_entries && fake::entries(kCatalog)==catalog_entries);
+  nvs_stats_t stats{};
+  CHECK(nvs_get_stats(kPartition,&stats)==ESP_OK && stats.used_entries==combined);
+  CHECK(stats.total_entries==Storage::kTotalEntries && stats.namespace_count==3);
+  CHECK(fake::mounts==1 && fake::deinits==0);
+ }
+ CHECK(fake::deinits==1 && !fake::mounted);
+ const auto before=fake::media;
+ {
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready());
+  Storage pairing; CHECK(pairing.ready());
+  CHECK(fake::mounts==2);
+  PacketView stale(pairing,Store::packet_data_tx,*first);
+  PacketView foreign(pairing,Store::packet_ack_rx,*second);
+  CHECK(fake::read(stale)[0]==0x5f && fake::read(foreign)[0]==0x3f);
+  const auto renewed=pairing.claim_packets(owner(1),2);
+  CHECK(renewed);
+  PacketView current(pairing,Store::packet_data_tx,*renewed);
+  check_inaccessible(stale);
+  check_blank(current);
+  fake::put(current,0x1f);
+  CHECK(fake::read(foreign)[0]==0x3f);
+  CHECK(fake::entries("ot_pair")==Storage::kPairingEntries);
+  for(const auto& entry:before)
+   if(entry.first.first!=Storage::kNamespace) CHECK(fake::media.at(entry.first)==entry.second);
+  for(std::size_t i=0;i<roster_keys.size();++i) {
+   RosterBytes readback{};
+   std::size_t size=0;
+   roster_blob.fill(static_cast<std::uint8_t>(0x40+i));
+   CHECK(roster.read_blob(kPartition,kRoster,roster_keys[i],readback.data(),readback.size(),size)==GroupError::none);
+   CHECK(size==roster_blob.size() && readback==roster_blob);
+  }
+  CatalogBytes readback{};
+  std::size_t size=0;
+  CHECK(catalog.read_blob(kPartition,kCatalog,"catalog",readback.data(),readback.size(),size)==GroupError::none);
+  CHECK(size==catalog_blob.size() && readback==catalog_blob);
+ }
+ CHECK(fake::deinits==2 && !fake::mounted);
+
+ // A pairing scope overrun is refused even with room under the aggregate limit.
+ ++fake::extra_entries;
+ const auto retained=fake::media;
+ const auto changes=fake::changes();
+ {
+  GroupStore roster(GroupStore::Store::roster);
+  CHECK(!roster.ready());
+  Storage pairing;
+  CHECK(!pairing.ready());
+  CHECK(fake::media==retained && fake::changes()==changes);
+ }
+ CHECK(!fake::mounted && fake::handles.empty());
+}
+
+int main(int argc,char** argv) {
+ if(argc==2 && std::strcmp(argv[1],"--reset-before-register")==0) {
+  fake::reset();
+  Storage pairing; CHECK(pairing.ready());
+  GroupStore catalog(GroupStore::Store::catalog); CHECK(catalog.ready());
+  fake::fail_deinit=true;
+  CHECK(!target::retire_pairing_storage_for_reset());
+  CHECK(fake::handles.empty() && !pairing.ready() && !catalog.ready());
+  Storage refused; CHECK(!refused.ready() && fake::mounts==1);
+  std::puts("PASS unresolved deinit after reset before pairing registration");
+  return 0;
+ }
+ CHECK(argc==1);
  unsigned groups=0;
  // The former lane and journal keys remain valid; the 32 ownership markers
  // add at most four NVS entries each to the existing inventory ceiling.
@@ -423,9 +596,8 @@ int main() {
                       "f000000000Cd0s0","f000000000bd0s0"}) fake::refused(key);
  fake::refused("g00000000nbd0s0",63); fake::refused("g00000000nbd0s0",64,"future_space");
  fake::refused("g00000000nbd0s0",64,"ot_pair",7); ++groups;
- // L1: group storage is host-only, not provisioned in this target partition.
- // Inject its actual namespace/key spelling alongside retained pairing bytes;
- // inventory must refuse the unsupported owner, never migrate or erase either.
+ // Group pair records still belong to a future target slice. Their separate
+ // namespace is not admitted alongside the roster and catalog.
  {
   fake::reset(); fake::seed("g00000000nbd0s0");
   fake::seed("p00",606,"ot_group_pair");
@@ -534,6 +706,106 @@ int main() {
   CHECK(fake::media==before && fake::changes()==changes);
   ++groups;
  }
+ // Discover can admit blank media without creating a namespace or staging a write.
+ // Pairing and both group namespaces share the exact mount, with independent handles.
+ {
+  fake::reset();
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  GroupStore duplicate(GroupStore::Store::roster);
+  CHECK(fake::mounts==0 && fake::namespaces.empty());
+  CHECK(roster.ready() && catalog.ready() && !duplicate.ready());
+  CHECK(fake::mounts==1 && fake::namespaces.empty() && fake::changes()==0);
+  RosterBytes roster_blob{};
+  RosterBytes readback{};
+  roster_blob.fill(0x43);
+  std::size_t size=1;
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::not_found && size==0);
+  CHECK(roster.write_blob(kPartition,kCatalog,"catalog",roster_blob.data(),roster_blob.size())==GroupError::invalid_argument);
+  CHECK(roster.write_blob(kPartition,kRoster,"g4",roster_blob.data(),roster_blob.size())==GroupError::invalid_argument);
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",roster_blob.data(),roster_blob.size()-1)==GroupError::invalid_argument);
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",roster_blob.data(),roster_blob.size())==GroupError::none);
+  CHECK(fake::media.empty() && fake::namespaces.empty() && fake::changes()==0);
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::not_found && size==0);
+  CHECK(roster.commit(kPartition,kCatalog)==GroupError::invalid_argument && fake::changes()==0);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::none);
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::none &&
+        size==roster_blob.size() && readback==roster_blob);
+  CHECK(roster.erase_key(kPartition,kRoster,"g0")==GroupError::invalid_argument);
+  CatalogBytes catalog_blob{};
+  catalog_blob.fill(0x37);
+  CHECK(catalog.write_blob(kPartition,kCatalog,"catalog",catalog_blob.data(),catalog_blob.size())==GroupError::none);
+  CHECK(catalog.commit(kPartition,kCatalog)==GroupError::none);
+  {
+   Storage s; CHECK(s.ready() && target::register_pairing_storage(&s));
+   CHECK(!target::register_pairing_storage(&s));
+   Storage second; CHECK(!second.ready() && !target::register_pairing_storage(&second));
+   CHECK(s.ready() && fake::mounts==1);
+   auto& retained=s.external(Store::completion);
+   fake::put(retained,0x7f);
+   CHECK(fake::read(retained)[0]==0x7f);
+  }
+  CHECK(fake::mounted && fake::deinits==0);
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::none && readback==roster_blob);
+ }
+ {
+  const auto before=fake::media;
+  const auto changes=fake::changes();
+  CHECK(!fake::mounted && fake::deinits==1);
+  Storage reopened; CHECK(reopened.ready());
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready() && fake::mounts==2);
+  CHECK(fake::read(reopened.external(Store::completion))[0]==0x7f);
+  CHECK(fake::media==before && fake::changes()==changes);
+  ++groups;
+ }
+ // A key that disappears during a live mount must never look like blank space.
+ {
+  fake::reset();
+  fake::seed("g0",RosterBytes{}.size(),kRoster);
+  Storage pairing; CHECK(pairing.ready());
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  RosterBytes readback{};
+  std::size_t size=0;
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::none);
+  fake::media.erase({kRoster,"g0"});
+  CHECK(roster.read_blob(kPartition,kRoster,"g0",readback.data(),readback.size(),size)==GroupError::io_failure);
+  CHECK(!roster.ready() && pairing.ready() && fake::changes()==0);
+  ++groups;
+ }
+ // Reject foreign empty namespaces and malformed records before creating
+ // or mutating any namespace, regardless of which owner requests the mount.
+ {
+  fake::reset();
+  fake::namespaces.insert("future_empty");
+  GroupStore roster(GroupStore::Store::roster);
+  CHECK(!roster.ready() && fake::changes()==0 && fake::media.empty());
+  Storage pairing; CHECK(!pairing.ready() && fake::changes()==0);
+  fake::refused("g4",RosterBytes{}.size(),kRoster);
+  fake::refused("g0",RosterBytes{}.size()+1,kRoster);
+  fake::refused("other",CatalogBytes{}.size(),kCatalog);
+  fake::refused("catalog",CatalogBytes{}.size(),kCatalog,7);
+  ++groups;
+ }
+ // A possibly applied write closes only its group owner to future authority.
+ // Already admitted F5 and the other group namespace remain independent.
+ {
+  fake::reset();
+  Storage pairing; CHECK(pairing.ready());
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready());
+  RosterBytes blob{};
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  fake::fail_commit=true;
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
+  CHECK(!roster.ready() && catalog.ready() && pairing.ready());
+  const auto before=fake::media;
+  const auto mutations=fake::changes();
+  CHECK(roster.write_blob(kPartition,kRoster,"g1",blob.data(),blob.size())==GroupError::io_failure);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
+  CHECK(fake::changes()==mutations && fake::media==before);
+  ++groups;
+ }
+ combined_partition_budget(); ++groups;
  // Terminal reset latch: fake flash is deliberately preserved here to detect post-latch mutations.
  {
   fake::reset(); Storage s; CHECK(s.ready() && target::register_pairing_storage(&s));
@@ -542,8 +814,17 @@ int main() {
   std::array<Port*,4> ports{&s.external(Store::completion),&s.external(Store::f5_state),
    &s.external(Store::f5_state_tail),&lane};
   for(auto* p:ports) { CHECK(p); fake::put(*p,0x7f); }
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready());
+  RosterBytes blob{};
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::none);
+  CHECK(roster.write_blob(kPartition,kRoster,"g1",blob.data(),blob.size())==GroupError::none);
   const auto before=fake::media; const auto changes=fake::changes(); const auto mounts=fake::mounts;
-  target::retire_pairing_storage_for_reset(); CHECK(!s.ready());
+  CHECK(target::retire_pairing_storage_for_reset() && !s.ready());
+  CHECK(!roster.ready() && !catalog.ready());
+  CHECK(fake::handles.empty() && !fake::mounted && fake::deinits==1);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
   CHECK(!s.claim_packets(owner(1),33) && !s.retire_packets(*claim));
   const std::uint8_t byte=0;
   for(auto* p:ports) {

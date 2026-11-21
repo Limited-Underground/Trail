@@ -7,6 +7,7 @@
 #include "pairing_nvs_storage.hpp"
 #include "enrollment_identity_nvs_storage.hpp"
 #include "opentrail/f5_rekey_session.hpp"
+#include "opentrail/group_roster.hpp"
 #include "opentrail/f5_pairing_trust.hpp"
 #include "opentrail/f5_status_session.hpp"
 #include "opentrail/companion_phone_text_trial.hpp"
@@ -27,6 +28,9 @@ public:
     void service(std::uint64_t now_ms, bool radio_permitted);
     void close();
     Phase phase() const { return phase_; }
+    bool owns_enrollment_identity() const { return identity_.has_value(); }
+    bool read_group_roster_key(identity::roster::PublicKey&);
+    bool sign_initial_group_roster(const identity::roster::Roster&, identity::roster::Signature&);
 
     using PhoneText = companion::PhoneTextTrial;
     bool observe_phone_text_pair(std::uint64_t now_ms, PhoneText::Pair&);
@@ -35,6 +39,7 @@ public:
         std::uint64_t now_ms, std::uint64_t proof_deadline_ms);
     PhoneText::Progress phone_text_outgoing(std::uint64_t lease) const;
     PhoneText::Inbound phone_text_incoming(std::uint64_t lease) const;
+
 private:
     using Rekey = security_evaluation::F5RekeySession;
     class RetainedView final : public persistence::PersistentStorage {

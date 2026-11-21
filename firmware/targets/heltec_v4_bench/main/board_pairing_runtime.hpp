@@ -68,6 +68,7 @@ public:
     Phase phase() const { return phase_; }
     // True while frames may flow: running, or lingering after a local commit.
     bool active() const { return phase_ == Phase::running || lingering_; }
+    bool owns_enrollment_identity() const { return identity_.has_value(); }
     security_evaluation::PairingSessionAdapter::Prompt prompt() const {
         return adapter_ ? adapter_->prompt() : security_evaluation::PairingSessionAdapter::Prompt::none;
     }
