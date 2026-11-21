@@ -177,6 +177,12 @@ production-input acceptance remains open on
 [OT-0101c](https://github.com/Limited-Underground/Trail/issues/191) retains its
 original completed evidence scope. No physical or release acceptance is added.
 
+## MeshTrail V1 design review
+
+The [direct conversation proposal](security/DIRECT_CONVERSATIONS_V1.md)
+covers F9/A6 through issue #100. The [location sharing proposal](security/V1_LOCATION_SHARING.md)
+covers F10/A7 through issue #102. Owner decisions and implementation remain open.
+
 ## Firmware host composition
 
 [OT-0005i](https://github.com/Limited-Underground/Trail/issues/75) has a local,

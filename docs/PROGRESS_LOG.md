@@ -1,5 +1,22 @@
 # OpenTrail Progress Log
 
+## 2026-11-21
+
+### OT-0174a Propose MeshTrail direct conversations
+
+The proposal covers verified invitation and acceptance, conversation recovery,
+blocking and the direct-pair storage budget. The design links requirement 5
+to the location choices in requirements 6 and 7 and applies D-133 to D-138.
+See [the direct conversation design](security/DIRECT_CONVERSATIONS_V1.md)
+and issue [#100](https://github.com/Limited-Underground/Trail/issues/100).
+
+### OT-0176a Propose MeshTrail location sharing
+
+The proposal covers group policy, independent direct sharing choices, stop
+behavior and the airtime budget. The owner can review the policy and location
+defaults before implementation. See [the location design](security/V1_LOCATION_SHARING.md)
+and issue [#102](https://github.com/Limited-Underground/Trail/issues/102).
+
 ## 2026-11-20
 
 ### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)
