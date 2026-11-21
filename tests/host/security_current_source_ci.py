@@ -310,7 +310,8 @@ def run(output, cached_component=None):
               (), " actual candidate device session groups")
         candidate_target = ROOT / "firmware/targets/heltec_v4_enrollment_candidate_eval/main"
         candidate_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_target"
-        candidate_sources = [*common,
+        pairing_reset_stub = ROOT / "tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp"
+        candidate_sources = [*common, pairing_reset_stub,
               *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
                 "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp",
                 "heltec_v4_factory_reset_storage.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp", "enrollment_identity_nvs_storage.cpp")],
@@ -345,7 +346,7 @@ def run(output, cached_component=None):
         roster_points = output / "roster-ed25519-points.o"
         compile_source(module.SOURCE / "src/libsodium/crypto_core/ed25519/core_ed25519.c", roster_points, c=True)
         crypto_objects.append(roster_points)
-        suite("heltec_enrollment_identity_owner_tests", [*common,
+        suite("heltec_enrollment_identity_owner_tests", [*common, pairing_reset_stub,
               ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
               ROOT / "firmware/components/identity/src/group_roster.cpp",
               *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in

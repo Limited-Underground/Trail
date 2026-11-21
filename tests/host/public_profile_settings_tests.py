@@ -12,7 +12,7 @@ def run():
         includes=['tests/host/fixtures/identity_nvs','firmware/targets/heltec_v4_bench/main']
         includes += [f'firmware/components/{name}/include' for name in ['persistence','security_evaluation','companion','security','radio','protocol','location','time']]
         for path in includes: command += ['-I',str(ROOT/path)]
-        paths=['tests/host/public_profile_settings_tests.cpp','firmware/targets/heltec_v4_bench/main/enrollment_identity_nvs_storage.cpp','firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp','firmware/targets/heltec_v4_bench/main/companion_public_profile_storage.cpp']
+        paths=['tests/host/public_profile_settings_tests.cpp','tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp','firmware/targets/heltec_v4_bench/main/enrollment_identity_nvs_storage.cpp','firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp','firmware/targets/heltec_v4_bench/main/companion_public_profile_storage.cpp']
         paths += [f'firmware/components/companion/src/{name}.cpp' for name in ['companion_device_name_codec','companion_device_name_owner','companion_public_profile_codec','companion_public_profile_owner']]
         subprocess.run(command+[str(ROOT/path) for path in paths]+['-o',str(exe)],check=True,timeout=90)
         subprocess.run([str(exe),str(ROOT/"tests/fixtures/companion_public_profile_v1_vectors.csv")],check=True,timeout=30)

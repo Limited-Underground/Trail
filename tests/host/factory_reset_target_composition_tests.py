@@ -20,6 +20,7 @@ def run():
         for path in includes:
             command += ['-I', str(ROOT / path)]
         sources = ['tests/host/factory_reset_target_composition_tests.cpp',
+                   'tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp',
                    'firmware/targets/heltec_v4_bench/main/enrollment_identity_nvs_storage.cpp',
                    'firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp',
                    'firmware/components/companion/src/device_factory_reset_executor.cpp',

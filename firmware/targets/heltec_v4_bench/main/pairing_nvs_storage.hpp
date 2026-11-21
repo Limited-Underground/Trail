@@ -15,6 +15,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+
+#include "pairing_nvs_reset.hpp"
+
 #include "opentrail/group_pair_index.hpp"
 #include "opentrail/pairing_completion_archive.hpp"
 
@@ -267,10 +270,6 @@ private:
     std::size_t staged_size_{0};
 };
 
-// Factory reset calls this before erasing `ot_state`. After it, no storage
-// owner can remount. False means teardown could not establish an unmounted
-// partition and the caller must refuse to erase.
-[[nodiscard]] bool retire_pairing_storage_for_reset();
 // Registers the single live pairing owner. Reset can retire its mount even
 // before the registration call.
 bool register_pairing_storage(PairingNvsStorage*);

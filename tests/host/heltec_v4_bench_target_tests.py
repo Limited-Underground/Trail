@@ -363,6 +363,7 @@ def test_contract() -> None:
         "main/heltec_group_roster_identity.cpp",
         "main/heltec_group_roster_identity.hpp",
         "main/pairing_nvs_storage.hpp",
+        "main/pairing_nvs_reset.hpp",
         "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested
         "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
         "main/board_pairing_runtime.cpp",

@@ -11,7 +11,7 @@ def run():
         command=[compiler,'-std=c++17','-O2','-Wall','-Wextra','-Werror']
         for path in ['tests/host/fixtures/identity_nvs','firmware/targets/heltec_v4_bench/main','firmware/components/persistence/include','firmware/components/security_evaluation/include','firmware/components/companion/include','firmware/components/security/include','firmware/components/radio/include','firmware/components/protocol/include','firmware/components/location/include','firmware/components/time/include']:
             command += ['-I',str(ROOT/path)]
-        command += [str(ROOT/path) for path in ['tests/host/enrollment_identity_nvs_tests.cpp','firmware/targets/heltec_v4_bench/main/enrollment_identity_nvs_storage.cpp','firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp']]
+        command += [str(ROOT/path) for path in ['tests/host/enrollment_identity_nvs_tests.cpp','tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp','firmware/targets/heltec_v4_bench/main/enrollment_identity_nvs_storage.cpp','firmware/targets/heltec_v4_bench/main/heltec_v4_factory_reset_storage.cpp']]
         command += ['-o',str(exe)]
         subprocess.run(command,check=True,timeout=90)
         result=subprocess.run([str(exe)],text=True,capture_output=True,timeout=30)

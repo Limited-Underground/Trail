@@ -15,7 +15,7 @@
 #include "companion_name_storage.hpp"
 #include "companion_region_storage.hpp"
 #include "enrollment_identity_nvs_storage.hpp"
-#include "pairing_nvs_storage.hpp"
+#include "pairing_nvs_reset.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
