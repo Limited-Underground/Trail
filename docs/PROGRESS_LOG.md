@@ -2,6 +2,16 @@
 
 ## 2026-11-21
 
+### OT-0086a Guard V1 tester builds (A11)
+
+The firmware refuses `OPENTRAIL_V1_PRODUCTION=ON` while any bench switch is on,
+and refuses the Heltec V4 bench target, which has no product radio or messaging
+runtime. The Android release check `-V1Production` rejects development
+components. The fake transport, fake panels and deterministic group-location
+fixtures moved to the debug and V1-Test source sets, so the plain Release APK
+carries only the real Bluetooth path and passes the check. Production activation
+still waits for firmware security admission.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result
