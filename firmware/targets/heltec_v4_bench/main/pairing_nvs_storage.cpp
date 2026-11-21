@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -13,6 +14,8 @@ namespace opentrail::target::heltec_v4_bench {
 namespace {
 PairingNvsStorage* g_live = nullptr;
 bool g_reset_retired = false;
+constexpr unsigned kLegacyLaneFirst = static_cast<unsigned>(PairingNvsStorage::Store::packet_data_tx);
+constexpr unsigned kLaneCount = 4;
 
 // One recursive lock serializes every storage operation with retire() and the
 // factory-reset hook, which may run on another task (review R2A-6): reset waits
@@ -86,13 +89,218 @@ void retire_pairing_storage_for_reset() {
 bool PairingNvsStorage::f5_packet_footprint_absent() {
     Guard guard;
     if (!good_) return false;
-    for (std::uint64_t g=1;g<=kCapacity;++g)
-        for (unsigned n=13;n<=16;++n)
-            for (unsigned d=0;d<5;++d) for(unsigned slot=0;slot<2;++slot) {
-                char key[16]{};
-                if (!key_for(g,n,static_cast<Domain>(d),slot,key) || known_[index(key)]) return false;
+    for (unsigned slot = 1; slot <= kCapacity; ++slot) {
+        if (packet_records_[slot - 1].state != PacketState::absent ||
+            has_packet_lanes(slot, kLegacyLaneFirst)) return false;
+    }
+    return true;
+}
+
+PairingNvsStorage::Bytes PairingNvsStorage::encode_packet_record(unsigned slot, const PacketRecord& record) {
+    Bytes bytes{};
+    std::memcpy(bytes.data(), "OTP1", 4);
+    bytes[4] = static_cast<std::uint8_t>(record.state);
+    bytes[5] = static_cast<std::uint8_t>(slot);
+    bytes[6] = record.legacy_floor;
+    for (unsigned i = 0; i < 8; ++i) {
+        bytes[15 - i] = static_cast<std::uint8_t>(record.generation >> (8 * i));
+    }
+    std::copy(record.owner.begin(), record.owner.end(), bytes.begin() + 16);
+    return bytes;
+}
+
+bool PairingNvsStorage::decode_packet_record(unsigned slot, const Bytes& bytes, PacketRecord& record) {
+    PacketRecord decoded{};
+    decoded.state = static_cast<PacketState>(bytes[4]);
+    decoded.legacy_floor = bytes[6];
+    for (unsigned i = 8; i < 16; ++i) decoded.generation = (decoded.generation << 8) | bytes[i];
+    std::copy_n(bytes.begin() + 16, decoded.owner.size(), decoded.owner.begin());
+    if (decoded.state < PacketState::preparing || decoded.state > PacketState::retired ||
+        !decoded.generation || decoded.generation > std::numeric_limits<std::uint32_t>::max() ||
+        decoded.owner == PacketOwner{} || decoded.legacy_floor > kCapacity ||
+        bytes != encode_packet_record(slot, decoded)) return false;
+    record = decoded;
+    return true;
+}
+
+bool PairingNvsStorage::has_packet_lanes(unsigned slot, unsigned first_namespace) {
+    for (unsigned lane = first_namespace; lane < first_namespace + kLaneCount; ++lane) {
+        for (unsigned domain = 0; domain < pairing_key::kDomains; ++domain) {
+            for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
+                pairing_key::Key key{};
+                if (!key_for(slot, lane, static_cast<Domain>(domain), bank, key) || known_[index(key)])
+                    return true;
             }
-    return good_;
+        }
+    }
+    return false;
+}
+
+bool PairingNvsStorage::inventory_packets() {
+    for (unsigned slot = 1; slot <= kCapacity; ++slot) {
+        pairing_key::Key key{};
+        if (!key_for(slot, pairing_key::kPacketClaim, static_cast<Domain>(0), 0, key)) return false;
+        auto& record = packet_records_[slot - 1];
+        if (known_[index(key)]) {
+            Bytes bytes{};
+            std::size_t size = bytes.size();
+            if (nvs_get_blob(handle_, key, bytes.data(), &size) != ESP_OK || size != bytes.size() ||
+                !decode_packet_record(slot, bytes, record)) return false;
+            legacy_floor_ = std::max(legacy_floor_, record.legacy_floor);
+            for (unsigned prior = 0; prior < slot - 1; ++prior) {
+                if (packet_records_[prior].owner == record.owner) return false;
+            }
+        }
+        const bool legacy = has_packet_lanes(slot, kLegacyLaneFirst);
+        const bool reclaimed = has_packet_lanes(slot, pairing_key::kReclaimedLaneFirst);
+        if ((reclaimed && record.state == PacketState::absent) ||
+            (legacy && (reclaimed || record.state == PacketState::ready || record.state == PacketState::retired)))
+            return false;
+    }
+    return true;
+}
+
+bool PairingNvsStorage::save_packet_record(unsigned slot, const PacketRecord& record) {
+    if (!good_ || !budget_ok()) return false;
+    if (pending_) { (void)fault(); return false; }
+    pairing_key::Key key{};
+    if (!key_for(slot, pairing_key::kPacketClaim, static_cast<Domain>(0), 0, key)) return false;
+
+    const auto& previous = packet_records_[slot - 1];
+    Bytes actual{};
+    std::size_t size = actual.size();
+    const auto status = nvs_get_blob(handle_, key, actual.data(), &size);
+    if (previous.state == PacketState::absent) {
+        if (status != ESP_ERR_NVS_NOT_FOUND) { (void)fault(); return false; }
+        std::size_t entries = 0;
+        if (nvs_get_used_entry_count(handle_, &entries) != ESP_OK) { (void)fault(); return false; }
+        if (entries > kPairingEntries - 4) return false;
+    } else if (status != ESP_OK || size != actual.size() || actual != encode_packet_record(slot, previous)) {
+        (void)fault();
+        return false;
+    }
+
+    const auto bytes = encode_packet_record(slot, record);
+    size = actual.size();
+    if (nvs_set_blob(handle_, key, bytes.data(), bytes.size()) != ESP_OK ||
+        nvs_commit(handle_) != ESP_OK ||
+        nvs_get_blob(handle_, key, actual.data(), &size) != ESP_OK ||
+        size != actual.size() || actual != bytes || !budget_ok()) {
+        (void)fault();
+        return false;
+    }
+    known_[index(key)] = true;
+    packet_records_[slot - 1] = record;
+    legacy_floor_ = std::max(legacy_floor_, record.legacy_floor);
+    return true;
+}
+
+bool PairingNvsStorage::clear_packet_lanes(unsigned slot, unsigned first_namespace) {
+    for (unsigned lane = first_namespace; lane < first_namespace + kLaneCount; ++lane) {
+        for (unsigned domain = 0; domain < pairing_key::kDomains; ++domain) {
+            for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
+                pairing_key::Key key{};
+                if (!key_for(slot, lane, static_cast<Domain>(domain), bank, key)) return false;
+                const auto entry = index(key);
+                std::size_t size = 0;
+                const auto status = nvs_get_blob(handle_, key, nullptr, &size);
+                if (!known_[entry] && status == ESP_ERR_NVS_NOT_FOUND) continue;
+                if (!known_[entry] || status != ESP_OK || size != persistence::kPersistentSlotBytes ||
+                    nvs_erase_key(handle_, key) != ESP_OK || nvs_commit(handle_) != ESP_OK ||
+                    nvs_get_blob(handle_, key, nullptr, &size) != ESP_ERR_NVS_NOT_FOUND) {
+                    (void)fault();
+                    return false;
+                }
+                cache_.drop(key);
+                known_[entry] = false;
+            }
+        }
+    }
+    return true;
+}
+
+std::optional<PairingNvsStorage::PacketClaim> PairingNvsStorage::claim_packets(
+    const PacketOwner& owner, std::uint64_t generation, std::uint64_t legacy_floor) {
+    Guard guard;
+    if (!good_ || owner == PacketOwner{} || !generation || generation > std::numeric_limits<std::uint32_t>::max() ||
+        legacy_floor > kCapacity || legacy_floor >= generation) return std::nullopt;
+    const auto certified_floor = std::max(legacy_floor_, static_cast<std::uint8_t>(legacy_floor));
+    unsigned owned = 0, legacy = 0, free = 0;
+    for (unsigned slot = 1; slot <= kCapacity; ++slot) {
+        const auto& previous = packet_records_[slot - 1];
+        if (previous.owner == owner) {
+            if (previous.generation >= generation) return std::nullopt;
+            owned = slot;
+        } else if (previous.state == PacketState::absent && has_packet_lanes(slot, kLegacyLaneFirst)) {
+            if (!legacy && slot <= certified_floor) legacy = slot;
+        } else if (!free && (previous.state == PacketState::absent || previous.state == PacketState::retired)) {
+            free = slot;
+        }
+    }
+    const unsigned available = legacy && legacy_floor ? legacy : free;
+    const unsigned slot = owned ? owned : (available ? available : legacy);
+    if (!slot) return std::nullopt;
+
+    // Keep the claim durable across every erase. A restart needs a new
+    // reservation, and only the same owner can finish its interrupted cleanup.
+    PacketRecord next{owner, generation, PacketState::preparing, certified_floor};
+    if (!save_packet_record(slot, next) || !clear_packet_lanes(slot, kLegacyLaneFirst) ||
+        !clear_packet_lanes(slot, pairing_key::kReclaimedLaneFirst)) return std::nullopt;
+    next.state = PacketState::ready;
+    if (!save_packet_record(slot, next)) return std::nullopt;
+    return PacketClaim(owner, generation, slot);
+}
+
+bool PairingNvsStorage::owns_packet_claim(const PacketClaim& claim) const {
+    if (!good_ || !claim.slot_ || claim.slot_ > kCapacity) return false;
+    const auto& current = packet_records_[claim.slot_ - 1];
+    return current.state == PacketState::ready && current.generation == claim.generation_ &&
+           current.owner == claim.owner_;
+}
+
+bool PairingNvsStorage::retire_packets(const PacketClaim& claim) {
+    Guard guard;
+    if (!owns_packet_claim(claim)) return false;
+    auto record = packet_records_[claim.slot_ - 1];
+    record.state = PacketState::retired;
+    return save_packet_record(claim.slot_, record);
+}
+
+unsigned PairingNvsStorage::PacketView::lane_namespace() const {
+    const auto lane = static_cast<unsigned>(store_);
+    if (lane < kLegacyLaneFirst || lane >= kLegacyLaneFirst + kLaneCount ||
+        !owner_.owns_packet_claim(claim_)) return 0;
+    return pairing_key::kReclaimedLaneFirst + lane - kLegacyLaneFirst;
+}
+
+persistence::StorageReadResult PairingNvsStorage::PacketView::read_slot(
+    Domain domain, std::size_t bank, persistence::MutableStorageByteView out) {
+    Guard guard;
+    const auto lane = lane_namespace();
+    if (!lane) return {Error::invalid_argument, 0};
+    return owner_.read_tuple(claim_.slot_, lane, domain, bank, out);
+}
+
+PairingNvsStorage::Error PairingNvsStorage::PacketView::erase_slot(Domain domain, std::size_t bank) {
+    Guard guard;
+    const auto lane = lane_namespace();
+    if (!lane) return Error::invalid_argument;
+    return owner_.erase_tuple(claim_.slot_, lane, domain, bank);
+}
+
+PairingNvsStorage::Error PairingNvsStorage::PacketView::write_slot(
+    Domain domain, std::size_t bank, std::size_t offset, persistence::StorageByteView in) {
+    Guard guard;
+    const auto lane = lane_namespace();
+    if (!lane) return Error::invalid_argument;
+    return owner_.write_tuple(claim_.slot_, lane, domain, bank, offset, in);
+}
+
+PairingNvsStorage::Error PairingNvsStorage::PacketView::sync_slot(Domain domain, std::size_t bank) {
+    Guard guard;
+    const auto lane = lane_namespace();
+    if (!lane) return Error::invalid_argument;
+    return owner_.sync_tuple(claim_.slot_, lane, domain, bank);
 }
 
 bool PairingNvsStorage::budget_ok() {
@@ -181,7 +389,7 @@ bool PairingNvsStorage::inventory() {
         status = nvs_entry_next(&it);
     }
     nvs_release_iterator(it);
-    return status == ESP_ERR_NVS_NOT_FOUND;
+    return status == ESP_ERR_NVS_NOT_FOUND && inventory_packets();
 }
 
 bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {

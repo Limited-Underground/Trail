@@ -195,7 +195,7 @@ void BoardMessagingRuntime::retire_packet_queue() {
         radio_.discard_queued();tracked_=false;
     }
 }
-bool BoardMessagingRuntime::start_packets(std::uint64_t now_ms) {
+bool BoardMessagingRuntime::start_packets() {
     if(!rekey_ || !rekey_->ready() || !storage_)return true;
     const auto lease=rekey_->lease_id();
     if(packets_ && packet_lease_==lease)return true;
@@ -205,18 +205,27 @@ bool BoardMessagingRuntime::start_packets(std::uint64_t now_ms) {
         retire_packet_queue();
         if(tracked_)return true;
     }
-    packets_.reset();rekey_->release_retired_leases();
-    using Store=PairingNvsStorage::Store;
-    const auto allocation=rekey_->active_generation();
-    auto* dt=storage_->packet_storage(Store::packet_data_tx,allocation);
-    auto* at=storage_->packet_storage(Store::packet_ack_tx,allocation);
-    auto* dr=storage_->packet_storage(Store::packet_data_rx,allocation);
-    auto* ar=storage_->packet_storage(Store::packet_ack_rx,allocation);
-    if(!dt || !at || !dr || !ar)return false;
+    packets_.reset();
+    packet_stores_.reset();
+    rekey_->release_retired_leases();
+    const auto allocation = rekey_->active_generation();
+    if (!allocation) return false;
+    // Legacy media was written only by the single verified F5 conversation.
+    // This fresh committed reservation supersedes its older packet generations.
+    const auto legacy_floor = std::min(allocation - 1, PairingNvsStorage::kCapacity);
+    const auto claim = storage_->claim_packets(rekey_->packet_owner(), allocation, legacy_floor);
+    if (!claim) return false;
+    const auto claimed_at = clock(this);
+    if (!base_permitted(claimed_at)) return false;
+    packet_stores_.emplace(*storage_, *claim);
+    auto& stores = *packet_stores_;
     packets_.emplace(rekey_->data_tx(), rekey_->ack_tx(), rekey_->data_rx(), rekey_->ack_rx(),
-                     *dt, *at, *dr, *ar, packet_radio_, kTextTest ? &text_arm_ : nullptr);
-    if(!packets_->start(now_ms,deadline_ms_))return false;
-    packet_lease_=lease;packet_allocation_=allocation;packet_ready_ms_=now_ms;status_sent_=false;
+                     stores.data_tx, stores.ack_tx, stores.data_rx, stores.ack_rx,
+                     packet_radio_, kTextTest ? &text_arm_ : nullptr);
+    if (!packets_->start(claimed_at, deadline_ms_)) return false;
+    const auto ready_at = clock(this);
+    if (!base_permitted(ready_at)) return false;
+    packet_lease_=lease;packet_allocation_=allocation;packet_ready_ms_=ready_at;status_sent_=false;
     phase_=Phase::exchanging;
     ESP_LOGI(kTag,"fresh session committed epoch=%lu allocation=%llu",
         static_cast<unsigned long>(rekey_->epoch()),static_cast<unsigned long long>(allocation));
@@ -229,7 +238,7 @@ void BoardMessagingRuntime::on_receive(const std::uint8_t* bytes,std::size_t siz
         Rekey::Frame frame{},response{};frame.size=size;std::memcpy(frame.bytes.data(),bytes,size);
         if(rekey_->receive(frame,response))offer(response);
         if(rekey_->failed())return fail();
-        if(!start_packets(clock(this)))fail();
+        if(!start_packets())fail();
     } else if(packets_) {
         const auto before=packets_->received_count();
         (void)packets_->receive({bytes, size}, kTextTest ? clock(this) : now_ms);
@@ -272,7 +281,7 @@ void BoardMessagingRuntime::service(std::uint64_t now_ms,bool radio_permitted) {
         }
         pending_={};accepted_offers_=0;phase_completed_=false;
     }
-    if(!start_packets(clock(this)))return fail();
+    if(!start_packets())return fail();
     const auto fresh=clock(this);
     if(pending_.size && accepted_offers_<2 && fresh>=next_offer_ms_ &&
        (!phase_completed_ || fresh>=phase_completed_ms_+kRetryMs)) {
@@ -314,6 +323,7 @@ void BoardMessagingRuntime::fail() {
     if(phase_==Phase::rekey || phase_==Phase::exchanging)ESP_LOGW(kTag,"exchange unavailable phase=%u",static_cast<unsigned>(phase_));
     phase_=Phase::failed;radio_permitted_=false;radio_.discard_queued();tracked_=false;
     packets_.reset();
+    packet_stores_.reset();
     if(rekey_)rekey_->close();
     rekey_.reset();
     if(trust_view_)trust_view_->retire();

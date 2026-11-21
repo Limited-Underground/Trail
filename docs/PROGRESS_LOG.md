@@ -2,6 +2,22 @@
 
 ## 2026-11-21
 
+### OT-0005i Reuse retired F5 packet storage (I-080)
+
+Each signed rekey reserves a higher logical generation before a frame can
+leave the board. The Heltec bench drains the old packet borrower, commits a
+claim for the new generation, erases and verifies only its retired lane
+records, and then enables the four new lanes. Interrupted claims stay disabled.
+A newer reservation by the same owner can finish cleanup. At capacity, the
+pool preserves live claims and refuses the request. Legacy lane keys remain
+readable for migration, and older firmware refuses the reclaimed format.
+
+Host coverage exercises repeat rekeys, restarts, stale handles, exhausted
+storage and interrupted writes. The pool supports distinct group and direct
+owners in host tests. The bench still composes the existing single F5 session.
+Hardware power-loss and the F9 integration remain open. Supports firmware
+issue #75 and the direct-conversation milestone #100.
+
 ### OT-0237e Check counter-store consistency for F12
 
 The outbound lease store now verifies that two committed slots agree before
@@ -43,7 +59,7 @@ durable state, protected phone status and Bluetooth layout are unchanged.
 The prior board session recorded multi-step save delays without a watchdog
 warning or reboot. Keep the save and watchdog behavior unchanged until a
 separate trace isolates the delay. The display correction awaits an
-owner-present board check. See the [current handoff](PROJECT_STATUS.md#current-recovery-handoff).
+owner-present board check under firmware issue #232.
 
 ### OT-0005i Prepare US hopping profile and dwell accounting
 

@@ -1,18 +1,24 @@
 #pragma once
 // Canonical 15-character ot_pair keys. D-112 g-family bytes are retained.
 // F5 uses a disjoint f-family with two namespace hex digits (D-124/I-074).
+// I-080 records and their lanes use new names so legacy data remains identifiable.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 namespace opentrail::target::heltec_v4_bench::pairing_key {
-inline constexpr std::size_t kNamespaces = 18;
+inline constexpr std::size_t kNamespaces = 23;
 inline constexpr std::size_t kDomains = 5, kSlots = 2, kKeyBytes = 16;
 inline constexpr std::uint64_t kCapacity = 32;
-inline constexpr unsigned kFirstGenerationZeroOnly = 7;
+inline constexpr unsigned kPacketClaim = 18;
+inline constexpr unsigned kReclaimedLaneFirst = 19;
+inline constexpr unsigned kReclaimedLaneLast = 22;
 using Key = char[kKeyBytes];
 constexpr bool generation_valid(std::uint64_t g, unsigned n) {
     return n < 7 || n == 11 || ((n <= 10 || n == 12 || n == 17) ? g == 0 : g != 0);
+}
+constexpr bool coordinates_valid(unsigned n, unsigned d, unsigned s) {
+    return d < kDomains && s < kSlots && (n != kPacketClaim || (d == 0 && s == 0));
 }
 constexpr std::size_t table_size(std::uint64_t capacity) {
     return static_cast<std::size_t>(capacity + 1) * kNamespaces * kDomains * kSlots;
@@ -22,7 +28,7 @@ constexpr int hex_digit(char c) {
 }
 inline bool format(std::uint64_t g, unsigned n, unsigned d, unsigned s, std::uint64_t capacity, Key& key) {
     if (g > capacity || g > 0xffffffffULL || n >= kNamespaces || !generation_valid(g,n) ||
-        d >= kDomains || s >= kSlots) return false;
+        !coordinates_valid(n,d,s)) return false;
     Key staged{};
     const int count = n < 12
         ? std::snprintf(staged,sizeof staged,"g%08xn%xd%xs%x",static_cast<unsigned>(g),n,d,s)
@@ -53,7 +59,7 @@ constexpr std::size_t slot(const Key& key, std::uint64_t capacity) {
     } else return invalid;
     const int d=hex_digit(key[12]),s=hex_digit(key[14]);
     if(g>capacity || n<0 || n>=static_cast<int>(kNamespaces) || !generation_valid(g,static_cast<unsigned>(n)) ||
-       d<0 || d>=static_cast<int>(kDomains) || s<0 || s>=static_cast<int>(kSlots))return invalid;
+       d<0 || s<0 || !coordinates_valid(static_cast<unsigned>(n),static_cast<unsigned>(d),static_cast<unsigned>(s)))return invalid;
     return ((static_cast<std::size_t>(g)*kNamespaces+static_cast<unsigned>(n))*kDomains+
             static_cast<unsigned>(d))*kSlots+static_cast<unsigned>(s);
 }

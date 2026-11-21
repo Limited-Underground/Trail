@@ -65,7 +65,7 @@ void open_text(Side& side, Status::TextArm& arm, std::uint64_t deadline,
                radio::RadioTransport& transport) {
     CHECK(!side.status && side.rekey->ready());
     side.lease_generation = side.rekey->active_generation();
-    auto& lanes = side.packets.at(side.lease_generation);
+    auto& lanes = side.packets[side.lease_generation];
     side.status.emplace(side.rekey->data_tx(), side.rekey->ack_tx(), side.rekey->data_rx(),
                         side.rekey->ack_rx(), lanes[0], lanes[1], lanes[2], lanes[3],
                         transport, &arm);

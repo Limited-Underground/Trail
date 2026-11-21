@@ -38,7 +38,7 @@ public:
         bool(*guard)(void*){};
     };
     struct Frame {std::array<std::uint8_t,255> bytes{};std::size_t size{};};
-    static constexpr std::uint64_t kAttemptMs=60000,kCapacity=32;
+    static constexpr std::uint64_t kAttemptMs=60000;
     F5RekeySession(Stores stores,security::SecureRandomSource& random,std::uint64_t conversation,
                    std::uint64_t(*clock)(void*),void* context,Trust trust={nullptr,nullptr,nullptr,nullptr})
         :stores_(stores),random_(random),identity_(stores.identity,random),journal_(stores.state,stores.state_tail),
@@ -161,12 +161,13 @@ public:
     std::uint32_t epoch()const{const auto* l=active_lease_const();return l?l->epoch:candidate_.present?candidate_.target:record_.used;}
     std::uint64_t attempt_deadline()const{return candidate_.present?candidate_.deadline:0;}
     std::uint64_t conversation()const{return conversation_;}
+    const InvitationKey& packet_owner()const{return scope_;}
     Binding& data_tx(){auto* l=active_lease();return l?l->bindings[0]:empty_[0];}
     Binding& ack_tx(){auto* l=active_lease();return l?l->bindings[1]:empty_[1];}
     Binding& data_rx(){auto* l=active_lease();return l?l->bindings[2]:empty_[2];}
     Binding& ack_rx(){auto* l=active_lease();return l?l->bindings[3]:empty_[3];}
-    // Call only after destroying all borrowers of retired slots. Their frozen
-    // callbacks must not survive this explicit release/reuse boundary.
+    // Destroy borrowers of these Binding references before recycling the lease
+    // slots. A copied binding's callback can only address its original lease.
     void release_retired_leases(){
         if(busy_){fail();return;}
         for(auto& l:leases_)if(l.occupied && l.retired){wipe_lease(l);l=Lease{};}
@@ -187,9 +188,8 @@ private:
         std::array<std::uint8_t,16> boot{};
         Frame start{},reply{},confirm{},last_input{},last_output{},outgoing{};
     };
-    struct LeaseToken {F5RekeySession* owner{};std::uint64_t id{};unsigned slot{};};
     struct Lease {
-        F5RekeySession* owner{};bool occupied{},retired{};std::uint64_t id{},allocation{};std::uint32_t epoch{};
+        bool occupied{},retired{};std::uint64_t id{},allocation{};std::uint32_t epoch{};
         InvitationKey transcript{};std::array<Binding,4> bindings{};
     };
     class Guard {
@@ -239,7 +239,7 @@ private:
     }
     static bool journal_guard(void* p){auto& s=*static_cast<F5RekeySession*>(p);return s.current(false) && (!s.candidate_.present || s.last_now_<s.candidate_.deadline);}
     bool save(const Journal::Record& r){if(!current() || !journal_.update(r,&journal_guard,this) || !journal_.load(record_))return false;return current();}
-    bool reserve(){if(record_.allocation>=kCapacity)return false;auto next=record_;++next.allocation;return save(next);}
+    bool reserve(){if(record_.allocation>=Journal::kMaxAllocation)return false;auto next=record_;++next.allocation;return save(next);}
     bool candidate_current(){return candidate_.present && last_now_<candidate_.deadline && candidate_.target>=record_.used && candidate_.allocation<=record_.allocation;}
     void discard_candidate(){sodium_memzero(candidate_.secret.data(),32);sodium_memzero(candidate_.shared.data(),32);candidate_=Candidate{};}
     void expire(){if(candidate_.present && last_now_>=candidate_.deadline)discard_candidate();}
@@ -270,7 +270,7 @@ private:
     bool verify_offer(const Frame& f,unsigned kind,unsigned initiating,const InvitationKey& prior,bool signature=true)const{
         const auto* b=f.bytes.data();const auto signer=kind==1?initiating:3-initiating;
         return f.size==236 && header(f,kind) && b[6]==initiating && get(b+8,8)==conversation_ && offer_epoch(f)!=0 &&
-            get(b+20,8)>0 && get(b+20,8)<=kCapacity && sodium_memcmp(b+28,scope_.data(),32)==0 &&
+            get(b+20,8)>0 && get(b+20,8)<=Journal::kMaxAllocation && sodium_memcmp(b+28,scope_.data(),32)==0 &&
             sodium_memcmp(b+60,prior.data(),32)==0 && nonzero_bytes(b+92,32) && nonzero_bytes(b+124,16) && nonzero_bytes(b+140,32) &&
             (!signature || crypto_sign_verify_detached(b+172,b,172,member_key(signer).data())==0);
     }
@@ -295,7 +295,7 @@ private:
         // Keep the active lease through an ordinary START and this public write.
         // U+2 is signed D-074 evidence: burn its intermediate number durably
         // before a reply can escape, and retire any overtaken old lane.
-        if(received_at>std::numeric_limits<std::uint64_t>::max()-kAttemptMs || record_.allocation>=kCapacity)return fail();
+        if(received_at>std::numeric_limits<std::uint64_t>::max()-kAttemptMs || record_.allocation>=Journal::kMaxAllocation)return fail();
         discard_candidate();candidate_.present=true;candidate_.phase=2;candidate_.initiating_member=initiating;
         candidate_.target=e;candidate_.deadline=received_at+kAttemptMs;candidate_.start=frame;
         if(!reserve())return fail();
@@ -368,7 +368,7 @@ private:
         return known<r.proof_size || s.valid_record(r);
     }
     bool valid_record(const Journal::Record& r)const{
-        if(r.allocation>kCapacity || r.used<retained_.record.epoch || r.committed>r.used || r.flags)return false;
+        if(r.allocation>Journal::kMaxAllocation || r.used<retained_.record.epoch || r.committed>r.used || r.flags)return false;
         if(r.kind==ProofKind::base){
             return r.phase==Phase::history && r.used==baseline_.used && r.committed==0 && r.proof_size==64 &&
                 std::memcmp(r.proof.data(),baseline_.proof.data(),64)==0;
@@ -422,7 +422,8 @@ private:
             b.context.sender_alias=get(sender.data(),8);b.context.recipient_alias=get(recipient.data(),8);
             b.context.group=conversation_;b.context.epoch=lease.epoch;b.context.direction=static_cast<std::uint8_t>(direction);b.purpose=purpose;
             std::memcpy(b.key.data(),material.data(),32);std::memcpy(b.domain.data(),material.data()+32,16);b.lease_domain=b.domain;
-            std::memcpy(b.prefix.data(),material.data()+48,4);b.active=true;b.validity=&lease_gate;b.validity_context=&tokens_[lease.allocation-1];b.close_owner=&close_lease;
+            std::memcpy(b.prefix.data(),material.data()+48,4);
+            b.active=true;b.validity=&lease_gate;b.validity_context=this;b.lease_id=lease.id;b.close_owner=&close_lease;
         }
         sodium_memzero(prk.data(),32);sodium_memzero(material.data(),material.size());return ok;
     }
@@ -430,11 +431,8 @@ private:
         if(record_.phase!=Phase::committed || record_.used!=candidate_.target || record_.committed!=candidate_.target ||
             lease_counter_==std::numeric_limits<std::uint64_t>::max())return false;
         Lease* next=nullptr;for(auto& l:leases_)if(!l.occupied){next=&l;break;}if(!next)return false;
-        next->owner=this;next->occupied=true;next->id=++lease_counter_;next->allocation=candidate_.allocation;
+        next->occupied=true;next->id=++lease_counter_;next->allocation=candidate_.allocation;
         next->epoch=candidate_.target;next->transcript=candidate_.transcript;
-        auto& token=tokens_[next->allocation-1];
-        if(token.owner)return false;
-        token={this,next->id,static_cast<unsigned>(next-leases_.data())};
         InvitationKey prk{},ab{},ba{};
         constexpr char l1[]="OpenTrail F5 outside conversation initiating to answering v2";
         constexpr char l2[]="OpenTrail F5 outside conversation answering to initiating v2";
@@ -456,21 +454,20 @@ private:
     static void wipe_lease(Lease& l){for(auto& b:l.bindings)sodium_memzero(&b,sizeof b);}
     static void retire(Lease& l){l.retired=true;wipe_lease(l);}
     void retire_active(){if(auto* l=active_lease())retire(*l);}
-    static Lease* token_lease(LeaseToken& token){
-        if(!token.owner || token.slot>=token.owner->leases_.size())return nullptr;
-        auto& lease=token.owner->leases_[token.slot];
-        return lease.occupied && lease.id==token.id?&lease:nullptr;
+    Lease* find_lease(std::uint64_t id){
+        for(auto& lease:leases_)if(lease.occupied && lease.id==id)return &lease;
+        return nullptr;
     }
-    static void close_lease(void* p){
+    static void close_lease(void* p,std::uint64_t id){
         if(!p)return;
-        if(auto* lease=token_lease(*static_cast<LeaseToken*>(p)))retire(*lease);
+        if(auto* lease=static_cast<F5RekeySession*>(p)->find_lease(id))retire(*lease);
     }
-    static bool lease_gate(void* p,std::uint64_t){
+    static bool lease_gate(void* p,std::uint64_t id,std::uint64_t){
         if(!p)return false;
-        auto& token=*static_cast<LeaseToken*>(p);
-        auto* lease=token_lease(token);if(!lease)return false;
-        auto& s=*token.owner;Guard guard(s);
-        return guard && !lease->retired && s.current() && !lease->retired && lease->id==token.id && lease->epoch>=s.record_.used;
+        auto& s=*static_cast<F5RekeySession*>(p);
+        auto* lease=s.find_lease(id);if(!lease)return false;
+        Guard guard(s);
+        return guard && !lease->retired && s.current() && !lease->retired && lease->id==id && lease->epoch>=s.record_.used;
     }
     bool frame_eligible_internal(const Frame& f)const{
         return candidate_.present && last_now_<candidate_.deadline && candidate_.target>=record_.used && same(f,candidate_.outgoing);
@@ -482,6 +479,6 @@ private:
     bool initialized_{},source_ready_{},journal_ready_{},failed_{},busy_{},nudge_{};
     EnrollmentRecoveryState retained_{};InvitationKey local_{},peer_{},trust_scope_{},scope_{},source_digest_{};
     mutable std::array<ProofCache,4> verified_proofs_{};mutable unsigned next_proof_{};
-    Journal::Record baseline_{},record_{};Frame last_stale_{};Candidate candidate_{};std::array<Lease,2> leases_{};std::array<LeaseToken,kCapacity> tokens_{};std::array<Binding,4> empty_{};
+    Journal::Record baseline_{},record_{};Frame last_stale_{};Candidate candidate_{};std::array<Lease,2> leases_{};std::array<Binding,4> empty_{};
 };
 } // namespace opentrail::security_evaluation
