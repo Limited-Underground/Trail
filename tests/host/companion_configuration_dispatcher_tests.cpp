@@ -1,4 +1,5 @@
 #include "opentrail/companion_configuration_dispatcher.hpp"
+#include "opentrail/companion_group_configuration.hpp"
 #include "opentrail/companion_request_coordinator.hpp"
 #include "companion_configuration_lane.hpp"
 #include "opentrail/companion_region_catalog.hpp"
@@ -98,10 +99,32 @@ struct PublicStore:PublicProfilePersistence {
         return PublicProfileCommitStatus::committed;
     }
 };
+struct GroupBackend : ConfigurationGroupBackend {
+    bool enabled{true};
+    mutable int availability_checks{0};
+    int executions{0};
+    DeviceNameContext context{};
+    GroupConfigurationCommand command{};
+    GroupConfigurationResult result{};
+    std::function<void()> hook;
+
+    bool available() const noexcept override { ++availability_checks; return enabled; }
+
+    GroupConfigurationResult execute(const DeviceNameContext& active,
+                                     const GroupConfigurationCommand& request) noexcept override {
+        ++executions;
+        context = active;
+        command = request;
+        if (hook) hook();
+        return result;
+    }
+};
 struct Harness {
     Source source; Store store; Base base; RegionStore regions;PublicStore public_profile;std::uint8_t minor;
     ConfigurationDispatcher owner;
-    explicit Harness(std::uint8_t version=2):minor(version),owner(source,store,base,(version==3||version==5)?&regions:nullptr,version,nullptr,version==5?&public_profile:nullptr){}
+    explicit Harness(std::uint8_t version=2, ConfigurationGroupBackend* group=nullptr)
+        :minor(version),owner(source,store,base,(version==3||version==5)?&regions:nullptr,
+                              version,nullptr,version==5?&public_profile:nullptr,group){}
     ConfigurationFrame frame(std::uint8_t kind,std::uint32_t exchange) {
         ConfigurationFrame f{}; f.minor_version=minor;f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
     }
@@ -510,8 +533,187 @@ void pairing_read_requires_selected_v0_ready_and_matching_response() {
     EXPECT(!phone.ready(h.source.state,lane.context.transport_generation));
 }
 
-int main(){pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+namespace {
+using GroupOp = GroupConfigurationOperation;
+using GroupStatus = GroupConfigurationStatus;
+using Dispatch = ConfigurationDispatchCode;
+
+GroupConfigurationScope group_scope() {
+    GroupConfigurationScope scope{};
+    scope.admin.front() = 0xa1;
+    scope.admin.back() = 0xa2;
+    scope.group_id = 0x0807060504030201ULL;
+    scope.roster_digest.front() = 0xd1;
+    scope.roster_digest.back() = 0xd2;
+    return scope;
+}
+
+ConfigurationFrame group_frame(Harness& h, std::uint32_t exchange, GroupOp operation,
+                               std::uint8_t location_rule=0, GroupConfigurationScope scope={}) {
+    auto frame = h.frame(kConfigurationGroupCommandKind, exchange);
+    const GroupConfigurationCommand command{operation, location_rule, scope};
+    const auto encoded = encode_group_configuration_command(
+        command, frame.payload.data(), frame.payload.size());
+    EXPECT(encoded.encoded());
+    frame.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+    return frame;
+}
+
+GroupConfigurationResult group_result(const ConfigurationDispatchResult& result,
+                                      const ConfigurationFrame& request, std::size_t payload_bytes) {
+    EXPECT(result.code == Dispatch::responded);
+    const auto frame = response(result, kPublicProfileMinor);
+    EXPECT(frame.kind == kConfigurationGroupResultKind);
+    EXPECT(frame.session_nonce == request.session_nonce && frame.exchange_id == request.exchange_id);
+    EXPECT(frame.payload_bytes == payload_bytes);
+    const auto decoded = decode_group_configuration_result(frame.payload.data(), frame.payload_bytes);
+    EXPECT(decoded.decoded());
+    return decoded.value;
+}
+
+void group_backend_availability_is_protected() {
+    Harness absent(kPublicProfileMinor);
+    const auto discover = group_frame(absent, 2, GroupOp::discover);
+    EXPECT(absent.submit(discover).code == Dispatch::unauthorized);
+    absent.ready();
+    EXPECT(absent.submit(discover).code == Dispatch::accepted);
+    const auto missing = group_result(absent.owner.execute(), discover, 8);
+    EXPECT(missing.operation == GroupOp::discover && missing.status == GroupStatus::unavailable);
+
+    GroupBackend backend;
+    Harness h(kPublicProfileMinor, &backend);
+    const auto supported = group_frame(h, 2, GroupOp::discover);
+    EXPECT(h.submit(supported).code == Dispatch::unauthorized && backend.availability_checks == 0);
+    h.ready();
+    EXPECT(h.submit(supported, kConfigurationRecordBytes - 1).code == Dispatch::output_too_small);
+    EXPECT(h.owner.execute().code == Dispatch::no_pending && backend.availability_checks == 0);
+    EXPECT(h.submit(supported).code == Dispatch::accepted && backend.executions == 0);
+    backend.enabled = false;
+    const auto unavailable = group_result(h.owner.execute(), supported, 8);
+    EXPECT(unavailable.operation == GroupOp::discover && unavailable.status == GroupStatus::unavailable);
+    EXPECT(backend.executions == 0);
+
+    backend.enabled = true;
+    const auto retry = group_frame(h, 3, GroupOp::discover);
+    EXPECT(h.submit(retry).code == Dispatch::accepted);
+    const auto available = group_result(h.owner.execute(), retry, 8);
+    EXPECT(available.operation == GroupOp::discover && available.status == GroupStatus::ok);
+    EXPECT(backend.executions == 0 && backend.availability_checks == 2);
+}
+
+void group_codec_requires_canonical_version_and_length() {
+    GroupBackend backend;
+    Harness h(kPublicProfileMinor, &backend);
+    h.ready();
+    const auto create = group_frame(h, 2, GroupOp::create, 2);
+    EXPECT(create.payload_bytes == 9);
+    EXPECT(create.payload[0] == 'O' && create.payload[1] == 'T' &&
+           create.payload[2] == 'G' && create.payload[3] == 'C');
+    EXPECT(create.payload[4] == 1 && create.payload[5] == 2 &&
+           create.payload[6] == 0 && create.payload[7] == 0 && create.payload[8] == 2);
+    std::array<std::uint8_t, kConfigurationRecordBytes> record{};
+    const auto encoded = encode_configuration_frame(create, record.data(), record.size());
+    EXPECT(encoded.encoded());
+    const auto reject = [&](const auto& bytes, std::size_t size) {
+        EXPECT(!decode_configuration_frame(bytes.data(), size, kPublicProfileMinor).decoded());
+        EXPECT(h.owner.submit(h.source.state.context, bytes.data(), size, bytes.size()).bytes == 0);
+        EXPECT(h.owner.execute().bytes == 0);
+        EXPECT(backend.executions == 0);
+    };
+    for (const int offset : {4, 5, 6, 7, 8}) {
+        auto bad = record;
+        bad[20 + offset] ^= 1;
+        if (offset == 5) bad[20 + offset] = 0xff;
+        reject(bad, encoded.encoded_bytes);
+    }
+    auto trailing = record;
+    ++trailing[18];
+    reject(trailing, encoded.encoded_bytes + 1);
+    auto truncated = record;
+    --truncated[18];
+    reject(truncated, encoded.encoded_bytes - 1);
+    for (std::uint8_t minor : {2, 3, 127}) {
+        auto old = create;
+        old.minor_version = minor;
+        EXPECT(!encode_configuration_frame(old, record.data(), record.size()).encoded());
+    }
+    const auto stop = group_frame(h, 3, GroupOp::stop_trust, 0, group_scope());
+    EXPECT(stop.payload_bytes == 80);
+    for (std::size_t i = 0; i < 8; ++i) EXPECT(stop.payload[40+i] == static_cast<std::uint8_t>(i+1));
+    const auto decoded = decode_group_configuration_command(stop.payload.data(), stop.payload_bytes);
+    EXPECT(decoded.decoded() && decoded.value.scope == group_scope());
+    auto missing_group = stop;
+    std::fill_n(missing_group.payload.begin()+40, 8, 0);
+    EXPECT(!decode_group_configuration_command(
+        missing_group.payload.data(), missing_group.payload_bytes).decoded());
+}
+
+void group_mutations_correlate_and_replay_once() {
+    GroupBackend backend;
+    const auto scope = group_scope();
+    backend.result = {GroupOp::create, GroupStatus::ok, scope};
+    Harness h(kPublicProfileMinor, &backend);
+    h.ready();
+    const auto create = group_frame(h, 2, GroupOp::create, 1);
+    EXPECT(h.submit(create).code == Dispatch::accepted);
+    EXPECT(h.submit(create).code == Dispatch::busy && backend.executions == 0);
+    const auto completed = h.owner.execute();
+    const auto created = group_result(completed, create, 80);
+    EXPECT(created.operation == GroupOp::create && created.status == GroupStatus::ok && created.scope == scope);
+    EXPECT(backend.context == h.source.state.context && backend.command.operation == GroupOp::create && backend.command.location_rule == 1);
+    const auto replay = h.submit(create);
+    EXPECT(replay.code == Dispatch::replayed && replay.bytes == completed.bytes && replay.record == completed.record);
+    EXPECT(backend.executions == 1);
+    EXPECT(h.submit(group_frame(h, 2, GroupOp::create, 2)).code == Dispatch::conflict);
+
+    auto wrong_admin = scope;
+    wrong_admin.admin.back() ^= 1;
+    backend.result = {GroupOp::stop_trust, GroupStatus::ok, wrong_admin};
+    const auto stop = group_frame(h, 3, GroupOp::stop_trust, 0, scope);
+    EXPECT(h.submit(stop).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().code == Dispatch::no_result);
+    EXPECT(h.submit(stop).code == Dispatch::no_result && backend.executions == 2);
+    EXPECT(backend.command.scope == scope);
+
+    backend.result = {GroupOp::create, GroupStatus::ok, scope};
+    EXPECT(h.submit(group_frame(h, 4, GroupOp::stop_trust, 0, scope)).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().code == Dispatch::no_result);
+    backend.result = {GroupOp::stop_trust, GroupStatus::ok, scope};
+    const auto valid_stop = group_frame(h, 5, GroupOp::stop_trust, 0, scope);
+    EXPECT(h.submit(valid_stop).code == Dispatch::accepted);
+    const auto stopped = group_result(h.owner.execute(), valid_stop, 80);
+    EXPECT(stopped.operation == GroupOp::stop_trust && stopped.status == GroupStatus::ok && stopped.scope == scope);
+    EXPECT(h.submit(create).code == Dispatch::stale && backend.executions == 4);
+}
+
+void group_execution_respects_expiry_and_disconnect() {
+    GroupBackend backend;
+    backend.result = {GroupOp::create, GroupStatus::ok, group_scope()};
+    Harness h(kPublicProfileMinor, &backend);
+    h.ready();
+    const auto expired = group_frame(h, 2, GroupOp::create);
+    EXPECT(h.submit(expired).code == Dispatch::accepted);
+    h.source.state.now_ms = 5000;
+    EXPECT(h.owner.execute().code == Dispatch::no_result && backend.executions == 0);
+    EXPECT(h.submit(expired).code == Dispatch::no_result && backend.executions == 0);
+
+    backend.hook = [&] { h.source.state.now_ms = 10000; };
+    const auto late = group_frame(h, 3, GroupOp::create);
+    EXPECT(h.submit(late).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().code == Dispatch::no_result && backend.executions == 1);
+    EXPECT(h.submit(late).code == Dispatch::no_result && backend.executions == 1);
+
+    backend.hook = [&] { h.source.state.phase = DeviceNamePhase::disconnected; };
+    const auto lost = group_frame(h, 4, GroupOp::create);
+    EXPECT(h.submit(lost).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().bytes == 0 && !h.owner.ready() && backend.executions == 2);
+    h.source.state.phase = DeviceNamePhase::connected;
+    EXPECT(h.submit(lost).code == Dispatch::unauthorized && backend.executions == 2);
+}
+}
+
+int main(){group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 14 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 18 composed configuration dispatcher groups\n";
     return 0;
 }

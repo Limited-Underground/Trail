@@ -1,5 +1,14 @@
 # OpenTrail Progress Log
 
+## 2026-11-21
+
+### OT-0305 Add protected group command framing
+
+Added versioned group discovery, Create and Stop Trust request and result
+framing on the existing protected companion lane. Firmware without a durable
+group backend returns unavailable. See the
+[companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
+
 ## 2026-11-20
 
 ### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)
