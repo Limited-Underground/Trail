@@ -1,4 +1,4 @@
-# Limited Underground Trail architecture
+# MeshTrail architecture
 
 Foundation documentation, updated November 3, 2026. The [working contract](../../CONTRIBUTING.md#working-contract) has the current development rules. This page is the shared architecture reading path, mapping existing decisions, source and evidence with arc42/C4. It grants no behavior change, device operation, deployment, release or merge authority. The [current handoff](../PROJECT_STATUS.md#current-recovery-handoff) identifies documentation publication/adoption state separately from product acceptance.
 

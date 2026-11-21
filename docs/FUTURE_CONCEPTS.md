@@ -1,4 +1,4 @@
-# OpenTrail Future Concepts
+# MeshTrail Future Concepts
 
 Status: durable register for ideas and accepted directions that are not active
 release commitments.
@@ -62,7 +62,7 @@ supported, or physically accepted.
 ## Logo-first idle display and button-driven status pages
 
 - **Name:** Logo-first idle display and button-driven status pages
-- **Summary:** After a successful boot, retain the existing full-screen Trail
+- **Summary:** After a successful boot, retain the existing full-screen boot
   logo instead of automatically replacing it with live status. A short press
   of the designated navigation button or input while awake leaves the logo and
   enters the first information page; later short presses cycle the defined
@@ -96,7 +96,7 @@ supported, or physically accepted.
 - **Name:** Receive-only channel scan and coordinated channel choice
 - **Summary:** Offer a bounded scan of permitted supported radio channels and
   suggest a quieter choice. The user decides whether to apply a coordinated
-  change to their Trail group; scanning does not silently change its channel.
+  change to their MeshTrail group; scanning does not silently change its channel.
 - **Status:** accepted direction
 - **Earliest eligible milestone:** Post-V1 candidate, unscheduled. The existing
   logo-first idle display and button-driven status pages remain the first
