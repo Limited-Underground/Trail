@@ -80,7 +80,7 @@ open class MainActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val operationLog = MeshTrailOperationLogging.from(applicationContext)
         appController = TrailActivityController(
-            localController = CompanionAppController(FakeCompanionTransport()),
+            localController = createActivityLocalController(),
             permissionReader = AndroidNearbyDevicesPermissionReader(applicationContext),
             notificationPermissionReader = AndroidNotificationPermissionReader(applicationContext),
             serviceConnector = createConnectedDeviceServiceConnector(),
@@ -269,7 +269,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
                         Text("Connect device")
                     }
                 }
-                is TrailAppUiState.LocalTest -> LocalTestPanel(current.companionState, controller)
+                is TrailAppUiState.LocalTest -> VariantLocalConnection(current.companionState, controller)
                 is TrailAppUiState.BluetoothDevice -> BluetoothDevicePanel(
                     state = current,
                     controller = controller,
@@ -295,90 +295,6 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
     }
 }
 
-    }
-}
-
-@Composable
-private fun ModeChoicePanel(controller: TrailUiController) {
-    Text("Choose connection mode", style = MaterialTheme.typography.titleLarge)
-    Text("The modes are separate. Bluetooth never falls back to local test data.")
-    ModeCard(
-        title = "Local test",
-        body = "Use two deterministic fake companions. No Bluetooth device or radio is used.",
-        button = "Use local test mode",
-        select = controller::chooseLocalTestMode,
-    )
-    ModeCard(
-        title = "Bluetooth device",
-        body = "Scan for one compatible nearby LoRa companion using the real Android BLE path.",
-        button = "Use Bluetooth device mode",
-        select = controller::chooseBluetoothDeviceMode,
-    )
-}
-
-@Composable
-private fun ModeCard(title: String, body: String, button: String, select: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(body)
-            Button(onClick = select, modifier = Modifier.fillMaxWidth()) { Text(button) }
-        }
-    }
-}
-
-@Composable
-private fun LocalTestPanel(state: CompanionUiState, controller: TrailUiController) {
-    Text("Local test mode · deterministic fake transport", style = MaterialTheme.typography.bodySmall)
-    when (state) {
-        is CompanionUiState.Disconnected -> {
-            StatusCard(
-                "Disconnected",
-                "No fake session is active. ${state.candidates.size} deterministic test choices are available.",
-            )
-            Button(onClick = controller::chooseLocalDevice, modifier = Modifier.fillMaxWidth()) {
-                Text("Choose test device")
-            }
-        }
-        is CompanionUiState.Selecting -> {
-            Text("Choose one fake device", style = MaterialTheme.typography.titleLarge)
-            Text("These entries are local test fixtures and do not scan Bluetooth.")
-            CandidateList(
-                candidates = state.candidates.map { it.endpointToken to it.publicLabel },
-                connect = controller::connectLocalDevice,
-            )
-            OutlinedButton(onClick = controller::cancelLocalSelection, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancel")
-            }
-        }
-        is CompanionUiState.Connecting -> StatusCard("Connecting fake", "Opening ${state.candidate.publicLabel}…")
-        is CompanionUiState.Connected -> LocalConnectedPanel(state, controller)
-        is CompanionUiState.Failed -> {
-            StatusCard("Fake connection unavailable", state.publicReason)
-            Button(onClick = controller::retryLocalSelection, modifier = Modifier.fillMaxWidth()) {
-                Text("Choose again")
-            }
-        }
-    }
-    OutlinedButton(onClick = controller::returnToModeChoice, modifier = Modifier.fillMaxWidth()) {
-        Text("Leave local test mode")
-    }
-}
-
-@Composable
-private fun LocalConnectedPanel(state: CompanionUiState.Connected, controller: TrailUiController) {
-    StatusCard("Connected to fake ${state.connection.publicLabel}", state.connection.status)
-    val snapshot = state.connection.snapshot
-    SnapshotSummary("Fake device status", snapshot)
-    GroupLocationSection(state.connection.groupLocation)
-    ActionControls(controller::submitLocalAction)
-    if (snapshot.pendingCriticalAlertId != 0uL) {
-        AcknowledgeAlertButton(snapshot.pendingCriticalAlertId, controller::submitLocalAction)
-    }
-    state.lastActionResult?.let { StatusCard("Last fake action", it.fakePublicOutcome()) }
-    state.publicNotice?.let { StatusCard("Fake action unavailable", it) }
-    OutlinedButton(onClick = controller::disconnectLocalDevice, modifier = Modifier.fillMaxWidth()) {
-        Text("Disconnect fake device")
     }
 }
 
@@ -1006,21 +922,7 @@ private fun FactoryResetNotVerifiedReason.factoryResetPublicText(): String = whe
 }
 
 @Composable
-private fun CandidateList(candidates: List<Pair<String, String>>, connect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        candidates.forEach { (endpointToken, publicLabel) ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(publicLabel, modifier = Modifier.weight(1f))
-                    Button(onClick = { connect(endpointToken) }) { Text("Connect") }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
+internal fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
     Text(
         "$title · ${snapshot.radio.deviceStatusLabel()} · GPS ${snapshot.gnss.publicLabel()} · " +
             "power ${snapshot.power.publicLabel()} · location sharing ${snapshot.positionSharing.publicLabel()} · " +
@@ -1030,10 +932,13 @@ private fun SnapshotSummary(title: String, snapshot: CompanionStatusSnapshot) {
 }
 
 @Composable
-private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
+internal fun GroupLocationSection(
+    snapshot: GroupLocationSnapshot,
+    sourceLabel: String = "Device",
+    sourceDescription: String = "These locations come from your device.",
+    namePrefix: String = "",
+) {
     var expanded by remember { mutableStateOf(false) }
-    val isFake = snapshot.provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
-    val sourceLabel = if (isFake) "Fake fixture" else "Device"
     OutlinedButton(
         onClick = { expanded = !expanded },
         modifier = Modifier.fillMaxWidth(),
@@ -1053,16 +958,9 @@ private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.semantics { heading() },
             )
-            Text(
-                when (snapshot.provenance) {
-                    GroupLocationProvenance.LOCAL_TEST_FIXTURE ->
-                        "Deterministic fake location fixture. This is not phone GPS, device, radio, or map evidence."
-                    GroupLocationProvenance.DEVICE_AUTHORITATIVE_SNAPSHOT ->
-                        "These locations come from your device."
-                },
-            )
+            Text(sourceDescription)
             Text("$sourceLabel position sharing: ${snapshot.sharingState.publicLabel()}.")
-            GroupPositionCard("This device", snapshot.selfPosition, snapshot.provenance)
+            GroupPositionCard(namePrefix + "This device", snapshot.selfPosition, sourceLabel)
             Text(
                 "Group members (${snapshot.peers.size})",
                 style = MaterialTheme.typography.titleMedium,
@@ -1072,7 +970,7 @@ private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
                 Text("No group locations yet.")
             } else {
                 snapshot.peers.forEach { peer ->
-                    GroupPositionCard(peer.displayAlias.value, peer.position, snapshot.provenance)
+                    GroupPositionCard(namePrefix + peer.displayAlias.value, peer.position, sourceLabel)
                 }
             }
             Text("Maps aren't available yet.")
@@ -1084,16 +982,14 @@ private fun GroupLocationSection(snapshot: GroupLocationSnapshot) {
 private fun GroupPositionCard(
     label: String,
     position: GroupLocationPosition,
-    provenance: GroupLocationProvenance,
+    sourceLabel: String,
 ) {
-    val isFake = provenance == GroupLocationProvenance.LOCAL_TEST_FIXTURE
-    val sourceLabel = if (isFake) "Fake fixture" else "Device"
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(if (isFake) "Fake $label" else label, style = MaterialTheme.typography.titleMedium)
+            Text(label, style = MaterialTheme.typography.titleMedium)
             when (position.state) {
                 GroupPositionState.UNAVAILABLE -> Text(
                     "$sourceLabel location unavailable.",
@@ -1121,7 +1017,7 @@ private fun GroupPositionCard(
 private fun Double.fixedCoordinate(): String = String.format(Locale.US, "%.5f", this)
 
 @Composable
-private fun ActionControls(submit: (CompanionActionRequest) -> Unit) {
+internal fun ActionControls(submit: (CompanionActionRequest) -> Unit) {
     Text("Quick status", style = MaterialTheme.typography.titleMedium)
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ActionButton("OK", Modifier.weight(1f)) {
@@ -1152,7 +1048,7 @@ private fun ActionControls(submit: (CompanionActionRequest) -> Unit) {
 }
 
 @Composable
-private fun AcknowledgeAlertButton(alertId: ULong, submit: (CompanionActionRequest) -> Unit) {
+internal fun AcknowledgeAlertButton(alertId: ULong, submit: (CompanionActionRequest) -> Unit) {
     Button(
         onClick = {
             submit(
@@ -1169,12 +1065,6 @@ private fun AcknowledgeAlertButton(alertId: ULong, submit: (CompanionActionReque
 @Composable
 private fun ActionButton(label: String, modifier: Modifier, action: () -> Unit) {
     Button(onClick = action, modifier = modifier) { Text(label) }
-}
-
-private fun CompanionActionResult.fakePublicOutcome(): String = when (disposition) {
-    CompanionActionDisposition.QUEUED -> "Queued in the fake device. This is not sent or delivered evidence."
-    CompanionActionDisposition.ADMITTED -> "Applied in deterministic test state."
-    CompanionActionDisposition.REJECTED -> "The fake device rejected the request: ${rejectReason.publicLabel()}."
 }
 
 private fun CompanionActionResult.bluetoothPublicOutcome(): String = when (disposition) {
@@ -1290,10 +1180,10 @@ internal fun CompanionRadioState.deviceStatusLabel(): String =
         else -> "radio ${publicLabel()}"
     }
 
-private fun Enum<*>.publicLabel(): String = name.lowercase().replace('_', ' ')
+internal fun Enum<*>.publicLabel(): String = name.lowercase().replace('_', ' ')
 
 @Composable
-private fun StatusCard(title: String, body: String) {
+internal fun StatusCard(title: String, body: String) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)

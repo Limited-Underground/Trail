@@ -5,7 +5,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $AndroidSdkRoot,
     [Parameter(Mandatory = $true)]
-    [string] $ArtifactPath
+    [string] $ArtifactPath,
+
+    [switch] $V1Production
 )
 
 Set-StrictMode -Version Latest
@@ -158,6 +160,24 @@ foreach ($forbidden in $forbiddenDiagnostics) {
     Assert-Condition ($manifest -notmatch [regex]::Escape($forbidden)) 'Packaged manifest contains an OT-177 test-only diagnostic component.'
 }
 
+if ($V1Production) {
+    # JNI debuggability is a Gradle build-type setting without an APK manifest attribute.
+    $appBuild = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot 'app\build.gradle.kts')
+    $release = [regex]::Matches($appBuild, '(?ms)^[ \t]*getByName\("release"\)\s*\{(?<body>[^{}]*)\}')
+    Assert-Condition ($release.Count -eq 1) 'V1 production requires one explicit release build type.'
+    foreach ($setting in @('isDebuggable', 'isJniDebuggable')) {
+        $settingWrites = [regex]::Matches($release[0].Groups['body'].Value, "\b${setting}\s*=")
+        $disabled = $release[0].Groups['body'].Value -match "(?m)^[ \t]*${setting}[ \t]*=[ \t]*false[ \t]*\r?$"
+        Assert-Condition ($settingWrites.Count -eq 1 -and $disabled) "Disable $setting in the release build type."
+    }
+
+    # A custom Application can opt into the evaluation profile or attach the V1-Test recorder.
+    $application = [regex]::Match($manifest, '(?ms)^[ \t]*E: application\b[^\r\n]*\r?\n(?<attributes>.*?)(?=^[ \t]*E:|\z)')
+    Assert-Condition $application.Success 'V1 production application manifest element is missing.'
+    Assert-Condition ($application.Groups['attributes'].Value -notmatch 'android:name') 'V1 production requires the default Application.'
+    Assert-Condition ($manifest -notmatch '(?m)^[ \t]*E: profileable\b') 'V1 production must not be profileable.'
+}
+
 $resourceDump = Invoke-CheckedText $aapt @('dump', '--values', 'resources', $artifact) 'Packaged resource-table inspection failed.'
 $supportProviders = @([regex]::Matches($manifest, '(?ms)^(?<indent>[ \t]*)E: provider\b.*?(?=^\k<indent>E:|\z)') |
     Where-Object { $_.Value -match 'android:name[^\r\n]*="androidx\.core\.content\.FileProvider"' })
@@ -197,6 +217,10 @@ New-Item -ItemType Directory -Path $dexRoot | Out-Null
 try {
     $archive = [IO.Compression.ZipFile]::OpenRead($artifact)
     $entries = @($archive.Entries | ForEach-Object { $_.FullName })
+    if ($V1Production) {
+        $nativeDebugEntries = @($entries | Where-Object { $_ -match '(?i)(?:^|/)(?:gdbserver|gdb\.setup|lldb-server)(?:$|/)' })
+        Assert-Condition ($nativeDebugEntries.Count -eq 0) 'V1 production contains native debug tooling.'
+    }
     $signatureEntries = @($entries | Where-Object { $_ -match '(?i)^META-INF/(?:MANIFEST\.MF|[^/]+\.(?:SF|RSA|DSA|EC))$' })
     Assert-Condition ($signatureEntries.Count -eq 0) 'Unsigned artifact unexpectedly contains a v1 signature surface.'
     $dexEntries = @($archive.Entries | Where-Object { $_.FullName -match '^classes(?:[0-9]+)?\.dex$' })
@@ -219,6 +243,22 @@ try {
         Assert-Condition ($forbiddenMatches.Count -eq 0) 'Packaged DEX contains an OT-085 test-only helper.'
         $diagnosticMatches = @($dexStrings | Select-String -SimpleMatch -Pattern $forbiddenDiagnostics)
         Assert-Condition ($diagnosticMatches.Count -eq 0) 'Packaged DEX contains an OT-177 test-only diagnostic class.'
+        if ($V1Production) {
+            $productionExclusions = @(
+                'V1Test',
+                'V1ScreenGalleryActivity',
+                'FakeCompanionTransport',
+                'DeterministicGroupLocationFixtures',
+                'ModeChoicePanel',
+                'LocalTestPanel',
+                'androidx/compose/ui/tooling/ComposeViewAdapter',
+                'androidx/compose/ui/test/',
+                'androidx/test/runner/'
+            )
+            $included = @($dexStrings | Select-String -SimpleMatch -Pattern $productionExclusions |
+                Select-Object -ExpandProperty Pattern -Unique)
+            Assert-Condition ($included.Count -eq 0) ('V1 production DEX contains debug or bench contents: ' + ($included -join ', '))
+        }
     }
 } finally {
     if ($null -ne $archive) {
@@ -237,6 +277,9 @@ Assert-Condition ($signatureText -match 'DOES NOT VERIFY' -and $signatureText -m
 
 $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
 Write-Output 'OT087_UNSIGNED_RELEASE_ARTIFACT=PASS'
+if ($V1Production) {
+    Write-Output 'V1_PRODUCTION_APK_SURFACES=PASS'
+}
 Write-Output 'OT087_APPLICATION_ID=io.github.nbjelanovic.otclient'
 Write-Output 'OT087_VERSION_CODE=1'
 Write-Output 'OT087_VERSION_NAME=1.0.0'

@@ -227,6 +227,9 @@ class GroupLocationPresentationTest {
     @Test
     fun uiIsScrollableAccessibleAndContainsNoPhoneGpsOrMapDependency() {
         val source = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt").readText()
+        val development = projectFile(
+            "src/development/kotlin/io/github/nbjelanovic/otclient/ActivityLocalConnection.kt",
+        ).readText()
         val build = projectFile("build.gradle.kts").readText()
         val manifest = projectFile("src/main/AndroidManifest.xml").readText()
         assertTrue(source.contains("verticalScroll(rememberScrollState())"))
@@ -234,14 +237,17 @@ class GroupLocationPresentationTest {
         assertTrue(source.contains("Hide group locations"))
         assertTrue(source.contains("Modifier.semantics { heading() }"))
         assertTrue(source.contains("These locations come from your device."))
-        assertTrue(source.contains("Deterministic fake location fixture"))
-        assertTrue(source.contains("val sourceLabel = if (isFake) \"Fake fixture\""))
+        assertTrue(development.contains("Deterministic fake location fixture"))
+        assertTrue(development.contains("sourceLabel = \"Fake fixture\""))
+        assertFalse(source.contains("Deterministic fake location fixture"))
+        assertFalse(source.contains("\"Fake fixture\""))
         assertTrue(source.contains("\$sourceLabel position sharing"))
         assertTrue(source.contains("\$sourceLabel location is"))
         assertTrue(source.contains("\$sourceLabel age"))
         assertTrue(source.contains("\$sourceLabel accuracy"))
         listOf("LocationManager", "FusedLocationProviderClient", "GoogleMap", "MapView").forEach {
             assertFalse(source.contains(it))
+            assertFalse(development.contains(it))
             assertFalse(build.contains(it))
         }
         assertFalse(manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
