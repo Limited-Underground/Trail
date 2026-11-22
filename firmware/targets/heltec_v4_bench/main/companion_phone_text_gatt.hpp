@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "opentrail/radio_transport.hpp"
 
@@ -9,6 +10,21 @@ namespace opentrail::target::heltec_v4_bench::phone_text_gatt {
 
 inline constexpr std::uint8_t profile = 6;
 inline constexpr std::size_t max_record_bytes = 148;
+inline constexpr std::size_t authority_query_bytes = 76;
+inline constexpr std::size_t quick_status_record_bytes = 59;
+
+enum class Payload { text, quick_status };
+
+#if defined(OPENTRAIL_LORA_F6_PHONE_TEST) && OPENTRAIL_LORA_F6_PHONE_TEST
+inline constexpr Payload target_payload = Payload::quick_status;
+#else
+inline constexpr Payload target_payload = Payload::text;
+#endif
+
+[[nodiscard]] inline std::uint8_t quick_status_code(radio::ByteView value) {
+    if (!value.data || value.size != 1 || value.data[0] < '1' || value.data[0] > '4') return 0;
+    return static_cast<std::uint8_t>(value.data[0] - '0');
+}
 
 enum class Kind : std::uint8_t {
     invalid = 0,
@@ -40,7 +56,7 @@ struct Header {
 }
 
 // Routing shape only. The owner backend validates each complete payload.
-[[nodiscard]] inline Header decode(radio::ByteView value) {
+[[nodiscard]] inline Header decode(radio::ByteView value, Payload payload = Payload::text) {
     const auto* b = value.data;
     if (b == nullptr || value.size < 24 || value.size > max_record_bytes ||
         b[0] != 'O' || b[1] != 'T' || b[2] != 'C' || b[3] != '0' ||
@@ -54,9 +70,16 @@ struct Header {
     const auto exchange = get32(b + 12);
     if (nonce == 0 || exchange == 0) return {};
     if (kind == Kind::authority_query || kind == Kind::authority_result) {
-        const auto size = kind == Kind::authority_query ? 76U : 136U;
-        return value.size == size && b[22] == 'Y' && b[23] == '0'
-            ? Header{kind, nonce, exchange} : Header{};
+        const auto size = kind == Kind::authority_query ? authority_query_bytes : 136U;
+        const bool domain = payload == Payload::quick_status
+            ? b[22] == 'Q' && b[23] == 'Y'
+            : b[22] == 'Y' && b[23] == '0';
+        return value.size == size && domain ? Header{kind, nonce, exchange} : Header{};
+    }
+    if ((kind == Kind::send || kind == Kind::received) && payload == Payload::quick_status) {
+        if (b[22] != 'Q' || b[23] != 'S' || value.size != quick_status_record_bytes ||
+            !quick_status_code({b + quick_status_record_bytes - 1, 1})) return {};
+        return {kind, nonce, exchange};
     }
     if (b[22] != 'X' || b[23] != 'C') return {};
     switch (kind) {
@@ -74,6 +97,40 @@ struct Header {
             return {};
     }
     return {kind, nonce, exchange};
+}
+
+// Normalize only the mode-specific wire domain. The trial still validates
+// the complete carrier, including authority, freshness and correlation.
+[[nodiscard]] inline bool normalize_quick_status_command(radio::ByteView input, radio::MutableByteView carrier) {
+    if (!carrier.data || carrier.size < input.size) return false;
+    const auto route = decode(input, Payload::quick_status);
+    if (!route.command()) return false;
+    const bool authority = route.kind == Kind::authority_query;
+    std::memmove(carrier.data, input.data, input.size);
+    carrier.data[22] = authority ? 'Y' : 'X';
+    carrier.data[23] = authority ? '0' : 'C';
+    return true;
+}
+
+[[nodiscard]] inline bool mark_quick_status_output(radio::MutableByteView output) {
+    const auto route = decode({output.data, output.size});
+    switch (route.kind) {
+        case Kind::authority_result:
+            output.data[22] = 'Q';
+            output.data[23] = 'Y';
+            return true;
+        case Kind::received:
+            if (output.size != quick_status_record_bytes ||
+                !quick_status_code({output.data + quick_status_record_bytes - 1, 1})) return false;
+            output.data[22] = 'Q';
+            output.data[23] = 'S';
+            return true;
+        case Kind::send_result:
+        case Kind::delivery:
+            return true;
+        default:
+            return false;
+    }
 }
 
 [[nodiscard]] inline bool matches_response(const Header& request, const Header& result) {

@@ -141,13 +141,14 @@ def require(condition: bool, message: str) -> None:
 
 def without_lora_link_test(source: str) -> str:
     # V1 F5 step R1 (D-075): LoRa code in an application source is admitted only
-    # inside blocks that open with the exact Link Test or D-143 phone-test
-    # guard and close with "#endif". Anything else mentioning either flag
+    # inside blocks with the exact Link Test or one of the exact phone-test
+    # guards and close with "#endif". Anything else mentioning these flags
     # (#ifdef, #else, #elif, extended conditions such as "|| 1") and any nested
     # conditional inside a block is refused, so the remaining text is exactly
     # what a normal build compiles and every original check still applies to it.
-    flags = ("OPENTRAIL_LORA_LINK_TEST", "OPENTRAIL_LORA_F7_PHONE_TEST")
+    flags = ("OPENTRAIL_LORA_LINK_TEST", "OPENTRAIL_LORA_F7_PHONE_TEST", "OPENTRAIL_LORA_F6_PHONE_TEST")
     guards = {f"#if {flag}" for flag in flags}
+    guards.add("#if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST")
     kept, inside = [], False
     for line in source.splitlines(keepends=True):
         directive = line.strip()
@@ -173,7 +174,11 @@ def test_lora_link_test_filter() -> None:
     require(without_lora_link_test(plain) == "a\nb\n", "exact opt-in block must be removed")
     phone = plain.replace("OPENTRAIL_LORA_LINK_TEST", "OPENTRAIL_LORA_F7_PHONE_TEST")
     require(without_lora_link_test(phone) == "a\nb\n", "exact phone test block must be removed")
+    combined = phone.replace("OPENTRAIL_LORA_F7_PHONE_TEST",
+                             "OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST")
+    require(without_lora_link_test(combined) == "a\nb\n", "exact shared phone test block must be removed")
     for bypass in (
+        combined.replace("OPENTRAIL_LORA_F6_PHONE_TEST", "OPENTRAIL_LORA_F6_PHONE_TEST || 1"),
         "#if OPENTRAIL_LORA_LINK_TEST\nx\n#else\nRadioLib y;\n#endif\n",
         "#if OPENTRAIL_LORA_LINK_TEST || 1\nSX126 z;\n#endif\n",
         "#ifdef OPENTRAIL_LORA_LINK_TEST\nSX126 z;\n#endif\n",
@@ -3846,8 +3851,33 @@ def test_f7_phone_text_surface() -> None:
     require("OPENTRAIL_LORA_F7_PHONE_TEST=$<BOOL:${OPENTRAIL_LORA_F7_PHONE_TEST}>" in component and
             "install_companion_phone_text_backend(g_phone_text)" in app,
             "only the compiled phone-test app installs the protected backend")
-    require("!kPhoneText && !payload_sent" in runtime and "if constexpr (kFixedTextTest)" in runtime,
+    require("kPhoneTrial = kPhoneText || kPhoneStatus" in runtime and
+            "!kPhoneTrial && !payload_sent" in runtime and "if constexpr (kFixedTextTest)" in runtime,
             "the phone test sends only app-submitted payloads and omits the fixture text log")
+
+
+def test_f6_phone_status_surface() -> None:
+    cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    component = (TARGET / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    app = SOURCE.read_text(encoding="utf-8")
+    runtime = (TARGET / "main/board_messaging_runtime.cpp").read_text(encoding="utf-8")
+    require(bool(re.search(r'option\(OPENTRAIL_LORA_F6_PHONE_TEST "[^"]+" OFF\)', cmake)),
+            "phone quick statuses must be a bench opt-in")
+    production_switches = re.search(r"foreach\(bench_switch IN ITEMS([^)]*)\)", cmake)
+    require(production_switches is not None and
+            "OPENTRAIL_LORA_F6_PHONE_TEST" in production_switches[1].split(),
+            "the production build guard must report the enabled F6 bench switch")
+    require("NOT OPENTRAIL_LORA_LINK_TEST OR OPENTRAIL_LORA_F7_TEXT_TEST OR OPENTRAIL_LORA_F7_PHONE_TEST" in cmake and
+            "OPENTRAIL_LORA_LINK_TEST AND NOT OPENTRAIL_RELEASE_GENERATION STREQUAL" in cmake,
+            "phone quick statuses need Link Test and exclude F7 modes and releases")
+    require("OPENTRAIL_LORA_F6_PHONE_TEST=$<BOOL:${OPENTRAIL_LORA_F6_PHONE_TEST}>" in component and
+            "#if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST" in app and
+            "install_companion_phone_text_backend(g_phone_text)" in app,
+            "the status trial must use the same protected backend registration as F7")
+    require("kPhoneStatus ? &status_arm_ : nullptr" in runtime and
+            "packets_->send_status(id, static_cast<protocol::QuickStatusKind>(status), admitted_at)" in runtime and
+            "phone status acknowledged (authenticated ACK)" in runtime,
+            "phone quick statuses must enter the bounded F5 packet session and report its correlated ACK")
 
 
 def main() -> int:
@@ -3868,7 +3898,7 @@ def main() -> int:
              test_selected_enrollment_request_route, test_pairing_result_protected_route,
              test_pairing_queued_launch_behavior)
     tests = (*tests, test_f5_messaging_runtime_surface, test_companion_gatt_layout_migration,
-             test_f7_link_test_text_surface, test_f7_phone_text_surface)
+             test_f7_link_test_text_surface, test_f7_phone_text_surface, test_f6_phone_status_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")

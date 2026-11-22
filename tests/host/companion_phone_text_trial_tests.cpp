@@ -101,6 +101,10 @@ T decode(const Bytes& out, std::size_t n) {
 }
 
 #ifdef TASK6_REAL_F5
+#include "../../firmware/targets/heltec_v4_bench/main/companion_phone_text_gatt.hpp"
+
+namespace gatt = opentrail::target::heltec_v4_bench::phone_text_gatt;
+
 // Reuse the same retained D-112 board fixtures as F5 and F7. Only the
 // handset and physical radio callbacks are simulated in this composition.
 #pragma GCC diagnostic push
@@ -114,10 +118,13 @@ struct RetainedPort final : Trial::Port {
     f5_test::Side& side;
     Link link{1, 1, 2, 3, 31, 31, 42};
     Trial::Pair pair{};
-    f5_test::Status::TextArm arm{};
+    f5_test::Status::TextArm text_arm{};
+    f5_test::Status::StatusArm status_arm{};
+    const bool quick_status;
+    std::uint8_t status_wire{};
     bool tx_done{};
 
-    explicit RetainedPort(f5_test::Side& side) : side(side) {
+    RetainedPort(f5_test::Side& side, bool quick_status) : side(side), quick_status(quick_status) {
         const auto& binding = side.rekey->data_tx().context;
         const auto allocation = side.rekey->active_generation();
         const auto lease = side.rekey->lease_id();
@@ -127,8 +134,9 @@ struct RetainedPort final : Trial::Port {
         side.lease_generation = allocation;
         side.status.emplace(side.rekey->data_tx(), side.rekey->ack_tx(), side.rekey->data_rx(),
                             side.rekey->ack_rx(), lanes[0], lanes[1], lanes[2], lanes[3],
-                            side.radio, &arm);
-        check(side.status->start(side.now, side.now + 60000), "open real F5 text arm");
+                            side.radio, quick_status ? nullptr : &text_arm,
+                            quick_status ? &status_arm : nullptr);
+        check(side.status->start(side.now, side.now + 60000), "open real F5 arm");
     }
 
     bool owner_current(const Link& caller) override { return caller == link; }
@@ -140,8 +148,15 @@ struct RetainedPort final : Trial::Port {
     }
     Trial::Submission submit(const Link& caller, std::uint64_t lease, View text,
                              std::uint64_t now, std::uint64_t deadline) override {
-        if (caller != link || lease != pair.lease || now >= deadline ||
-            !side.status->send_text(17, {text.data, text.size}, now)) return {};
+        if (caller != link || lease != pair.lease || now >= deadline) return {};
+        if (quick_status) {
+            const auto code = gatt::quick_status_code({text.data, text.size});
+            if (!code) return {};
+            const auto kind = static_cast<opentrail::protocol::QuickStatusKind>(code);
+            if (!side.status->send_status(17, kind, now)) return {};
+        } else if (!side.status->send_text(17, {text.data, text.size}, now)) {
+            return {};
+        }
         const auto id = side.status->sent_identity();
         if (!id) return {};
         return {Trial::Identity{id->message_id, id->counter}, false};
@@ -158,22 +173,62 @@ struct RetainedPort final : Trial::Port {
         if (lease != pair.lease) return {};
         const auto id = side.status->received_identity();
         if (!id) return {};
+        if (quick_status) {
+            status_wire = static_cast<std::uint8_t>('0' + static_cast<unsigned>(side.status->received_status()));
+            return {{id->message_id, id->counter}, {&status_wire, 1}};
+        }
         const auto text = side.status->received_text();
         return {{id->message_id, id->counter}, {text.data, text.size}};
     }
 };
 
-void exact_f5_round_trip() {
+void mark_quick_status_request(Bytes& input, const char* magic) {
+    std::copy_n(magic, 4, input.begin() + 20);
+}
+
+std::size_t retained_command(Trial& trial, const RetainedPort& port, Bytes input,
+                             const char* quick_status_magic, Bytes& out) {
+    if (!port.quick_status) return command(trial, port.link, input, out, port.side.now);
+    mark_quick_status_request(input, quick_status_magic);
+    Bytes carrier(input.size());
+    if (!gatt::normalize_quick_status_command({input.data(), input.size()}, {carrier.data(), carrier.size()})) {
+        return 0;
+    }
+    const auto size = command(trial, port.link, carrier, out, port.side.now);
+    if (size) check(gatt::mark_quick_status_output({out.data(), size}), "mark status response");
+    return size;
+}
+
+std::size_t retained_event(Trial& trial, const RetainedPort& port, Bytes& out) {
+    const auto size = trial.next_event(port.link, {out.data(), out.size()}, port.side.now);
+    if (size && port.quick_status) {
+        check(gatt::mark_quick_status_output({out.data(), size}), "mark status stream event");
+    }
+    return size;
+}
+
+void exact_f5_round_trip(const Bytes& body, bool quick_status, bool reverse = false) {
     f5_test::Pair boards;
     f5_test::finish(boards.a, boards.b, f5_test::start(boards.a), 2);
-    RetainedPort a(boards.a), b(boards.b);
+    RetainedPort a(reverse ? boards.b : boards.a, quick_status);
+    RetainedPort b(reverse ? boards.a : boards.b, quick_status);
     Trial sender(a), receiver(b);
     Bytes out(tc::max_record_bytes);
-    check(command(sender, a.link, query(a), out, a.side.now) == 136 && out[26] == 3, "real sender proof");
-    check(command(receiver, b.link, query(b), out, b.side.now) == 136 && out[26] == 3, "real receiver proof");
+    check(retained_command(sender, a, query(a), "OTQY", out) == 136 && out[26] == 3, "real sender proof");
+    if (quick_status) check(std::equal(out.begin() + 20, out.begin() + 24, "OTQY"), "sender gets a status proof");
+    check(retained_command(receiver, b, query(b), "OTQY", out) == 136 && out[26] == 3, "real receiver proof");
+    if (quick_status) {
+        check(std::equal(out.begin() + 20, out.begin() + 24, "OTQY"), "receiver gets a status proof");
+        const auto text_request = request(a, body);
+        Bytes unused(text_request.size());
+        check(!gatt::normalize_quick_status_command({text_request.data(), text_request.size()},
+                                                   {unused.data(), unused.size()}),
+              "text request is refused in quick-status mode");
+        check(retained_command(sender, a, request(a, Bytes{'5'}), "OTQS", out) == 0 &&
+              !a.status_arm.sent, "unknown status is refused before admission");
+    }
 
-    const Bytes text{0x4d, 0x65, 0x73, 0x68, 0x20, 0xe7, 0x95, 0x8c};
-    const auto accepted = decode<tc::Result>(out, command(sender, a.link, request(a, text), out, a.side.now));
+    const auto accepted = decode<tc::Result>(out, retained_command(sender, a, request(a, body), "OTQS", out));
     check(accepted.disposition == 1 && accepted.message_id == 17 && accepted.counter != 0,
           "phone acceptance comes from actual F5 queue");
     a.side.status->service(a.side.now);
@@ -182,19 +237,31 @@ void exact_f5_round_trip() {
     a.tx_done = true;
     const auto data = a.side.radio.sent.back();
     check(b.side.status->receive({data.data(), data.size()}, b.side.now), "actual peer accepts DATA");
-    const auto received = decode<tc::Received>(out, receiver.next_event(b.link, {out.data(), out.size()}, b.side.now));
+    const auto received_size = retained_event(receiver, b, out);
+    if (quick_status) {
+        check(std::equal(out.begin() + 20, out.begin() + 24, "OTQS"), "status has its own receive marker");
+        check(gatt::decode({out.data(), received_size}, gatt::Payload::quick_status).event(),
+              "status Stream event is routable over GATT");
+        std::copy_n("OTXC", 4, out.begin() + 20);
+    }
+    const auto received = decode<tc::Received>(out, received_size);
     check(received.message_id == accepted.message_id && received.counter == accepted.counter &&
-          received.text.size == text.size() && std::equal(text.begin(), text.end(), received.text.data),
-          "phone receives exact authenticated text and identity");
+          received.text.size == body.size() && std::equal(body.begin(), body.end(), received.text.data),
+          "phone receives exact authenticated payload and identity");
+    if (quick_status) {
+        check(b.side.status->received_status() ==
+                  static_cast<opentrail::protocol::QuickStatusKind>(body[0] - '0'),
+              "peer retained F5 decodes the exact OTQ0 status");
+    }
     b.side.status->service(b.side.now);
     const auto ack = b.side.radio.sent.back();
     check(a.side.status->receive({ack.data(), ack.size()}, a.side.now), "actual matching peer ACK");
-    const auto sent = decode<tc::Delivery>(out, sender.next_event(a.link, {out.data(), out.size()}, a.side.now));
-    const auto delivered = decode<tc::Delivery>(out, sender.next_event(a.link, {out.data(), out.size()}, a.side.now));
+    const auto sent = decode<tc::Delivery>(out, retained_event(sender, a, out));
+    const auto delivered = decode<tc::Delivery>(out, retained_event(sender, a, out));
     check(sent.phase == 2 && delivered.phase == 3 && delivered.counter == accepted.counter,
           "typed status projection uses actual F5 evidence");
     check(b.side.status->receive({data.data(), data.size()}, b.side.now) &&
-          receiver.next_event(b.link, {out.data(), out.size()}, b.side.now) == 0,
+          retained_event(receiver, b, out) == 0,
           "real RF duplicate can be ACKed without another handset delivery");
 }
 #endif
@@ -261,7 +328,9 @@ int main() {
     check(decode<tc::Delivery>(out, no_ack.next_event(missing.link, {out.data(), out.size()}, 9001)).phase == 5,
           "no matching ACK means failed");
 #ifdef TASK6_REAL_F5
-    exact_f5_round_trip();
+    exact_f5_round_trip({0x4d, 0x65, 0x73, 0x68, 0x20, 0xe7, 0x95, 0x8c}, false);
+    for (std::uint8_t kind = '1'; kind <= '4'; ++kind) exact_f5_round_trip({kind}, true, kind % 2 == 0);
+    std::cout << "PASS four protected OTQ0 phone round trips with actual F5 DATA and ACK\n";
 #endif
     TrialTestPort crossing(0xa1, 0xb2);
     Trial edge(crossing);

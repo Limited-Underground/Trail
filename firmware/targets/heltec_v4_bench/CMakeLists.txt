@@ -7,6 +7,7 @@ option(OPENTRAIL_CONFIRMATION_EVALUATION "Enable OT216 protected BLE confirmatio
 # every normal build; never combine with a release generation.
 option(OPENTRAIL_LORA_LINK_TEST "Enable the bench LoRa link test beacons" OFF)
 option(OPENTRAIL_LORA_F7_TEXT_TEST "Exercise typed board-to-board text in the LoRa link test" OFF)
+option(OPENTRAIL_LORA_F6_PHONE_TEST "Exercise bounded phone-to-phone quick statuses in the LoRa Link Test" OFF)
 # Board-pinned qualification builds keep their existing release-generation path.
 # A V1 tester build must use a qualified product radio and security composition.
 option(OPENTRAIL_V1_PRODUCTION "Request a MeshTrail V1 tester build" OFF)
@@ -16,7 +17,8 @@ if(OPENTRAIL_V1_PRODUCTION)
             OPENTRAIL_CONNECTION_DIAGNOSTICS
             OPENTRAIL_CONFIRMATION_EVALUATION
             OPENTRAIL_LORA_LINK_TEST
-            OPENTRAIL_LORA_F7_TEXT_TEST)
+            OPENTRAIL_LORA_F7_TEXT_TEST
+            OPENTRAIL_LORA_F6_PHONE_TEST)
         if(${bench_switch})
             list(APPEND enabled_bench_switches "${bench_switch}")
         endif()
@@ -39,6 +41,10 @@ endif()
 option(OPENTRAIL_LORA_F7_PHONE_TEST "Exercise bounded phone-to-phone text in the LoRa Link Test" OFF)
 if(OPENTRAIL_LORA_F7_PHONE_TEST AND (NOT OPENTRAIL_LORA_LINK_TEST OR OPENTRAIL_LORA_F7_TEXT_TEST))
     message(FATAL_ERROR "The F7 phone test requires Link Test and excludes the fixed F7 sample")
+endif()
+if(OPENTRAIL_LORA_F6_PHONE_TEST AND
+   (NOT OPENTRAIL_LORA_LINK_TEST OR OPENTRAIL_LORA_F7_TEXT_TEST OR OPENTRAIL_LORA_F7_PHONE_TEST))
+    message(FATAL_ERROR "The F6 phone test requires Link Test and excludes the F7 text modes")
 endif()
 if(OPENTRAIL_LORA_LINK_TEST AND OPENTRAIL_CONFIRMATION_EVALUATION)
     message(FATAL_ERROR "The LoRa link test and the confirmation evaluation are separate builds")

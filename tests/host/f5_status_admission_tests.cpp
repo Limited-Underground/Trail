@@ -11,6 +11,8 @@ namespace persist = ot::persistence;
 using packet::selected_packet_detail::Binding;
 using packet::selected_packet_detail::Frame;
 using Storage = persist::test_support::MemoryPersistentStorage;
+using Session = ot::companion::F5StatusSession;
+using Status = ot::protocol::QuickStatusKind;
 constexpr auto counter_domain = persist::StorageDomain::outbound_counter_state;
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "FAIL %d %s\n", __LINE__, #x); std::exit(1); } } while (false)
 
@@ -79,15 +81,17 @@ Frame seal(const Binding& binding, std::uint64_t counter, packet::View plain) {
 }
 
 struct Fixture {
-    Binding data_tx = binding(1, 2, packet::Type::data), ack_tx = binding(1, 2, packet::Type::ack);
-    Binding data_rx = binding(2, 1, packet::Type::data), ack_rx = binding(2, 1, packet::Type::ack);
+    Binding data_tx, ack_tx, data_rx, ack_rx;
     std::array<Storage,4> stores;
     CaptureRadio radio;
-    ot::companion::F5StatusSession session{data_tx, ack_tx, data_rx, ack_rx,
-        stores[0], stores[1], stores[2], stores[3], radio};
+    Session session;
     std::array<std::uint8_t, ot::protocol::kQuickStatusPayloadBytes> valid{};
 
-    Fixture() {
+    explicit Fixture(Session::StatusArm* arm = nullptr, std::uint8_t local = 1, std::uint8_t peer = 2)
+        : data_tx(binding(local, peer, packet::Type::data)), ack_tx(binding(local, peer, packet::Type::ack)),
+          data_rx(binding(peer, local, packet::Type::data)), ack_rx(binding(peer, local, packet::Type::ack)),
+          session(data_tx, ack_tx, data_rx, ack_rx, stores[0], stores[1], stores[2], stores[3], radio,
+                  nullptr, arm) {
         CHECK(session.start(100, 60100));
         CHECK(ot::protocol::encode_quick_status({ot::protocol::QuickStatusKind::ok},
             {valid.data(), valid.size()}).encoded());
@@ -167,10 +171,72 @@ void status_uses_remaining_arm() {
     CHECK(!f.session.frame_eligible(frame, 60100));
 }
 
+// Each status uses real authenticated DATA and returns an authenticated ACK.
+void all_statuses_preserve_their_kind() {
+    constexpr std::array kinds{Status::ok, Status::need_assistance, Status::anyone_online, Status::available_to_help};
+    for (const auto kind : kinds) {
+        Session::StatusArm sender_arm, receiver_arm;
+        Fixture sender(&sender_arm);
+        Fixture receiver(&receiver_arm, 2, 1);
+
+        CHECK(sender.session.send_status(31, kind, 101));
+        CHECK(sender_arm.sent && !sender.session.send_status(32, kind, 101));
+        sender.session.service(101);
+        CHECK(sender.radio.sends.size() == 1);
+        sender.session.on_data_transmitted();
+        const auto& data = sender.radio.sends[0];
+        CHECK(receiver.session.receive({data.data(), data.size()}, 102));
+        CHECK(receiver_arm.received && receiver.session.received_count() == 1);
+        CHECK(receiver.session.received_status() == kind);
+        receiver.session.service(102);
+        CHECK(receiver.radio.sends.size() == 1);
+        const auto& ack = receiver.radio.sends[0];
+        CHECK(sender.session.receive({ack.data(), ack.size()}, 103));
+        CHECK(sender.session.state() == Session::State::acknowledged);
+    }
+}
+
+void invalid_kind_preserves_status_arm_slots() {
+    Session::StatusArm arm;
+    Fixture f(&arm);
+    const auto invalid = static_cast<Status>(5);
+    CHECK(!f.session.send_status(1, invalid, 101));
+    CHECK(!f.session.send_status(0, Status::ok, 101));
+    CHECK(!arm.sent && f.session.state() == Session::State::idle);
+
+    // Keep the envelope checksum valid so the unknown kind is the rejection.
+    auto malformed = f.valid;
+    malformed[6] = static_cast<std::uint8_t>(invalid);
+    const auto crc = ot::protocol::quick_status_crc32(malformed.data(), 8);
+    for (unsigned i = 0; i < 4; ++i) malformed[8 + i] = static_cast<std::uint8_t>(crc >> (8 * i));
+    const auto before = f.media();
+    CHECK(!f.receive(seal(f.data_rx, 2, {malformed.data(), malformed.size()}), 101));
+    CHECK(!arm.received && f.media() == before);
+    CHECK(f.receive(f.status(1), 102) && arm.received);
+    CHECK(f.session.send_status(1, Status::need_assistance, 103) && arm.sent);
+}
+
+void status_slots_survive_session_replacement() {
+    Session::StatusArm arm;
+    Fixture old(&arm);
+    CHECK(old.session.send_status(1, Status::available_to_help, 101));
+    CHECK(old.receive(old.status(1), 102));
+    old.session.close();
+    Fixture replacement(&arm);
+    CHECK(!replacement.session.send_status(2, Status::anyone_online, 103));
+    CHECK(!replacement.receive(replacement.status(2), 103));
+    CHECK(replacement.session.received_count() == 0);
+    replacement.session.service(60100);
+    CHECK(arm.expired && replacement.session.closed());
+}
+
 int main() {
     unsupported_payload_does_not_advance();
     second_status_preserves_first_receipt();
     queued_data_has_its_own_deadline();
     status_uses_remaining_arm();
-    std::puts("PASS 4 F5 status semantic admission and launch groups");
+    all_statuses_preserve_their_kind();
+    invalid_kind_preserves_status_arm_slots();
+    status_slots_survive_session_replacement();
+    std::puts("PASS 7 F5 status semantic admission and launch groups");
 }

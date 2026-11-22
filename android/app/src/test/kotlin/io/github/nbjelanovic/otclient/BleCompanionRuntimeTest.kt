@@ -2657,10 +2657,18 @@ class BleCompanionRuntimeTest {
         val f=ConfigurationFixture(profile=6,packetOptIn=true,wireAuthority=true,withSessionOwner=true).also { it.name();it.clock() }
         return TextCarrierHostFixture(checkNotNull(f.owner), { textWire(f) }, { textEmit(f,it) })
     }
-    private fun textWire(f: ConfigurationFixture) = checkNotNull(io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec
-        .decode(f.gatt.commands.last(), true)) as io.github.nbjelanovic.otprotocol.CompanionTextSend
-    private fun textEmit(f: ConfigurationFixture, value: io.github.nbjelanovic.otprotocol.CompanionTextRecord) {
-        val event=BleGattEvent.StreamIndication(checkNotNull(io.github.nbjelanovic.otprotocol.CompanionTextCarrierCodec.encode(value, true)))
+    private fun textWire(f: ConfigurationFixture): CompanionTextSend {
+        val wire = f.gatt.commands.last()
+        val normalized = if (wire.copyOfRange(20, 24).decodeToString() == "OTQS") {
+            wire.copyOf().also { "OTXC".encodeToByteArray().copyInto(it, 20) }
+        } else wire
+        return checkNotNull(CompanionTextCarrierCodec.decode(normalized, true)) as CompanionTextSend
+    }
+
+    private fun textEmit(f: ConfigurationFixture, value: CompanionTextRecord, quickStatus: Boolean = false) {
+        val u = checkNotNull(CompanionTextCarrierCodec.encode(value, true))
+        if (quickStatus) "OTQS".encodeToByteArray().copyInto(u, 20)
+        val event = BleGattEvent.StreamIndication(u)
         if(f.gatt.closed) f.gatt.emitStale(event) else f.gatt.emit(event)
     }
     private fun textResult(f: ConfigurationFixture, disposition: Int=1, reason: Int=0, known: Boolean=true) {
@@ -2783,10 +2791,18 @@ class BleCompanionRuntimeTest {
 
     private class MemoryTextOutboxStorage : V1TextOutboxStorage {
         private var snapshot = V1TextOutboxSnapshot()
+        var loads = 0
+            private set
+        var saves = 0
+            private set
 
-        override fun load(): V1TextOutboxSnapshot = snapshot
+        override fun load(): V1TextOutboxSnapshot {
+            loads++
+            return snapshot
+        }
 
         override fun save(snapshot: V1TextOutboxSnapshot): Boolean {
+            saves++
             this.snapshot = snapshot
             return true
         }
@@ -2960,6 +2976,8 @@ class BleCompanionRuntimeTest {
             assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED, sender.runtime.textState().outbound)
 
             val received = CompanionTextReceived(CompanionTextReference(17u, 2u, 3uL), 1u, 4097u, 1uL, sent.text)
+            textEmit(receiver, received.copy(text = "1"), quickStatus = true)
+            assertNull(receiver.runtime.textState().received)
             textEmit(receiver, received)
             textEmit(receiver, received)
             textDelivery(sender, 2u, 3)
@@ -2971,6 +2989,82 @@ class BleCompanionRuntimeTest {
         senderOwner.close()
         receiverOwner.close()
     }
+
+    @Test fun f6BenchProjectsAllProtectedStatusesAndCorrelatesBoardAck() {
+        for (status in CompanionQuickStatus.entries) {
+            val storage = MemoryTextOutboxStorage()
+            val fixture = ConfigurationFixture(
+                profile = 6,
+                benchTextRecord = f6BenchPinRecord(),
+                withSessionOwner = true,
+                outboxStorage = storage,
+            )
+            val runtime = fixture.runtime
+            val owner = checkNotNull(fixture.owner)
+            assertIs<BleRuntimeState.Negotiating>(runtime.state)
+            assertNull(runtime.quickStatusState().recipient)
+            assertEquals("OTQY", fixture.gatt.commands.last().copyOfRange(20, 24).decodeToString())
+            fixture.completeBenchAuthority(quickStatus = true)
+            assertIs<BleRuntimeState.Ready>(runtime.state)
+            fixture.name()
+            fixture.clock()
+
+            val recipient = assertNotNull(runtime.quickStatusState().recipient)
+            val before = fixture.gatt.commands.size
+            assertNull(runtime.textState().recipient)
+            assertFalse(owner.submitText(recipient, "1"))
+            assertFalse(owner.submitQuickStatus(V1QuickStatusRecipient(), status))
+            assertEquals(before, fixture.gatt.commands.size)
+            assertTrue(owner.submitQuickStatus(recipient, status))
+            val sent = textWire(fixture)
+            assertEquals("OTQS", fixture.gatt.commands.last().copyOfRange(20, 24).decodeToString())
+            assertEquals(status.wireValue.toString(), sent.text)
+            assertEquals(2u, sent.reference.authorityExchange)
+            assertEquals(BlePacketDeliveryPhase.AWAITING_ACCEPTANCE, runtime.quickStatusState().outbound)
+            textResult(fixture)
+            assertEquals(BlePacketDeliveryPhase.QUEUE_ACCEPTED, runtime.quickStatusState().outbound)
+
+            val received = CompanionTextReceived(sent.reference, 1u, 4098u, 1uL, sent.text)
+            textEmit(fixture, received)
+            textEmit(fixture, received.copy(text = "0"), quickStatus = true)
+            textEmit(fixture, received.copy(text = "12"), quickStatus = true)
+            assertNull(runtime.quickStatusState().received)
+            textEmit(fixture, received, quickStatus = true)
+            assertEquals(status, runtime.quickStatusState().received)
+            val other = CompanionQuickStatus.entries.first { it != status }
+            textEmit(fixture, received.copy(text = other.wireValue.toString()), quickStatus = true)
+            assertEquals(status, runtime.quickStatusState().received)
+            assertNull(runtime.textState().received)
+            textDelivery(fixture, 2u, 2)
+            assertEquals(BlePacketDeliveryPhase.TRANSMISSION_COMPLETED, runtime.quickStatusState().outbound)
+            textDelivery(fixture, 3u, 3)
+            assertEquals(BlePacketDeliveryPhase.PROTECTED_PEER_ACK, runtime.quickStatusState().outbound)
+            fixture.scheduler.advanceBy(0)
+            assertTrue(runtime.textState().queued.isEmpty())
+            owner.close()
+            assertEquals(0, storage.loads)
+            assertEquals(0, storage.saves)
+        }
+    }
+
+    @Test fun f6AndF7ProofModesCannotSubstituteForOneAnother() {
+        val statuses = ConfigurationFixture(profile = 6, benchTextRecord = f6BenchPinRecord())
+        statuses.completeBenchAuthority(quickStatus = true) {
+            "OTY0".encodeToByteArray().copyInto(it, 20)
+        }
+        assertIs<BleRuntimeState.Failed>(statuses.runtime.state)
+        assertNull(statuses.runtime.quickStatusState().recipient)
+        statuses.runtime.close()
+
+        val text = ConfigurationFixture(profile = 6, benchTextRecord = f7BenchPinRecord())
+        text.completeBenchAuthority { "OTQY".encodeToByteArray().copyInto(it, 20) }
+        assertIs<BleRuntimeState.Failed>(text.runtime.state)
+        assertNull(text.runtime.textState().recipient)
+        text.runtime.close()
+    }
+
+    private fun f6BenchPinRecord(): ByteArray =
+        f7BenchPinRecord().decodeToString().replace("meshtrail-f7-bench-v1", "meshtrail-f6-bench-v1").encodeToByteArray()
 
     @Test fun f7BenchRejectsMismatchedLocalPinAndKeepsProfileFive() {
         val mismatched = ConfigurationFixture(profile = 6, benchTextRecord = f7BenchPinRecord())
@@ -3157,9 +3251,13 @@ class BleCompanionRuntimeTest {
             }
         }
 
-        fun completeBenchAuthority(mutate: (ByteArray) -> Unit = {}) {
+        fun completeBenchAuthority(quickStatus: Boolean = false, mutate: (ByteArray) -> Unit = {}) {
             val lease = facade.connections.last()
-            val request = checkNotNull(CompanionAuthorityCodec.decodeRequest(lease.commands.last()))
+            val wire = lease.commands.last()
+            val normalized = if (quickStatus) {
+                wire.copyOf().also { "OTY0".encodeToByteArray().copyInto(it, 20) }
+            } else wire
+            val request = checkNotNull(CompanionAuthorityCodec.decodeRequest(normalized))
             val response = "4f54433000068b000403020108070605000174004f545930010103000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f400100000000000000020000000300000000000000030000000000000004000000000000000403020130750000"
                 .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
             java.nio.ByteBuffer.wrap(response).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
@@ -3167,6 +3265,7 @@ class BleCompanionRuntimeTest {
                 putInt(12, request.exchange.toInt())
                 putInt(128, request.nonce.toInt())
             }
+            if (quickStatus) "OTQY".encodeToByteArray().copyInto(response, 20)
             mutate(response)
             lease.emit(BleGattEvent.StreamIndication(response))
             if (runtime.state is BleRuntimeState.Negotiating) {

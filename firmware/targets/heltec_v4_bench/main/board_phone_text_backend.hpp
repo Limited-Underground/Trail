@@ -2,6 +2,9 @@
 
 #include "board_messaging_runtime.hpp"
 #include "companion_nimble_gatt.hpp"
+#include "companion_phone_text_gatt.hpp"
+
+#include <array>
 
 namespace opentrail::target::heltec_v4_bench {
 
@@ -14,11 +17,21 @@ public:
 
     std::size_t command(const companion::DeviceNameContext& link, radio::ByteView input,
                         radio::MutableByteView output, std::uint64_t now_ms) override {
+        if constexpr (phone_text_gatt::target_payload == phone_text_gatt::Payload::quick_status) {
+            std::array<std::uint8_t, phone_text_gatt::authority_query_bytes> carrier{};
+            if (!phone_text_gatt::normalize_quick_status_command(input, {carrier.data(), carrier.size()})) return 0;
+            const auto size = trial_.command(link, {carrier.data(), input.size}, {output.data, output.size}, now_ms);
+            return phone_text_gatt::mark_quick_status_output({output.data, size}) ? size : 0;
+        }
         return trial_.command(link, {input.data, input.size}, {output.data, output.size}, now_ms);
     }
     std::size_t next_event(const companion::DeviceNameContext& link, radio::MutableByteView output,
                            std::uint64_t now_ms) override {
-        return trial_.next_event(link, {output.data, output.size}, now_ms);
+        const auto size = trial_.next_event(link, {output.data, output.size}, now_ms);
+        if constexpr (phone_text_gatt::target_payload == phone_text_gatt::Payload::quick_status) {
+            return phone_text_gatt::mark_quick_status_output({output.data, size}) ? size : 0;
+        }
+        return size;
     }
     void retire(const companion::DeviceNameContext& link) override { trial_.retire(link); }
 

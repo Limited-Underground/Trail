@@ -62,6 +62,23 @@ Ten deterministic groups plus 100/100 focused repeats cover:
 
 The complete 109-executable host matrix and Python publication checks pass.
 
+## Link Test phone path
+
+The opt-in Heltec Link Test uses the F7 protected Command and Stream, proof
+layout and event lifecycle. It has separate markers for the fixed status
+mode. In the profile 0.6 BLE envelope, bytes 20–23 are OTQY on authority
+query and proof, and OTQS on send and receive. Other fields follow the
+existing F7 records. The payload within the checked carrier is exactly one
+ASCII digit from 1 through 4, matching the OTQ0 value above. The board
+encodes and authenticates an OTQ0 frame on the F5 radio session. Send result
+and delivery events use the shared OTXC format and exact request identity.
+
+Each owner-bound proof expires by the earlier of its 30-second proof deadline
+and the 60-second board arm. The trial admits one status each way per arm.
+A matching authenticated ACK confirms receipt by the peer board. The peer
+phone separately displays a status from its protected receive event. The
+ordinary profile and F7 text modes do not accept the F6 markers.
+
 ## Next gates
 
 - Define the authenticated packet-v1 message type, priority, replay, expiry,
