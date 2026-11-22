@@ -173,6 +173,7 @@ void identity_and_restart() {
     Group lookalike(17, id(4));
     lookalike.add(peer);
     GroupPairIndex index(disk, self);
+    CHECK(index.reopen() == Error::missing);
     CHECK(index.reserve(first.state, peer).error == Error::missing);
     CHECK(disk.writes == 0);
     CHECK(index.initialize() == Error::none);
@@ -181,6 +182,9 @@ void identity_and_restart() {
     CHECK(allocated(index, lookalike.state, peer).slot != primary.slot);
 
     GroupPairIndex reopened(disk, self);
+    const auto before_reopen = disk.writes;
+    CHECK(reopened.reopen() == Error::none);
+    CHECK(disk.writes == before_reopen);
     const auto located = reopened.find(first.state, peer);
     CHECK(located.location && located.location->slot == primary.slot);
     CHECK(located.location->incarnation == primary.incarnation);

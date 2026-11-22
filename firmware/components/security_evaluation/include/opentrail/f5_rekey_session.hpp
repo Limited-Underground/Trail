@@ -12,6 +12,8 @@
 #include <array>
 #include <limits>
 
+namespace opentrail::identity::roster { struct Roster; }
+
 namespace opentrail::security_evaluation {
 class F5RekeySession final {
 public:
@@ -181,6 +183,10 @@ public:
     bool frame_eligible(const Frame& f){Guard guard(*this);return guard && current() && frame_eligible_internal(f);}
     bool packet_eligible(std::uint64_t id,std::uint64_t allocation){Guard guard(*this);auto* l=active_lease();return guard && current() && l && l->id==id && l->allocation==allocation;}
     void close(){failed_=true;discard_candidate();for(auto& l:leases_)retire(l);identity_.retire();journal_.retire();}
+    // Target app-task adapter reuses this live store. Only typed initial roster
+    // signing is available, independent of the short-lived RF traffic lease.
+    bool read_group_roster_key(InvitationKey&);
+    bool sign_initial_group_roster(const identity::roster::Roster&, std::array<std::uint8_t, 64>&);
 private:
     struct Candidate {
         bool present{};unsigned phase{},initiating_member{};std::uint32_t target{};std::uint64_t allocation{},deadline{};

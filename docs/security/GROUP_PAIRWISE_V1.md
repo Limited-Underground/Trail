@@ -606,7 +606,7 @@ and acknowledgement airtime; physical reboot and range behaviour.
 
 ## Protected companion commands
 
-This candidate adds group discovery, Create and Stop Trust to the existing
+The Heltec target adds group discovery, Create, Read Roster and Stop Trust to the existing
 protected Configuration Command and Stream lane. It uses OTC0 minor 5 with
 command kind `0x0b` and correlated result kind `0x8f`. It requires the normal
 authorized phone session and the confirmed base Snapshot on that attachment.
@@ -623,27 +623,44 @@ zero. The table lists the bytes after that header.
 | Discover | 1 | Empty | Empty |
 | Create | 2 | Location rule (0 off, 1 preferred, 2 required) | Qualified group and initial roster digest |
 | Stop Trust | 3 | Qualified group and current roster digest | Same qualified group and digest |
+| Read Roster | 4 | Slot, state, offset and continuation scope | Slot, state, offset, total, scope and roster fragment |
 
 A qualified result body contains the full 32-byte admin fingerprint, the nonzero
 8-byte little-endian group ID and the full 32-byte roster digest. Nonzero
-status values are 1 unavailable, 2 refused, 3 stale and 4 uncertain. They carry
-no body. Discover uses only success or unavailable. Application labels are
-presentation metadata. Board identity and roster contents remain board-owned.
+status values are 1 unavailable, 2 refused, 3 stale, 4 uncertain and 5 missing.
+They carry no body. Only Read Roster can report a missing slot. Discover returns
+success when the retained enrollment identity and both protected group stores
+are available. Active board enrollment keeps its exclusive identity owner.
 
-Create success means the qualified first roster was signed, committed and read
-back. Stop Trust is local to the board and covers the whole named group. Success
-requires durable distrust and retirement of that group's pairs. The target
-currently reports unavailable because it has no backend that can meet those
-conditions. The exact last command within an attachment can recover its cached
-result without repeating the operation. An uncertain result or disconnect calls
-for state readback before retrying a mutation. A result is a receipt for its
-exchange. Current membership requires a separate authoritative snapshot.
+Create generates the group ID from board entropy. It signs a canonical
+version-one roster for the local retained Ed25519 identity, commits the populated
+record to `ot_state` and reads back the roster and catalog before reporting
+success. The initial roster uses the alias `Admin`. Roster digests use SHA-256
+in the existing digest domain. The signer exposes only the public identity and
+accepts only a canonical initial roster with that board as administrator.
+The roster and catalog share the existing partition mount with F5. Factory reset
+retires its handles before erasure.
 
-The next increment needs a roster signer bound to the enrollment identity,
-protected storage and reset integration, and coherent snapshot readback. It can
-then enable Create and Stop Trust on the target. Group-qualified invitation and
-join, introduced pairs, member messaging and board receipt events follow.
-Invitation and message operations remain unavailable to the app.
+Read Roster addresses slots 0 through 3. The first request sends the one-byte
+slot, state zero and little-endian 16-bit offset zero. Continue at 42-byte
+offsets with the same slot, one-byte state (1 active, 2 distrusted), offset
+and full qualified scope. The result supplies the slot, state, little-endian
+16-bit offset and total signed size, then the full scope and exactly the
+remaining bytes up to 42. The total is bounded by the 439-byte signed roster
+limit. Assemble only matching scope, state and total. If state or scope changed,
+start again at offset zero.
+
+Stop Trust is local to the board and covers the whole qualified group. It commits
+distrust first and then retires that group's pair catalog entries. Reopen
+reconciles an interrupted retirement before confirming success. The signed
+distrust record and catalog watermark remain in one of the four group slots,
+and other groups keep their pairs. The current attachment may recover its latest
+exact cached result without repeating the mutation. After uncertainty or a
+disconnect, read back before retrying. The app's protected lease and original
+five-second admission window are checked before durable mutation.
+
+Group-qualified invitation and join, introduced pairs, member messaging, board
+receipt events, and app integration follow.
 
 ## Implementation order
 

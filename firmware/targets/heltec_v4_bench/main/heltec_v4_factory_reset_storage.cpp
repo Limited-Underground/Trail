@@ -15,9 +15,7 @@
 #include "companion_name_storage.hpp"
 #include "companion_region_storage.hpp"
 #include "enrollment_identity_nvs_storage.hpp"
-#if OPENTRAIL_LORA_LINK_TEST
-#include "pairing_nvs_storage.hpp"
-#endif
+#include "pairing_nvs_reset.hpp"
 
 namespace opentrail::targets::heltec_v4_bench {
 namespace {
@@ -510,10 +508,10 @@ DeviceFactoryResetAbsenceSnapshot
 HeltecV4FactoryResetUserDomainStorage::erase_all_and_verify_absent() {
     static_assert(!kHeltecV4FactoryResetHasActiveMapPackageStorage);
     invalidate_enrollment_identity_storage_for_reset();
-#if OPENTRAIL_LORA_LINK_TEST
-    // D-086: unmount the pairing NVS instance before ot_state is erased.
-    ::opentrail::target::heltec_v4_bench::retire_pairing_storage_for_reset();
-#endif
+    // Close every owner and verify ot_state is unmounted before raw erasure.
+    if (!::opentrail::target::heltec_v4_bench::retire_pairing_storage_for_reset()) {
+        return {DeviceFactoryResetPortError::failed, false};
+    }
 
     const auto owner = erase_owner_namespace_and_verify();
     if (owner.error != DeviceFactoryResetPortError::none) {

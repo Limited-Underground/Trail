@@ -104,6 +104,7 @@ struct GroupBackend : ConfigurationGroupBackend {
     mutable int availability_checks{0};
     int executions{0};
     DeviceNameContext context{};
+    std::uint64_t admitted_ms{0};
     GroupConfigurationCommand command{};
     GroupConfigurationResult result{};
     std::function<void()> hook;
@@ -111,9 +112,11 @@ struct GroupBackend : ConfigurationGroupBackend {
     bool available() const noexcept override { ++availability_checks; return enabled; }
 
     GroupConfigurationResult execute(const DeviceNameContext& active,
-                                     const GroupConfigurationCommand& request) noexcept override {
+                                     const GroupConfigurationCommand& request,
+                                     std::uint64_t original_admitted_ms) noexcept override {
         ++executions;
         context = active;
+        admitted_ms = original_admitted_ms;
         command = request;
         if (hook) hook();
         return result;
@@ -549,9 +552,10 @@ GroupConfigurationScope group_scope() {
 }
 
 ConfigurationFrame group_frame(Harness& h, std::uint32_t exchange, GroupOp operation,
-                               std::uint8_t location_rule=0, GroupConfigurationScope scope={}) {
+                               std::uint8_t location_rule=0, GroupConfigurationScope scope={},
+                               GroupConfigurationReadRequest read={}) {
     auto frame = h.frame(kConfigurationGroupCommandKind, exchange);
-    const GroupConfigurationCommand command{operation, location_rule, scope};
+    const GroupConfigurationCommand command{operation, location_rule, scope, read};
     const auto encoded = encode_group_configuration_command(
         command, frame.payload.data(), frame.payload.size());
     EXPECT(encoded.encoded());
@@ -686,6 +690,142 @@ void group_mutations_correlate_and_replay_once() {
     EXPECT(h.submit(create).code == Dispatch::stale && backend.executions == 4);
 }
 
+using GroupState = GroupConfigurationRosterState;
+
+GroupConfigurationResult roster_fragment(std::uint8_t slot, GroupState state, std::uint16_t offset) {
+    GroupConfigurationResult result{GroupOp::read_roster, GroupStatus::ok, group_scope()};
+    result.fragment = {slot, state, offset, kConfigurationGroupRosterBytes,
+        static_cast<std::uint8_t>(std::min(kConfigurationRosterFragmentBytes,
+            kConfigurationGroupRosterBytes - offset))};
+    for (std::size_t i = 0; i < result.fragment.size; ++i) {
+        result.fragment.bytes[i] = static_cast<std::uint8_t>(offset + i);
+    }
+    return result;
+}
+
+void group_roster_readback_requires_canonical_fragment() {
+    Harness h(kPublicProfileMinor);
+    const auto initial = group_frame(h, 2, GroupOp::read_roster, 0, {}, {3, GroupState::none, 0});
+    EXPECT(initial.payload_bytes == 12 && initial.payload[5] == 4);
+    EXPECT(initial.payload[8] == 3 && initial.payload[9] == 0 && initial.payload[10] == 0 && initial.payload[11] == 0);
+    const auto first = decode_group_configuration_command(initial.payload.data(), initial.payload_bytes);
+    EXPECT(first.decoded() && first.value.scope == GroupConfigurationScope{} &&
+        first.value.read.slot == 3 && first.value.read.state == GroupState::none && first.value.read.offset == 0);
+
+    const auto scope = group_scope();
+    const auto tail = group_frame(h, 3, GroupOp::read_roster, 0, scope, {3, GroupState::distrusted, 420});
+    EXPECT(tail.payload_bytes == 84 && tail.payload[9] == 2);
+    EXPECT(tail.payload[10] == 0xa4 && tail.payload[11] == 1);
+    EXPECT(tail.payload[12] == scope.admin.front() && tail.payload[43] == scope.admin.back());
+    EXPECT(tail.payload[44] == 1 && tail.payload[51] == 8 && tail.payload[83] == scope.roster_digest.back());
+    const auto follow = decode_group_configuration_command(tail.payload.data(), tail.payload_bytes);
+    EXPECT(follow.decoded() && follow.value.scope == scope && follow.value.read.offset == 420 &&
+        follow.value.read.state == GroupState::distrusted);
+
+    auto bad_command = initial.payload;
+    bad_command[8] = 4;
+    EXPECT(!decode_group_configuration_command(bad_command.data(), initial.payload_bytes).decoded());
+    bad_command = initial.payload;
+    bad_command[9] = 1;
+    EXPECT(!decode_group_configuration_command(bad_command.data(), initial.payload_bytes).decoded());
+    EXPECT(!decode_group_configuration_command(initial.payload.data(), initial.payload_bytes + 1).decoded());
+    EXPECT(!decode_group_configuration_command(tail.payload.data(), tail.payload_bytes - 1).decoded());
+    bad_command = tail.payload;
+    ++bad_command[10];
+    EXPECT(!decode_group_configuration_command(bad_command.data(), tail.payload_bytes).decoded());
+    bad_command = tail.payload;
+    bad_command[9] = 0;
+    EXPECT(!decode_group_configuration_command(bad_command.data(), tail.payload_bytes).decoded());
+    bad_command = tail.payload;
+    std::fill_n(bad_command.begin() + 12, 32, 0);
+    EXPECT(!decode_group_configuration_command(bad_command.data(), tail.payload_bytes).decoded());
+
+    std::array<std::uint8_t, kConfigurationPayloadBytes> payload{};
+    const auto result = roster_fragment(3, GroupState::active, 0);
+    const auto encoded = encode_group_configuration_result(result, payload.data(), payload.size());
+    EXPECT(encoded.encoded() && encoded.encoded_bytes == kConfigurationPayloadBytes);
+    EXPECT(payload[8] == 3 && payload[9] == 1 && payload[12] == 0xb7 && payload[13] == 1);
+    EXPECT(payload[14] == scope.admin.front() && payload[85] == scope.roster_digest.back());
+    EXPECT(payload[86] == 0 && payload.back() == 41);
+    const auto complete = decode_group_configuration_result(payload.data(), encoded.encoded_bytes);
+    EXPECT(complete.decoded() && complete.value.fragment.bytes == result.fragment.bytes &&
+        complete.value.fragment.total_bytes == kConfigurationGroupRosterBytes && complete.value.scope == scope);
+
+    const auto final = roster_fragment(3, GroupState::distrusted, 420);
+    const auto last = encode_group_configuration_result(final, payload.data(), payload.size());
+    EXPECT(last.encoded() && last.encoded_bytes == 105);
+    const auto decoded_last = decode_group_configuration_result(payload.data(), last.encoded_bytes);
+    EXPECT(decoded_last.decoded() && decoded_last.value.fragment.offset == 420 &&
+        decoded_last.value.fragment.size == 19 && decoded_last.value.fragment.bytes == final.fragment.bytes);
+    EXPECT(!decode_group_configuration_result(payload.data(), last.encoded_bytes - 1).decoded());
+    EXPECT(!decode_group_configuration_result(payload.data(), last.encoded_bytes + 1).decoded());
+    auto bad_result = payload;
+    ++bad_result[12]; // 440 exceeds the maximum signed roster size.
+    EXPECT(!decode_group_configuration_result(bad_result.data(), last.encoded_bytes).decoded());
+    bad_result = payload;
+    bad_result[9] = 0;
+    EXPECT(!decode_group_configuration_result(bad_result.data(), last.encoded_bytes).decoded());
+    bad_result = payload;
+    std::fill_n(bad_result.begin() + 54, 32, 0);
+    EXPECT(!decode_group_configuration_result(bad_result.data(), last.encoded_bytes).decoded());
+
+    const auto missing = encode_group_configuration_result(
+        {GroupOp::read_roster, GroupStatus::missing}, payload.data(), payload.size());
+    EXPECT(missing.encoded() && missing.encoded_bytes == 8);
+    EXPECT(decode_group_configuration_result(payload.data(), 8).value.status == GroupStatus::missing);
+    EXPECT(!decode_group_configuration_result(payload.data(), 9).decoded());
+    EXPECT(!encode_group_configuration_result(
+        {GroupOp::create, GroupStatus::missing}, payload.data(), payload.size()).encoded());
+}
+
+void group_roster_readback_correlates_position_scope_and_lease() {
+    GroupBackend backend;
+    Harness h(kPublicProfileMinor, &backend);
+    const auto read = group_frame(h, 2, GroupOp::read_roster, 0, {}, {3, GroupState::none, 0});
+    EXPECT(h.submit(read).code == Dispatch::unauthorized && backend.executions == 0);
+    h.ready();
+    backend.result = roster_fragment(3, GroupState::active, 0);
+    h.source.state.now_ms = 7;
+    EXPECT(h.submit(read).code == Dispatch::accepted);
+    h.source.state.now_ms = 42;
+    const auto initial = h.owner.execute();
+    EXPECT(backend.admitted_ms == 7);
+    const auto fragment = group_result(initial, read, 128);
+    EXPECT(fragment.status == GroupStatus::ok && fragment.fragment.state == GroupState::active &&
+        fragment.scope == group_scope() && backend.command.read.slot == 3);
+    const auto replay = h.submit(read);
+    EXPECT(replay.code == Dispatch::replayed && replay.record == initial.record && backend.executions == 1);
+
+    std::uint32_t exchange = 3;
+    const auto continuation = [&] {
+        return group_frame(h, exchange++, GroupOp::read_roster, 0, group_scope(), {3, GroupState::active, 42});
+    };
+    const auto reject = [&](const GroupConfigurationResult& returned) {
+        backend.result = returned;
+        EXPECT(h.submit(continuation()).code == Dispatch::accepted);
+        EXPECT(h.owner.execute().code == Dispatch::no_result);
+    };
+    reject(roster_fragment(2, GroupState::active, 42));
+    reject(roster_fragment(3, GroupState::active, 84));
+    reject(roster_fragment(3, GroupState::distrusted, 42));
+    auto wrong_digest = roster_fragment(3, GroupState::active, 42);
+    wrong_digest.scope.roster_digest.front() ^= 1;
+    reject(wrong_digest);
+
+    backend.result = {GroupOp::read_roster, GroupStatus::stale};
+    const auto stale = continuation();
+    EXPECT(h.submit(stale).code == Dispatch::accepted);
+    EXPECT(group_result(h.owner.execute(), stale, 8).status == GroupStatus::stale);
+    backend.result = roster_fragment(3, GroupState::active, 42);
+    const auto current = continuation();
+    EXPECT(h.submit(current).code == Dispatch::accepted);
+    EXPECT(group_result(h.owner.execute(), current, 128).fragment.offset == 42);
+
+    backend.hook = [&] { h.source.state.phase = DeviceNamePhase::disconnected; };
+    EXPECT(h.submit(continuation()).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().bytes == 0 && !h.owner.ready());
+}
+
 void group_execution_respects_expiry_and_disconnect() {
     GroupBackend backend;
     backend.result = {GroupOp::create, GroupStatus::ok, group_scope()};
@@ -712,8 +852,8 @@ void group_execution_respects_expiry_and_disconnect() {
 }
 }
 
-int main(){group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+int main(){group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 18 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 20 composed configuration dispatcher groups\n";
     return 0;
 }

@@ -59,6 +59,14 @@ a protected text-capable Android and firmware pair. I-023 cold recovery and
 setup are already on main through PRs #260 and #290. Phone confirmation
 remains open. Part of #118.
 
+### OT-0305 Bind the protected Heltec group lifecycle
+
+Connected first-roster signing to the retained enrollment identity and grouped
+storage to the shared protected partition mount. Added signed roster readback
+and catalog retirement after durable Stop Trust. The shared storage budget
+also covers all 32 I-080 packet claims. See the
+[companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result

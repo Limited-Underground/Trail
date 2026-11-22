@@ -3,7 +3,8 @@
 #include <cstdint>
 using nvs_handle_t=std::uint32_t; using esp_err_t=int; using nvs_type_t=int;
 constexpr int ESP_OK=0, ESP_FAIL=-1, ESP_ERR_NVS_NOT_FOUND=1, ESP_ERR_NVS_INVALID_LENGTH=2;
-constexpr int NVS_READWRITE=1, NVS_TYPE_ANY=0, NVS_TYPE_BLOB=0x42;
+constexpr int ESP_ERR_NVS_NOT_INITIALIZED=3;
+constexpr int NVS_READONLY=0, NVS_READWRITE=1, NVS_TYPE_ANY=0, NVS_TYPE_BLOB=0x42;
 struct Iterator; using nvs_iterator_t=Iterator*;
 struct nvs_entry_info_t { char namespace_name[16]{}; char key[16]{}; nvs_type_t type{}; };
 struct nvs_stats_t { std::size_t used_entries{}, free_entries{}, total_entries{}, namespace_count{}; };

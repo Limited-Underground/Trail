@@ -359,6 +359,21 @@ $builds = @(
         )
     },
     @{
+        Name = 'protected durable group lifecycle'
+        Output = Join-Path $buildDirectory 'companion_group_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_group_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\durable_group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_group_owner_tests.cpp')
+        )
+    },
+    @{
         Name = 'evaluation confirmation profile and dispatcher'
         Output = Join-Path $buildDirectory 'companion_confirmation_dispatcher_tests.exe'
         Arguments = @('-I', (Join-Path $projectRoot 'firmware\targets\heltec_v4_bench\main'))

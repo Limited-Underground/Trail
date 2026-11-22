@@ -28,7 +28,7 @@ if(OPENTRAIL_LORA_LINK_TEST)
     # supporting sources as the confirmation evaluation (never both; see below).
     set(OPENTRAIL_PAIRING_NOISE_ADAPTER "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_security_eval/main/noise_adapter")
     list(APPEND OPENTRAIL_LORA_SOURCES "heltec_v4_lora.cpp" "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"
-        "pairing_nvs_storage.cpp" "board_pairing_runtime.cpp" "board_messaging_runtime.cpp"
+        "board_pairing_runtime.cpp" "board_messaging_runtime.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp"
@@ -56,6 +56,9 @@ idf_component_register(
         "companion_nimble_runtime.cpp"
         "companion_v1_heltec_adapters.cpp"
         "companion_authorization_storage.cpp"
+        "companion_group_runtime.cpp"
+        "heltec_group_roster_identity.cpp"
+        "pairing_nvs_storage.cpp"
         "companion_name_storage.cpp"
         "companion_region_storage.cpp"
         "companion_public_profile_storage.cpp"
@@ -79,6 +82,12 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_configuration_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_configuration_dispatcher.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_group_owner.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/durable_group_roster.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_roster.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_pair.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_owner.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_region_owner.cpp"
@@ -105,6 +114,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_public_link_info.cpp"
     INCLUDE_DIRS
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/include"
         "${OPENTRAIL_COMPONENT_ROOT}/security_evaluation/include"
         ${OPENTRAIL_CONFIRMATION_INCLUDES}
         ${OPENTRAIL_LORA_INCLUDES}

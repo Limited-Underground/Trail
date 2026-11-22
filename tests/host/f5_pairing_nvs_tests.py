@@ -21,7 +21,8 @@ def run() -> int:
     component=ROOT/'tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/managed_components/espressif__libsodium'
     includes=[ROOT/'tests/host/f5_pairing_nvs_stubs',ROOT/'firmware/targets/heltec_v4_bench/main',
         ROOT/'firmware/components/security_evaluation/include',ROOT/'firmware/components/security/include',
-        ROOT/'firmware/components/persistence/include',component/'libsodium/src/libsodium/include',component/'port_include']
+        ROOT/'firmware/components/persistence/include',ROOT/'firmware/components/identity/include',
+        component/'libsodium/src/libsodium/include',component/'port_include']
     command=[compiler,'-std=c++17','-O2','-Wall','-Wextra','-Werror','-fno-rtti','-fno-exceptions','-DSODIUM_STATIC']
     for include in includes:
         command.extend(['-I',str(include)])
@@ -29,7 +30,7 @@ def run() -> int:
     command.extend([str(ROOT/'tests/host/f5_pairing_nvs_tests.cpp'),
         str(ROOT/'firmware/targets/heltec_v4_bench/main/pairing_nvs_storage.cpp'),'-o',str(exe)])
     commands=[]
-    for index,cmd in enumerate([command,[str(exe)]]):
+    for index,cmd in enumerate([command,[str(exe)],[str(exe),'--reset-before-register']]):
         result=subprocess.run(cmd,text=True,capture_output=True,timeout=120)
         (output/f'{index}.stdout.txt').write_text(result.stdout,encoding='utf-8')
         (output/f'{index}.stderr.txt').write_text(result.stderr,encoding='utf-8')

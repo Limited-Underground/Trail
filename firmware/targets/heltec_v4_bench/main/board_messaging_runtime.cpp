@@ -6,8 +6,22 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "heltec_enrollment_identity_owner.hpp"
+#include "heltec_group_roster_identity.hpp"
 #include "opentrail/enrollment_commit_coordinator.hpp"
 #include "opentrail/f5_pairing_trust.hpp"
+
+namespace opentrail::security_evaluation {
+bool F5RekeySession::read_group_roster_key(InvitationKey& output) {
+    Guard guard(*this);
+    return guard && source_ready_ && identity_.public_key(output);
+}
+
+bool F5RekeySession::sign_initial_group_roster(const identity::roster::Roster& roster,
+                                               std::array<std::uint8_t, 64>& output) {
+    Guard guard(*this);
+    return guard && source_ready_ && target::heltec_v4_bench::sign_with_enrollment_identity(identity_, roster, output);
+}
+}  // namespace opentrail::security_evaluation
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
@@ -32,6 +46,15 @@ bool blank(persistence::PersistentStorage& store) {
     return true;
 }
 }
+bool BoardMessagingRuntime::read_group_roster_key(identity::roster::PublicKey& output) {
+    return identity_ && rekey_ && rekey_->read_group_roster_key(output);
+}
+
+bool BoardMessagingRuntime::sign_initial_group_roster(const identity::roster::Roster& roster,
+                                                       identity::roster::Signature& output) {
+    return identity_ && rekey_ && rekey_->sign_initial_group_roster(roster, output);
+}
+
 std::uint64_t BoardMessagingRuntime::clock(void*) {
     return static_cast<std::uint64_t>(esp_timer_get_time()/1000);
 }
@@ -61,7 +84,7 @@ void BoardMessagingRuntime::begin(std::uint64_t now_ms) {
     using Store=PairingNvsStorage::Store;
     // Bind completion's claimed local role to the actual retained credential.
     // This probe never provisions or signs and retires its private seed copy.
-    targets::heltec_v4_bench::retire_retained_enrollment_identity();
+    targets::heltec_v4_bench::hand_off_retained_enrollment_identity();
     identity_.emplace();
     security_evaluation::InvitationKey local_identity{};
     security_evaluation::EnrollmentIdentityStore identity_probe(*identity_,random_);

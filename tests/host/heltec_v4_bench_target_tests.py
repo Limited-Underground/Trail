@@ -219,9 +219,9 @@ def admitted_target_sources(cmake: str) -> list[str]:
     lora_start = ordinary.index("if(OPENTRAIL_LORA_LINK_TEST)")
     lora_end = ordinary.index("endif()", lora_start) + len("endif()")
     lora_tokens = re.findall(pattern, ordinary[lora_start:lora_end])
-    # V1 F5 step R2a (D-086): plus the pairing storage in ot_state.
+    # F5 radio runtime stays opt-in. F8 shares the protected partition in both modes.
     require(set(lora_tokens) == {"heltec_v4_lora.cpp", "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp",
-                                 "pairing_nvs_storage.cpp", "board_pairing_runtime.cpp",
+                                 "board_pairing_runtime.cpp",
                                  "board_messaging_runtime.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp",
@@ -231,19 +231,31 @@ def admitted_target_sources(cmake: str) -> list[str]:
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
-            len(lora_tokens) == 13 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            len(lora_tokens) == 12 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
     require("if(OPENTRAIL_CONFIRMATION_EVALUATION)" in evaluation and
             set(evaluation_tokens) == expected_evaluation and len(evaluation_tokens) == 7,
             "evaluation source set must remain exact and opt-in")
-    require(len(ordinary_tokens) == 54 and len(set(ordinary_tokens)) == 54 and
+    group_sources = {
+        "pairing_nvs_storage.cpp",
+        "companion_group_runtime.cpp",
+        "heltec_group_roster_identity.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_group_owner.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/durable_group_roster.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_roster.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_pair.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp",
+    }
+    require(len(ordinary_tokens) == 63 and len(set(ordinary_tokens)) == 63 and
+            group_sources.issubset(ordinary_tokens) and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             not expected_evaluation.intersection(ordinary_tokens) and
             ordinary.count("${OPENTRAIL_CONFIRMATION_SOURCES}") == 1 and
             "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp" in ordinary_tokens,
-            "ordinary build must retain 54 unique sources and one conditional insertion")
+            "ordinary build must link the admitted shared group sources and retain both profile gates")
     return ordinary_tokens + evaluation_tokens
 
 
@@ -346,7 +358,12 @@ def test_contract() -> None:
         "main/lora_packet_status.hpp",
         # V1 F5 step R2a: board pairing storage (D-086).
         "main/pairing_nvs_storage.cpp",
+        "main/companion_group_runtime.cpp",
+        "main/companion_group_runtime.hpp",
+        "main/heltec_group_roster_identity.cpp",
+        "main/heltec_group_roster_identity.hpp",
         "main/pairing_nvs_storage.hpp",
+        "main/pairing_nvs_reset.hpp",
         "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested
         "main/pairing_slot_cache.hpp",  # I-066: RAM copy of read slots, host-tested
         "main/board_pairing_runtime.cpp",
@@ -1346,7 +1363,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 60,
+    require(len(other_linked_sources) == 69,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1421,7 +1438,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 60,
+    require(len(other_linked_sources) == 69,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2415,8 +2432,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 61,
-            "target must admit 54 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 70,
+            "target must admit 63 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",
