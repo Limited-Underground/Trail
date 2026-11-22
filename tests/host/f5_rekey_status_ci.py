@@ -1,4 +1,4 @@
-"""Offline real-R2 -> fresh F5 rekey -> Packet-v1 status host composition."""
+"""Offline pinned-sodium host tests for the F5 path or QR invite contract."""
 import argparse
 import hashlib
 import json
@@ -11,6 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
+    parser.add_argument('--suite',choices=('f5-rekey','qr-invite'),default='f5-rekey')
     parser.add_argument('--sodium-source',type=Path,required=True,help='Expanded exact espressif component (733 pinned files)')
     args=parser.parse_args()
     out=args.out.resolve()
@@ -50,9 +51,10 @@ def main():
         (out/'commands.json').write_text(json.dumps(commands,indent=2)+'\n')
         if result.returncode:raise RuntimeError(result.stdout+result.stderr)
         return result.stdout
-    objects=[];template=None
+    objects=[];template=None;c_template=None
     for raw in recipe['commands']:
         if '-c' not in raw:continue
+        if raw[0]=='gcc' and c_template is None:c_template=list(raw)
         destination=raw[raw.index('-o')+1]
         if destination.endswith('common-07.o'):continue
         if destination.endswith('fresh-00.o'):
@@ -60,18 +62,33 @@ def main():
         command=list(map(expand,raw));command[0]=str(compiler_dir/(command[0]+'.exe'))
         target=Path(command[command.index('-o')+1]);objects.append(target)
         run(command)
-    for index,path in enumerate(('tests/host/f5_rekey_status_tests.cpp','firmware/components/protocol/src/quick_status_codec.cpp')):
+    qr = args.suite == 'qr-invite'
+    sources = (('firmware/components/identity/src/group_roster.cpp',
+                'firmware/components/identity/src/group_qr_invite.cpp',
+                'tests/host/group_qr_invite_tests.cpp') if qr else
+               ('tests/host/f5_rekey_status_tests.cpp','firmware/components/protocol/src/quick_status_codec.cpp'))
+    if qr:
+        command = list(c_template)
+        command[command.index('-c')+1] = str(source/'libsodium/src/libsodium/crypto_core/ed25519/core_ed25519.c')
+        command[command.index('-o')+1] = str(out/'qr-ed25519-points.o')
+        command[command.index('-MF')+1] = str(out/'qr-ed25519-points.d')
+        command=list(map(expand,command));command[0]=str(compiler_dir/'gcc.exe')
+        run(command);objects.append(out/'qr-ed25519-points.o')
+    for index,path in enumerate(sources):
         command=list(template)
         command[command.index('-c')+1]=str(ROOT/path)
         command[command.index('-o')+1]=str(out/f'f5-{index}.o')
         command[command.index('-MF')+1]=str(out/f'f5-{index}.d')
         command=list(map(expand,command));command[0]=str(compiler_dir/'g++.exe')
+        if qr:
+            command += ['-DOPENTRAIL_QR_REAL_CRYPTO=1','-I',str(ROOT/'firmware/components/identity/include')]
         run(command);objects.append(out/f'f5-{index}.o')
-    exe=out/'f5-rekey-status.exe'
+    exe=out/('qr-invite.exe' if qr else 'f5-rekey-status.exe')
     run([compiler_dir/'g++.exe','-Wl,--gc-sections',*objects,'-ladvapi32','-o',exe])
     stdout=run([exe])
-    if not stdout.startswith('PASS ') or ' real retained F5 rekey/status groups' not in stdout:
-        raise RuntimeError('Missing expected F5 result')
+    marker = ' QR invitation contract groups (pinned Ed25519/SHA-256)' if qr else ' real retained F5 rekey/status groups'
+    if not stdout.startswith('PASS ') or marker not in stdout:
+        raise RuntimeError('Missing expected host result')
     record={'result':'PASS','physical':False,'network':False,'stdout':stdout,'dependency_files':733,
         'binary_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'recipe_sha256':hashlib.sha256(recipe_raw).hexdigest()}
     (out/'RESULT.json').write_text(json.dumps(record,indent=2)+'\n')

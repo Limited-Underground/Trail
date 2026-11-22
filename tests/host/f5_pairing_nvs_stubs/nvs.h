@@ -7,7 +7,7 @@ constexpr int ESP_ERR_NVS_NOT_INITIALIZED=3;
 constexpr int NVS_READONLY=0, NVS_READWRITE=1, NVS_TYPE_ANY=0, NVS_TYPE_BLOB=0x42;
 struct Iterator; using nvs_iterator_t=Iterator*;
 struct nvs_entry_info_t { char namespace_name[16]{}; char key[16]{}; nvs_type_t type{}; };
-struct nvs_stats_t { std::size_t used_entries{}, free_entries{}, total_entries{}, namespace_count{}; };
+struct nvs_stats_t { std::size_t used_entries{}, free_entries{}, available_entries{}, total_entries{}, namespace_count{}; };
 esp_err_t nvs_open_from_partition(const char*,const char*,int,nvs_handle_t*);
 void nvs_close(nvs_handle_t);
 esp_err_t nvs_get_blob(nvs_handle_t,const char*,void*,std::size_t*);

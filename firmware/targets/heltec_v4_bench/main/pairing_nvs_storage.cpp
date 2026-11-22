@@ -19,18 +19,17 @@ constexpr auto& kPartition = PairingNvsStorage::kPartition;
 using Catalog = persistence::GroupPairIndex;
 using Roster = identity::roster::DurableGroupRoster;
 
-// Each sub-page blob takes at most two chunk headers and one index entry.
-// Namespace entries are charged separately by NVS.
-constexpr std::size_t blob_entries(std::size_t bytes) { return 3 + (bytes + 31) / 32; }
-constexpr std::size_t kRosterEntries = Catalog::kMaximumGroups * blob_entries(Roster::kStorageRecordBytes);
-constexpr std::size_t kCatalogEntries = blob_entries(Catalog::kMaximumSerializedBytes);
+namespace budget = board_storage_budget;
 static_assert(Catalog::kMaximumGroups <= 10);
 static_assert(Roster::kStorageRecordBytes <= Catalog::kMaximumSerializedBytes);
 static_assert(Catalog::kMaximumSerializedBytes <= 2048);
-// Account for all 32 packet claims, group blobs, and namespace entries.
-constexpr std::size_t kProtectedStorageEntries =
-    PairingNvsStorage::kPairingEntries + kRosterEntries + kCatalogEntries + kScopeCount;
-static_assert(kProtectedStorageEntries < PairingNvsStorage::kTotalEntries / 4);
+static_assert(static_cast<unsigned>(PairingNvsStorage::Domain::outbound_counter_state) ==
+              pairing_key::kPacketLaneDomain);
+
+constexpr char kSealKey[] = "f0000000017d0s0";
+constexpr std::array<std::uint8_t, budget::kFormatSealBytes> kSeal{'O', 'T', 'S', '1'};
+static_assert(pairing_key::slot(kSealKey, PairingNvsStorage::kCapacity) <
+              pairing_key::table_size(PairingNvsStorage::kCapacity));
 
 struct Scope {
     const char* name;
@@ -38,9 +37,10 @@ struct Scope {
     std::size_t budget;
 };
 constexpr std::array<Scope, kScopeCount> kScopes{{
-    {PairingNvsStorage::kNamespace, persistence::kPersistentSlotBytes, PairingNvsStorage::kPairingEntries},
-    {"ot_group_rost", Roster::kStorageRecordBytes, kRosterEntries},
-    {"ot_group_idx", Catalog::kMaximumSerializedBytes, kCatalogEntries},
+    {PairingNvsStorage::kNamespace, persistence::kPersistentSlotBytes,
+        budget::kPairingEntries + budget::kFormatSealEntries},
+    {"ot_group_rost", Roster::kStorageRecordBytes, budget::kRosterEntries},
+    {"ot_group_idx", Catalog::kMaximumSerializedBytes, budget::kCatalogEntries},
 }};
 
 // The existing storage lock protects this registry, the partition mount, and
@@ -55,6 +55,10 @@ std::array<bool, kGroupKeys> g_group_records{};
 std::size_t g_mount_users = 0;
 bool g_reset_retired = false;
 bool g_unmount_uncertain = false;
+bool g_media_uncertain = false;
+bool g_sealed = false;
+std::size_t g_pairing_tuples = 0;
+std::size_t g_d112_tuples = 0;
 constexpr unsigned kLegacyLaneFirst = static_cast<unsigned>(PairingNvsStorage::Store::packet_data_tx);
 constexpr unsigned kLaneCount = 4;
 
@@ -109,6 +113,7 @@ std::size_t group_record_slot(std::size_t scope, const char* key) {
 bool partition_stats(nvs_stats_t& stats) {
     return nvs_get_stats(kPartition, &stats) == ESP_OK &&
            stats.total_entries == PairingNvsStorage::kTotalEntries &&
+           stats.used_entries < budget::kLimit &&
            stats.namespace_count == static_cast<std::size_t>(std::count(g_namespaces.begin(), g_namespaces.end(), true));
 }
 
@@ -141,51 +146,30 @@ bool valid_entry(const nvs_entry_info_t& info, const ReadOnlyHandles& handles) {
     return true;
 }
 
-bool admit_partition() {
-    ReadOnlyHandles handles;
-    for (std::size_t scope = 0; scope < kScopes.size(); ++scope) {
-        const auto status = nvs_open_from_partition(kPartition, kScopes[scope].name, NVS_READONLY,
-                                                    &handles.values[scope]);
-        if (status != ESP_OK && status != ESP_ERR_NVS_NOT_FOUND) return false;
-        g_namespaces[scope] = status == ESP_OK;
-    }
-    // The iterator cannot see unknown empty namespaces. The exact readonly
-    // namespace proof and partition count cover those too.
-    nvs_stats_t stats{};
-    if (!partition_stats(stats)) return false;
-    for (std::size_t scope = 0; scope < kScopes.size(); ++scope)
-        if (!within_budget(scope, handles.values[scope], stats)) return false;
-
-    nvs_iterator_t iterator = nullptr;
-    auto status = nvs_entry_find(kPartition, nullptr, NVS_TYPE_ANY, &iterator);
-    while (status == ESP_OK) {
-        nvs_entry_info_t info{};
-        if (nvs_entry_info(iterator, &info) != ESP_OK || !valid_entry(info, handles)) break;
-        status = nvs_entry_next(&iterator);
-    }
-    nvs_release_iterator(iterator);
-    return status == ESP_ERR_NVS_NOT_FOUND;
-}
-
 void unmount_partition() {
     const auto status = nvs_flash_deinit_partition(kPartition);
     g_unmount_uncertain = status != ESP_OK && status != ESP_ERR_NVS_NOT_INITIALIZED;
     g_namespaces.fill(false);
     g_group_records.fill(false);
+    g_media_uncertain = false;
+    g_sealed = false;
+    g_pairing_tuples = 0;
+    g_d112_tuples = 0;
 }
 
-bool acquire_partition() {
-    if (g_reset_retired || g_unmount_uncertain) return false;
-    if (g_mount_users == 0) {
-        const auto* p = partition();
-        if (p == nullptr || nvs_flash_init_partition_ptr(p) != ESP_OK) return false;
-        if (!admit_partition()) {
-            unmount_partition();
-            return false;
-        }
+bool admits_tuple(const pairing_key::Key& key) {
+    return g_pairing_tuples < budget::kPairingTupleCount &&
+           (key[0] != 'g' || g_d112_tuples < budget::kD112TupleCount);
+}
+
+void record_tuple_change(const pairing_key::Key& key, bool adds) {
+    if (adds) {
+        ++g_pairing_tuples;
+        if (key[0] == 'g') ++g_d112_tuples;
+    } else {
+        --g_pairing_tuples;
+        if (key[0] == 'g') --g_d112_tuples;
     }
-    ++g_mount_users;
-    return true;
 }
 
 void release_partition() {
@@ -193,8 +177,63 @@ void release_partition() {
 }
 
 bool open_writable(std::size_t scope, nvs_handle_t& handle) {
-    if (nvs_open_from_partition(kPartition, kScopes[scope].name, NVS_READWRITE, &handle) != ESP_OK) return false;
+    nvs_stats_t stats{};
+    if (!partition_stats(stats)) {
+        g_media_uncertain = true;
+        return false;
+    }
+    if (!budget::can_write(stats.used_entries, stats.available_entries, !g_namespaces[scope], 0, 0))
+        return false;
+    if (nvs_open_from_partition(kPartition, kScopes[scope].name, NVS_READWRITE, &handle) != ESP_OK) {
+        g_media_uncertain = true;
+        return false;
+    }
     g_namespaces[scope] = true;
+    return true;
+}
+
+bool seal_readback(nvs_handle_t handle) {
+    std::array<std::uint8_t, kSeal.size()> actual{};
+    std::size_t size = actual.size();
+    return nvs_get_blob(handle, kSealKey, actual.data(), &size) == ESP_OK && size == actual.size() &&
+           actual == kSeal;
+}
+
+// Read-only admission audits all prior records. Persist the new schema
+// before the first mutation, with both the seal and requested write budgeted.
+bool authorize_write(std::size_t scope, nvs_handle_t handle, std::size_t bytes, bool grows) {
+    if (g_media_uncertain) return false;
+    nvs_stats_t stats{};
+    if (!partition_stats(stats) || !within_budget(scope, handle, stats)) {
+        g_media_uncertain = true;
+        return false;
+    }
+    const std::size_t namespaces = static_cast<std::size_t>(!g_namespaces[scope]) +
+        static_cast<std::size_t>(!g_sealed && scope != kPairingScope && !g_namespaces[kPairingScope]);
+    const auto seal_entries = g_sealed ? 0 : budget::kFormatSealEntries;
+    const auto payload_entries = bytes ? budget::blob_entries(bytes) : 0;
+    if (!budget::can_write(stats.used_entries, stats.available_entries, namespaces,
+                           seal_entries + (grows ? payload_entries : 0), seal_entries + payload_entries))
+        return false;
+    if (g_sealed) return true;
+
+    const bool borrow = scope == kPairingScope && handle != 0;
+    nvs_handle_t seal_handle = borrow ? handle : 0;
+    if (!borrow && !open_writable(kPairingScope, seal_handle)) return false;
+    std::size_t size = 0;
+    const bool sealed =
+        nvs_get_blob(seal_handle, kSealKey, nullptr, &size) == ESP_ERR_NVS_NOT_FOUND &&
+        nvs_set_blob(seal_handle, kSealKey, kSeal.data(), kSeal.size()) == ESP_OK &&
+        nvs_commit(seal_handle) == ESP_OK && seal_readback(seal_handle) &&
+        partition_stats(stats) && within_budget(kPairingScope, seal_handle, stats) &&
+        budget::can_write(stats.used_entries, stats.available_entries, !g_namespaces[scope],
+                          grows ? payload_entries : 0, payload_entries);
+    if (!borrow) nvs_close(seal_handle);
+    if (!sealed) {
+        g_media_uncertain = true;
+        return false;
+    }
+    g_sealed = true;
     return true;
 }
 
@@ -212,6 +251,65 @@ bool group_address(std::size_t scope, const char* partition_label, const char* n
 }
 }  // namespace
 
+std::array<PairingNvsStorage::PacketRecord, PairingNvsStorage::kCapacity> PairingNvsStorage::packet_records_{};
+std::uint8_t PairingNvsStorage::legacy_floor_{};
+std::bitset<pairing_key::table_size(PairingNvsStorage::kCapacity) + 1> PairingNvsStorage::known_{};
+
+bool PairingNvsStorage::admit_partition() {
+    known_.reset();
+    packet_records_.fill({});
+    legacy_floor_ = 0;
+    ReadOnlyHandles handles;
+    for (std::size_t scope = 0; scope < kScopes.size(); ++scope) {
+        const auto status = nvs_open_from_partition(kPartition, kScopes[scope].name, NVS_READONLY,
+                                                    &handles.values[scope]);
+        if (status != ESP_OK && status != ESP_ERR_NVS_NOT_FOUND) return false;
+        g_namespaces[scope] = status == ESP_OK;
+    }
+    // The iterator cannot see unknown empty namespaces. Exact readonly
+    // namespace handles and the partition count account for them.
+    nvs_stats_t stats{};
+    if (!partition_stats(stats)) return false;
+    for (std::size_t scope = 0; scope < kScopes.size(); ++scope)
+        if (!within_budget(scope, handles.values[scope], stats)) return false;
+
+    nvs_iterator_t iterator = nullptr;
+    auto status = nvs_entry_find(kPartition, nullptr, NVS_TYPE_ANY, &iterator);
+    while (status == ESP_OK) {
+        nvs_entry_info_t info{};
+        if (nvs_entry_info(iterator, &info) != ESP_OK || !valid_entry(info, handles)) break;
+        if (scope_named(info.namespace_name) == kPairingScope) {
+            const auto entry = pairing_key::slot(info.key, kCapacity);
+            if (known_[entry]) break;
+            known_[entry] = true;
+            if (std::strcmp(info.key, kSealKey) == 0) {
+                if (!seal_readback(handles.values[kPairingScope])) break;
+                g_sealed = true;
+            } else {
+                if (!admits_tuple(info.key)) break;
+                record_tuple_change(info.key, true);
+            }
+        }
+        status = nvs_entry_next(&iterator);
+    }
+    nvs_release_iterator(iterator);
+    return status == ESP_ERR_NVS_NOT_FOUND && inventory_packets(handles.values[kPairingScope]);
+}
+
+bool PairingNvsStorage::acquire_partition() {
+    if (g_reset_retired || g_unmount_uncertain || g_media_uncertain) return false;
+    if (g_mount_users == 0) {
+        const auto* p = partition();
+        if (p == nullptr || nvs_flash_init_partition_ptr(p) != ESP_OK) return false;
+        if (!admit_partition()) {
+            unmount_partition();
+            return false;
+        }
+    }
+    ++g_mount_users;
+    return true;
+}
+
 PairingNvsStorage::PairingNvsStorage()
     : views_{{{*this, Store::identity}, {*this, Store::journal},
               {*this, Store::binding}, {*this, Store::boot}, {*this, Store::completion},
@@ -221,16 +319,17 @@ PairingNvsStorage::PairingNvsStorage()
     mounted_ = true;
     g_pairing_owner = this;
     good_ = open_writable(kPairingScope, handle_);
-    if (good_ && (!inventory() || !budget_ok())) good_ = false;
+    if (good_ && !budget_ok()) good_ = false;
 }
 
 PairingNvsStorage::~PairingNvsStorage() { retire(); }
 
-bool PairingNvsStorage::ready() const { Guard guard; return good_; }
+bool PairingNvsStorage::ready() const { Guard guard; return good_ && !g_media_uncertain; }
 
 void PairingNvsStorage::retire() {
     Guard guard;
     good_ = false;
+    if (pending_) g_media_uncertain = true;
     cache_.clear();
     wipe(pending_bytes_);
     if (handle_ != 0) { nvs_close(handle_); handle_ = 0; }
@@ -259,7 +358,7 @@ bool retire_pairing_storage_for_reset() {
 
 bool PairingNvsStorage::f5_packet_footprint_absent() {
     Guard guard;
-    if (!good_) return false;
+    if (!good_ || g_media_uncertain) return false;
     for (unsigned slot = 1; slot <= kCapacity; ++slot) {
         if (packet_records_[slot - 1].state != PacketState::absent ||
             has_packet_lanes(slot, kLegacyLaneFirst)) return false;
@@ -296,26 +395,24 @@ bool PairingNvsStorage::decode_packet_record(unsigned slot, const Bytes& bytes, 
 
 bool PairingNvsStorage::has_packet_lanes(unsigned slot, unsigned first_namespace) {
     for (unsigned lane = first_namespace; lane < first_namespace + kLaneCount; ++lane) {
-        for (unsigned domain = 0; domain < pairing_key::kDomains; ++domain) {
-            for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
-                pairing_key::Key key{};
-                if (!key_for(slot, lane, static_cast<Domain>(domain), bank, key) || known_[index(key)])
-                    return true;
-            }
+        for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
+            pairing_key::Key key{};
+            if (!key_for(slot, lane, Domain::outbound_counter_state, bank, key) ||
+                known_[pairing_key::slot(key, kCapacity)]) return true;
         }
     }
     return false;
 }
 
-bool PairingNvsStorage::inventory_packets() {
+bool PairingNvsStorage::inventory_packets(nvs_handle_t handle) {
     for (unsigned slot = 1; slot <= kCapacity; ++slot) {
         pairing_key::Key key{};
         if (!key_for(slot, pairing_key::kPacketClaim, static_cast<Domain>(0), 0, key)) return false;
         auto& record = packet_records_[slot - 1];
-        if (known_[index(key)]) {
+        if (known_[pairing_key::slot(key, kCapacity)]) {
             Bytes bytes{};
             std::size_t size = bytes.size();
-            if (nvs_get_blob(handle_, key, bytes.data(), &size) != ESP_OK || size != bytes.size() ||
+            if (nvs_get_blob(handle, key, bytes.data(), &size) != ESP_OK || size != bytes.size() ||
                 !decode_packet_record(slot, bytes, record)) return false;
             legacy_floor_ = std::max(legacy_floor_, record.legacy_floor);
             for (unsigned prior = 0; prior < slot - 1; ++prior) {
@@ -332,7 +429,7 @@ bool PairingNvsStorage::inventory_packets() {
 }
 
 bool PairingNvsStorage::save_packet_record(unsigned slot, const PacketRecord& record) {
-    if (!good_ || !budget_ok()) return false;
+    if (!good_ || g_media_uncertain) return false;
     if (pending_) { (void)fault(); return false; }
     pairing_key::Key key{};
     if (!key_for(slot, pairing_key::kPacketClaim, static_cast<Domain>(0), 0, key)) return false;
@@ -341,17 +438,17 @@ bool PairingNvsStorage::save_packet_record(unsigned slot, const PacketRecord& re
     Bytes actual{};
     std::size_t size = actual.size();
     const auto status = nvs_get_blob(handle_, key, actual.data(), &size);
-    if (previous.state == PacketState::absent) {
+    const bool adds = previous.state == PacketState::absent;
+    if (adds) {
         if (status != ESP_ERR_NVS_NOT_FOUND) { (void)fault(); return false; }
-        std::size_t entries = 0;
-        if (nvs_get_used_entry_count(handle_, &entries) != ESP_OK) { (void)fault(); return false; }
-        if (entries > kPairingEntries - 4) return false;
+        if (!admits_tuple(key)) return false;
     } else if (status != ESP_OK || size != actual.size() || actual != encode_packet_record(slot, previous)) {
         (void)fault();
         return false;
     }
 
     const auto bytes = encode_packet_record(slot, record);
+    if (!authorize_mutation(bytes.size(), adds)) return false;
     size = actual.size();
     if (nvs_set_blob(handle_, key, bytes.data(), bytes.size()) != ESP_OK ||
         nvs_commit(handle_) != ESP_OK ||
@@ -361,6 +458,7 @@ bool PairingNvsStorage::save_packet_record(unsigned slot, const PacketRecord& re
         return false;
     }
     known_[index(key)] = true;
+    if (adds) record_tuple_change(key, true);
     packet_records_[slot - 1] = record;
     legacy_floor_ = std::max(legacy_floor_, record.legacy_floor);
     return true;
@@ -368,23 +466,22 @@ bool PairingNvsStorage::save_packet_record(unsigned slot, const PacketRecord& re
 
 bool PairingNvsStorage::clear_packet_lanes(unsigned slot, unsigned first_namespace) {
     for (unsigned lane = first_namespace; lane < first_namespace + kLaneCount; ++lane) {
-        for (unsigned domain = 0; domain < pairing_key::kDomains; ++domain) {
-            for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
-                pairing_key::Key key{};
-                if (!key_for(slot, lane, static_cast<Domain>(domain), bank, key)) return false;
-                const auto entry = index(key);
-                std::size_t size = 0;
-                const auto status = nvs_get_blob(handle_, key, nullptr, &size);
-                if (!known_[entry] && status == ESP_ERR_NVS_NOT_FOUND) continue;
-                if (!known_[entry] || status != ESP_OK || size != persistence::kPersistentSlotBytes ||
-                    nvs_erase_key(handle_, key) != ESP_OK || nvs_commit(handle_) != ESP_OK ||
-                    nvs_get_blob(handle_, key, nullptr, &size) != ESP_ERR_NVS_NOT_FOUND) {
-                    (void)fault();
-                    return false;
-                }
-                cache_.drop(key);
-                known_[entry] = false;
+        for (unsigned bank = 0; bank < pairing_key::kSlots; ++bank) {
+            pairing_key::Key key{};
+            if (!key_for(slot, lane, Domain::outbound_counter_state, bank, key)) return false;
+            const auto entry = index(key);
+            std::size_t size = 0;
+            const auto status = nvs_get_blob(handle_, key, nullptr, &size);
+            if (!known_[entry] && status == ESP_ERR_NVS_NOT_FOUND) continue;
+            if (!known_[entry] || status != ESP_OK || size != persistence::kPersistentSlotBytes ||
+                nvs_erase_key(handle_, key) != ESP_OK || nvs_commit(handle_) != ESP_OK ||
+                nvs_get_blob(handle_, key, nullptr, &size) != ESP_ERR_NVS_NOT_FOUND) {
+                (void)fault();
+                return false;
             }
+            cache_.drop(key);
+            known_[entry] = false;
+            record_tuple_change(key, false);
         }
     }
     return true;
@@ -393,7 +490,7 @@ bool PairingNvsStorage::clear_packet_lanes(unsigned slot, unsigned first_namespa
 std::optional<PairingNvsStorage::PacketClaim> PairingNvsStorage::claim_packets(
     const PacketOwner& owner, std::uint64_t generation, std::uint64_t legacy_floor) {
     Guard guard;
-    if (!good_ || owner == PacketOwner{} || !generation || generation > std::numeric_limits<std::uint32_t>::max() ||
+    if (!good_ || g_media_uncertain || owner == PacketOwner{} || !generation || generation > std::numeric_limits<std::uint32_t>::max() ||
         legacy_floor > kCapacity || legacy_floor >= generation) return std::nullopt;
     const auto certified_floor = std::max(legacy_floor_, static_cast<std::uint8_t>(legacy_floor));
     unsigned owned = 0, legacy = 0, free = 0;
@@ -423,7 +520,7 @@ std::optional<PairingNvsStorage::PacketClaim> PairingNvsStorage::claim_packets(
 }
 
 bool PairingNvsStorage::owns_packet_claim(const PacketClaim& claim) const {
-    if (!good_ || !claim.slot_ || claim.slot_ > kCapacity) return false;
+    if (!good_ || g_media_uncertain || !claim.slot_ || claim.slot_ > kCapacity) return false;
     const auto& current = packet_records_[claim.slot_ - 1];
     return current.state == PacketState::ready && current.generation == claim.generation_ &&
            current.owner == claim.owner_;
@@ -476,18 +573,22 @@ PairingNvsStorage::Error PairingNvsStorage::PacketView::sync_slot(Domain domain,
 
 bool PairingNvsStorage::budget_ok() {
     Guard guard;
-    if (!good_) return false;
+    if (!good_ || g_media_uncertain) return false;
     nvs_stats_t stats{};
-    std::size_t own = 0;
     const auto started_us = esp_timer_get_time();
-    const bool read_ok = partition_stats(stats) && nvs_get_used_entry_count(handle_, &own) == ESP_OK;
+    const bool read_ok = partition_stats(stats) && within_budget(kPairingScope, handle_, stats);
     ++budget_checks_;
     budget_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
-    if (!read_ok || own > kPairingEntries || own > stats.used_entries) {
-        (void)fault();
-        return false;
-    }
-    return true;
+    if (!read_ok) (void)fault();
+    return read_ok;
+}
+
+bool PairingNvsStorage::authorize_mutation(std::size_t bytes, bool grows) {
+    const auto started_us = esp_timer_get_time();
+    const bool authorized = authorize_write(kPairingScope, handle_, bytes, grows);
+    ++budget_checks_;
+    budget_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
+    return authorized;
 }
 
 persistence::StorageReadResult PairingNvsStorage::read(std::uint64_t g, Namespace n, Domain d, std::size_t s,
@@ -531,23 +632,8 @@ std::size_t PairingNvsStorage::index(const pairing_key::Key& key) {
     return i;
 }
 
-bool PairingNvsStorage::inventory() {
-    // The shared mount already checked every known and foreign namespace.
-    // Populate only this owner's tuple cache, once for this F5 attachment.
-    nvs_iterator_t it = nullptr;
-    auto status = nvs_entry_find(kPartition, kNamespace, NVS_TYPE_ANY, &it);
-    while (status == ESP_OK) {
-        nvs_entry_info_t info{};
-        if (nvs_entry_info(it, &info) != ESP_OK || !pairing_key_valid(info.key)) break;
-        known_[index(info.key)] = true;
-        status = nvs_entry_next(&it);
-    }
-    nvs_release_iterator(it);
-    return status == ESP_ERR_NVS_NOT_FOUND && inventory_packets();
-}
-
 bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {
-    if (!good_) return false;
+    if (!good_ || g_media_uncertain) return false;
     if (pending_ && std::strcmp(key, pending_key_.data()) == 0) { out = pending_bytes_; return true; }
     if (cache_.get(key, out)) return true;  // I-066
     const auto started_us = esp_timer_get_time();
@@ -561,12 +647,11 @@ bool PairingNvsStorage::load(const pairing_key::Key& key, Bytes& out) {
         nvs_read_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
         return true;
     }
-    if (status != ESP_OK || size != out.size()) { (void)fault(); return false; }
+    if (status != ESP_OK || !known_[index(key)] || size != out.size()) { (void)fault(); return false; }
     if (nvs_get_blob(handle_, key, out.data(), &size) != ESP_OK || size != out.size()) {
         (void)fault();
         return false;
     }
-    known_[index(key)] = true;
     cache_.put(key, out);
     nvs_read_us_ += static_cast<std::uint64_t>(esp_timer_get_time() - started_us);
     return true;
@@ -585,7 +670,7 @@ persistence::StorageReadResult PairingNvsStorage::read_tuple(std::uint64_t g, un
 }
 
 bool PairingNvsStorage::start_mutation(const pairing_key::Key& key) {
-    if (!good_ || !budget_ok()) return false;
+    if (!good_ || g_media_uncertain) return false;
     if (pending_ && std::strcmp(key, pending_key_.data()) != 0) { (void)fault(); return false; }
     return true;
 }
@@ -594,7 +679,7 @@ PairingNvsStorage::Error PairingNvsStorage::erase_tuple(std::uint64_t g, unsigne
     Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key)) return Error::invalid_argument;
-    if (!start_mutation(key)) return Error::io_failure;
+    if (!start_mutation(key) || !authorize_mutation(0, false)) return Error::io_failure;
     cache_.drop(key);
     const auto status = nvs_erase_key(handle_, key);
     if (status != ESP_OK && status != ESP_ERR_NVS_NOT_FOUND) return fault();
@@ -617,20 +702,24 @@ PairingNvsStorage::Error PairingNvsStorage::write_tuple(std::uint64_t g, unsigne
     cache_.drop(key);
     Bytes bytes{};
     if (!load(key, bytes)) return Error::io_failure;
-    // A new key must fit the pairing ceiling before touching NVS.
-    std::size_t own = 0, size = 0;
+    const bool formerly_present = known_[index(key)];
+    const bool expect_present = pending_ ? !pending_erased_ : formerly_present;
+    std::size_t size = 0;
     const auto status = nvs_get_blob(handle_, key, nullptr, &size);
-    if (nvs_get_used_entry_count(handle_, &own) != ESP_OK ||
-        (status != ESP_OK && status != ESP_ERR_NVS_NOT_FOUND) ||
-        (status == ESP_OK && size != 64) || own > kPairingEntries ||
-        (status == ESP_ERR_NVS_NOT_FOUND && (known_[index(key)] || (pending_ && !pending_erased_)) &&
-         !(pending_ && pending_erased_)) ||
-        (status == ESP_ERR_NVS_NOT_FOUND && own > kPairingEntries - 4)) {
+    if (expect_present ? (status != ESP_OK || size != bytes.size()) : status != ESP_ERR_NVS_NOT_FOUND) {
         wipe(bytes);
         return fault();
     }
+    if (!formerly_present && !admits_tuple(key)) {
+        wipe(bytes);
+        return Error::io_failure;
+    }
     for (std::size_t i = 0; i < in.size; ++i) {
         if ((bytes[offset + i] & in.data[i]) != in.data[i]) { wipe(bytes); return Error::write_requires_erase; }
+    }
+    if (!authorize_mutation(bytes.size(), !expect_present)) {
+        wipe(bytes);
+        return Error::io_failure;
     }
     std::copy(in.data, in.data + in.size, bytes.begin() + offset);
     cache_.drop(key);  // flash changes now; the verified bytes return at sync
@@ -647,28 +736,32 @@ PairingNvsStorage::Error PairingNvsStorage::sync_tuple(std::uint64_t g, unsigned
     Guard guard;
     char key[16]{};
     if (!key_for(g, n, d, s, key)) return Error::invalid_argument;
-    if (!good_) return Error::io_failure;
+    if (!good_ || g_media_uncertain) return Error::io_failure;
     if (!pending_) return Error::none;
     if (std::strcmp(key, pending_key_.data()) != 0 || nvs_commit(handle_) != ESP_OK) return fault();
     pending_ = false;
     Bytes actual{};
-    bool observed = false;
-    if (pending_erased_) {
-        std::size_t size = 0;
-        observed = nvs_get_blob(handle_, key, nullptr, &size) == ESP_ERR_NVS_NOT_FOUND;
-        if (observed) { known_[index(key)] = false; actual.fill(0xff); }
-    } else {
-        known_[index(key)] = true;
-        observed = load(key, actual);
-    }
+    const auto entry = index(key);
+    const bool formerly_present = known_[entry];
+    std::size_t size = actual.size();
+    const auto status = nvs_get_blob(handle_, key, actual.data(), &size);
+    const bool observed = pending_erased_
+        ? status == ESP_ERR_NVS_NOT_FOUND
+        : status == ESP_OK && size == actual.size();
+    if (pending_erased_) actual.fill(0xff);
     const bool ok = observed && actual == pending_bytes_ && budget_ok();
-    if (ok) cache_.put(key, actual);  // the bytes just verified in NVS
+    if (ok) {
+        if (formerly_present == pending_erased_) record_tuple_change(key, !pending_erased_);
+        known_[entry] = !pending_erased_;
+        cache_.put(key, actual);
+    }
     wipe(actual);
     wipe(pending_bytes_);
     return ok ? Error::none : fault();
 }
 
 PairingNvsStorage::Error PairingNvsStorage::fault() {
+    g_media_uncertain = true;
     good_ = false;
     cache_.clear();
     wipe(pending_bytes_);
@@ -679,12 +772,12 @@ GroupNvsStorage::~GroupNvsStorage() { retire(); }
 
 bool GroupNvsStorage::ready() {
     Guard guard;
-    if (retired_ || g_reset_retired) return false;
+    if (retired_ || g_reset_retired || g_media_uncertain) return false;
     if (mounted_) return good_;
     const auto scope = group_scope(store_);
     if (scope == kScopeCount) return false;
     auto& owner = g_group_owners[scope - 1];
-    if (owner != nullptr || !acquire_partition()) return false;
+    if (owner != nullptr || !PairingNvsStorage::acquire_partition()) return false;
     mounted_ = true;
     owner = this;
     const auto status = nvs_open_from_partition(kPartition, kScopes[scope].name, NVS_READONLY, &handle_);
@@ -715,7 +808,7 @@ GroupNvsStorage::Error GroupNvsStorage::read_blob(const char* partition_label, c
     const auto slot = group_record_slot(scope, key);
     if (!group_address(scope, partition_label, namespace_name) || slot == kGroupKeys ||
         data == nullptr || capacity < kScopes[scope].record_bytes) return Error::invalid_argument;
-    if (!good_) return Error::io_failure;
+    if (!good_ || g_media_uncertain) return Error::io_failure;
     if (handle_ == 0) return Error::not_found;
     std::size_t size = 0;
     const auto status = nvs_get_blob(handle_, key, nullptr, &size);
@@ -732,7 +825,7 @@ GroupNvsStorage::Error GroupNvsStorage::write_blob(const char* partition_label, 
     const auto scope = group_scope(store_);
     if (!group_address(scope, partition_label, namespace_name) || group_record_slot(scope, key) == kGroupKeys ||
         data == nullptr || size != kScopes[scope].record_bytes) return Error::invalid_argument;
-    if (!good_) return Error::io_failure;
+    if (!good_ || g_media_uncertain) return Error::io_failure;
     if (staged_size_ != 0) return fault();
     std::copy_n(data, size, staged_.begin());
     std::copy_n(key, std::strlen(key) + 1, staged_key_.begin());
@@ -750,7 +843,7 @@ GroupNvsStorage::Error GroupNvsStorage::commit(const char* partition_label, cons
     Guard guard;
     const auto scope = group_scope(store_);
     if (!group_address(scope, partition_label, namespace_name)) return Error::invalid_argument;
-    if (!good_) return Error::io_failure;
+    if (!good_ || g_media_uncertain) return Error::io_failure;
     if (staged_size_ == 0) return Error::invalid_argument;
 
     const auto slot = group_record_slot(scope, staged_key_.data());
@@ -761,8 +854,12 @@ GroupNvsStorage::Error GroupNvsStorage::commit(const char* partition_label, cons
     if (g_group_records[slot] ? (prior != ESP_OK || prior_size != staged_size_)
                               : prior != ESP_ERR_NVS_NOT_FOUND) return fault();
 
-    nvs_stats_t stats{};
-    if (!partition_stats(stats) || !within_budget(scope, handle_, stats)) return fault();
+    if (!authorize_write(scope, handle_, staged_size_, !g_group_records[slot])) {
+        staged_size_ = 0;
+        staged_.fill(0);
+        staged_key_.fill(0);
+        return Error::io_failure;
+    }
     if (!writable_) {
         nvs_handle_t writable{};
         if (!open_writable(scope, writable)) return fault();
@@ -770,9 +867,18 @@ GroupNvsStorage::Error GroupNvsStorage::commit(const char* partition_label, cons
         handle_ = writable;
         writable_ = true;
     }
+    nvs_stats_t stats{};
+    std::array<std::uint8_t, Catalog::kMaximumSerializedBytes> actual{};
+    std::size_t size = actual.size();
     if (nvs_set_blob(handle_, staged_key_.data(), staged_.data(), staged_size_) != ESP_OK ||
-        nvs_commit(handle_) != ESP_OK || !partition_stats(stats) ||
-        !within_budget(scope, handle_, stats)) return fault();
+        nvs_commit(handle_) != ESP_OK ||
+        nvs_get_blob(handle_, staged_key_.data(), actual.data(), &size) != ESP_OK || size != staged_size_ ||
+        !std::equal(actual.begin(), actual.begin() + size, staged_.begin())) return fault();
+    if (!partition_stats(stats)) {
+        g_media_uncertain = true;
+        return fault();
+    }
+    if (!within_budget(scope, handle_, stats)) return fault();
     g_group_records[slot] = true;
     staged_size_ = 0;
     return Error::none;
