@@ -1409,15 +1409,15 @@ bool retire_selected_enrollment_request() {
 }
 
 namespace {
-void retire_inactive_phone_text_link() {
+void retire_inactive_phone_text_link(CompanionPhoneTextBackend& backend) {
     if (g_phone_text_backend_context.transport_generation == 0 ||
         companion_phone_text_link_current(g_phone_text_backend_context)) return;
     wipe_phone_text_event();
-    g_phone_text_backend->retire(g_phone_text_backend_context);
+    backend.retire(g_phone_text_backend_context);
     g_phone_text_backend_context = {};
 }
 
-void pump_phone_text_event() {
+void pump_phone_text_event(CompanionPhoneTextBackend& backend) {
     if (g_phone_text_backend_context.transport_generation == 0) return;
     const auto& context = g_phone_text_backend_context;
     if (!g_phone_text_event.occupied) {
@@ -1429,7 +1429,7 @@ void pump_phone_text_event() {
         }
         auto& pending = g_phone_text_event;
         const auto tick = now_ms();
-        const auto bytes = g_phone_text_backend->next_event(context,
+        const auto bytes = backend.next_event(context,
             {pending.record.data(), pending.record.size()}, tick);
         if (bytes == 0) {
             wipe_phone_text_event();
@@ -1484,7 +1484,8 @@ void pump_phone_text_event() {
 void service_companion_configuration() {
     if (g_configuration_dispatcher == nullptr) return;
     if (!acquire_companion_factory_reset_serialization()) return;
-    retire_inactive_phone_text_link();
+    auto* const phone_backend = g_phone_text_backend;
+    if (phone_backend != nullptr) retire_inactive_phone_text_link(*phone_backend);
     // First app service follows successful marker-first boot/owner admission.
     // Cache a verified durable value once; display polling never opens NVS.
     if (!g_configuration_name_loaded && g_configuration_storage != nullptr) {
@@ -1528,10 +1529,10 @@ void service_companion_configuration() {
     ConfigurationDispatchResult result{};
     const bool phone = phone_text_wire_record(work);
     if (work.occupied && phone) {
-        if (phone_text_command_current(work)) {
+        if (phone_backend != nullptr && phone_text_command_current(work)) {
             const auto requested = phone_text_gatt::decode({work.record.data(), work.bytes});
             g_phone_text_backend_context = work.context;
-            const auto bytes = g_phone_text_backend->command(work.context,
+            const auto bytes = phone_backend->command(work.context,
                 {work.record.data(), work.bytes}, {result.record.data(), result.record.size()}, now_ms());
             const auto returned = phone_text_gatt::decode({result.record.data(), bytes});
             if (phone_text_gatt::matches_response(requested, returned)) result.bytes = bytes;
@@ -1542,8 +1543,8 @@ void service_companion_configuration() {
             work.record.data(), work.bytes, kConfigurationRecordBytes, work.admitted_ms);
         if (result.code == ConfigurationDispatchCode::accepted)
             result = g_configuration_dispatcher->execute();
-    } else {
-        pump_phone_text_event();
+    } else if (phone_backend != nullptr) {
+        pump_phone_text_event(*phone_backend);
     }
     const auto confirmed = g_configuration_dispatcher->confirmed_name();
     if (confirmed.revision != 0 && confirmed.name_bytes != 0)
