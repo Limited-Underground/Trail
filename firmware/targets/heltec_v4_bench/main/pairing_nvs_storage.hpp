@@ -12,10 +12,12 @@
 // committed and read back, an inventory check on open, and the bounded NVS-entry
 // ceiling for the pairing records. One serialized owner owns every tuple.
 #include <array>
+#include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
+#include "board_storage_budget.hpp"
 #include "pairing_nvs_reset.hpp"
 
 #include "opentrail/group_pair_index.hpp"
@@ -69,15 +71,9 @@ public:
     static constexpr std::uint32_t kPartitionBytes = 0x100000;
     // 256 pages x 126 entries in ot_state.
     static constexpr std::size_t kTotalEntries = 256 * 126;
-    // Preserve both previous allowances; F5 adds 20 fixed journal tuples
-    // plus four 10-tuple lane stores and one claim per physical packet slot.
-    // Reclamation clears the old lane names before enabling the new ones.
-    static constexpr std::size_t kOriginalPairingEntries = (37 + 7 * kCapacity) * 4;
-    static constexpr std::size_t kD112PairingEntries = (47 + 17 * kCapacity) * 4;
-    static constexpr std::size_t kF5Entries = (20 + 41 * kCapacity) * 4;
-    static constexpr std::size_t kPairingEntries = kD112PairingEntries + kF5Entries;
-    static_assert(kOriginalPairingEntries == 1044 && kD112PairingEntries == 2364);
-    static_assert(kPairingEntries == 7692 && kPairingEntries < kTotalEntries / 4);
+    // D-163 models 899 resident payload tuples at five entries each.
+    // The separate format seal is paid for by the shared staging reserve.
+    static constexpr std::size_t kPairingEntries = board_storage_budget::kPairingEntries;
 
     PairingNvsStorage();
     ~PairingNvsStorage() override;
@@ -153,6 +149,10 @@ public:
     Error sync(std::uint64_t, Namespace, Domain, std::size_t) override;
 
 private:
+    friend class GroupNvsStorage;
+    static bool acquire_partition();
+    static bool admit_partition();
+
     class DeniedView final : public persistence::PersistentStorage {
     public:
         persistence::StorageReadResult read_slot(Domain, std::size_t,
@@ -198,8 +198,8 @@ private:
     };
     static Bytes encode_packet_record(unsigned slot, const PacketRecord&);
     static bool decode_packet_record(unsigned slot, const Bytes&, PacketRecord&);
-    bool inventory_packets();
-    bool has_packet_lanes(unsigned slot, unsigned first_namespace);
+    static bool inventory_packets(nvs_handle_t handle);
+    static bool has_packet_lanes(unsigned slot, unsigned first_namespace);
     bool save_packet_record(unsigned slot, const PacketRecord&);
     bool clear_packet_lanes(unsigned slot, unsigned first_namespace);
     bool owns_packet_claim(const PacketClaim&) const;
@@ -209,9 +209,9 @@ private:
     // guard slot at the end, never past the table (I-058).
     std::size_t index(const pairing_key::Key& key);
     static void wipe(Bytes& bytes);
-    bool inventory();
     bool load(const pairing_key::Key& key, Bytes& out);
     bool start_mutation(const pairing_key::Key& key);
+    bool authorize_mutation(std::size_t bytes, bool grows);
     persistence::StorageReadResult read_tuple(std::uint64_t, unsigned, Domain, std::size_t,
                                               persistence::MutableStorageByteView);
     Error erase_tuple(std::uint64_t, unsigned, Domain, std::size_t);
@@ -232,10 +232,11 @@ private:
     DeniedView denied_;
     std::array<View, 7> views_;
     std::array<std::optional<View>, kCapacity> archive_views_;
-    std::array<PacketRecord, kCapacity> packet_records_{};
-    std::uint8_t legacy_floor_{};
-    // One entry per possible key for generations 0..kCapacity, plus a guard slot.
-    std::array<bool, pairing_key::table_size(kCapacity) + 1> known_{};
+    // Shared inventory is populated before any owner becomes ready. Only the
+    // single pairing owner mutates payload tuples, under the partition lock.
+    static std::array<PacketRecord, kCapacity> packet_records_;
+    static std::uint8_t legacy_floor_;
+    static std::bitset<pairing_key::table_size(kCapacity) + 1> known_;
 };
 
 // Each instance exclusively owns one group namespace. Construction does no I/O.

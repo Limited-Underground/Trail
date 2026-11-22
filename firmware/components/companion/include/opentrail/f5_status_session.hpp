@@ -76,15 +76,15 @@ public:
         for (unsigned i=0; i<4; ++i) {
             for (unsigned j=0; j<i; ++j) if (stores_[i]==stores_[j]) return fail();
             if (!bindings_[i]->active || !bindings_[i]->valid_at(now)) return fail();
-            // Fresh epoch requires four never-used isolated namespaces. Unknown
-            // bytes are retained and fail closed; this owner never clears them.
-            for (unsigned d=0; d<persistence::kStorageDomainCount; ++d)
-                for (unsigned s=0; s<persistence::kPersistentSlotCount; ++s) {
-                    std::array<std::uint8_t,persistence::kPersistentSlotBytes> bytes{};
-                    const auto r=stores_[i]->read_slot(static_cast<persistence::StorageDomain>(d),s,{bytes.data(),bytes.size()});
-                    if (!r.read() || r.bytes_read!=bytes.size()) return fail();
-                    for (auto b:bytes) if (b!=0xff) return fail();
-                }
+            // The storage adapter checks the inventory. Both banks of each
+            // admitted counter/replay lane must still be virgin at first use.
+            for (unsigned s = 0; s < persistence::kPersistentSlotCount; ++s) {
+                std::array<std::uint8_t, persistence::kPersistentSlotBytes> bytes{};
+                const auto read = stores_[i]->read_slot(persistence::StorageDomain::outbound_counter_state,
+                                                       s, {bytes.data(), bytes.size()});
+                if (!read.read() || read.bytes_read != bytes.size()) return fail();
+                for (auto byte : bytes) if (byte != 0xff) return fail();
+            }
         }
         auto& dt=*bindings_[0]; auto& at=*bindings_[1];
         if (data_counter_.start({dt.domain,dt.context.epoch,1})!=persistence::OutboundCounterError::none ||

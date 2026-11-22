@@ -2,23 +2,32 @@
 // Canonical 15-character ot_pair keys. D-112 g-family bytes are retained.
 // F5 uses a disjoint f-family with two namespace hex digits (D-124/I-074).
 // I-080 records and their lanes use new names so legacy data remains identifiable.
+// D-163 restricts both lane families and adds one versioned format seal.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 namespace opentrail::target::heltec_v4_bench::pairing_key {
-inline constexpr std::size_t kNamespaces = 23;
+inline constexpr std::size_t kNamespaces = 24;
 inline constexpr std::size_t kDomains = 5, kSlots = 2, kKeyBytes = 16;
 inline constexpr std::uint64_t kCapacity = 32;
 inline constexpr unsigned kPacketClaim = 18;
 inline constexpr unsigned kReclaimedLaneFirst = 19;
 inline constexpr unsigned kReclaimedLaneLast = 22;
+inline constexpr unsigned kFormatSeal = 23;
+inline constexpr unsigned kPacketLaneDomain = 3;
 using Key = char[kKeyBytes];
+constexpr bool is_packet_lane(unsigned n) {
+    return (n >= 13 && n <= 16) || (n >= kReclaimedLaneFirst && n <= kReclaimedLaneLast);
+}
 constexpr bool generation_valid(std::uint64_t g, unsigned n) {
-    return n < 7 || n == 11 || ((n <= 10 || n == 12 || n == 17) ? g == 0 : g != 0);
+    return n < 7 || n == 11 ||
+           ((n <= 10 || n == 12 || n == 17 || n == kFormatSeal) ? g == 0 : g != 0);
 }
 constexpr bool coordinates_valid(unsigned n, unsigned d, unsigned s) {
-    return d < kDomains && s < kSlots && (n != kPacketClaim || (d == 0 && s == 0));
+    if (d >= kDomains || s >= kSlots) return false;
+    if (n == kPacketClaim || n == kFormatSeal) return d == 0 && s == 0;
+    return !is_packet_lane(n) || d == kPacketLaneDomain;
 }
 constexpr std::size_t table_size(std::uint64_t capacity) {
     return static_cast<std::size_t>(capacity + 1) * kNamespaces * kDomains * kSlots;

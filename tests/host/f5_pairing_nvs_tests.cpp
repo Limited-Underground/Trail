@@ -1,4 +1,5 @@
 // Actual target storage; only ESP/NVS calls are faked. No hardware execution.
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -38,6 +39,10 @@ using CatalogBytes=std::array<std::uint8_t,opentrail::persistence::GroupPairInde
 constexpr const char* kPartition="ot_state";
 constexpr const char* kRoster="ot_group_rost";
 constexpr const char* kCatalog="ot_group_idx";
+constexpr const char* kSeal="f0000000017d0s0";
+constexpr auto kLaneDomain=Domain::outbound_counter_state;
+constexpr unsigned kLaneDomainNumber=static_cast<unsigned>(kLaneDomain);
+constexpr std::size_t kNativeLimit=16128;
 namespace fake {
 struct Entry { std::vector<std::uint8_t> value; int type=NVS_TYPE_BLOB; bool operator==(const Entry& o) const { return type==o.type && value==o.value; } };
 using Key=std::pair<std::string,std::string>;
@@ -48,11 +53,16 @@ std::map<nvs_handle_t,Mutation> mutations;
 std::set<std::string> namespaces;
 std::map<nvs_handle_t,Handle> handles;
 nvs_handle_t next_handle=0;
-std::size_t extra_entries=0, sets=0, erases=0, commits=0, mounts=0, deinits=0;
+std::size_t partition_extra_entries=0, namespace_creations=0;
+std::size_t sets=0, erases=0, commits=0, mounts=0, deinits=0;
+std::optional<std::size_t> available_entries;
 esp_partition_t partition{0xf00000,0x100000,"ot_state",false,false};
 std::uint64_t time=0;
 bool mounted=false, fail_commit=false, corrupt_next_read=false, fail_deinit=false;
 bool discard_failed_commit=false;
+bool fail_seal_set=false, persist_failed_seal_set=false, persist_failed_namespace=false;
+std::string fail_namespace;
+bool fail_seal_readback=false, corrupt_seal_readback=false;
 std::size_t fail_at_commit=0, fail_at_erase=0;
 
 void snapshot(nvs_handle_t handle,const Key& key) {
@@ -60,20 +70,38 @@ void snapshot(nvs_handle_t handle,const Key& key) {
  mutations.insert_or_assign(handle,Mutation{key,found==media.end()?std::nullopt:std::optional{found->second}});
 }
 std::size_t entries(const std::string& space="ot_pair") {
- std::size_t count=space=="ot_pair"?extra_entries:0;
+ std::size_t count=0;
  for(const auto& e:media)
   if(e.first.first==space) count+=space=="ot_pair"?4:3+(e.second.value.size()+31)/32;
  return count;
 }
+std::size_t native_entries() {
+ std::size_t count=namespaces.size()+partition_extra_entries;
+ for(const auto& space:namespaces) count+=entries(space);
+ return count;
+}
 std::size_t changes() { return sets+erases+commits; }
+std::vector<std::uint8_t> seal_bytes() {
+ std::vector<std::uint8_t> result(64);
+ std::memcpy(result.data(),"OTS1",4);
+ return result;
+}
+bool has_seal() {
+ const auto at=media.find({"ot_pair",kSeal});
+ return at!=media.end() && at->second.type==NVS_TYPE_BLOB && at->second.value==seal_bytes();
+}
 void reset() {
  CHECK(!mounted && handles.empty() && mutations.empty());
  media.clear();
  namespaces.clear();
  next_handle=0;
- extra_entries=sets=erases=commits=mounts=deinits=0;
+ partition_extra_entries=namespace_creations=sets=erases=commits=mounts=deinits=0;
+ available_entries.reset();
  partition={0xf00000,0x100000,"ot_state",false,false};
  fail_commit=corrupt_next_read=fail_deinit=discard_failed_commit=false;
+ fail_seal_set=persist_failed_seal_set=fail_seal_readback=corrupt_seal_readback=false;
+ persist_failed_namespace=false;
+ fail_namespace.clear();
  fail_at_commit=fail_at_erase=0;
 }
 void seed(const std::string& key,std::size_t bytes=64,const std::string& space="ot_pair",int type=NVS_TYPE_BLOB) {
@@ -87,6 +115,12 @@ void put(Port& p,std::uint8_t value,Domain d=Domain::protocol_state,std::size_t 
 }
 Bytes read(Port& p,Domain d=Domain::protocol_state,std::size_t slot=0) {
  Bytes out{}; const auto r=p.read_slot(d,slot,{out.data(),out.size()}); CHECK(r.read() && r.bytes_read==64); return out;
+}
+void put_packet(Port& p,std::uint8_t value,std::size_t slot=0) {
+ put(p,value,kLaneDomain,slot);
+}
+Bytes read_packet(Port& p,std::size_t slot=0) {
+ return read(p,kLaneDomain,slot);
 }
 void refused(const std::string& key,std::size_t bytes=64,const std::string& space="ot_pair",int type=NVS_TYPE_BLOB) {
  reset(); seed(key,bytes,space,type); const auto before=media;
@@ -102,7 +136,6 @@ esp_err_t nvs_flash_init_partition_ptr(const esp_partition_t*) {
  CHECK(!fake::mounted && fake::handles.empty());
  fake::mounted=true;
  ++fake::mounts;
- if(fake::extra_entries) fake::namespaces.insert("ot_pair");
  return ESP_OK;
 }
 esp_err_t nvs_flash_deinit_partition(const char* partition) {
@@ -116,7 +149,12 @@ esp_err_t nvs_flash_deinit_partition(const char* partition) {
 esp_err_t nvs_open_from_partition(const char* partition,const char* space,int mode,nvs_handle_t* out) {
  if(std::strcmp(partition,"ot_state") || !fake::mounted) return ESP_FAIL;
  if(mode==NVS_READONLY && !fake::namespaces.count(space)) return ESP_ERR_NVS_NOT_FOUND;
- if(mode==NVS_READWRITE) fake::namespaces.insert(space);
+ if(mode==NVS_READWRITE) {
+  const bool fail=fake::fail_namespace==space && !fake::namespaces.count(space);
+  if((!fail || fake::persist_failed_namespace) && fake::namespaces.insert(space).second)
+   ++fake::namespace_creations;
+  if(fail) return ESP_FAIL;
+ }
  *out=++fake::next_handle;
  fake::handles.emplace(*out,fake::Handle{space,mode});
  return ESP_OK;
@@ -132,6 +170,10 @@ esp_err_t nvs_get_blob(nvs_handle_t handle,const char* key,void* data,std::size_
  const auto n=found->second.value.size(); if(!data) { *count=n; return ESP_OK; }
  if(*count<n) { *count=n; return ESP_ERR_NVS_INVALID_LENGTH; }
  std::memcpy(data,found->second.value.data(),n);
+ if(space=="ot_pair" && std::strcmp(key,kSeal)==0) {
+  if(fake::fail_seal_readback) return ESP_FAIL;
+  if(fake::corrupt_seal_readback && n) static_cast<std::uint8_t*>(data)[n-1]^=1;
+ }
  if(fake::corrupt_next_read && n) { static_cast<std::uint8_t*>(data)[0]^=1; fake::corrupt_next_read=false; }
  *count=n; return ESP_OK;
 }
@@ -140,9 +182,12 @@ esp_err_t nvs_set_blob(nvs_handle_t handle,const char* key,const void* data,std:
  CHECK(opened.mode==NVS_READWRITE);
  ++fake::sets; const auto* bytes=static_cast<const std::uint8_t*>(data);
  const fake::Key location{opened.space,key};
- fake::snapshot(handle,location);
- fake::media[location]={std::vector<std::uint8_t>(bytes,bytes+count),NVS_TYPE_BLOB};
- return ESP_OK;
+ const bool failed=fake::fail_seal_set && location==fake::Key{"ot_pair",kSeal};
+ if(!failed || fake::persist_failed_seal_set) {
+  fake::snapshot(handle,location);
+  fake::media[location]={std::vector<std::uint8_t>(bytes,bytes+count),NVS_TYPE_BLOB};
+ }
+ return failed?ESP_FAIL:ESP_OK;
 }
 esp_err_t nvs_erase_key(nvs_handle_t handle,const char* key) {
  const auto& opened=fake::handles.at(handle);
@@ -174,9 +219,17 @@ esp_err_t nvs_get_used_entry_count(nvs_handle_t handle,std::size_t* out) {
 }
 esp_err_t nvs_get_stats(const char* partition,nvs_stats_t* out) {
  CHECK(std::strcmp(partition,"ot_state")==0 && fake::mounted);
- auto used=fake::namespaces.size();
- for(const auto& space:fake::namespaces) used+=fake::entries(space);
- *out={used,32256-used,32256,fake::namespaces.size()};
+ const auto used=fake::native_entries();
+ constexpr auto total=Storage::kTotalEntries;
+ CHECK(used<=total);
+ const auto free=total-used;
+ out->used_entries=used;
+ out->free_entries=free;
+ constexpr std::size_t gc_reserve=126;
+ const auto available=free>gc_reserve?free-gc_reserve:0;
+ out->available_entries=std::min(fake::available_entries.value_or(available),available);
+ out->total_entries=total;
+ out->namespace_count=fake::namespaces.size();
  return ESP_OK;
 }
 esp_err_t nvs_entry_find(const char* partition,const char* space,nvs_type_t type,nvs_iterator_t* out) {
@@ -203,9 +256,20 @@ std::int64_t esp_timer_get_time() { return static_cast<std::int64_t>(++fake::tim
 void check_blank(Port& lane) {
  Bytes erased{};
  erased.fill(0xff);
- for(unsigned d=0;d<target::pairing_key::kDomains;++d)
-  for(unsigned slot=0;slot<target::pairing_key::kSlots;++slot)
-   CHECK(fake::read(lane,static_cast<Domain>(d),slot)==erased);
+ for(unsigned slot=0;slot<target::pairing_key::kSlots;++slot)
+  CHECK(fake::read_packet(lane,slot)==erased);
+ const auto changes=fake::changes();
+ for(unsigned d=0;d<target::pairing_key::kDomains;++d) {
+  if(d==kLaneDomainNumber) continue;
+  const auto wrong=static_cast<Domain>(d);
+  Bytes output{};
+  const std::uint8_t byte=0;
+  CHECK(!lane.read_slot(wrong,0,{output.data(),output.size()}).read());
+  CHECK(lane.erase_slot(wrong,0)!=Error::none);
+  CHECK(lane.write_slot(wrong,0,0,{&byte,1})!=Error::none);
+  CHECK(lane.sync_slot(wrong,0)!=Error::none);
+ }
+ CHECK(fake::changes()==changes);
 }
 
 void check_inaccessible(Port& lane) {
@@ -214,15 +278,15 @@ void check_inaccessible(Port& lane) {
  const auto expected=out;
  const auto before=fake::changes();
  const std::uint8_t byte=0;
- CHECK(!lane.read_slot(Domain::protocol_state,0,{out.data(),out.size()}).read());
+ CHECK(!lane.read_slot(kLaneDomain,0,{out.data(),out.size()}).read());
  CHECK(out==expected);
- CHECK(lane.erase_slot(Domain::protocol_state,0)!=Error::none);
- CHECK(lane.write_slot(Domain::protocol_state,0,0,{&byte,1})!=Error::none);
- CHECK(lane.sync_slot(Domain::protocol_state,0)!=Error::none);
+ CHECK(lane.erase_slot(kLaneDomain,0)!=Error::none);
+ CHECK(lane.write_slot(kLaneDomain,0,0,{&byte,1})!=Error::none);
+ CHECK(lane.sync_slot(kLaneDomain,0)!=Error::none);
  CHECK(fake::changes()==before);
 }
 
-std::string legacy_lane_key(unsigned physical_slot,unsigned name,unsigned domain,unsigned bank) {
+std::string f5_tuple_key(unsigned physical_slot,unsigned name,unsigned domain,unsigned bank) {
  char key[16]{};
  CHECK(std::snprintf(key,sizeof key,"f%08x%02xd%xs%x",physical_slot,name,domain,bank)==15);
  return key;
@@ -230,12 +294,11 @@ std::string legacy_lane_key(unsigned physical_slot,unsigned name,unsigned domain
 
 void fill_legacy_slot(unsigned physical_slot) {
  for(unsigned n=13;n<=16;++n)
-  for(unsigned d=0;d<target::pairing_key::kDomains;++d)
-   for(unsigned bank=0;bank<target::pairing_key::kSlots;++bank) {
-    const auto key=legacy_lane_key(physical_slot,n,d,bank);
-    fake::seed(key);
-    fake::media.at({"ot_pair",key}).value[0]=0x4f;
-   }
+  for(unsigned bank=0;bank<target::pairing_key::kSlots;++bank) {
+   const auto key=f5_tuple_key(physical_slot,n,kLaneDomainNumber,bank);
+   fake::seed(key);
+   fake::media.at({"ot_pair",key}).value[0]=0x4f;
+  }
 }
 
 void repeated_rekey_and_full_pool() {
@@ -247,7 +310,7 @@ void repeated_rekey_and_full_pool() {
   live[i]=s.claim_packets(owner(static_cast<std::uint8_t>(i+1)),1);
   CHECK(live[i]);
   PacketView lane(s,Store::packet_data_tx,*live[i]);
-  fake::put(lane,0x7f);
+  fake::put_packet(lane,0x7f);
  }
  const auto available=fake::media;
  const auto available_changes=fake::changes();
@@ -267,7 +330,7 @@ void repeated_rekey_and_full_pool() {
    for(const auto store:kLanes) {
     PacketView lane(s,store,*next);
     check_blank(lane);
-    fake::put(lane,static_cast<std::uint8_t>(round));
+    fake::put_packet(lane,static_cast<std::uint8_t>(round));
    }
    live[id-1]=next;
    const auto changes=fake::changes();
@@ -276,9 +339,9 @@ void repeated_rekey_and_full_pool() {
   }
   for(unsigned i=8;i<live.size();++i) {
    PacketView other(s,Store::packet_data_tx,*live[i]);
-   CHECK(fake::read(other)[0]==0x7f);
+   CHECK(fake::read_packet(other)[0]==0x7f);
   }
-  CHECK(fake::media.size()==32+24+8*4);
+  CHECK(fake::media.size()==1+32+24+8*4);
  }
  PacketView retired(s,Store::packet_data_tx,*live[31]);
  CHECK(s.retire_packets(*live[31]));
@@ -293,7 +356,7 @@ void repeated_rekey_and_full_pool() {
 void retained_legacy_with_mixed_owners() {
  fake::reset();
  for(unsigned slot=1;slot<=32;++slot) fill_legacy_slot(slot);
- const auto last_legacy=fake::media.at({"ot_pair",legacy_lane_key(32,13,0,0)});
+ const auto last_legacy=fake::media.at({"ot_pair",f5_tuple_key(32,13,kLaneDomainNumber,0)});
  std::optional<Storage::PacketClaim> first;
  {
   Storage s;
@@ -303,11 +366,11 @@ void retained_legacy_with_mixed_owners() {
   CHECK(fake::media==before && fake::changes()==0);
   first=s.claim_packets(owner(1),33,2);
   CHECK(first);
-  CHECK(!fake::media.count({"ot_pair",legacy_lane_key(1,13,0,0)}));
-  CHECK(fake::media.count({"ot_pair",legacy_lane_key(2,13,0,0)})==1);
+  CHECK(!fake::media.count({"ot_pair",f5_tuple_key(1,13,kLaneDomainNumber,0)}));
+  CHECK(fake::media.count({"ot_pair",f5_tuple_key(2,13,kLaneDomainNumber,0)})==1);
   PacketView lane(s,Store::packet_data_tx,*first);
   check_blank(lane);
-  fake::put(lane,0x5f);
+  fake::put_packet(lane,0x5f);
  }
  {
   Storage s;
@@ -319,8 +382,8 @@ void retained_legacy_with_mixed_owners() {
   CHECK(second);
   PacketView lane(s,Store::packet_data_tx,*second);
   check_blank(lane);
-  fake::put(lane,0x3f);
-  CHECK(fake::media.count({"ot_pair",legacy_lane_key(2,13,0,0)})==1);
+  fake::put_packet(lane,0x3f);
+  CHECK(fake::media.count({"ot_pair",f5_tuple_key(2,13,kLaneDomainNumber,0)})==1);
  }
  {
   Storage s;
@@ -329,10 +392,10 @@ void retained_legacy_with_mixed_owners() {
   CHECK(third);
   PacketView lane(s,Store::packet_data_tx,*third);
   check_blank(lane);
-  fake::put(lane,0x1f);
-  CHECK(!fake::media.count({"ot_pair",legacy_lane_key(2,13,0,0)}));
-  CHECK(fake::media.at({"ot_pair","f0000000113d2s0"}).value[0]==0x3f);
-  CHECK(fake::media.at({"ot_pair",legacy_lane_key(32,13,0,0)})==last_legacy);
+  fake::put_packet(lane,0x1f);
+  CHECK(!fake::media.count({"ot_pair",f5_tuple_key(2,13,kLaneDomainNumber,0)}));
+  CHECK(fake::media.at({"ot_pair","f0000000113d3s0"}).value[0]==0x3f);
+  CHECK(fake::media.at({"ot_pair",f5_tuple_key(32,13,kLaneDomainNumber,0)})==last_legacy);
   const auto before=fake::media;
   const auto changes=fake::changes();
   CHECK(!s.claim_packets(owner(4),1));
@@ -357,16 +420,15 @@ void interrupted_reclaim(bool legacy) {
    CHECK(original);
    for(const auto store:kLanes) {
     PacketView lane(s,store,*original);
-    for(unsigned d=0;d<target::pairing_key::kDomains;++d)
-     for(unsigned slot=0;slot<target::pairing_key::kSlots;++slot)
-      fake::put(lane,0x4f,static_cast<Domain>(d),slot);
+    for(unsigned slot=0;slot<target::pairing_key::kSlots;++slot)
+     fake::put_packet(lane,0x4f,slot);
    }
   }
   for(unsigned id=2;id<=32;++id) {
    const auto foreign=s.claim_packets(owner(static_cast<std::uint8_t>(id)),1);
    CHECK(foreign);
    PacketView lane(s,Store::packet_ack_rx,*foreign);
-   fake::put(lane,0x5f);
+   fake::put_packet(lane,0x5f);
   }
  }
  const auto initial=fake::media;
@@ -410,7 +472,7 @@ void interrupted_reclaim(bool legacy) {
    for(const auto store:kLanes) {
     PacketView lane(s,store,*recovered);
     check_blank(lane);
-    fake::put(lane,0x6f);
+    fake::put_packet(lane,0x6f);
    }
    if(original) {
     PacketView stale(s,Store::packet_data_tx,*original);
@@ -421,10 +483,32 @@ void interrupted_reclaim(bool legacy) {
   }
  };
  // Cut every commit before and after the last NVS update took effect.
- constexpr auto tuples=kLanes.size()*target::pairing_key::kDomains*target::pairing_key::kSlots;
+ constexpr auto tuples=kLanes.size()*target::pairing_key::kSlots;
  for(std::size_t commit=1;commit<=tuples+2;++commit)
   for(const bool discard:{false,true}) run(commit,false,discard);
  for(std::size_t erase=1;erase<=tuples;++erase) run(erase,true,false);
+}
+
+void seed_pairing_history() {
+ constexpr std::size_t pairing_tuples=47+17*32;
+ unsigned written=0;
+ for(unsigned generation=0;written<pairing_tuples && generation<=Storage::kCapacity;++generation) {
+  for(unsigned name=0;written<pairing_tuples && name<=11;++name) {
+   for(unsigned domain=0;written<pairing_tuples && domain<target::pairing_key::kDomains;++domain) {
+    for(unsigned bank=0;written<pairing_tuples && bank<target::pairing_key::kSlots;++bank) {
+     target::pairing_key::Key key{};
+     if(!target::pairing_key::format(generation,name,domain,bank,Storage::kCapacity,key)) continue;
+     fake::seed(key);
+     ++written;
+    }
+   }
+  }
+ }
+ CHECK(written==pairing_tuples);
+ for(const auto name:{12U,17U})
+  for(unsigned domain=0;domain<target::pairing_key::kDomains;++domain)
+   for(unsigned bank=0;bank<target::pairing_key::kSlots;++bank)
+    fake::seed(f5_tuple_key(0,name,domain,bank));
 }
 
 void combined_partition_budget() {
@@ -433,14 +517,13 @@ void combined_partition_budget() {
  constexpr auto blob_entries=[](std::size_t bytes) { return 3+(bytes+31)/32; };
  constexpr auto roster_entries=roster_keys.size()*blob_entries(RosterBytes{}.size());
  constexpr auto catalog_entries=blob_entries(CatalogBytes{}.size());
- constexpr auto combined=Storage::kPairingEntries+roster_entries+catalog_entries+3;
+ constexpr std::size_t pairing_tuples=899;
  static_assert(roster_entries==136 && catalog_entries==48);
- static_assert(combined==7879 && Storage::kTotalEntries/4-combined==185);
+ static_assert(Storage::kPairingEntries==5*pairing_tuples);
 
  fake::reset();
- // Model other admitted pairing entries while exercising two real claim/lane pairs.
- fake::extra_entries=Storage::kPairingEntries-4*4;
- std::optional<Storage::PacketClaim> first, second;
+ seed_pairing_history();
+ std::array<std::optional<Storage::PacketClaim>,32> claims{};
  RosterBytes roster_blob{};
  CatalogBytes catalog_blob{};
  catalog_blob.fill(0x37);
@@ -448,13 +531,15 @@ void combined_partition_budget() {
   Storage pairing; CHECK(pairing.ready());
   GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
   CHECK(roster.ready() && catalog.ready());
-  first=pairing.claim_packets(owner(1),1);
-  second=pairing.claim_packets(owner(2),1);
-  CHECK(first && second);
-  PacketView first_lane(pairing,Store::packet_data_tx,*first);
-  PacketView second_lane(pairing,Store::packet_ack_rx,*second);
-  fake::put(first_lane,0x5f);
-  fake::put(second_lane,0x3f);
+  for(std::size_t id=0;id<claims.size();++id) {
+   claims[id]=pairing.claim_packets(owner(static_cast<std::uint8_t>(id+1)),1);
+   CHECK(claims[id]);
+   for(const auto store:kLanes) {
+    PacketView lane(pairing,store,*claims[id]);
+    for(unsigned bank=0;bank<target::pairing_key::kSlots;++bank)
+     fake::put_packet(lane,static_cast<std::uint8_t>(id+1),bank);
+   }
+  }
   for(std::size_t i=0;i<roster_keys.size();++i) {
    roster_blob.fill(static_cast<std::uint8_t>(0x40+i));
    CHECK(roster.write_blob(kPartition,kRoster,roster_keys[i],roster_blob.data(),roster_blob.size())==GroupError::none);
@@ -462,10 +547,18 @@ void combined_partition_budget() {
   }
   CHECK(catalog.write_blob(kPartition,kCatalog,"catalog",catalog_blob.data(),catalog_blob.size())==GroupError::none);
   CHECK(catalog.commit(kPartition,kCatalog)==GroupError::none);
-  CHECK(fake::entries("ot_pair")==Storage::kPairingEntries);
+  const auto before=fake::media;
+  const auto changes=fake::changes();
+  auto* extra=pairing.archive_storage(32);
+  CHECK(extra);
+  const std::uint8_t byte=0x1f;
+  CHECK(extra->write_slot(Domain::protocol_state,1,0,{&byte,1})!=Error::none);
+  CHECK(fake::media==before && fake::changes()==changes);
+  CHECK(fake::has_seal() && fake::entries("ot_pair")==4*(pairing_tuples+1));
   CHECK(fake::entries(kRoster)==roster_entries && fake::entries(kCatalog)==catalog_entries);
   nvs_stats_t stats{};
-  CHECK(nvs_get_stats(kPartition,&stats)==ESP_OK && stats.used_entries==combined);
+  CHECK(nvs_get_stats(kPartition,&stats)==ESP_OK &&
+        stats.used_entries==4*(pairing_tuples+1)+roster_entries+catalog_entries+3);
   CHECK(stats.total_entries==Storage::kTotalEntries && stats.namespace_count==3);
   CHECK(fake::mounts==1 && fake::deinits==0);
  }
@@ -476,17 +569,20 @@ void combined_partition_budget() {
   CHECK(roster.ready() && catalog.ready());
   Storage pairing; CHECK(pairing.ready());
   CHECK(fake::mounts==2);
-  PacketView stale(pairing,Store::packet_data_tx,*first);
-  PacketView foreign(pairing,Store::packet_ack_rx,*second);
-  CHECK(fake::read(stale)[0]==0x5f && fake::read(foreign)[0]==0x3f);
+  PacketView stale(pairing,Store::packet_data_tx,*claims.front());
+  PacketView foreign(pairing,Store::packet_ack_rx,*claims.back());
+  CHECK(fake::read_packet(stale)[0]==1 && fake::read_packet(foreign)[0]==32);
   const auto renewed=pairing.claim_packets(owner(1),2);
   CHECK(renewed);
   PacketView current(pairing,Store::packet_data_tx,*renewed);
   check_inaccessible(stale);
   check_blank(current);
-  fake::put(current,0x1f);
-  CHECK(fake::read(foreign)[0]==0x3f);
-  CHECK(fake::entries("ot_pair")==Storage::kPairingEntries);
+  for(const auto store:kLanes) {
+   PacketView lane(pairing,store,*renewed);
+   for(unsigned bank=0;bank<target::pairing_key::kSlots;++bank) fake::put_packet(lane,0x1f,bank);
+  }
+  CHECK(fake::read_packet(foreign)[0]==32);
+  CHECK(fake::entries("ot_pair")==4*(pairing_tuples+1));
   for(const auto& entry:before)
    if(entry.first.first!=Storage::kNamespace) CHECK(fake::media.at(entry.first)==entry.second);
   for(std::size_t i=0;i<roster_keys.size();++i) {
@@ -504,7 +600,7 @@ void combined_partition_budget() {
  CHECK(fake::deinits==2 && !fake::mounted);
 
  // A pairing scope overrun is refused even with room under the aggregate limit.
- ++fake::extra_entries;
+ fake::seed("g00000020nbd2s1");
  const auto retained=fake::media;
  const auto changes=fake::changes();
  {
@@ -515,6 +611,243 @@ void combined_partition_budget() {
   CHECK(fake::media==retained && fake::changes()==changes);
  }
  CHECK(!fake::mounted && fake::handles.empty());
+}
+
+void native_budget_boundary() {
+ fake::reset();
+ fake::seed(kSeal);
+ fake::media.at({"ot_pair",kSeal}).value=fake::seal_bytes();
+ RosterBytes journal{};
+ fake::seed("g0",journal.size(),kRoster);
+ fake::partition_extra_entries=kNativeLimit-1-fake::native_entries();
+ const auto before=fake::media;
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(fake::native_entries()==kNativeLimit-1);
+  CHECK(roster.write_blob(kPartition,kRoster,"g1",journal.data(),journal.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)!=GroupError::none);
+  CHECK(fake::media==before && fake::changes()==0 && fake::namespace_creations==0);
+ }
+ ++fake::partition_extra_entries;
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(!roster.ready());
+  Storage pairing; CHECK(!pairing.ready());
+  CHECK(fake::native_entries()==kNativeLimit);
+  CHECK(fake::media==before && fake::changes()==0 && fake::namespace_creations==0);
+ }
+ fake::partition_extra_entries=0;
+ fake::available_entries=3;
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",journal.data(),journal.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)!=GroupError::none);
+  CHECK(fake::media==before && fake::changes()==0 && fake::namespace_creations==0);
+ }
+}
+
+void growth_includes_seal_and_namespace() {
+ fake::reset();
+ fake::seed("g00000000nbd0s0");
+ const auto old=fake::media;
+ constexpr std::size_t modeled_tuple_entries=5;
+ fake::partition_extra_entries=kNativeLimit-2*modeled_tuple_entries-fake::native_entries();
+ {
+  Storage s; CHECK(s.ready());
+  const std::uint8_t byte=0;
+  CHECK(s.external(Store::f5_state).write_slot(Domain::protocol_state,0,0,{&byte,1})!=Error::none);
+  CHECK(fake::media==old && fake::changes()==0 && fake::namespace_creations==0);
+ }
+ --fake::partition_extra_entries;
+ {
+  Storage s; CHECK(s.ready());
+  fake::put(s.external(Store::f5_state),0x4f);
+  CHECK(fake::has_seal() && fake::native_entries()<kNativeLimit);
+  for(const auto& entry:old) CHECK(fake::media.at(entry.first)==entry.second);
+ }
+ fake::reset();
+ fake::seed(kSeal);
+ fake::media.at({"ot_pair",kSeal}).value=fake::seal_bytes();
+ RosterBytes blob{};
+ const auto charge=3+(blob.size()+31)/32;
+ fake::partition_extra_entries=kNativeLimit-charge-1-fake::native_entries();
+ const auto sealed=fake::media;
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)!=GroupError::none);
+  CHECK(fake::media==sealed && fake::changes()==0 && fake::namespace_creations==0);
+ }
+ --fake::partition_extra_entries;
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::none);
+  CHECK(fake::namespace_creations==1 && fake::native_entries()==kNativeLimit-1);
+ }
+}
+
+void seed_claim(unsigned physical_slot,std::uint8_t peer,std::uint8_t state=2) {
+ const auto key=f5_tuple_key(physical_slot,18,0,0);
+ fake::seed(key);
+ auto& bytes=fake::media.at({"ot_pair",key}).value;
+ std::fill(bytes.begin(),bytes.end(),0);
+ std::memcpy(bytes.data(),"OTP1",4);
+ bytes[4]=state;
+ bytes[5]=static_cast<std::uint8_t>(physical_slot);
+ bytes[15]=1; // logical generation
+ bytes[16]=peer;
+}
+enum class SealCut { none, rejected_set, applied_set, rejected_commit, applied_commit, readback_error, readback_mismatch };
+
+void seal_legacy_partition(SealCut cut) {
+ fake::reset();
+ CHECK(fake::media.empty());
+ fill_legacy_slot(1);
+ fill_legacy_slot(2);
+ std::optional<Storage::PacketClaim> claim;
+ {
+  Storage s; CHECK(s.ready());
+  auto* archived=s.archive_storage(32); CHECK(archived);
+  fake::put(*archived,0x4f);
+  fake::put(s.external(Store::completion),0x6f);
+  fake::put(s.external(Store::f5_state),0x3f);
+  fake::put(s.external(Store::f5_state_tail),0x1f);
+  claim=s.claim_packets(owner(1),34,1); CHECK(claim);
+  PacketView lane(s,Store::packet_data_tx,*claim);
+  fake::put_packet(lane,0x37);
+  const auto retired=s.claim_packets(owner(2),1);
+  CHECK(retired && s.retire_packets(*retired));
+ }
+ // Historical media had the identical rows without the schema seal.
+ CHECK(fake::has_seal());
+ CHECK(fake::media.erase({"ot_pair",kSeal})==1);
+ seed_claim(4,3,1); // interrupted preparing claim
+ fake::seed("g0",RosterBytes{}.size(),kRoster);
+ fake::media.at({kRoster,"g0"}).value[0]=0x42;
+ const auto legacy=fake::media;
+ const auto before=fake::changes();
+ RosterBytes blob{};
+ blob.fill(0x24);
+ {
+  // First access is a group owner. No pairing mount is required to audit and
+  // seal existing pairing claims and epoch journals before the group write.
+  GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
+  CHECK(roster.ready() && catalog.ready());
+  CHECK(fake::media==legacy && fake::changes()==before);
+  CHECK(roster.write_blob(kPartition,kRoster,"g1",blob.data(),blob.size())==GroupError::none);
+  CHECK(fake::media==legacy && fake::changes()==before);
+  fake::fail_seal_set=cut==SealCut::rejected_set || cut==SealCut::applied_set;
+  fake::persist_failed_seal_set=cut==SealCut::applied_set;
+  if(cut==SealCut::rejected_commit || cut==SealCut::applied_commit) fake::fail_at_commit=fake::commits+1;
+  fake::discard_failed_commit=cut==SealCut::rejected_commit;
+  fake::fail_seal_readback=cut==SealCut::readback_error;
+  fake::corrupt_seal_readback=cut==SealCut::readback_mismatch;
+  CHECK((roster.commit(kPartition,kRoster)==GroupError::none)==(cut==SealCut::none));
+  if(cut!=SealCut::none) {
+   // A second owner cannot proceed while the shared seal is uncertain.
+   const auto changes=fake::changes();
+   CatalogBytes foreign{};
+   if(catalog.write_blob(kPartition,kCatalog,"catalog",foreign.data(),foreign.size())==GroupError::none)
+    CHECK(catalog.commit(kPartition,kCatalog)!=GroupError::none);
+   CHECK(fake::changes()==changes && !fake::media.count({kCatalog,"catalog"}));
+  }
+  for(const auto& entry:legacy) CHECK(fake::media.at(entry.first)==entry.second);
+  CHECK(fake::media.count({kRoster,"g1"})==(cut==SealCut::none?1U:0U));
+  const bool persisted=cut!=SealCut::rejected_set && cut!=SealCut::rejected_commit;
+  CHECK(fake::has_seal()==persisted);
+ }
+ fake::fail_seal_set=fake::fail_seal_readback=fake::corrupt_seal_readback=false;
+ fake::fail_at_commit=0;
+ const auto retained=fake::media;
+ const auto changes=fake::changes();
+ {
+  Storage s; CHECK(s.ready());
+  CHECK(fake::media==retained && fake::changes()==changes);
+  CHECK(!s.f5_packet_footprint_absent());
+  CHECK(!s.claim_packets(owner(1),34));
+  PacketView lane(s,Store::packet_data_tx,*claim);
+  CHECK(fake::read_packet(lane)[0]==0x37);
+  CHECK(fake::read(s.external(Store::f5_state))[0]==0x3f);
+  CHECK(fake::read(s.external(Store::f5_state_tail))[0]==0x1f);
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(roster.write_blob(kPartition,kRoster,"g1",blob.data(),blob.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::none && fake::has_seal());
+  for(const auto& entry:legacy) CHECK(fake::media.at(entry.first)==entry.second);
+ }
+}
+
+void interrupted_namespace_creation(const char* space,bool persisted) {
+ fake::reset();
+ RosterBytes blob{};
+ {
+  GroupStore roster(GroupStore::Store::roster);
+  CHECK(roster.ready() && fake::namespaces.empty() && fake::changes()==0);
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  fake::fail_namespace=space;
+  fake::persist_failed_namespace=persisted;
+  CHECK(roster.commit(kPartition,kRoster)!=GroupError::none);
+  CHECK(fake::namespaces.count(space)==(persisted?1U:0U));
+  CHECK(!fake::media.count({kRoster,"g0"}));
+  CHECK(fake::has_seal()==(std::strcmp(space,kRoster)==0));
+ }
+ fake::fail_namespace.clear();
+ {
+  GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
+  CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
+  CHECK(roster.commit(kPartition,kRoster)==GroupError::none);
+  CHECK(fake::has_seal() && fake::media.size()==2);
+ }
+}
+
+void verify_inventory_refused() {
+ const auto before=fake::media;
+ const auto changes=fake::changes();
+ const auto namespaces=fake::namespaces;
+ GroupStore roster(GroupStore::Store::roster); CHECK(!roster.ready());
+ Storage pairing; CHECK(!pairing.ready());
+ CHECK(fake::media==before && fake::changes()==changes && fake::namespaces==namespaces);
+}
+
+
+void refuse_unknown_seal_or_legacy_extra() {
+ fake::refused(kSeal);
+ fake::refused(kSeal,63);
+ for(const auto lane:{13U,19U}) {
+  for(const auto domain:{0U,1U,2U,4U}) {
+   fake::reset();
+   // Current schema permits the retained F5 journal on these domains, but
+   // every packet-lane bank outside d3 must trigger read-only refusal.
+   fake::seed("f000000000cd2s0");
+   fake::seed(f5_tuple_key(1,lane,domain,0));
+   verify_inventory_refused();
+  }
+ }
+ fake::reset();
+ fake::seed(kSeal);
+ auto& corrupted=fake::media.at({"ot_pair",kSeal}).value;
+ corrupted=fake::seal_bytes();
+ corrupted.back()=1;
+ verify_inventory_refused();
+
+ fake::reset();
+ fake::seed(f5_tuple_key(1,19,kLaneDomainNumber,0)); // no claim
+ verify_inventory_refused();
+
+ fake::reset();
+ seed_claim(1,42);
+ seed_claim(2,42); // same owner cannot hold two slots
+ verify_inventory_refused();
+
+ fake::reset();
+ seed_claim(1,42);
+ fake::seed(f5_tuple_key(1,13,kLaneDomainNumber,0)); // legacy incompatible with ready
+ verify_inventory_refused();
+
+ fake::reset();
+ fake::seed(kSeal);
+ fake::media.at({"ot_pair",kSeal}).value=fake::seal_bytes();
+ Storage clean; CHECK(clean.ready() && clean.f5_packet_footprint_absent());
+ CHECK(fake::media.size()==1 && fake::changes()==0);
 }
 
 int main(int argc,char** argv) {
@@ -531,11 +864,9 @@ int main(int argc,char** argv) {
  }
  CHECK(argc==1);
  unsigned groups=0;
- // The former lane and journal keys remain valid; the 32 ownership markers
- // add at most four NVS entries each to the existing inventory ceiling.
+ // Fixed F5 journal and D-112 tuple names survive format sealing.
  CHECK(static_cast<unsigned>(Store::completion)==11);
  CHECK(static_cast<unsigned>(Store::f5_state)==12 && static_cast<unsigned>(Store::f5_state_tail)==17);
- CHECK(Storage::kPairingEntries==7564+32*4 && Storage::kPairingEntries<Storage::kTotalEntries/4);
  ++groups;
  {
   fake::reset(); Storage s; CHECK(s.ready()); CHECK(s.f5_packet_footprint_absent());
@@ -548,9 +879,9 @@ int main(int argc,char** argv) {
   CHECK(a && b);
   for(unsigned n=0;n<kLanes.size();++n) {
    PacketView a_lane(s,kLanes[n],*a), b_lane(s,kLanes[n],*b);
-   fake::put(a_lane,static_cast<std::uint8_t>(0x70+n));
-   fake::put(b_lane,static_cast<std::uint8_t>(0x30+n));
-   CHECK(fake::read(a_lane)[0]==0x70+n && fake::read(b_lane)[0]==0x30+n);
+   fake::put_packet(a_lane,static_cast<std::uint8_t>(0x70+n));
+   fake::put_packet(b_lane,static_cast<std::uint8_t>(0x30+n));
+   CHECK(fake::read_packet(a_lane)[0]==0x70+n && fake::read_packet(b_lane)[0]==0x30+n);
   }
   CHECK(!s.f5_packet_footprint_absent());
   for(const auto& e:fixed) CHECK(fake::media.at(e.first)==e.second);
@@ -558,7 +889,7 @@ int main(int argc,char** argv) {
   CHECK(fake::media.count({"ot_pair","g00000020nbd2s0"})==1);
   CHECK(fake::media.count({"ot_pair","f000000000cd2s0"})==1);
   CHECK(fake::media.count({"ot_pair","f0000000011d2s0"})==1);
-  CHECK(fake::media.count({"ot_pair","f0000000116d2s0"})==1);
+  CHECK(fake::media.count({"ot_pair","f0000000116d3s0"})==1);
   CHECK(fake::read(s.external(Store::f5_state))[0]==0x3f);
   CHECK(fake::read(s.external(Store::f5_state_tail))[0]==0x1f);
   ++groups;
@@ -608,33 +939,15 @@ int main(int argc,char** argv) {
   fake::refused("p00",606,"group_future");
   ++groups;
  }
- // The shared entry ceiling is checked before the first new key touches NVS.
- {
-  fake::reset(); fake::extra_entries=Storage::kPairingEntries-8; Storage s; CHECK(s.ready());
-  const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
-  PacketView p(s,Store::packet_data_tx,*claim);
-  fake::put(p,0x7f);
-  CHECK(fake::entries()==Storage::kPairingEntries);
-  const auto before=fake::media; const auto changes=fake::changes();
-  PacketView q(s,Store::packet_ack_tx,*claim);
-  const std::uint8_t byte=0;
-  CHECK(q.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::io_failure);
-  CHECK(fake::media==before && fake::changes()==changes); ++groups;
- }
- {
-  fake::reset(); fake::extra_entries=Storage::kPairingEntries-3; Storage s; CHECK(s.ready());
-  CHECK(!s.claim_packets(owner(1),1));
-  CHECK(fake::changes()==0 && fake::media.empty()); ++groups;
- }
  // No implicit erase on an attempted 0-to-1 update; a valid earlier tuple survives.
  {
   fake::reset(); Storage s; CHECK(s.ready());
   const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
   PacketView p(s,Store::packet_data_tx,*claim);
-  fake::put(p,0x7f); const auto before=fake::media; const auto changes=fake::changes();
+  fake::put_packet(p,0x7f); const auto before=fake::media; const auto changes=fake::changes();
   const std::uint8_t byte=0xff;
-  CHECK(p.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::write_requires_erase);
-  CHECK(s.ready() && fake::media==before && fake::changes()==changes && fake::read(p)[0]==0x7f); ++groups;
+  CHECK(p.write_slot(kLaneDomain,0,0,{&byte,1})==Error::write_requires_erase);
+  CHECK(s.ready() && fake::media==before && fake::changes()==changes && fake::read_packet(p)[0]==0x7f); ++groups;
  }
  // Applied commit failure is uncertain: preserve bytes, poison the owner and forbid later mutation.
  {
@@ -642,11 +955,11 @@ int main(int argc,char** argv) {
   const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
   PacketView p(s,Store::packet_data_tx,*claim);
   const std::uint8_t byte=0x7f;
-  CHECK(p.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::none);
+  CHECK(p.write_slot(kLaneDomain,0,0,{&byte,1})==Error::none);
   const auto before=fake::media; fake::fail_commit=true;
-  CHECK(p.sync_slot(Domain::protocol_state,0)==Error::io_failure && !s.ready());
+  CHECK(p.sync_slot(kLaneDomain,0)==Error::io_failure && !s.ready());
   const auto changes=fake::changes(); CHECK(fake::media==before);
-  CHECK(p.erase_slot(Domain::protocol_state,0)!=Error::none);
+  CHECK(p.erase_slot(kLaneDomain,0)!=Error::none);
   CHECK(fake::changes()==changes && fake::media==before); ++groups;
  }
  // Failed exact readback likewise keeps the applied bytes and admits no authority.
@@ -655,11 +968,11 @@ int main(int argc,char** argv) {
   const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
   PacketView p(s,Store::packet_ack_tx,*claim);
   const std::uint8_t byte=0x7f;
-  CHECK(p.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::none);
+  CHECK(p.write_slot(kLaneDomain,0,0,{&byte,1})==Error::none);
   const auto before=fake::media; fake::corrupt_next_read=true;
-  CHECK(p.sync_slot(Domain::protocol_state,0)==Error::io_failure && !s.ready());
+  CHECK(p.sync_slot(kLaneDomain,0)==Error::io_failure && !s.ready());
   CHECK(fake::media==before); const auto changes=fake::changes();
-  CHECK(p.write_slot(Domain::protocol_state,0,0,{&byte,1})!=Error::none);
+  CHECK(p.write_slot(kLaneDomain,0,0,{&byte,1})!=Error::none);
   CHECK(fake::changes()==changes && fake::media==before); ++groups;
  }
  // A second tuple cannot steal the first tuple's outstanding commit transaction.
@@ -668,9 +981,9 @@ int main(int argc,char** argv) {
   const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
   PacketView a(s,Store::packet_data_tx,*claim), b(s,Store::packet_ack_tx,*claim);
   const std::uint8_t byte=0x7f;
-  CHECK(a.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::none);
+  CHECK(a.write_slot(kLaneDomain,0,0,{&byte,1})==Error::none);
   const auto before=fake::media; const auto changes=fake::changes();
-  CHECK(b.write_slot(Domain::protocol_state,0,0,{&byte,1})==Error::io_failure && !s.ready());
+  CHECK(b.write_slot(kLaneDomain,0,0,{&byte,1})==Error::io_failure && !s.ready());
   CHECK(fake::media==before && fake::changes()==changes); ++groups;
  }
  // Ordinary owner retirement invalidates all earlier immutable views without deleting evidence.
@@ -679,10 +992,10 @@ int main(int argc,char** argv) {
   const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
   PacketView view(s,Store::packet_data_rx,*claim);
   auto* p=&view;
-  fake::put(*p,0x7f); const auto before=fake::media; const auto changes=fake::changes(); s.retire();
+  fake::put_packet(*p,0x7f); const auto before=fake::media; const auto changes=fake::changes(); s.retire();
   Bytes out; out.fill(0xa5); const auto expected=out;
-  CHECK(!p->read_slot(Domain::protocol_state,0,{out.data(),out.size()}).read() && out==expected);
-  const std::uint8_t byte=0; CHECK(p->write_slot(Domain::protocol_state,0,0,{&byte,1})!=Error::none);
+  CHECK(!p->read_slot(kLaneDomain,0,{out.data(),out.size()}).read() && out==expected);
+  const std::uint8_t byte=0; CHECK(p->write_slot(kLaneDomain,0,0,{&byte,1})!=Error::none);
   CHECK(fake::media==before && fake::changes()==changes); ++groups;
  }
  repeated_rekey_and_full_pool(); ++groups;
@@ -697,9 +1010,9 @@ int main(int argc,char** argv) {
    Storage s; CHECK(s.ready());
    const auto claim=s.claim_packets(owner(1),1); CHECK(claim);
    CHECK(!s.f5_packet_footprint_absent());  // the durable claim alone blocks reseeding
-   PacketView lane(s,Store::packet_data_tx,*claim); fake::put(lane,0x7f);
+   PacketView lane(s,Store::packet_data_tx,*claim); fake::put_packet(lane,0x7f);
   }
-  fake::seed(legacy_lane_key(1,13,0,0));
+  fake::seed(f5_tuple_key(1,13,kLaneDomainNumber,0));
   const auto before=fake::media;
   const auto changes=fake::changes();
   { Storage s; CHECK(!s.ready()); CHECK(!s.claim_packets(owner(1),2,1)); }
@@ -795,7 +1108,8 @@ int main(int argc,char** argv) {
   CHECK(roster.ready() && catalog.ready());
   RosterBytes blob{};
   CHECK(roster.write_blob(kPartition,kRoster,"g0",blob.data(),blob.size())==GroupError::none);
-  fake::fail_commit=true;
+  // Fail the group payload commit after the lazily created seal succeeds.
+  fake::fail_at_commit=fake::commits+2;
   CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
   CHECK(!roster.ready() && catalog.ready() && pairing.ready());
   const auto before=fake::media;
@@ -806,6 +1120,19 @@ int main(int argc,char** argv) {
   ++groups;
  }
  combined_partition_budget(); ++groups;
+ native_budget_boundary(); ++groups;
+ growth_includes_seal_and_namespace(); ++groups;
+ for(const auto cut:{SealCut::none,SealCut::rejected_set,SealCut::applied_set,
+                     SealCut::rejected_commit,SealCut::applied_commit,SealCut::readback_error,
+                     SealCut::readback_mismatch}) {
+  seal_legacy_partition(cut);
+  ++groups;
+ }
+ for(const auto space:{Storage::kNamespace,kRoster}) {
+  for(const bool persisted:{false,true}) interrupted_namespace_creation(space,persisted);
+  ++groups;
+ }
+ refuse_unknown_seal_or_legacy_extra(); ++groups;
  // Terminal reset latch: fake flash is deliberately preserved here to detect post-latch mutations.
  {
   fake::reset(); Storage s; CHECK(s.ready() && target::register_pairing_storage(&s));
@@ -813,7 +1140,8 @@ int main(int argc,char** argv) {
   PacketView lane(s,Store::packet_ack_rx,*claim);
   std::array<Port*,4> ports{&s.external(Store::completion),&s.external(Store::f5_state),
    &s.external(Store::f5_state_tail),&lane};
-  for(auto* p:ports) { CHECK(p); fake::put(*p,0x7f); }
+  for(std::size_t i=0;i<ports.size();++i)
+   fake::put(*ports[i],0x7f,i==ports.size()-1?kLaneDomain:Domain::protocol_state);
   GroupStore roster(GroupStore::Store::roster), catalog(GroupStore::Store::catalog);
   CHECK(roster.ready() && catalog.ready());
   RosterBytes blob{};
@@ -827,13 +1155,21 @@ int main(int argc,char** argv) {
   CHECK(roster.commit(kPartition,kRoster)==GroupError::io_failure);
   CHECK(!s.claim_packets(owner(1),33) && !s.retire_packets(*claim));
   const std::uint8_t byte=0;
-  for(auto* p:ports) {
+  for(std::size_t i=0;i<ports.size();++i) {
+   const auto domain=i==ports.size()-1?kLaneDomain:Domain::protocol_state;
    Bytes out; out.fill(0xa5); const auto expected=out;
-   CHECK(!p->read_slot(Domain::protocol_state,0,{out.data(),out.size()}).read() && out==expected);
-   CHECK(p->write_slot(Domain::protocol_state,0,0,{&byte,1})!=Error::none);
+   CHECK(!ports[i]->read_slot(domain,0,{out.data(),out.size()}).read() && out==expected);
+   CHECK(ports[i]->write_slot(domain,0,0,{&byte,1})!=Error::none);
   }
   Storage after; CHECK(!after.ready() && fake::mounts==mounts);
-  CHECK(fake::media==before && fake::changes()==changes); ++groups;
+  CHECK(fake::media==before && fake::changes()==changes && fake::has_seal());
+  // The actual reset owner erases all of ot_state after the latch. Model that
+  // raw erase here, then ensure retired handles cannot recreate metadata.
+  fake::media.clear();
+  fake::namespaces.clear();
+  CHECK(!s.ready() && !roster.ready() && !catalog.ready());
+  CHECK(!fake::has_seal() && fake::changes()==changes && fake::handles.empty());
+  ++groups;
  }
  std::printf("PASS %u actual F5 pairing NVS host groups\n",groups);
 }

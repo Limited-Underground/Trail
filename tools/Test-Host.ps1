@@ -885,6 +885,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'QR group invitation contract (D-163 host-only)'
+        Output = Join-Path $buildDirectory 'group_qr_invite_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_qr_invite.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_qr_invite_tests.cpp')
+        )
+    },
+    @{
         Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
         Output = Join-Path $buildDirectory 'group_frame_tests.exe'
         Sources = @(
@@ -900,6 +909,13 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\delivery\src\group_message_numbers.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
             (Join-Path $projectRoot 'tests\host\group_message_number_tests.cpp')
+        )
+    },
+    @{
+        Name = 'combined board storage budget (D-163)'
+        Output = Join-Path $buildDirectory 'board_storage_budget_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\board_storage_budget_tests.cpp')
         )
     },
     @{

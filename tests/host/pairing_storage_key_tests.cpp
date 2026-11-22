@@ -11,12 +11,16 @@
 #define pairing_key i074_pre_reclamation_key
 #include "fixtures/i074_pre_reclamation_pairing_storage_key.hpp"
 #undef pairing_key
+#define pairing_key d163_pre_format_key
+#include "fixtures/d163_pre_format_pairing_storage_key.hpp"
+#undef pairing_key
 
 #include "pairing_storage_key.hpp"
 
 namespace key = opentrail::target::heltec_v4_bench::pairing_key;
 namespace oldkey = opentrail::target::heltec_v4_bench::d124_pre_f5_key;
 namespace i074key = opentrail::target::heltec_v4_bench::i074_pre_reclamation_key;
+namespace preformat = opentrail::target::heltec_v4_bench::d163_pre_format_key;
 
 #define CHECK(x) do { if (!(x)) { std::printf("FAIL %s:%d %s\n", __FILE__, __LINE__, #x); std::exit(1); } } while (0)
 
@@ -43,7 +47,7 @@ std::size_t old_index(const char* k) {
 int main() {
     unsigned groups = 0;
     const auto size = key::table_size(kCapacity);
-    CHECK(size == 33u * 23u * 5u * 2u);
+    CHECK(size == 33u * 24u * 5u * 2u);
     // Every key the storage can write maps to its own slot inside the table.
     {
         std::set<std::size_t> seen;
@@ -53,25 +57,42 @@ int main() {
                     for (unsigned s = 0; s < key::kSlots; ++s) {
                         const bool generation_zero_only = (n >= 7 && n <= 10) || n == 12 || n == 17;
                         const bool generation_nonzero_only = n >= 13 && n != 17;
-                        const bool valid = !(generation_zero_only && g) && !(generation_nonzero_only && !g) &&
-                            (n != key::kPacketClaim || (!d && !s));
-                        key::Key current{}, baseline{};
+                        const bool admitted_before_seal =
+                            !(generation_zero_only && g) && !(generation_nonzero_only && !g) &&
+                            (n != 18 || (!d && !s));
+                        const bool lane = (n >= 13 && n <= 16) || (n >= 19 && n <= 22);
+                        const bool seal = n == 23;
+                        const bool valid = seal ? !g && !d && !s
+                                                : admitted_before_seal && (!lane || d == 3);
+                        key::Key current{}, baseline{}, preceding{};
                         CHECK(key::format(g, n, d, s, kCapacity, current) == valid);
                         const bool original = i074key::format(g, n, d, s, kCapacity, baseline);
-                        CHECK(original == (valid && n < key::kPacketClaim));
-                        if (!valid) continue;
+                        const bool accepted_previously = preformat::format(g, n, d, s, kCapacity, preceding);
+                        CHECK(original == (admitted_before_seal && n < 18));
+                        CHECK(accepted_previously == (admitted_before_seal && n < 23));
+                        if (!valid) {
+                            if (accepted_previously) {
+                                CHECK(lane && d != 3 && key::slot(preceding, kCapacity) == size);
+                            }
+                            continue;
+                        }
                         const auto i = key::slot(current, kCapacity);
                         CHECK(i < size && seen.insert(i).second);
+                        if (accepted_previously) {
+                            CHECK(std::memcmp(current, preceding, sizeof current) == 0);
+                            CHECK(preformat::slot(current, kCapacity) < preformat::table_size(kCapacity));
+                        } else {
+                            CHECK(seal && preformat::slot(current, kCapacity) == preformat::table_size(kCapacity));
+                        }
                         if (original) {
                             CHECK(std::memcmp(current, baseline, sizeof current) == 0);
                         } else {
-                            // Exact I-074 parser from 39375eb9. Inventory treats this
-                            // guard index as unreadable before any erase or write.
+                            // Both older parsers direct new keys to their invalid guard.
                             CHECK(i074key::slot(current, kCapacity) == i074key::table_size(kCapacity));
                             CHECK(oldkey::slot(current, kCapacity) == oldkey::table_size(kCapacity));
                         }
                     }
-        CHECK(seen.size() == 3980 + 32 * (1 + 4 * 5 * 2));
+        CHECK(seen.size() == 2700u + 32u * (1u + 8u * 2u) + 1u);
         ++groups;
     }
     // The old index ran past its 330-entry table from generation 3 and collided at 10+.
@@ -143,7 +164,7 @@ int main() {
             for (std::uint64_t g=0;g<=kCapacity;++g) {
                 const bool valid=(n==12 || n==17)?g==0:g!=0;
                 key::Key out{};
-                CHECK(key::format(g,n,4,1,kCapacity,out)==valid);
+                CHECK(key::format(g,n,3,1,kCapacity,out)==valid);
                 if (!valid) continue;
                 const std::string before(out,sizeof out);
                 CHECK(oldkey::slot(out,kCapacity)==oldkey::table_size(kCapacity));
@@ -183,12 +204,13 @@ int main() {
         const char* bad[]={"f0000000012d0s0","f0000000111d0s0","f000000000dd0s0",
                            "f000000010cd0s0","g00000000ncd0s0","F0000000011d0s0",
                            "f000000000Cd0s0","f0000000011D0s0","f0000000117d0s0",
-                           "f0000000112d1s0","f0000000112d0s1","f0000000013d0s0"};
+                           "f0000000112d1s0","f0000000112d0s1","f0000000013d0s0",
+                           "f0000000017d1s0","f0000000017d0s1","f0000002016d4s1"};
         key::Key claim{}, last{};
         make(1,key::kPacketClaim,0,0,claim);
-        make(32,key::kReclaimedLaneLast,4,1,last);
+        make(32,key::kReclaimedLaneLast,3,1,last);
         CHECK(std::strcmp(claim,"f0000000112d0s0")==0);
-        CHECK(std::strcmp(last,"f0000002016d4s1")==0);
+        CHECK(std::strcmp(last,"f0000002016d3s1")==0);
         for(const auto text:bad) {
             key::Key bytes{};std::memcpy(bytes,text,16);
             const std::string before(bytes,sizeof bytes);
@@ -197,6 +219,18 @@ int main() {
         }
         key::Key no_nul{};make(0,12,0,0,no_nul);no_nul[15]='x';
         CHECK(key::slot(no_nul,kCapacity)==size);
+        ++groups;
+    }
+
+    // D-124 app-only rollback uses the exact preceding main parser from 2caff09b.
+    // Its inventory will reject the seal even if no restricted lane is populated.
+    {
+        key::Key seal{};
+        make(0, key::kFormatSeal, 0, 0, seal);
+        CHECK(std::strcmp(seal, "f0000000017d0s0") == 0);
+        const std::string before(seal, sizeof seal);
+        CHECK(preformat::slot(seal, kCapacity) == preformat::table_size(kCapacity));
+        CHECK(std::string(seal, sizeof seal) == before);
         ++groups;
     }
 

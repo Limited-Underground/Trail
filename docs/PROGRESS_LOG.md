@@ -1,5 +1,36 @@
 # OpenTrail Progress Log
 
+## 2026-11-22
+
+### OT-0005i Qualify combined board storage (D-163)
+
+The Heltec adapter inventories the whole shared partition before granting
+access. F5 lanes admit only the two banks used by the counter and replay
+stores. An existing compatible volume keeps its claims, lane bytes and F5
+journal. Its first authorized write first commits and reads back a schema
+seal. Unknown or excess records block the transition. Earlier firmware
+refuses the seal. Factory reset closes every owner before erasing the same
+partition.
+
+The shared exclusive 16,128-entry guard checks native occupancy and
+available write space. The 12,421-entry model reserves capacity for planned
+group pair and direct records. Current owners admit only the implemented
+formats. Focused host tests cover exact capacity, interrupted seal writes
+and reclaims, shared owners and reset. Physical power-cut, endurance and
+service restoration checks remain open. Part of firmware issue #75.
+
+### OT-0306 Add the QR Invite and Join host contract
+
+The signed QR descriptor binds the admin identity, roster generation and
+digest, proposed permissions, display label and one-use invite ID. The raw
+first-contact records have fixed lengths of 220, 184, 104 and 168 bytes.
+Role-separated signatures and canonical transcript checks bind both board
+approvals and the typed durable receipts to the same attempt. Membership
+continues to depend on an admitted next roster.
+
+Seven focused groups passed with both deterministic and pinned Ed25519/SHA-256 crypto. The contract is host-only. Live board and app integration,
+RF authorization and the PIN and open-window flows remain open. Part of #148.
+
 ## 2026-11-21
 
 ### OT-0313 Send quick statuses between phones through paired boards
