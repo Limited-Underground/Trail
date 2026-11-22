@@ -140,6 +140,11 @@ are in the existing 20-byte envelope. A Command write must be followed by a
 confirmed Stream indication before the lane accepts another page. The minimum
 ATT MTU stays 151. Stream remains indication-only.
 
+The opt-in F7 phone trial also carries these pages over protected profile 0.6.
+The OTDQ and OTDR payloads distinguish F11 from OTY0 authority records that
+use the same kinds. The trial still requires the current authenticated,
+authorized attachment. Group commands retain their profile 0.5 gate.
+
 | Exchange | Request kind 0x09 payload | Response kind 0x8b payload |
 | --- | --- | --- |
 | First | `OTDQ`, version 1, page 0, two zero bytes (8 bytes) | `OTDR`, version 1, page 0, two zero bytes, first 120 OTDP bytes (128 bytes) |

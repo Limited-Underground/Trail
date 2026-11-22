@@ -127,6 +127,18 @@ void refusals() {
     q = frame(9, 76);
     for (auto i = 8; i != 12; ++i) q[i] = 0;
     expect(decode({q.data(), 76}).kind == Kind::invalid, "no zero nonce");
+
+    // F11 shares these kind bytes on the phone-trial wire profile, with a different payload magic.
+    auto parameters_request = frame(9, 28);
+    parameters_request[22] = 'D'; parameters_request[23] = 'Q'; parameters_request[24] = 1;
+    expect(decode({parameters_request.data(), 28}).kind == Kind::invalid, "F11 read stays in configuration");
+    auto parameters_response = frame(0x8b, 148);
+    parameters_response[22] = 'D'; parameters_response[23] = 'R'; parameters_response[24] = 1;
+    expect(decode({parameters_response.data(), 148}).kind == Kind::invalid, "F11 page stays in configuration");
+    parameters_request[18] = 56;
+    expect(decode({parameters_request.data(), 76}).kind == Kind::invalid, "F11 magic cannot match F7 request");
+    parameters_response[18] = 116;
+    expect(decode({parameters_response.data(), 136}).kind == Kind::invalid, "F11 magic cannot match F7 result");
 }
 }  // namespace
 

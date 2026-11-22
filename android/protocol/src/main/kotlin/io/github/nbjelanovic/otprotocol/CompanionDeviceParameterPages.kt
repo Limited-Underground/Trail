@@ -3,7 +3,7 @@ package io.github.nbjelanovic.otprotocol
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
-/** Two single-indication reads within one protected profile 5 session. */
+/** Two single-indication reads within one protected configuration session. */
 object CompanionDeviceParameterPages {
     const val REQUEST = 0x09
     const val RESPONSE = 0x8b
@@ -32,14 +32,19 @@ object CompanionDeviceParameterPages {
             (HEADER_BYTES until bytes.size).any { bytes[it] != 0.toByte() }
     }
 
-    fun responsePage(bytes: ByteArray, page: Int): ByteArray? {
+    internal fun validResponse(bytes: ByteArray): Boolean =
+        matchesResponse(bytes, 0) || matchesResponse(bytes, 1)
+
+    fun responsePage(bytes: ByteArray, page: Int): ByteArray? =
+        if (matchesResponse(bytes, page)) bytes.copyOfRange(HEADER_BYTES, bytes.size) else null
+
+    private fun matchesResponse(bytes: ByteArray, page: Int): Boolean {
         val pageBytes = when (page) {
             0 -> FIRST_PAGE_BYTES
             1 -> CompanionDeviceParametersCodec.RECORD_BYTES - FIRST_PAGE_BYTES
-            else -> return null
+            else -> return false
         }
-        if (bytes.size != HEADER_BYTES + pageBytes || !headerMatches(bytes, responseMagic, page)) return null
-        return bytes.copyOfRange(HEADER_BYTES, bytes.size)
+        return bytes.size == HEADER_BYTES + pageBytes && headerMatches(bytes, responseMagic, page)
     }
 
     private fun headerMatches(bytes: ByteArray, magic: ByteArray, page: Int) =

@@ -154,6 +154,11 @@ The PR #300 follow-up restores the BLE host stack observer's evaluation and
 connection-diagnostics guards. The topic rebases onto PR #298 and retains
 separate admission and response handling for group commands and F11 reads.
 
+The next rebase keeps the A10 outbox, F7 phone transport and I-080 storage
+claims from main. The protected profile 0.6 phone trial distinguishes F11
+pages from F7 authority records by kind and payload. Group commands retain
+profile 0.5 admission. The BLE host observer remains diagnostic-only.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result

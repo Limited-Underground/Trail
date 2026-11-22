@@ -1688,6 +1688,56 @@ class BleCompanionRuntimeTest {
         }
     }
 
+    @Test fun benchF7AuthorityAndOutboxKeepTheirLaneAcrossF11ParameterPages() {
+        val readings = mutableListOf<io.github.nbjelanovic.otprotocol.CompanionDeviceParameters>()
+        val f = ConfigurationFixture(
+            profile = 6, withSessionOwner = true, outboxStorage = MemoryTextOutboxStorage(),
+            benchTextRecord = f7BenchPinRecord(), parameterSupport = true, onParameters = { readings += it },
+        )
+        val owner = checkNotNull(f.owner)
+        val record = parameterRecord()
+        val authority = assertNotNull(CompanionAuthorityCodec.decodeRequest(f.gatt.commands.last()))
+        val negotiationWrites = f.gatt.commands.size
+        f.respond(0x8b, parameterPage(record, 0), authority.exchange)
+        assertIs<BleRuntimeState.Negotiating>(f.runtime.state)
+        assertEquals(negotiationWrites, f.gatt.commands.size)
+        assertTrue(readings.isEmpty())
+
+        f.completeBenchAuthority()
+        f.name()
+        f.clock()
+        f.runtime.setStatusRefreshForeground(true)
+        f.scheduler.advanceBy(0)
+        val firstPage = f.last()
+        assertEquals(0x09, firstPage.kind)
+        assertNull(CompanionAuthorityCodec.decodeRequest(f.gatt.commands.last()))
+
+        val text = "Meet at the trailhead"
+        assertTrue(owner.submitText(assertNotNull(owner.state.textMessages.recipient), text))
+        f.scheduler.advanceBy(0)
+        assertEquals(V1QueuedText(text, "Waiting"), owner.state.textMessages.queued.single())
+        assertTrue(textOutboxCommands(f).isEmpty())
+
+        f.respond(0x8b, parameterPage(record, 0), authority.exchange)
+        assertEquals(firstPage.exchangeId, f.last().exchangeId)
+        f.respond(0x8b, parameterPage(record, 0))
+        assertTrue(readings.isEmpty())
+        assertEquals(firstPage.exchangeId + 1u, f.last().exchangeId)
+        f.respond(0x8b, parameterPage(record, 1))
+        assertEquals(42, readings.single().battery?.value?.percent)
+        assertEquals(42, f.readySession().deviceParameters?.snapshot?.battery?.value?.percent)
+
+        f.scheduler.advanceBy(1_000)
+        val sent = textOutboxCommands(f).single()
+        assertEquals(text, sent.text)
+        assertEquals(authority.exchange, sent.reference.authorityExchange)
+        textResult(f)
+        textDelivery(f, 1u, 2)
+        textDelivery(f, 2u, 3)
+        assertEquals(V1QueuedText(text, "Delivered"), owner.state.textMessages.queued.single())
+        owner.close()
+    }
+
     @Test fun protectedDeviceParametersTimeoutUsesOriginalDeadlineAndKeepsStatusAvailable() {
         val f = ConfigurationFixture(profile = 5, parameterSupport = true)
         f.name(); f.clock()

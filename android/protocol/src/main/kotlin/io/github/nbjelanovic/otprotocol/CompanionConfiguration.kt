@@ -157,9 +157,11 @@ object CompanionConfigurationCodec {
                 CompanionPublicProfileCodec.decode(payload)?.kind in listOf(1,2)
             CompanionPublicProfileCodec.RESPONSE -> (minorVersion == CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) &&
                 CompanionPublicProfileCodec.decode(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
-            CompanionDeviceParameterPages.REQUEST -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
-                CompanionDeviceParameterPages.validRequest(payload)
-            CompanionDeviceParameterPages.RESPONSE -> minorVersion == CompanionPublicProfileCodec.PROFILE
+            CompanionDeviceParameterPages.REQUEST ->
+                (minorVersion == CompanionPublicProfileCodec.PROFILE || minorVersion == PROVISIONAL_RADIO_PROFILE) &&
+                    CompanionDeviceParameterPages.validRequest(payload)
+            CompanionDeviceParameterPages.RESPONSE -> minorVersion == CompanionPublicProfileCodec.PROFILE ||
+                (minorVersion == PROVISIONAL_RADIO_PROFILE && CompanionDeviceParameterPages.validResponse(payload))
             else -> false
         }
     }

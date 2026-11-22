@@ -60,8 +60,8 @@ variant's JVM tests cover log write, reload, and export.
 The A10 outbox holds short text while a previously verified paired board is
 away. A current protected text session to that pairing sends the queue in
 order. The app retries definite pre-send refusals within a fixed limit and
-shows uncertain outcomes without repeating them. The main Android service
-still needs a live protected text provider for phone-to-phone delivery. See
+shows uncertain outcomes without repeating them. PR #294 supplies the live
+protected provider in the opt-in Debug bench path. See
 the [OT-0314 progress entry](PROGRESS_LOG.md#ot-0314-queue-meshtrail-text-while-the-board-is-away).
 Phone and board acceptance remain open.
 
@@ -147,8 +147,9 @@ The Heltec V4 app task collects live readings with per-source age. A Ready
 phone reads two pages of the same 212-byte snapshot through the protected
 command lane. The app checks the complete record before displaying values or
 adding them to the log. Firmware without the feature version still supplies
-ordinary status. BLE host stack headroom is available in evaluation and
-connection-diagnostics builds. Bench verification covers age, update and reconnect on a
+ordinary status. The opt-in F7 phone path can also read the F11 snapshot.
+BLE host stack headroom is available in evaluation and connection diagnostics.
+Bench verification covers age, update and reconnect on a
 retained bond. See the [component guide](../firmware/components/device_parameters/README.md).
 
 ## MeshTrail Repeater pre-device work
@@ -320,10 +321,10 @@ Live Invite/Join and RF acceptance remain open.
 | Owner | MeshTrail Firmware owns the Heltec acquisition and protected reply. MeshTrail App owns polling, display and text export on feat/v1-logging. |
 | Scope | Collect board parameters with age, read one snapshot over the protected link, display board readings and export the redacted log by user-selected share or file save. |
 | State | F11/A8/A9 host candidate. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/v1-logging rebased onto main aef88aa0f1ce381c7e1a0d386156c5138fcaa913 after PR #298. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Source | Topic feat/v1-logging rebased onto main f6e9cc694da449b12f868d44c8048f9b8f2fde4d, including PRs #294 and #302. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | The topic includes the firmware collector from PR #280 and the Android text export from PR #286. The focused regressions cover authorization, page ordering and deadlines, structured log export and the Android file-save path. |
 | Blocker | Real board readings, retained-bond compatibility, email receipt and cloud link access require an owner-present test. |
-| Next action | Review the topic and arrange one authorized Heltec V4 and Android session. Check status age, reconnect, text attachment and cloud link access with the actual recipient. |
+| Next action | Claude reviews the verified bundle under D-156. Arrange one authorized Heltec V4 and Android session. Check status age, reconnect, text attachment and cloud link access with the actual recipient. |
 | Restrictions | Host validation and topic review. Board, signing, merge and release each require owner approval. |
 | Latest record | [OT-0341 Connect board readings to the MeshTrail operation log](PROGRESS_LOG.md#ot-0341-connect-board-readings-to-the-meshtrail-operation-log). Previous [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
 | Evidence access | Source and host tests are in the topic. Exact command results and builds are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
