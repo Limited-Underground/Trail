@@ -11,6 +11,7 @@ import io.github.nbjelanovic.otprotocol.CompanionTextDelivery
 import io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec
 import io.github.nbjelanovic.otprotocol.CompanionRadioEventReceiver
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
+import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationFrame
 import io.github.nbjelanovic.otprotocol.CompanionPublicProfileCodec
@@ -1981,6 +1982,17 @@ class BleCompanionRuntime(
     }
 
     fun readPublicProfile(): Boolean { requireOwnerThread(); return configurationOperation { it.readPublicProfile() } }
+
+    fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean {
+        requireOwnerThread()
+        return configurationOperation { it.submitBoardGroupAction(action) }
+    }
+
+    fun boardGroupState(): V1BoardGroupState {
+        requireOwnerThread()
+        return if (state is BleRuntimeState.Ready) configurationSession?.boardGroupState() ?: V1BoardGroupState()
+        else V1BoardGroupState()
+    }
     fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return configurationOperation { it.writePublicProfile(name,visible) } }
     fun readRadioRegion(): Boolean { requireOwnerThread(); return configurationOperation { it.readRegion() } }
     fun writeRadioRegion(selectionId: Int): Boolean { requireOwnerThread(); return configurationOperation { it.writeRegion(selectionId) } }
@@ -2503,9 +2515,12 @@ class BleCompanionRuntime(
             }
             return
         }
-        if(configurationFrame?.kind in listOf(0x86,0x87,0x88,CompanionPublicProfileCodec.RESPONSE)) {
-            if(configurationSession?.receive(checkNotNull(configurationFrame)) == true) {
+        if(configurationFrame?.kind in listOf(0x86,0x87,0x88,CompanionPublicProfileCodec.RESPONSE,
+                CompanionGroupConfigurationCodec.RESPONSE_KIND)) {
+            val frame = checkNotNull(configurationFrame)
+            if(configurationSession?.receive(frame) == true) {
                 armConfigurationTimeout()
+                if (frame.kind == CompanionGroupConfigurationCodec.RESPONSE_KIND) pumpAutomaticConfiguration()
                 return
             }
             // Unsolicited or stale operation results cannot mutate current work.

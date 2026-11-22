@@ -211,7 +211,7 @@ private fun V1NoGroupContent(
 }
 
 @Composable
-private fun V1DeviceGroupConfirmation(
+internal fun V1DeviceGroupConfirmation(
     state: V1GroupConfirmationState,
     onAction: (V1GroupUiAction) -> Unit,
 ) {

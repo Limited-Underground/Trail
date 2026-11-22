@@ -147,6 +147,10 @@ object CompanionConfigurationCodec {
             0x87 -> decodeTime(payload)?.kind in listOf(2,4)
             6 -> (minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) && decodeRegion(payload)?.kind in listOf(1,2)
             0x88 -> (minorVersion in listOf(3,CompanionPublicProfileCodec.PROFILE,CompanionConfirmationCodec.PROFILE) || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) && decodeRegion(payload)?.kind in listOf(0x81,0x82,0x83,0x84)
+            CompanionGroupConfigurationCodec.REQUEST_KIND -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionGroupConfigurationCodec.validCommand(payload)
+            CompanionGroupConfigurationCodec.RESPONSE_KIND -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionGroupConfigurationCodec.decodeResult(payload) != null
             7 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(1,2,3)
             0x89 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(4,5)
             CompanionPublicProfileCodec.REQUEST -> (minorVersion == CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) &&

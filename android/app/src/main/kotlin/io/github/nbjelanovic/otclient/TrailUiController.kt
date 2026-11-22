@@ -48,6 +48,7 @@ interface TrailUiController {
     fun readRadioRegion(): Boolean = false
     fun writeRadioRegion(selectionId: Int): Boolean = false
     fun readPublicProfile(): Boolean = false
+    fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean = false
     fun writePublicProfile(name: String, visible: Boolean): Boolean = false
     fun readDeviceName(): Boolean = false
     fun writeDeviceName(name: String): Boolean = false

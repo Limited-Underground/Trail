@@ -3018,6 +3018,65 @@ class BleCompanionRuntimeTest {
         return ("meshtrail-f7-bench-v1\nlocal=$local\npeer=$peer\n" +
             "group=0000000000000001\nepoch=00000002\nrevision=0000000000000004\n").encodeToByteArray()
     }
+
+    @Test
+    fun protectedProfileFiveGroupRosterBindsTheCurrentOwnerAndRejectsRetiredFrames() {
+        val wire = GroupRosterResponseFixture
+        val f = ConfigurationFixture(profile = 5, withSessionOwner = true)
+        f.name()
+        f.clock()
+        val owner = assertNotNull(f.owner)
+        assertTrue(owner.state.groupRoster.supported)
+        assertFalse(owner.submitBoardGroupAction(V1BoardGroupAction.Create(locationRule = 1)))
+        assertTrue(owner.submitBoardGroupAction(V1BoardGroupAction.Refresh))
+        val discover = f.last()
+        assertEquals(0x0b, discover.kind)
+        assertEquals(f.nonce, discover.sessionNonce)
+        assertContentEquals(wire.message(wire.DISCOVER), discover.payload)
+
+        val previousNonce = CompanionConfigurationFrame(
+            0x8f, f.nonce - 1u, discover.exchangeId, wire.message(wire.DISCOVER), f.profile,
+        )
+        f.gatt.emit(BleGattEvent.StreamIndication(assertNotNull(f.codec.encodeFrame(previousNonce))))
+        assertEquals(discover.exchangeId, f.last().exchangeId)
+        assertTrue(owner.state.groupRoster.busy)
+
+        f.respond(0x8f, wire.message(wire.DISCOVER))
+        for (offset in wire.rosterBytes().indices step 42) {
+            assertContentEquals(wire.readRequest(0, offset), f.last().payload)
+            f.respond(0x8f, wire.rosterResult(0, offset))
+        }
+        for (slot in 1..3) {
+            assertContentEquals(wire.readRequest(slot), f.last().payload)
+            f.respond(0x8f, wire.message(wire.READ_ROSTER, wire.MISSING))
+        }
+        val group = owner.state.groupRoster.groups.single()
+        assertEquals(wire.GROUP_ID, group.groupId)
+        assertTrue(owner.submitBoardGroupAction(V1BoardGroupAction.StopTrust(group)))
+        assertContentEquals(wire.message(wire.STOP_TRUST) + wire.scope(), f.last().payload)
+
+        val stop = f.last().exchangeId
+        val writes = f.gatt.commands.size
+        f.gatt.emit(BleGattEvent.Disconnected)
+        f.respond(0x8f, wire.message(wire.STOP_TRUST) + wire.scope(), stop, stale = true)
+        assertTrue(owner.state.groupRoster.groups.isEmpty())
+        assertFalse(owner.submitBoardGroupAction(V1BoardGroupAction.StopTrust(group)))
+        assertEquals(writes, f.gatt.commands.size)
+        owner.close()
+    }
+
+    @Test
+    fun protectedProfileFiveGroupRosterDoesNotSendOnALegacyProtectedProfile() {
+        val f = ConfigurationFixture(profile = 3, withSessionOwner = true)
+        f.name()
+        f.clock()
+        val owner = assertNotNull(f.owner)
+        val commands = f.gatt.commands.size
+        assertFalse(owner.state.groupRoster.supported)
+        assertFalse(owner.submitBoardGroupAction(V1BoardGroupAction.Refresh))
+        assertEquals(commands, f.gatt.commands.size)
+        owner.close()
+    }
     private class ConfigurationFixture(val firstSetup: Boolean = false, val profile: Int = 3,
         optIn: Boolean = false, withController: Boolean = false, withSessionOwner: Boolean = false,
         packetOptIn: Boolean = false, packetAdmission: Boolean = true, private val firstId:Long=1,
