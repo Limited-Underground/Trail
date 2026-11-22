@@ -139,6 +139,18 @@ group rules are readable and their sharing flags require fresh consent.
 Binding the verified invitation and roster to the protected board owner
 remains open. Part of #119.
 
+### OT-0310 Add MeshTrail direct conversation consent owner
+
+The host composition reuses protected F5 request admission and requires
+verified peer review, local durable consent, peer commitment and a fresh F5
+session before traffic becomes eligible. A checked catalog keeps eight
+conversations and separate persistent blocks. End and Block fence launch and
+retire the exact F5 packet claim. The host tests exercise actual slot reuse
+through the Heltec NVS adapter with simulated NVS and pairing evidence.
+The live scoped F5 endpoint and app invite/composer remain open. Advances
+[#114](https://github.com/Limited-Underground/Trail/issues/114) and
+[#115](https://github.com/Limited-Underground/Trail/issues/115).
+
 ### OT-0086a Guard V1 tester builds (A11)
 
 The firmware refuses `OPENTRAIL_V1_PRODUCTION=ON` while any bench switch is on,

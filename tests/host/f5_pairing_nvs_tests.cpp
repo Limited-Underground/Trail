@@ -10,6 +10,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "opentrail/direct_conversation_owner.hpp"
 #include "pairing_nvs_storage.hpp"
 #include "nvs_flash.h"
 #include "opentrail/durable_group_roster.hpp"
@@ -300,6 +301,298 @@ void fill_legacy_slot(unsigned physical_slot) {
    fake::media.at({"ot_pair",key}).value[0]=0x4f;
   }
 }
+
+namespace direct_fixture {
+namespace companion = opentrail::companion;
+namespace persistence = opentrail::persistence;
+
+using Binding = companion::DirectBinding;
+using DirectOwner = companion::DirectConversationOwner;
+using Identity = companion::DirectIdentity;
+using Ticket = companion::SelectedEnrollmentRequest;
+using Result = companion::DirectResult;
+using KvError = persistence::PersistentKvBackendError;
+
+class Catalog final : public persistence::PersistentKvBackend {
+public:
+    KvError read_blob(const char* partition, const char* space, const char* key,
+                      std::uint8_t* out, std::size_t capacity, std::size_t& size) override {
+        check_key(partition, space, key);
+        size = committed_ ? committed_->size() : 0;
+        if (!committed_) return KvError::not_found;
+        CHECK(capacity == size);
+        std::memcpy(out, committed_->data(), size);
+        return KvError::none;
+    }
+
+    KvError write_blob(const char* partition, const char* space, const char* key,
+                       const std::uint8_t* data, std::size_t size) override {
+        check_key(partition, space, key);
+        CHECK(!staged_ && size == DirectOwner::kCatalogBytes);
+        staged_.emplace();
+        std::memcpy(staged_->data(), data, size);
+        return KvError::none;
+    }
+
+    KvError erase_key(const char*, const char*, const char*) override {
+        return KvError::invalid_argument;
+    }
+
+    KvError commit(const char* partition, const char* space) override {
+        CHECK(std::strcmp(partition, persistence::kPersistentKvPartitionLabel) == 0);
+        CHECK(std::strcmp(space, DirectOwner::kNamespace) == 0);
+        CHECK(staged_);
+        committed_ = staged_;
+        staged_.reset();
+        return KvError::none;
+    }
+
+private:
+    static void check_key(const char* partition, const char* space, const char* key) {
+        CHECK(std::strcmp(partition, persistence::kPersistentKvPartitionLabel) == 0);
+        CHECK(std::strcmp(space, DirectOwner::kNamespace) == 0);
+        CHECK(std::strcmp(key, DirectOwner::kCatalogKey) == 0);
+    }
+
+    using CatalogBytes = std::array<std::uint8_t, DirectOwner::kCatalogBytes>;
+    std::optional<CatalogBytes> committed_, staged_;
+};
+
+// This fixture supplies already-verified pairing evidence to the direct catalog
+// owner. Packet claims and lane validity below use the actual target adapter.
+class PairingEvidence final : public companion::DirectPairingPort {
+public:
+    Binding candidate{};
+
+    bool begin(const Ticket& ticket) override {
+        CHECK(!pending_ && ticket.product_pairing());
+        pending_ = ticket;
+        return true;
+    }
+
+    std::optional<Binding> reviewed(const Ticket& ticket) override {
+        CHECK(matches(ticket));
+        return candidate;
+    }
+
+    bool commit_local_vote(const Ticket& ticket, const Binding& binding) override {
+        CHECK(matches(ticket) && binding == candidate);
+        voted_ = true;
+        return true;
+    }
+
+    bool peer_committed(const Ticket& ticket, const Binding& binding) override {
+        CHECK(matches(ticket) && voted_ && binding == candidate);
+        pending_.reset();
+        voted_ = false;
+        return true;
+    }
+
+    void cancel(const Ticket& ticket) override {
+        CHECK(matches(ticket));
+        pending_.reset();
+        voted_ = false;
+    }
+
+    std::uint64_t ready_session(const Binding& binding) const override {
+        const auto entry = sessions_.find(binding.scope);
+        if (entry == sessions_.end() || entry->second.first != binding.peer) return 0;
+        return entry->second.second;
+    }
+
+    void ready(const Binding& binding, std::uint64_t session) {
+        sessions_[binding.scope] = {binding.peer, session};
+    }
+
+private:
+    bool matches(const Ticket& ticket) const {
+        return pending_ && ticket.delivery_token == pending_->delivery_token &&
+            ticket.exchange_id == pending_->exchange_id &&
+            ticket.connection_handle == pending_->connection_handle;
+    }
+
+    std::optional<Ticket> pending_;
+    bool voted_{false};
+    std::map<Identity, std::pair<Identity, std::uint64_t>> sessions_;
+};
+
+class PacketClaims final : public companion::DirectPacketPort {
+public:
+    explicit PacketClaims(Storage& storage) : storage_(storage) {}
+
+    bool claim(const Identity& scope, std::uint64_t generation) override {
+        CHECK(claims.count(scope) == 0);
+        const auto claim = storage_.claim_packets(scope, generation);
+        if (!claim) return false;
+        claims.emplace(scope, *claim);
+        return true;
+    }
+
+    bool quiesce_and_retire(const Identity& scope, std::uint64_t generation) override {
+        if (queued && queued->first == scope && queued->second == generation) queued.reset();
+        claims.erase(scope);
+        return storage_.retire_packets(scope, generation);
+    }
+
+    std::map<Identity, Storage::PacketClaim> claims;
+    std::optional<std::pair<Identity, std::uint64_t>> queued;
+
+private:
+    Storage& storage_;
+};
+
+void admit(DirectOwner& direct, PairingEvidence& pairing, const Binding& binding,
+           std::uint32_t exchange, Result expected = Result::ok) {
+    const companion::DeviceNameAuthority authority{
+        companion::DeviceNamePhase::connected, {1,2,3,4,5,6,7}, exchange};
+    pairing.candidate = binding;
+    CHECK(direct.begin(authority, 8, exchange, exchange,
+                       companion::CompanionEnrollmentRole::responder, 123456) == Result::ok);
+    const auto ticket = direct.request();
+    CHECK(direct.accept(authority, ticket) == expected);
+    if (expected == Result::ok) {
+        CHECK(direct.send_generation(binding) == 0);
+        CHECK(direct.finish(authority, ticket) == Result::ok);
+    }
+}
+
+Binding contact(unsigned index) {
+    return {owner(static_cast<std::uint8_t>(index)), owner(static_cast<std::uint8_t>(64 + index))};
+}
+
+void reuse_claims_across_rekeys_and_restart() {
+    fake::reset();
+    Catalog catalog;
+    std::array<std::optional<Storage::PacketClaim>, Storage::kCapacity - DirectOwner::kConversations>
+        foreign_claims{};
+    std::array<std::uint64_t, DirectOwner::kConversations> generations{};
+    {
+        Storage storage;
+        CHECK(storage.ready());
+        fake::put(storage.external(Store::f5_state), 0x2f);
+        for (unsigned i = 0; i < foreign_claims.size(); ++i) {
+            foreign_claims[i] = storage.claim_packets(owner(static_cast<std::uint8_t>(128 + i)), 1);
+            CHECK(foreign_claims[i]);
+            PacketView lane(storage, Store::packet_data_tx, *foreign_claims[i]);
+            fake::put(lane, 0x5f);
+        }
+        PairingEvidence pairing;
+        PacketClaims packets(storage);
+        DirectOwner direct(catalog, pairing, packets);
+        CHECK(direct.load());
+        for (unsigned i = 0; i < generations.size(); ++i) {
+            const auto binding = contact(i + 1);
+            admit(direct, pairing, binding, i + 1);
+            pairing.ready(binding, 1);
+            CHECK(direct.activate(binding) == Result::ok);
+            generations[i] = direct.send_generation(binding);
+            CHECK(generations[i] != 0);
+            PacketView lane(storage, Store::packet_data_tx, packets.claims.at(binding.scope));
+            fake::put(lane, 0x3f);
+        }
+        admit(direct, pairing, contact(9), 9, Result::full);
+        CHECK(packets.claims.size() == DirectOwner::kConversations);
+        for (std::uint64_t session = 2; session <= 6; ++session) {
+            for (unsigned i = 0; i < generations.size(); ++i) {
+                const auto binding = contact(i + 1);
+                const auto previous = generations[i];
+                const auto old_claim = packets.claims.at(binding.scope);
+                packets.queued = std::make_pair(binding.scope, previous);
+                pairing.ready(binding, session);
+                CHECK(direct.send_generation(binding) == 0);
+                CHECK(direct.activate(binding) == Result::ok);
+                generations[i] = direct.send_generation(binding);
+                CHECK(generations[i] > previous && !packets.queued);
+                PacketView stale(storage, Store::packet_data_tx, old_claim);
+                check_inaccessible(stale);
+                for (const auto store : kLanes) {
+                    PacketView lane(storage, store, packets.claims.at(binding.scope));
+                    check_blank(lane);
+                    fake::put(lane, 0x1f);
+                }
+            }
+        }
+        CHECK(fake::media.size() == Storage::kCapacity + foreign_claims.size() +
+              DirectOwner::kConversations * kLanes.size() + 1);
+    }
+    {
+        Storage storage;
+        PairingEvidence pairing;
+        PacketClaims packets(storage);
+        DirectOwner direct(catalog, pairing, packets);
+        CHECK(storage.ready() && direct.load());
+        for (unsigned i = 0; i < generations.size(); ++i) {
+            const auto binding = contact(i + 1);
+            pairing.ready(binding, 6);
+            CHECK(direct.send_generation(binding) == 0);
+            CHECK(direct.activate(binding) == Result::stale);
+            pairing.ready(binding, 7);
+            CHECK(direct.activate(binding) == Result::ok);
+            CHECK(direct.send_generation(binding) > generations[i]);
+        }
+        const auto ended = contact(1);
+        const auto old_claim = packets.claims.at(ended.scope);
+        packets.queued = std::make_pair(ended.scope, direct.send_generation(ended));
+        CHECK(direct.end(ended) == Result::ok && !packets.queued);
+        CHECK(direct.send_generation(ended) == 0);
+        const auto replacement = contact(9);
+        admit(direct, pairing, replacement, 10);
+        pairing.ready(replacement, 1);
+        CHECK(direct.activate(replacement) == Result::ok);
+        PacketView new_lane(storage, Store::packet_data_tx, packets.claims.at(replacement.scope));
+        check_blank(new_lane);
+        PacketView stale(storage, Store::packet_data_tx, old_claim);
+        check_inaccessible(stale);
+        for (const auto& claim : foreign_claims) {
+            PacketView lane(storage, Store::packet_data_tx, *claim);
+            CHECK(fake::read(lane)[0] == 0x5f);
+        }
+        CHECK(fake::read(storage.external(Store::f5_state))[0] == 0x2f);
+    }
+}
+
+void recover_interrupted_block() {
+    const auto binding = contact(1);
+    for (const bool discard : {false, true}) {
+        fake::reset();
+        Catalog catalog;
+        {
+            Storage storage;
+            PairingEvidence pairing;
+            PacketClaims packets(storage);
+            DirectOwner direct(catalog, pairing, packets);
+            CHECK(storage.ready() && direct.load());
+            admit(direct, pairing, binding, 1);
+            pairing.ready(binding, 1);
+            CHECK(direct.activate(binding) == Result::ok);
+            const auto generation = direct.send_generation(binding);
+            CHECK(generation != 0);
+            packets.queued = std::make_pair(binding.scope, generation);
+            fake::fail_commit = true;
+            fake::discard_failed_commit = discard;
+            CHECK(direct.block(binding) == Result::unavailable);
+            CHECK(!packets.queued && direct.send_generation(binding) == 0);
+        }
+        fake::fail_commit = false;
+        {
+            Storage storage;
+            PairingEvidence pairing;
+            PacketClaims packets(storage);
+            DirectOwner direct(catalog, pairing, packets);
+            CHECK(storage.ready() && direct.load());
+            CHECK(direct.blocked(binding.peer) && direct.send_generation(binding) == 0);
+            const Binding fresh{binding.peer, owner(100)};
+            admit(direct, pairing, fresh, 2, Result::blocked);
+            CHECK(direct.unblock(binding.peer) == Result::ok);
+            admit(direct, pairing, fresh, 3);
+            pairing.ready(fresh, 1);
+            CHECK(direct.activate(fresh) == Result::ok);
+            CHECK(direct.send_generation(fresh) != 0 && direct.send_generation(binding) == 0);
+        }
+    }
+}
+
+}  // namespace direct_fixture
 
 void repeated_rekey_and_full_pool() {
  fake::reset();
@@ -1026,6 +1319,8 @@ int main(int argc,char** argv) {
   const std::uint8_t byte=0; CHECK(p->write_slot(kLaneDomain,0,0,{&byte,1})!=Error::none);
   CHECK(fake::media==before && fake::changes()==changes); ++groups;
  }
+ direct_fixture::reuse_claims_across_rekeys_and_restart(); ++groups;
+ direct_fixture::recover_interrupted_block(); ++groups;
  repeated_rekey_and_full_pool(); ++groups;
  retained_legacy_with_mixed_owners(); ++groups;
  interrupted_reclaim(false); ++groups;

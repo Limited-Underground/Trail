@@ -234,6 +234,12 @@ See [the protected phone link](PROGRESS_LOG.md#ot-0316-carry-meshtrail-location-
 [location dispatch](PROGRESS_LOG.md#ot-0316-gate-meshtrail-position-and-stop-frames-on-the-current-lease)
 and [location consent](PROGRESS_LOG.md#ot-0315-check-the-signed-group-rule-before-meshtrail-location-consent).
 
+Direct conversations (F9). The first F9 host composition implements the direct consent
+catalog, packet claim admission and retirement. It exercises the existing
+protected request owner and the #302 allocator with a synthetic pairing
+endpoint. A live, scope-specific F5 endpoint and the MeshTrail App invite
+and composer gate are the next steps. Device validation remains open.
+
 ## F12 host validation
 
 The counter store now checks consistency across committed slots before

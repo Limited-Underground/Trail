@@ -549,6 +549,21 @@ bool PairingNvsStorage::retire_packets(const PacketClaim& claim) {
     return save_packet_record(claim.slot_, record);
 }
 
+bool PairingNvsStorage::retire_packets(const PacketOwner& owner, std::uint64_t generation) {
+    Guard guard;
+    if (!good_ || owner == PacketOwner{} || !generation ||
+        generation > std::numeric_limits<std::uint32_t>::max()) return false;
+    for (unsigned slot = 1; slot <= kCapacity; ++slot) {
+        auto record = packet_records_[slot - 1];
+        if (record.owner != owner) continue;
+        if (record.state == PacketState::retired) return true;
+        if (record.generation != generation) return false;
+        record.state = PacketState::retired;
+        return save_packet_record(slot, record);
+    }
+    return true;
+}
+
 unsigned PairingNvsStorage::PacketView::lane_namespace() const {
     const auto lane = static_cast<unsigned>(store_);
     if (lane < kLegacyLaneFirst || lane >= kLegacyLaneFirst + kLaneCount ||

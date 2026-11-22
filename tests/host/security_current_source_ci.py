@@ -268,9 +268,15 @@ def run(output, cached_component=None):
               [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
               [f5_target], (), " Companion GATT layout migration groups")
         suite("f5_pairing_nvs_tests",
-              [f5_target / "pairing_nvs_storage.cpp", ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
-              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, f5_components / "identity/include"],
+              [f5_target / "pairing_nvs_storage.cpp", f5_components / "companion/src/direct_conversation_owner.cpp",
+               ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, f5_components / "companion/include", *base, f5_components / "identity/include"],
               (), " actual F5 pairing NVS host groups")
+        suite("direct_conversation_owner_tests",
+              [f5_components / "companion/src/direct_conversation_owner.cpp",
+               ROOT / "tests/host/direct_conversation_owner_tests.cpp"],
+              [f5_components / "companion/include", *base], (),
+              " direct-conversation owner scenario groups")
         suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
               base, (), " pairing completion journal groups")
         suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
