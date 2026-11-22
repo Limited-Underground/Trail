@@ -1,5 +1,24 @@
 # OpenTrail Progress Log
 
+## 2026-11-22
+
+### OT-0005i Qualify combined board storage (D-163)
+
+The Heltec adapter inventories the whole shared partition before granting
+access. F5 lanes admit only the two banks used by the counter and replay
+stores. An existing compatible volume keeps its claims, lane bytes and F5
+journal. Its first authorized write first commits and reads back a schema
+seal. Unknown or excess records block the transition. Earlier firmware
+refuses the seal. Factory reset closes every owner before erasing the same
+partition.
+
+The shared exclusive 16,128-entry guard checks native occupancy and
+available write space. The 12,421-entry model reserves capacity for planned
+group pair and direct records. Current owners admit only the implemented
+formats. Focused host tests cover exact capacity, interrupted seal writes
+and reclaims, shared owners and reset. Physical power-cut, endurance and
+service restoration checks remain open. Part of firmware issue #75.
+
 ## 2026-11-21
 
 ### OT-0086a Guard V1 tester builds (A11)

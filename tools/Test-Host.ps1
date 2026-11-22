@@ -903,6 +903,13 @@ $builds = @(
         )
     },
     @{
+        Name = 'combined board storage budget (D-163)'
+        Output = Join-Path $buildDirectory 'board_storage_budget_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'tests\host\board_storage_budget_tests.cpp')
+        )
+    },
+    @{
         Name = 'indexed group pair storage (V1 pairwise groups, step 3b)'
         Output = Join-Path $buildDirectory 'group_pair_index_tests.exe'
         Sources = @(
