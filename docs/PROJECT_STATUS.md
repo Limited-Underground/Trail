@@ -237,8 +237,11 @@ and [location consent](PROGRESS_LOG.md#ot-0315-check-the-signed-group-rule-befor
 Direct conversations (F9). The first F9 host composition implements the direct consent
 catalog, packet claim admission and retirement. It exercises the existing
 protected request owner and the #302 allocator with a synthetic pairing
-endpoint. A live, scope-specific F5 endpoint and the MeshTrail App invite
-and composer gate are the next steps. Device validation remains open.
+endpoint. A follow-up uses the signed F5 exchange to verify a direct peer and
+transcript and wait for each board's consent before its Prepared receipt.
+D-155 calls for a revised budget before integrating the live journals for eight
+conversations with group storage. The MeshTrail App invite and composer gate
+and device validation remain open.
 
 ## F12 host validation
 

@@ -23,6 +23,11 @@ inline constexpr std::uint8_t kMagic0 = 'O';
 inline constexpr std::uint8_t kMagic1 = 'P';
 inline constexpr std::uint8_t kVersion = 1;
 inline constexpr std::uint8_t kCompletionVersion = 2;
+inline constexpr std::uint8_t kDirectCompletionVersion = 3;
+
+constexpr bool completion_version(std::uint8_t version) {
+    return version == kCompletionVersion || version == kDirectCompletionVersion;
+}
 inline constexpr std::size_t kHeaderBytes = 6;
 inline constexpr std::uint32_t kCodeMin = 1;
 inline constexpr std::uint32_t kCodeMax = 999999;
@@ -80,8 +85,8 @@ inline bool encode(FrameType type, std::uint32_t code,
                    FrameBuffer& out, std::size_t& out_size, std::uint8_t version = kVersion) {
     const auto expected = payload_bytes(type);
     if (expected == 0 || size != expected || payload == nullptr ||
-        !code_valid(code) || (version != kVersion && version != kCompletionVersion) ||
-        (static_cast<unsigned>(type) > 10 && version != kCompletionVersion)) {
+        !code_valid(code) || (version != kVersion && !completion_version(version)) ||
+        (static_cast<unsigned>(type) > 10 && !completion_version(version))) {
         return false;
     }
     out[0] = kMagic0;
@@ -118,10 +123,10 @@ inline DecodeResult decode(const std::uint8_t* data, std::size_t size,
         data[1] != kMagic1) {
         return DecodeResult::not_pairing;
     }
-    if ((data[2] >> 4) != version || (version != kVersion && version != kCompletionVersion)) return DecodeResult::bad_version;
+    if ((data[2] >> 4) != version || (version != kVersion && !completion_version(version))) return DecodeResult::bad_version;
     const auto type = static_cast<FrameType>(data[2] & 0x0fU);
     const auto expected = payload_bytes(type);
-    if (expected == 0 || (static_cast<unsigned>(type) > 10 && version != kCompletionVersion)) return DecodeResult::bad_type;
+    if (expected == 0 || (static_cast<unsigned>(type) > 10 && !completion_version(version))) return DecodeResult::bad_type;
     if (size != kHeaderBytes + expected) return DecodeResult::bad_size;
     const std::uint32_t code = static_cast<std::uint32_t>(data[3]) |
                                (static_cast<std::uint32_t>(data[4]) << 8) |

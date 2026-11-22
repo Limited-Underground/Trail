@@ -113,7 +113,7 @@ struct Board {
         construct();
     }
 
-    Board(InvitationRole r, unsigned seed, std::uint64_t now) : role(r) {
+    Board(InvitationRole r, unsigned seed, std::uint64_t now, bool direct = false) : role(r) {
         authority.value.now_ms = now;
         clock_base_ms = now;
         authority.value.context.device = seed;
@@ -125,7 +125,8 @@ struct Board {
               SelectedEnrollmentRequestResult::admitted);
         construct();
         CHECK(session->set_invitation_window(kBoardPairingInvitationWindowMs));
-        CHECK(session->start(role, request.request().pairing_code));
+        const auto code = request.request().pairing_code;
+        CHECK(direct ? session->start_direct_pairing(role, code) : session->start(role, code));
         adapter.emplace(*session);
     }
     void open_request(unsigned seed) {
@@ -204,7 +205,8 @@ auto persistent_bytes(const StoragePort& storage) {
 
 Result drive(Board& a, Board& b, int drop_a = -1, int drop_b = -1,
              std::uint32_t code_b = 123456, TailFault fault = TailFault::none,
-             Limits limits = {}, bool check_launch = false) {
+             Limits limits = {}, bool check_launch = false,
+             const std::function<void(std::uint64_t)>& observe = {}) {
     if (!limits.recovery_completion) limits.peer_confirmed_completion = true;
     PairingCoordinator<PairingSessionAdapter> ca(*a.adapter, true, 123456, limits);
     PairingCoordinator<PairingSessionAdapter> cb(*b.adapter, false, code_b, limits);
@@ -217,7 +219,15 @@ Result drive(Board& a, Board& b, int drop_a = -1, int drop_b = -1,
     std::array<QueuedFrame, 2> queued{};
     const auto accept = [&](bool from_a, const FrameBuffer& frame, std::size_t size, std::uint64_t now) {
         auto& count = from_a ? sent_a : sent_b;
-        const auto type = static_cast<opentrail::protocol::pairing::FrameType>(frame[2] & 0x0f);
+        namespace pairing = opentrail::protocol::pairing;
+        const auto type = static_cast<pairing::FrameType>(frame[2] & 0x0f);
+        if (limits.direct_completion) {
+            pairing::Frame parsed{};
+            CHECK(pairing::decode(frame.data(), size, 123456, parsed, pairing::kDirectCompletionVersion) ==
+                  pairing::DecodeResult::ok);
+            CHECK(pairing::decode(frame.data(), size, 123456, parsed, pairing::kCompletionVersion) ==
+                  pairing::DecodeResult::bad_version);
+        }
         if (type == opentrail::protocol::pairing::FrameType::clock_mark) {
             EvaluationEnrollmentClockMark mark{};
             pairing_codec::get(frame.data() + opentrail::protocol::pairing::kHeaderBytes, mark);
@@ -264,6 +274,7 @@ Result drive(Board& a, Board& b, int drop_a = -1, int drop_b = -1,
         b.authority.value.now_ms = b.clock_base_ms + t;
         a.person(t);
         b.person(t);
+        if (observe) observe(t);
         for (std::size_t side = 0; side < queued.size(); ++side) {
             auto& pending = queued[side];
             if (pending.size && t >= pending.deliver_at) {
@@ -329,6 +340,136 @@ Result run(int drop_a = -1, int drop_b = -1, std::uint32_t code_b = 123456,
     return drive(a, b, drop_a, drop_b, code_b, fault);
 }
 bool active_membership(Board& board);
+
+unsigned test_direct_pairing_consent() {
+    using Evidence = EnrollmentCandidateSession::DirectPairingEvidence;
+    enum class ResponderChoice { consent, no_action, cancel };
+    unsigned groups = 0;
+    for (const auto choice : {ResponderChoice::consent, ResponderChoice::no_action, ResponderChoice::cancel}) {
+        Board a(InvitationRole::initiator, 1, 100, true), b(InvitationRole::responder, 81, 50100, true);
+        Limits limits{};
+        limits.direct_completion = true;
+        std::optional<Evidence> proof_a, proof_b;
+        std::uint64_t first_vote_at = 0;
+        bool responder_acted = false;
+        const auto result = drive(a, b, -1, -1, 123456, TailFault::none, limits, false, [&](auto now) {
+            if (!proof_a) {
+                const auto reviewed_a = a.session->direct_reviewed();
+                const auto reviewed_b = b.session->direct_reviewed();
+                if (!reviewed_a || !reviewed_b) return;
+                CHECK(reviewed_a->scope == reviewed_b->scope && reviewed_a->peer != reviewed_b->peer);
+                CHECK(invitation_detail::nonzero(reviewed_a->scope));
+                CHECK(invitation_detail::nonzero(reviewed_a->peer));
+                CHECK(invitation_detail::nonzero(reviewed_b->peer));
+                CHECK(a.session->pairing_completion().phase == PairingCompletionPhase::confirmed);
+                CHECK(b.session->pairing_completion().phase == PairingCompletionPhase::confirmed);
+                CHECK(!a.session->direct_vote_committed() && !b.session->direct_vote_committed());
+                PairingCompletionReceipt receipt{};
+                CHECK(!a.session->export_pairing_receipt(PairingCompletionKind::prepared, receipt));
+                CHECK(!b.session->export_pairing_receipt(PairingCompletionKind::prepared, receipt));
+                CHECK(!a.session->commit_direct_vote(*reviewed_b));
+                auto wrong_scope = *reviewed_a;
+                ++wrong_scope.scope[0];
+                CHECK(!a.session->commit_direct_vote(wrong_scope));
+                CHECK(a.session->commit_direct_vote(*reviewed_a));
+                CHECK(a.session->direct_vote_committed());
+                CHECK(a.session->export_pairing_receipt(PairingCompletionKind::prepared, receipt));
+                CHECK(!b.session->receive_pairing_receipt(receipt));
+                CHECK(!b.session->direct_vote_committed());
+                CHECK(b.session->pairing_completion().phase == PairingCompletionPhase::confirmed);
+                proof_a = reviewed_a;
+                proof_b = reviewed_b;
+                first_vote_at = now;
+                return;
+            }
+            if (choice == ResponderChoice::no_action || responder_acted || now < first_vote_at + 3000) return;
+            CHECK(!a.session->direct_peer_committed(*proof_a));
+            CHECK(!b.session->direct_peer_committed(*proof_b));
+            CHECK(b.session->pairing_completion().phase == PairingCompletionPhase::confirmed);
+            if (choice == ResponderChoice::cancel) {
+                CHECK(!b.session->cancel());
+                // Exercise an authenticated terminal peer refusal using the
+                // simulated responder's real retained identity key.
+                PairingCompletionReceipt receipt{};
+                CHECK(a.session->export_pairing_receipt(PairingCompletionKind::prepared, receipt));
+                receipt[1] = static_cast<std::uint8_t>(PairingCompletionKind::aborted);
+                receipt[2] = static_cast<std::uint8_t>(b.role);
+                const auto message = pairing_receipt_signing_bytes(receipt);
+                EnrollmentIdentityStore responder(b.identity, b.random);
+                CHECK(responder.load_existing() == EnrollmentIdentityStore::LoadResult::ready);
+                std::array<std::uint8_t, 64> signature{};
+                CHECK(responder.sign(message.data(), message.size(), signature));
+                std::copy(signature.begin(), signature.end(), receipt.begin() + 36);
+                CHECK(a.session->receive_pairing_receipt(receipt));
+                CHECK(!a.session->direct_vote_committed());
+                CHECK(!a.session->export_pairing_receipt(PairingCompletionKind::prepared, receipt));
+            } else {
+                CHECK(b.session->commit_direct_vote(*proof_b));
+            }
+            responder_acted = true;
+        });
+        CHECK(proof_a && proof_b);
+        CHECK(result.prepared_a > 0);
+        if (choice != ResponderChoice::consent) {
+            CHECK(responder_acted == (choice == ResponderChoice::cancel));
+            CHECK(result.a == Outcome::failed && result.b == Outcome::failed);
+            CHECK(result.prepared_b == 0 && result.committed_a == 0 && result.committed_b == 0);
+            CHECK(!a.session->direct_peer_committed(*proof_a));
+            CHECK(!b.session->direct_peer_committed(*proof_b));
+            CHECK(!active_membership(a) && !active_membership(b));
+            const auto completion = persistent_bytes(b.completion);
+            if (b.authority.value.now_ms < b.signed_deadline_ms) b.authority.value.now_ms = b.signed_deadline_ms;
+            CHECK(!b.session->commit_direct_vote(*proof_b));
+            CHECK(persistent_bytes(b.completion) == completion);
+            b.open_request(211);
+            CHECK(!b.session->start_direct_pairing(b.role, 123456, *proof_b));
+            CHECK(persistent_bytes(b.completion) == completion);
+            if (choice == ResponderChoice::cancel) {
+                CHECK(result.completion_a.phase == PairingCompletionPhase::aborted);
+                const auto terminal = persistent_bytes(a.completion);
+                a.open_request(171);
+                CHECK(!a.session->start_direct_pairing(a.role, 123456, *proof_a));
+                CHECK(persistent_bytes(a.completion) == terminal);
+            }
+            ++groups;
+            continue;
+        }
+        CHECK(responder_acted && result.prepared_b > 0);
+        CHECK(result.a == Outcome::paired && result.b == Outcome::paired);
+        CHECK(!result.ready_a && !result.ready_b);
+        CHECK(a.session->direct_peer_committed(*proof_a));
+        CHECK(b.session->direct_peer_committed(*proof_b));
+        ++groups;
+
+        // Stored consent still requires a new exact, nonce-bound peer proof.
+        auto wrong_scope = *proof_a;
+        ++wrong_scope.scope[0];
+        const auto completion = persistent_bytes(a.completion);
+        a.open_request(151);
+        CHECK(!a.session->start_direct_pairing(a.role, 123456, wrong_scope));
+        CHECK(persistent_bytes(a.completion) == completion);
+        a.open_request(171);
+        b.open_request(211);
+        CHECK(a.session->start_direct_pairing(a.role, 123456, *proof_a));
+        CHECK(b.session->start_direct_pairing(b.role, 123456, *proof_b));
+        CHECK(!a.session->direct_reviewed() && !b.session->direct_reviewed());
+        CHECK(!a.session->direct_vote_committed() && !b.session->direct_vote_committed());
+        CHECK(!a.session->commit_direct_vote(*proof_a));
+        CHECK(!a.session->direct_peer_committed(*proof_a));
+        a.adapter.emplace(*a.session);
+        b.adapter.emplace(*b.session);
+        limits.recovery_completion = true;
+        const auto recovered = drive(a, b, -1, -1, 123456, TailFault::none, limits);
+        CHECK(recovered.a == Outcome::paired && recovered.b == Outcome::paired);
+        CHECK(recovered.prepared_a == 0 && recovered.prepared_b == 0);
+        CHECK(a.session->direct_peer_committed(*proof_a));
+        CHECK(b.session->direct_peer_committed(*proof_b));
+        CHECK(!a.session->ready() && !b.session->ready());
+        CHECK(persistent_bytes(a.completion) == completion);
+        ++groups;
+    }
+    return groups;
+}
 
 unsigned test_recoverable_tail() {
     unsigned groups = 0;
@@ -846,6 +987,11 @@ int main(int argc, char** argv) {
             const auto count=pairing_adapter_test::test_recovery_rejects_mixed_public_bank(name=="m1-foreign");
             std::cout << "PASS " << count << " pairing session adapter groups\n";return 0;
         }
+        if (name == "direct-consent") {
+            const auto count = pairing_adapter_test::test_direct_pairing_consent();
+            std::cout << "PASS " << count << " direct pairing session adapter groups\n";
+            return 0;
+        }
         if (name == "launch-gate") {
             const auto count = pairing_adapter_test::test_real_session_queued_launch_gates();
             std::cout << "PASS " << count << " pairing session adapter groups\n";
@@ -966,6 +1112,7 @@ int main(int argc, char** argv) {
         CHECK(!r.ready_a && !r.ready_b);
         ++groups;
     }
+    groups += test_direct_pairing_consent();
     groups += test_recoverable_tail();
     groups += test_recovery_freshness();
     groups += test_abort_recovery_and_new_attempt();

@@ -139,6 +139,14 @@ group rules are readable and their sharing flags require fresh consent.
 Binding the verified invitation and roster to the protected board owner
 remains open. Part of #119.
 
+### OT-0310 Gate authenticated MeshTrail direct pairing on consent
+
+Direct pairing uses a separate frame version and a signed purpose. The
+routing code selects an attempt. The F5 session verifies the peer and
+transcript before exposing the review and gates Prepared on consent for
+that exact transaction on each board. The live board connection is pending
+a D-155 storage budget for eight retained scopes alongside the group stores.
+
 ### OT-0310 Add MeshTrail direct conversation consent owner
 
 The host composition reuses protected F5 request admission and requires
