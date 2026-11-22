@@ -26,20 +26,32 @@ class V1GroupMembershipRegistryTest {
     }
 
     @Test
-    fun joiningCannotBypassTheLocationOnDefault() {
+    fun offAndPreferredAllowJoiningWithoutSharing() {
         val admin = member(1, "Brian", true)
-        val alexOff = member(2, "Alex", location = false)
-        val optional = requireNotNull(
-            V1GroupProfile.create(
-                admin.token,
-                V1GroupLocationRule.MEMBER_OPTIONAL,
-                listOf(admin, alexOff),
-            ),
-        )
-        reject(
-            V1GroupRegistryFailure.LOCATION_MUST_START_ON,
-            V1GroupMembershipRegistry.empty(alexOff.token).join(groupToken(7), optional),
-        )
+        val alex = member(2, "Alex")
+        for (rule in listOf(V1GroupLocationRule.OFF, V1GroupLocationRule.MEMBER_OPTIONAL)) {
+            val profile = assertNotNull(V1GroupProfile.create(admin.token, rule, listOf(admin, alex)))
+            accept(V1GroupMembershipRegistry.empty(alex.token).join(groupToken(7), profile))
+        }
+    }
+
+    @Test
+    fun requiredMembershipNeedsExplicitMatchingConsentAndFreshFix() {
+        val admin = member(1, "Brian", true)
+        val alex = member(2, "Alex", location = true)
+        val token = groupToken(7)
+        val registry = V1GroupMembershipRegistry.empty(alex.token)
+        val required = assertNotNull(V1GroupProfile.create(admin.token, V1GroupLocationRule.REQUIRED,
+            listOf(admin, alex)))
+        reject(V1GroupRegistryFailure.LOCATION_CONSENT_OR_FIX_REQUIRED, registry.join(token, required))
+        reject(V1GroupRegistryFailure.LOCATION_CONSENT_OR_FIX_REQUIRED,
+            registry.join(token, required, V1GroupJoinChoice.SHARE_LOCATION))
+        accept(registry.join(token, required, V1GroupJoinChoice.SHARE_LOCATION, freshFixAvailable = true))
+
+        val unconsented = assertNotNull(V1GroupProfile.create(admin.token, V1GroupLocationRule.REQUIRED,
+            listOf(admin, member(2, "Alex"))))
+        reject(V1GroupRegistryFailure.LOCATION_CONSENT_OR_FIX_REQUIRED,
+            registry.join(token, unconsented, V1GroupJoinChoice.SHARE_LOCATION, freshFixAvailable = true))
     }
 
     @Test
@@ -114,13 +126,13 @@ class V1GroupMembershipRegistryTest {
     }
 
     private fun group(admin: V1GroupMember, vararg others: V1GroupMember): V1GroupProfile =
-        requireNotNull(V1GroupProfile.create(admin.token, V1GroupLocationRule.REQUIRED, listOf(admin) + others))
+        requireNotNull(V1GroupProfile.create(admin.token, V1GroupLocationRule.MEMBER_OPTIONAL, listOf(admin) + others))
 
     private fun member(
         marker: Int,
         name: String,
         administrator: Boolean = false,
-        location: Boolean = true,
+        location: Boolean = false,
     ): V1GroupMember {
         val token = requireNotNull(V1GroupMemberToken.create(ByteArray(V1GroupMemberToken.SIZE_BYTES) { marker.toByte() }))
         return requireNotNull(V1GroupMember.create(token, name, administrator, location))

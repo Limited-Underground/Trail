@@ -5,13 +5,19 @@ package io.github.nbjelanovic.otclient
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /** Public discovery presents only a chosen name and a caller-owned opaque UI key. */
 data class V1NearbyPersonUi(val key: String, val name: String)
@@ -29,12 +35,25 @@ data class V1PeopleScreenState(
     val locationSharingEnabled: Boolean = false,
     val messages: List<V1DirectMessageUi> = emptyList(),
     val statusMessage: String? = null,
+    val locationConsentAvailable: Boolean = false,
+    val incomingInvitation: V1ChatRequestToken? = null,
+    val locationOptedIn: Boolean = false,
+    val phoneLocationState: PhoneLocationState = PhoneLocationState.OFF,
 ) {
     /** Fail closed even if a caller accidentally supplies message content before consent. */
     val visibleMessages: List<V1DirectMessageUi>
         get() = if (contactState == V1DirectContactState.ACCEPTED) messages else emptyList()
+    /** Only the live foreground controller can report Sharing. */
     val effectiveLocationSharing: Boolean
-        get() = contactState == V1DirectContactState.ACCEPTED && locationSharingEnabled
+        get() = contactState == V1DirectContactState.ACCEPTED && phoneLocationState == PhoneLocationState.SHARING
+    val mayChangeLocationSharing: Boolean
+        get() = contactState == V1DirectContactState.ACCEPTED && canSubmit && locationConsentAvailable
+    val mayChooseInvitationLocation: Boolean
+        get() = canSubmit && locationConsentAvailable && when (contactState) {
+            V1DirectContactState.AVAILABLE, V1DirectContactState.DECLINED -> true
+            V1DirectContactState.INCOMING_REQUEST_PENDING -> incomingInvitation != null
+            else -> false
+        }
 }
 
 sealed interface V1PeopleUiAction {
@@ -43,12 +62,23 @@ sealed interface V1PeopleUiAction {
     data class OpenPerson(val key: String) : V1PeopleUiAction
     data class SetVisibility(val enabled: Boolean) : V1PeopleUiAction
     /** firstMessage stays local until this request is accepted; it is not a request payload. */
-    data class RequestChat(val key: String, val firstMessage: String) : V1PeopleUiAction
-    data class Accept(val key: String) : V1PeopleUiAction
+    data class RequestChat(
+        val key: String,
+        val firstMessage: String,
+        val shareWhenAccepted: Boolean = false,
+    ) : V1PeopleUiAction
+    data class Accept(
+        val key: String,
+        val shareBack: Boolean = false,
+        val invitation: V1ChatRequestToken? = null,
+    ) : V1PeopleUiAction
     data class Decline(val key: String) : V1PeopleUiAction
     data class Block(val key: String) : V1PeopleUiAction
     data class SendMessage(val key: String, val text: String) : V1PeopleUiAction
     data class SetLocationSharing(val key: String, val enabled: Boolean) : V1PeopleUiAction
+    data class ResumeLocationSharing(val key: String) : V1PeopleUiAction
+    data class RequestLocationPermission(val key: String) : V1PeopleUiAction
+    data class OpenLocationSettings(val key: String) : V1PeopleUiAction
 }
 
 internal object V1DirectDraftPolicy {
@@ -133,20 +163,43 @@ private fun PeopleBody(state: V1PeopleScreenState, onAction: (V1PeopleUiAction) 
             OutlinedButton(onClick = { onAction(V1PeopleUiAction.Refresh) },
                 enabled = state.discoveryAvailable && state.canSubmit) { Text("Refresh nearby people") }
         } else {
+            val locationChoice = remember(
+                person.key, state.contactState, state.incomingInvitation, state.mayChooseInvitationLocation,
+            ) { mutableStateOf(false) }
+            val lifecycle = LocalLifecycleOwner.current.lifecycle
+            DisposableEffect(lifecycle, locationChoice) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_PAUSE) locationChoice.value = false
+                }
+                lifecycle.addObserver(observer)
+                onDispose { lifecycle.removeObserver(observer) }
+            }
             when (state.contactState) {
                 V1DirectContactState.AVAILABLE, V1DirectContactState.DECLINED -> {
                     PeopleCard("Start a conversation") {
                         Text("Write your first message. They receive only a chat request until they accept; your message stays on this phone.")
+                        if (state.mayChooseInvitationLocation) {
+                            DirectLocationChoice("Share when accepted", locationChoice.value) { locationChoice.value = it }
+                        }
                         PeopleComposer(person.key, state.canSubmit, "First message", "Request chat") {
-                            onAction(V1PeopleUiAction.RequestChat(person.key, it))
+                            val share = state.mayChooseInvitationLocation && locationChoice.value
+                            locationChoice.value = false
+                            onAction(V1PeopleUiAction.RequestChat(person.key, it, share))
                         }
                     }
                 }
                 V1DirectContactState.INCOMING_REQUEST_PENDING -> PeopleCard("Chat request") {
                     Text("${person.name} is requesting to chat with you")
-                    Text("Message content is hidden until you accept. Accepting does not share your location.")
+                    Text("Message content is hidden until you accept.")
+                    if (state.mayChooseInvitationLocation) {
+                        DirectLocationChoice("Share back", locationChoice.value) { locationChoice.value = it }
+                    }
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { onAction(V1PeopleUiAction.Accept(person.key)) }, enabled = state.canSubmit) { Text("Accept") }
+                        Button(onClick = {
+                            val share = state.mayChooseInvitationLocation && locationChoice.value
+                            locationChoice.value = false
+                            onAction(V1PeopleUiAction.Accept(person.key, share, state.incomingInvitation))
+                        }, enabled = state.canSubmit) { Text("Accept") }
                         OutlinedButton(onClick = { onAction(V1PeopleUiAction.Decline(person.key)) }, enabled = state.canSubmit) { Text("Decline") }
                     }
                     OutlinedButton(onClick = { onAction(V1PeopleUiAction.Block(person.key)) }, enabled = state.canSubmit) { Text("Block") }
@@ -159,13 +212,37 @@ private fun PeopleBody(state: V1PeopleScreenState, onAction: (V1PeopleUiAction) 
                     Text("New chat requests from this person are blocked. Location sharing is OFF.")
                 }
                 V1DirectContactState.ACCEPTED -> {
+                    val locationAction = if (state.mayChangeLocationSharing) {
+                        when (state.phoneLocationState) {
+                            PhoneLocationState.ALLOW_PHONE_LOCATION ->
+                                V1PeopleUiAction.RequestLocationPermission(person.key)
+                            PhoneLocationState.TURN_ON_PHONE_LOCATION ->
+                                V1PeopleUiAction.OpenLocationSettings(person.key)
+                            PhoneLocationState.PAUSED -> V1PeopleUiAction.ResumeLocationSharing(person.key)
+                            else -> null
+                        }
+                    } else null
                     Row(Modifier.fillMaxWidth()) {
                         Column(Modifier.weight(1f)) {
                             Text("Share location in this chat", style = MaterialTheme.typography.titleMedium)
-                            Text(if (state.effectiveLocationSharing) "Location sharing ON" else "Location sharing OFF")
+                            if (locationAction == null || state.phoneLocationState == PhoneLocationState.PAUSED) {
+                                Text(when {
+                                    state.phoneLocationState != PhoneLocationState.OFF -> state.phoneLocationState.label
+                                    state.locationOptedIn -> "Location sharing requested"
+                                    else -> PhoneLocationState.OFF.label
+                                })
+                            }
                         }
-                        Switch(state.effectiveLocationSharing,
-                            { onAction(V1PeopleUiAction.SetLocationSharing(person.key, it)) }, enabled = state.canSubmit)
+                        Switch(state.locationOptedIn || state.effectiveLocationSharing,
+                            { onAction(V1PeopleUiAction.SetLocationSharing(person.key, it)) },
+                            enabled = state.mayChangeLocationSharing)
+                    }
+                    if (locationAction != null) {
+                        OutlinedButton(onClick = { onAction(locationAction) }) {
+                            Text(if (state.phoneLocationState == PhoneLocationState.PAUSED) {
+                                "Resume"
+                            } else state.phoneLocationState.label)
+                        }
                     }
                     if (state.visibleMessages.isEmpty()) Text("Chat accepted. No messages yet.")
                     state.visibleMessages.forEach { message ->
@@ -177,6 +254,18 @@ private fun PeopleBody(state: V1PeopleScreenState, onAction: (V1PeopleUiAction) 
                 }
             }
         }
+}
+
+@Composable
+private fun DirectLocationChoice(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Text(label)
+    }
 }
 
 @Composable

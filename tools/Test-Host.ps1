@@ -894,6 +894,23 @@ $builds = @(
         )
     },
     @{
+        Name = 'V1 protected location frame'
+        Output = Join-Path $buildDirectory 'v1_location_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'tests\host\v1_location_frame_tests.cpp')
+        )
+    },
+    @{
+        Name = 'V1 foreground location lease, consent and dispatch'
+        Output = Join-Path $buildDirectory 'v1_location_sharing_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_sharing.cpp'),
+            (Join-Path $projectRoot 'tests\host\v1_location_sharing_tests.cpp')
+        )
+    },
+    @{
         Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
         Output = Join-Path $buildDirectory 'group_frame_tests.exe'
         Sources = @(

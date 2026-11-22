@@ -32,13 +32,17 @@ if(OPENTRAIL_LORA_LINK_TEST)
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_frame.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_sharing.cpp"
         "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp")
     list(APPEND OPENTRAIL_LORA_INCLUDES "${OPENTRAIL_RADIOLIB_HAL}" "${OPENTRAIL_PAIRING_NOISE_ADAPTER}"
-        "${OPENTRAIL_COMPONENT_ROOT}/delivery/include")
+        "${OPENTRAIL_COMPONENT_ROOT}/delivery/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/include"
+        "${OPENTRAIL_COMPONENT_ROOT}/location/include")
     list(APPEND OPENTRAIL_LORA_REQUIRES jgromes__radiolib esp_driver_spi)
 endif()
 if(OPENTRAIL_LORA_LINK_TEST AND OPENTRAIL_CONFIRMATION_EVALUATION)

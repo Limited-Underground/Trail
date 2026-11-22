@@ -57,6 +57,33 @@ and retain their own per-arm allowance. The Debug quick-status mode keeps
 the durable text outbox detached. Maintainer-local REPORT-3.md records
 the post-merge validation and artifact identities.
 
+### OT-0316 Gate MeshTrail position and stop frames on the current lease
+
+The firmware host owner clears its latest phone fix on stop, expiry, detachment
+or authority change. A position requires current consent, a fresh fix, the
+matching audience and recipient epoch, and radio budget at launch. An eligible
+stop takes priority over another sample. The receiver needs durable replay
+admission and freshness proof. It keeps only the latest pin in memory.
+
+The largest candidate payload including Packet-v1 overhead is 124 bytes. Focused
+host tests passed for both location suites and the Heltec target contract.
+The phone-enabled Heltec V4 Link Test build compiled the location sources.
+The Android host controller asks for precise location after consent and starts
+with a fresh phone fix. It renews a confirmed lease every five seconds while
+visible and stops on pause or authority loss. Protected Bluetooth, the live
+scoped packet owner, and radio qualification remain open. Part of #102 and #120.
+
+### OT-0315 Check the signed group rule before MeshTrail location consent
+
+The firmware host tests cover Off and both Preferred choices, and Required
+acceptance with a fresh phone fix. A changed audience or roster requires new
+consent. Stopping under Required pauses participation without removing the
+member. The Android host screens present all three rules, keep each direct
+choice off by default and bind it to the exact live invitation. Old stored
+group rules are readable and their sharing flags require fresh consent.
+Binding the verified invitation and roster to the protected board owner
+remains open. Part of #119.
+
 ### OT-0086a Guard V1 tester builds (A11)
 
 The firmware refuses `OPENTRAIL_V1_PRODUCTION=ON` while any bench switch is on,

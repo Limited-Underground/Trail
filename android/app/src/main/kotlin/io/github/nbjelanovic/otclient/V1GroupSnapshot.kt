@@ -45,7 +45,8 @@ private fun validDeviceReference(value: String): Boolean =
 internal object V1GroupSnapshotCodec {
     const val MAX_BYTES = 2048
     private const val MAGIC = 0x4f544750
-    private const val SCHEMA = 1
+    private const val LEGACY_SCHEMA = 1
+    private const val SCHEMA = 2
     private const val HASH_BYTES = 32
 
     fun encode(value: V1GroupSnapshot): ByteArray? {
@@ -66,7 +67,11 @@ internal object V1GroupSnapshotCodec {
             if (membership != null) {
                 out.write(membership.groupToken.persistenceBytes())
                 out.write(membership.profile.administratorToken.persistenceBytes())
-                out.writeByte(membership.profile.locationRule.ordinal)
+                out.writeByte(when (membership.profile.locationRule) {
+                    V1GroupLocationRule.REQUIRED -> 0
+                    V1GroupLocationRule.MEMBER_OPTIONAL -> 1
+                    V1GroupLocationRule.OFF -> 2
+                })
                 out.writeByte(membership.profile.members.size)
                 for (member in membership.profile.members) {
                     out.write(member.token.persistenceBytes())
@@ -90,7 +95,9 @@ internal object V1GroupSnapshotCodec {
                 encoded.copyOfRange(body.size, encoded.size))) return null
         return try {
             DataInputStream(ByteArrayInputStream(body)).use { input ->
-                if (input.readInt() != MAGIC || input.readUnsignedByte() != SCHEMA) return null
+                if (input.readInt() != MAGIC) return null
+                val schema = input.readUnsignedByte()
+                if (schema != LEGACY_SCHEMA && schema != SCHEMA) return null
                 val deviceLength = input.readUnsignedShort()
                 if (deviceLength !in 2..256) return null
                 val device = input.exact(deviceLength).toString(Charsets.US_ASCII)
@@ -101,7 +108,12 @@ internal object V1GroupSnapshotCodec {
                 val membership = if (present == 0) null else {
                     val token = V1GroupToken.create(input.exact(V1GroupToken.SIZE_BYTES)) ?: return null
                     val admin = V1GroupMemberToken.create(input.exact(V1GroupMemberToken.SIZE_BYTES)) ?: return null
-                    val rule = V1GroupLocationRule.entries.getOrNull(input.readUnsignedByte()) ?: return null
+                    val rule = when (input.readUnsignedByte()) {
+                        0 -> V1GroupLocationRule.REQUIRED
+                        1 -> V1GroupLocationRule.MEMBER_OPTIONAL
+                        2 -> if (schema == SCHEMA) V1GroupLocationRule.OFF else return null
+                        else -> return null
+                    }
                     val count = input.readUnsignedByte()
                     if (count !in 1..V1_MAX_GROUP_MEMBERS) return null
                     val members = (1..count).map {
@@ -114,7 +126,9 @@ internal object V1GroupSnapshotCodec {
                             .onMalformedInput(CodingErrorAction.REPORT)
                             .onUnmappableCharacter(CodingErrorAction.REPORT)
                             .decode(ByteBuffer.wrap(input.exact(size))).toString()
-                        V1GroupMember.create(member, name, flags and 1 != 0, flags and 2 != 0) ?: return null
+                        // Older joins enabled sharing automatically. A legacy flag carries no consent.
+                        val consented = schema == SCHEMA && flags and 2 != 0
+                        V1GroupMember.create(member, name, flags and 1 != 0, consented) ?: return null
                     }
                     V1ActiveGroupMembership(token, V1GroupProfile.create(admin, rule, members) ?: return null)
                 }
@@ -228,8 +242,12 @@ internal class V1GroupSnapshotCoordinator(
                 if (old.deviceReference != context.deviceReference || old.localMember != context.localMember)
                     return refuse(V1GroupSnapshotRefusal.BINDING_MISMATCH)
                 if (fresh.revision < old.revision) return refuse(V1GroupSnapshotRefusal.REVISION_ROLLBACK)
-                if (fresh.revision == old.revision && !bytes.contentEquals(retained))
-                    return refuse(V1GroupSnapshotRefusal.REVISION_CONFLICT)
+                if (fresh.revision == old.revision) {
+                    // Normalize legacy consent before comparing the same authoritative revision.
+                    val canonicalOld = V1GroupSnapshotCodec.encode(old)
+                        ?: return refuse(V1GroupSnapshotRefusal.RETAINED_INVALID)
+                    if (!bytes.contentEquals(canonicalOld)) return refuse(V1GroupSnapshotRefusal.REVISION_CONFLICT)
+                }
             }
             if (retained == null || !bytes.contentEquals(retained)) {
                 val replaced = try { storage.replace(retained?.copyOf(), bytes.copyOf()) }
