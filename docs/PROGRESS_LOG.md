@@ -19,6 +19,18 @@ formats. Focused host tests cover exact capacity, interrupted seal writes
 and reclaims, shared owners and reset. Physical power-cut, endurance and
 service restoration checks remain open. Part of firmware issue #75.
 
+### OT-0306 Add the QR Invite and Join host contract
+
+The signed QR descriptor binds the admin identity, roster generation and
+digest, proposed permissions, display label and one-use invite ID. The raw
+first-contact records have fixed lengths of 220, 184, 104 and 168 bytes.
+Role-separated signatures and canonical transcript checks bind both board
+approvals and the typed durable receipts to the same attempt. Membership
+continues to depend on an admitted next roster.
+
+Seven focused groups passed with both deterministic and pinned Ed25519/SHA-256 crypto. The contract is host-only. Live board and app integration,
+RF authorization and the PIN and open-window flows remain open. Part of #148.
+
 ## 2026-11-21
 
 ### OT-0086a Guard V1 tester builds (A11)

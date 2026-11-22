@@ -885,6 +885,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'QR group invitation contract (D-163 host-only)'
+        Output = Join-Path $buildDirectory 'group_qr_invite_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_qr_invite.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_qr_invite_tests.cpp')
+        )
+    },
+    @{
         Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
         Output = Join-Path $buildDirectory 'group_frame_tests.exe'
         Sources = @(
