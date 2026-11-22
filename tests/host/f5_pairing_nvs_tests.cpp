@@ -629,6 +629,11 @@ void native_budget_boundary() {
  {
   GroupStore roster(GroupStore::Store::roster); CHECK(roster.ready());
   CHECK(fake::native_entries()==kNativeLimit-1);
+  Storage pairing; CHECK(pairing.ready());
+  const auto measured=target::pairing_nvs_entry_usage();
+  CHECK(measured && measured->used_entries==kNativeLimit-1 &&
+        measured->total_entries==Storage::kTotalEntries &&
+        measured->free_entries==Storage::kTotalEntries-kNativeLimit+1);
   CHECK(roster.write_blob(kPartition,kRoster,"g1",journal.data(),journal.size())==GroupError::none);
   CHECK(roster.commit(kPartition,kRoster)!=GroupError::none);
   CHECK(fake::media==before && fake::changes()==0 && fake::namespace_creations==0);
@@ -874,20 +879,21 @@ int main(int argc,char** argv) {
  CHECK(static_cast<unsigned>(Store::f5_state)==12 && static_cast<unsigned>(Store::f5_state_tail)==17);
  ++groups;
  // Telemetry uses a validated measurement from the existing storage budget
- // check. Re-reading it does not mount NVS or refresh its source timestamp.
+ // check. Partition stats include the ot_pair namespace entry. Re-reading
+ // does not mount NVS or refresh the source timestamp.
  {
   CHECK(!target::pairing_nvs_entry_usage());
-  fake::reset(); fake::extra_entries=12; fake::time=2'345'000;
+  fake::reset(); fake::partition_extra_entries=12; fake::time=2'345'000;
   Storage s; CHECK(s.ready());
   const auto measured=target::pairing_nvs_entry_usage();
-  CHECK(measured && measured->used_entries==12 && measured->total_entries==Storage::kTotalEntries);
-  CHECK(measured->free_entries==Storage::kTotalEntries-12 && measured->observed_at_ms==2345);
-  fake::extra_entries=16; fake::time=2'350'000;
+  CHECK(measured && measured->used_entries==13 && measured->total_entries==Storage::kTotalEntries);
+  CHECK(measured->free_entries==Storage::kTotalEntries-13 && measured->observed_at_ms==2345);
+  fake::partition_extra_entries=16; fake::time=2'350'000;
   const auto cached=target::pairing_nvs_entry_usage();
-  CHECK(cached && cached->used_entries==12 && cached->observed_at_ms==2345 && fake::time==2'350'000);
+  CHECK(cached && cached->used_entries==13 && cached->observed_at_ms==2345 && fake::time==2'350'000);
   CHECK(s.budget_ok());
   const auto refreshed=target::pairing_nvs_entry_usage();
-  CHECK(refreshed && refreshed->used_entries==16 && refreshed->observed_at_ms==2350);
+  CHECK(refreshed && refreshed->used_entries==17 && refreshed->observed_at_ms==2350);
   ++groups;
  }
  {

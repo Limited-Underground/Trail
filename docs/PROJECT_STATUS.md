@@ -148,7 +148,9 @@ phone reads two pages of the same 212-byte snapshot through the protected
 command lane. The app checks the complete record before displaying values or
 adding them to the log. Firmware without the feature version still supplies
 ordinary status. The opt-in F7 phone path can also read the F11 snapshot.
-BLE host stack headroom is available in evaluation and connection diagnostics.
+The NVS reading reports the last validated shared partition sample, with
+pairing, roster, catalog and format seal in the same totals. BLE host stack
+headroom is available in evaluation and connection diagnostics.
 Bench verification covers age, update and reconnect on a
 retained bond. See the [component guide](../firmware/components/device_parameters/README.md).
 
@@ -298,11 +300,11 @@ The two-board, two-phone check still needs the owner.
 | Task | OT-0005i — D-163 combined board storage, part of firmware issue #75. |
 | Owner | MeshTrail Firmware owns the shared Heltec storage adapter, exact lane schema, restore refusal and host tests. |
 | Scope | Keep the 1 MiB state partition. Narrow the exact packet lane keys, share the exclusive 16,128-entry guard and prove the format transition before live scope integration. |
-| State | Local storage candidate. The November 20 F5/F7 board observation predates the new schema. Diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded evidence and consumed grant. |
+| State | D-163 storage merged in PR #308. The November 20 F5/F7 board observation predates the new schema. Diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its bounded evidence and consumed grant. |
 | Source | D-163 topic based on 2caff09b92e9f4028537c2d832bcc4ebf05d9c70. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | The host adapter checks a fresh store, full active layout, projected capacity and write-space refusal, interrupted schema and claim writes, and factory reset. The prior app adapter refuses sealed media without touching the retained records. Both Heltec Link Test builds passed. |
 | Blocker | Native flash interruption, flash wear, reclaim timing and service-level restoration need owner-present evidence. Live group pair and direct storage owners are future increments. |
-| Next action | Review the local candidate and use a separately approved bench session to qualify the new storage and its exact restore route. The F7 phone and I-087 display acceptance steps remain under their own gates. |
+| Next action | Use a separately approved bench session to qualify the new storage and its exact restore route. The F7 phone and I-087 display acceptance steps remain under their own gates. |
 | Restrictions | D-156 assigns review and publication of the local bundle to Claude. Physical operations and merges require separate owner authority. |
 | Latest record | [OT-0005i Qualify combined board storage (D-163)](PROGRESS_LOG.md#ot-0005i-qualify-combined-board-storage-d-163). See the [F7 phone record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane) and the [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
 | Evidence access | Candidate images, host receipts, restore-refusal evidence and source bundle are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
@@ -316,12 +318,12 @@ Live Invite/Join and RF acceptance remain open.
 
 | Field | Current pickup state |
 | --- | --- |
-| Reviewed | 2026-11-21 |
+| Reviewed | 2026-11-22 |
 | Task | OT-0341 — F11 device parameters and A8/A9 logging and export (issues #125 and #103). |
 | Owner | MeshTrail Firmware owns the Heltec acquisition and protected reply. MeshTrail App owns polling, display and text export on feat/v1-logging. |
 | Scope | Collect board parameters with age, read one snapshot over the protected link, display board readings and export the redacted log by user-selected share or file save. |
 | State | F11/A8/A9 host candidate. Historical diagnostic attempt 981e43cff4914a948386933fb3edb7fb retains its accepted exchange and consumed grant. |
-| Source | Topic feat/v1-logging rebased onto main f6e9cc694da449b12f868d44c8048f9b8f2fde4d, including PRs #294 and #302. Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
+| Source | Topic feat/v1-logging rebased onto main 1270b61faeb94586967e77bbfc8f255108c29e6e, including D-163 storage (#308) and the protected quick-status route (#305). Historical diagnostic firmware SHA-256 553ece87073b81ee9045b9704e204a52dcf9d931e274e22952b0411735052283, APK 7b9b25e84a0b3ab07c48ef9f3995174f9f72245e35a3978452ed380e57795d7c, execution manifest b17ca4113cd116d99d716bbaa420ec61d96e9a4f319e88be0a7aa888a16471fc. |
 | Verified | The topic includes the firmware collector from PR #280 and the Android text export from PR #286. The focused regressions cover authorization, page ordering and deadlines, structured log export and the Android file-save path. |
 | Blocker | Real board readings, retained-bond compatibility, email receipt and cloud link access require an owner-present test. |
 | Next action | Claude reviews the verified bundle under D-156. Arrange one authorized Heltec V4 and Android session. Check status age, reconnect, text attachment and cloud link access with the actual recipient. |
