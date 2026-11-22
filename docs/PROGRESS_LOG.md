@@ -78,6 +78,31 @@ and final independent admission still need evidence under
 [#205](https://github.com/Limited-Underground/Trail/issues/205) and
 [#88](https://github.com/Limited-Underground/Trail/issues/88).
 
+### OT-0312 Integrate phone text with the outbox and group command lane
+
+The F7 bench path now coexists with the A10 protected text outbox from
+PR #299. The app attaches durable outbox storage and uses the existing live
+OTY0 proof before a queued bench message can go to its paired recipient.
+The private bench file reader remains in developer Debug.
+
+The Heltec dispatcher preserves the F8 group command admission from PR #298,
+including the public 0.5 profile and acknowledged Snapshot. The F7 bench
+text and authority frames use the protected 0.6 path. Both paths use the
+existing Command and Stream attributes. The local rebase report records the
+host and build evidence for review. The current base includes the I-080 storage reuse from PR #302. Phone-to-phone acceptance stays open.
+
+### OT-0312 Keep bench text provisioning in Debug
+
+PR #294 separates the F7 record reader from the shared Android pin parser.
+The developer Debug build reads the independently provisioned record. Release
+and V1-Test supply no bench record. The strict parser and live OTY0 checks
+still govern the Debug trial. The Windows core privacy gate runs against the
+same production source policy.
+
+The topic is rebased onto main through PR #297. The I-087 paired-screen
+and I-086 reconnect records below still apply to their own device checks.
+Phone-to-phone acceptance for F7 remains an owner-present bench check.
+
 ## 2026-11-20
 
 ### OT-0170a Recover after a refreshed Bluetooth connection fails (I-086)
@@ -124,6 +149,27 @@ owner-present board check under firmware issue #232.
 - **Next.** Build rendezvous in a later increment. Heltec's burst limit
   and the qualification basis govern burst-dependent framing and reserves.
   Hopping TX remains disabled in the board target.
+
+### OT-0312 Send typed text between phones through paired boards
+
+D-143 selects the existing reciprocal 60-second Link Test arms for the
+phone-text trial. The development app uses an independently provisioned
+public pairing record and the live protected OTY0 exchange before enabling
+the D-035 text carrier. The target reuses the protected Command and Stream
+attributes and the existing I-084 handle layout.
+
+The phone submits up to 90 UTF-8 bytes. The board validates the exact owner
+attachment and retained session, then queues one OTXT frame through F5.
+The other board emits one scoped receive event, with duplicate RF frames
+handled by the existing cached ACK. Queued, local TxDone, authenticated
+peer-board acknowledgement and failure remain separate evidence. Message
+contents are session-bound and excluded from diagnostic and operation logs.
+The standard profile and production radio policy keep their ordinary paths.
+
+The maintainer-local TASK-6 report records validation, exact artifacts and
+the two-board, two-phone acceptance procedure. Board-to-board F7 is covered
+by the November 20 session. The phone-to-phone trial awaits physical
+acceptance. This topic advances #116 and #75.
 
 ### OT-0170a Clarify tester wording and resume setup (I-023)
 

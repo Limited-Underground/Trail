@@ -141,19 +141,21 @@ def require(condition: bool, message: str) -> None:
 
 def without_lora_link_test(source: str) -> str:
     # V1 F5 step R1 (D-075): LoRa code in an application source is admitted only
-    # inside blocks that open with the exact line "#if OPENTRAIL_LORA_LINK_TEST"
-    # and close with "#endif". Review F6: anything else that mentions the flag
+    # inside blocks that open with the exact Link Test or D-143 phone-test
+    # guard and close with "#endif". Anything else mentioning either flag
     # (#ifdef, #else, #elif, extended conditions such as "|| 1") and any nested
     # conditional inside a block is refused, so the remaining text is exactly
     # what a normal build compiles and every original check still applies to it.
+    flags = ("OPENTRAIL_LORA_LINK_TEST", "OPENTRAIL_LORA_F7_PHONE_TEST")
+    guards = {f"#if {flag}" for flag in flags}
     kept, inside = [], False
     for line in source.splitlines(keepends=True):
         directive = line.strip()
         if not inside:
-            if directive == "#if OPENTRAIL_LORA_LINK_TEST":
+            if directive in guards:
                 inside = True
                 continue
-            require("OPENTRAIL_LORA_LINK_TEST" not in line,
+            require(all(flag not in line for flag in flags),
                     "LoRa link test flag used outside an exact opt-in block")
             kept.append(line)
             continue
@@ -169,6 +171,8 @@ def test_lora_link_test_filter() -> None:
     # Review F6 regressions: both bypasses Codex demonstrated must be refused.
     plain = "a\n#if OPENTRAIL_LORA_LINK_TEST\nRadioLib x;\n#endif\nb\n"
     require(without_lora_link_test(plain) == "a\nb\n", "exact opt-in block must be removed")
+    phone = plain.replace("OPENTRAIL_LORA_LINK_TEST", "OPENTRAIL_LORA_F7_PHONE_TEST")
+    require(without_lora_link_test(phone) == "a\nb\n", "exact phone test block must be removed")
     for bypass in (
         "#if OPENTRAIL_LORA_LINK_TEST\nx\n#else\nRadioLib y;\n#endif\n",
         "#if OPENTRAIL_LORA_LINK_TEST || 1\nSX126 z;\n#endif\n",
@@ -349,6 +353,8 @@ def test_contract() -> None:
         "main/board_pairing_runtime.hpp",
         "main/board_messaging_runtime.cpp",
         "main/board_messaging_runtime.hpp",
+        "main/board_phone_text_backend.hpp",  # D-143 opt-in app-task F7 bridge
+        "main/companion_phone_text_gatt.hpp",  # D-143 route on existing protected attributes
         "main/board_pairing_result.hpp",  # D-111: guarded pure result projection, real-session tested
         "main/idf_component.yml",
         ".gitignore",
@@ -3809,6 +3815,23 @@ def test_f7_link_test_text_surface() -> None:
             "USB logs must distinguish the checked sample from other peer content")
 
 
+def test_f7_phone_text_surface() -> None:
+    cmake = (TARGET / "CMakeLists.txt").read_text(encoding="utf-8")
+    component = (TARGET / "main/CMakeLists.txt").read_text(encoding="utf-8")
+    app = SOURCE.read_text(encoding="utf-8")
+    runtime = (TARGET / "main/board_messaging_runtime.cpp").read_text(encoding="utf-8")
+    require(bool(re.search(r'option\(OPENTRAIL_LORA_F7_PHONE_TEST "[^"]+" OFF\)', cmake)),
+            "phone text must be an explicit bench opt-in")
+    require("NOT OPENTRAIL_LORA_LINK_TEST OR OPENTRAIL_LORA_F7_TEXT_TEST" in cmake and
+            "OPENTRAIL_LORA_LINK_TEST AND NOT OPENTRAIL_RELEASE_GENERATION STREQUAL" in cmake,
+            "phone text needs Link Test, excludes the fixed text fixture and excludes releases")
+    require("OPENTRAIL_LORA_F7_PHONE_TEST=$<BOOL:${OPENTRAIL_LORA_F7_PHONE_TEST}>" in component and
+            "install_companion_phone_text_backend(g_phone_text)" in app,
+            "only the compiled phone-test app installs the protected backend")
+    require("!kPhoneText && !payload_sent" in runtime and "if constexpr (kFixedTextTest)" in runtime,
+            "the phone test sends only app-submitted payloads and omits the fixture text log")
+
+
 def main() -> int:
     tests = (test_contract, test_lora_link_test_filter, test_executed_oled_startup_flash_plan,
              test_physical_flash_plan, test_recovery_partition_layout,
@@ -3827,7 +3850,7 @@ def main() -> int:
              test_selected_enrollment_request_route, test_pairing_result_protected_route,
              test_pairing_queued_launch_behavior)
     tests = (*tests, test_f5_messaging_runtime_surface, test_companion_gatt_layout_migration,
-             test_f7_link_test_text_surface)
+             test_f7_link_test_text_surface, test_f7_phone_text_surface)
     for test in tests:
         test()
         print(f"PASS: {test.__name__}")
