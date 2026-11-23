@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--suite',choices=('f5-rekey','qr-invite'),default='f5-rekey')
+    parser.add_argument('--suite',choices=('f5-rekey','qr-invite','qr-noise'),default='f5-rekey')
     parser.add_argument('--sodium-source',type=Path,required=True,help='Expanded exact espressif component (733 pinned files)')
     args=parser.parse_args()
     out=args.out.resolve()
@@ -62,6 +62,28 @@ def main():
         command=list(map(expand,raw));command[0]=str(compiler_dir/(command[0]+'.exe'))
         target=Path(command[command.index('-o')+1]);objects.append(target)
         run(command)
+    if args.suite == 'qr-noise':
+        noise_dir = ROOT/'firmware/targets/heltec_v4_security_eval/main/noise_adapter'
+        # The pinned recipe already compiles the Noise XK adapter with libsodium.
+        command=list(template)
+        command[command.index('-c')+1]=str(ROOT/'tests/host/group_qr_noise_binding_tests.cpp')
+        command[command.index('-o')+1]=str(out/'qr-noise-tests.o')
+        command[command.index('-MF')+1]=str(out/'qr-noise-tests.d')
+        command=list(map(expand,command));command[0]=str(compiler_dir/'g++.exe')
+        for include in (noise_dir, ROOT/'firmware/components/identity/include',
+                        ROOT/'firmware/components/security_evaluation/include'):
+            command += ['-I', str(include)]
+        run(command);objects.append(out/'qr-noise-tests.o')
+        exe=out/'qr-noise.exe'
+        run([compiler_dir/'g++.exe','-Wl,--gc-sections',*objects,'-ladvapi32','-o',exe])
+        stdout=run([exe])
+        if not stdout.startswith('PASS ') or ' QR Noise XK binding groups (pinned libsodium)' not in stdout:
+            raise RuntimeError('Missing expected host result')
+        record={'result':'PASS','physical':False,'network':False,'stdout':stdout,'dependency_files':733,
+            'binary_sha256':hashlib.sha256(exe.read_bytes()).hexdigest(),'recipe_sha256':hashlib.sha256(recipe_raw).hexdigest()}
+        (out/'RESULT.json').write_text(json.dumps(record,indent=2)+'\n')
+        print(stdout,end='')
+        return
     qr = args.suite == 'qr-invite'
     sources = (('firmware/components/identity/src/group_roster.cpp',
                 'firmware/components/identity/src/group_qr_invite.cpp',
