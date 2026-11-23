@@ -10,6 +10,10 @@ import io.github.nbjelanovic.otprotocol.CompanionTextReceived
 import io.github.nbjelanovic.otprotocol.CompanionTextDelivery
 import io.github.nbjelanovic.otprotocol.CompanionRadioEventCodec
 import io.github.nbjelanovic.otprotocol.CompanionRadioEventReceiver
+import io.github.nbjelanovic.otprotocol.CompanionLocationCodec
+import io.github.nbjelanovic.otprotocol.CompanionLocationOperation
+import io.github.nbjelanovic.otprotocol.CompanionLocationReply
+import io.github.nbjelanovic.otprotocol.CompanionLocationStatus
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionConfigurationInfo
@@ -229,6 +233,9 @@ interface BleGattLease : BleLease {
     /** Enables Stream indications; Notify-only subscription is not accepted by this v0 boundary. */
     fun subscribeStreamIndications(): Boolean
     fun writeCommandWithResponse(value: ByteArray): Boolean
+    /** A position must enter the current ATT write, never wait in a command queue. */
+    val immediateCommandAvailable: Boolean get() = false
+    fun writeImmediateCommandWithResponse(value: ByteArray): Boolean = false
 }
 
 /**
@@ -2099,6 +2106,61 @@ class BleCompanionRuntime(
         return configurationOperation { it.submitBoardGroupAction(action) }
     }
 
+    internal fun groupLocationAuthority(group: V1BoardGroupSummary): V1GroupLocationAuthority? {
+        requireOwnerThread()
+        if (state !is BleRuntimeState.Ready) return null
+        val session = configurationSession ?: return null
+        val binding = session.groupLocationBinding(group) ?: return null
+        fun current(): Boolean {
+            requireOwnerThread()
+            return state is BleRuntimeState.Ready && configurationSession === session &&
+                session.groupLocationBinding(group) == binding
+        }
+        val board = object : PhoneLocationBoard {
+            override fun laneAvailable(binding: LocationBinding): Boolean =
+                binding == session.groupLocationBinding(group) && current() && !deliveringObserver &&
+                    pendingAction == null && pendingStatusRefresh == null && groupConfirmationSession?.busy != true &&
+                    !session.busy && !session.hasLocationCleanup && gattLease?.immediateCommandAvailable == true
+
+            private fun submit(
+                selected: LocationBinding,
+                operation: CompanionLocationOperation,
+                lease: Long = 0L,
+                fix: PhoneLocationFix? = null,
+                result: (CompanionLocationReply?) -> Unit,
+            ) {
+                if (selected != binding || !current() || !configurationOperation {
+                    it.submitGroupLocation(group, binding, operation, lease, fix, result)
+                }) result(null)
+            }
+
+            override fun consent(binding: LocationBinding, result: (Boolean) -> Unit) =
+                submit(binding, CompanionLocationOperation.CONSENT) { result(it?.status == CompanionLocationStatus.OK) }
+
+            override fun start(binding: LocationBinding, fix: PhoneLocationFix, result: (Long?) -> Unit) =
+                submit(binding, CompanionLocationOperation.START, fix = fix) {
+                    result(it?.takeIf { reply -> reply.status == CompanionLocationStatus.OK }?.lease?.toLong())
+                }
+
+            override fun renew(binding: LocationBinding, lease: Long, fix: PhoneLocationFix?, result: (Boolean) -> Unit) =
+                submit(binding, CompanionLocationOperation.RENEW, lease, fix) {
+                    result(it?.status == CompanionLocationStatus.OK)
+                }
+
+            override fun stop(binding: LocationBinding, lease: Long) =
+                retire(binding, CompanionLocationOperation.STOP, lease)
+
+            override fun withdraw(binding: LocationBinding) = retire(binding, CompanionLocationOperation.WITHDRAW)
+
+            private fun retire(selected: LocationBinding, operation: CompanionLocationOperation, lease: Long = 0L) {
+                if (selected != binding || !current()) return
+                session.queueGroupLocationCleanup(group, binding, operation, lease)
+                pumpAutomaticConfiguration()
+            }
+        }
+        return V1GroupLocationAuthority(binding, board, ::current)
+    }
+
     fun boardGroupState(): V1BoardGroupState {
         requireOwnerThread()
         return if (state is BleRuntimeState.Ready) configurationSession?.boardGroupState() ?: V1BoardGroupState()
@@ -2119,12 +2181,13 @@ class BleCompanionRuntime(
         if(pumpingAutomaticConfiguration || deliveringObserver || state !is BleRuntimeState.Ready ||
             pendingAction!=null || pendingStatusRefresh!=null || groupConfirmationSession?.busy==true) return
         val session=configurationSession ?: return
-        if(session.busy || (!automaticNameReadPending && !automaticTimeSyncPending)) return
+        if (session.busy || (!session.hasLocationCleanup && !automaticNameReadPending && !automaticTimeSyncPending)) return
         pumpingAutomaticConfiguration=true
         try {
             while(configurationSession===session && state is BleRuntimeState.Ready && pendingAction==null &&
                 pendingStatusRefresh==null && !session.busy && groupConfirmationSession?.busy!=true) {
                 when {
+                    session.flushLocationCleanup() -> Unit
                     automaticNameReadPending -> { automaticNameReadPending=false;session.readName() }
                     automaticTimeSyncPending -> { automaticTimeSyncPending=false;session.synchronizeTime() }
                     else -> break
@@ -2170,6 +2233,10 @@ class BleCompanionRuntime(
                         retirePacket(BleRuntimeFailure.ACTION_WRITE_FAILED,unknown=true);false
                     } else sent
                 }
+            },
+            sendImmediateLocation = { bytes ->
+                info.minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                    gattLease?.writeImmediateCommandWithResponse(bytes) == true
             },
             civilSample={ facade.displayTimeSample() },
             changed={ configuration ->
@@ -2641,11 +2708,12 @@ class BleCompanionRuntime(
             return
         }
         if(configurationFrame?.kind in listOf(0x86,0x87,0x88,CompanionPublicProfileCodec.RESPONSE,
-                CompanionGroupConfigurationCodec.RESPONSE_KIND)) {
+                CompanionGroupConfigurationCodec.RESPONSE_KIND, CompanionLocationCodec.RESPONSE_KIND)) {
             val frame = checkNotNull(configurationFrame)
             if(configurationSession?.receive(frame) == true) {
                 armConfigurationTimeout()
-                if (frame.kind == CompanionGroupConfigurationCodec.RESPONSE_KIND) pumpAutomaticConfiguration()
+                if (frame.kind == CompanionGroupConfigurationCodec.RESPONSE_KIND ||
+                    frame.kind == CompanionLocationCodec.RESPONSE_KIND) pumpAutomaticConfiguration()
                 return
             }
             // Unsolicited or stale operation results cannot mutate current work.

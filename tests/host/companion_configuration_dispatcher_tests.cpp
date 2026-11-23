@@ -1,5 +1,6 @@
 #include "opentrail/companion_configuration_dispatcher.hpp"
 #include "opentrail/companion_group_configuration.hpp"
+#include "opentrail/companion_location_owner.hpp"
 #include "opentrail/companion_request_coordinator.hpp"
 #include "companion_configuration_lane.hpp"
 #include "opentrail/companion_region_catalog.hpp"
@@ -137,9 +138,10 @@ struct GroupBackend : ConfigurationGroupBackend {
 struct Harness {
     Source source; Store store; Base base; RegionStore regions;PublicStore public_profile;std::uint8_t minor;
     ConfigurationDispatcher owner;
-    explicit Harness(std::uint8_t version=2, ConfigurationGroupBackend* group=nullptr)
+    explicit Harness(std::uint8_t version=2, ConfigurationGroupBackend* group=nullptr,
+                     ConfigurationLocationBackend* location=nullptr)
         :minor(version),owner(source,store,base,(version==3||version==5)?&regions:nullptr,
-                              version,nullptr,version==5?&public_profile:nullptr,group){}
+                              version,nullptr,version==5?&public_profile:nullptr,group,location){}
     ConfigurationFrame frame(std::uint8_t kind,std::uint32_t exchange) {
         ConfigurationFrame f{}; f.minor_version=minor;f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
     }
@@ -956,8 +958,117 @@ void parameters_read_requires_confirmed_same_session_continuation() {
     EXPECT(!encode_configuration_frame(malformed, encoded.data(), encoded.size()).encoded());
 }
 
-int main(){parameters_read_requires_confirmed_same_session_continuation();group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+struct ExactLocationAudience : ConfigurationLocationAudienceSource {
+    ConfigurationLocationScope scope{ConfigurationLocationKind::group, 2, 11, 3, {}, {}};
+    int reads = 0;
+    ExactLocationAudience() { scope.admin[0] = 0xa3; scope.digest[0] = 0xb4; }
+
+    std::optional<opentrail::location::v1::GroupRule> verified_rule(
+        const ConfigurationLocationScope& candidate) noexcept override {
+        ++reads;
+        if (!(candidate == scope)) return std::nullopt;
+        return opentrail::location::v1::GroupRule::preferred;
+    }
+};
+
+void location_configuration_codec_uses_profile_five_and_canonical_bytes() {
+    using Op = ConfigurationLocationOperation;
+    ExactLocationAudience audience;
+    ConfigurationLocationCommand start{audience.scope, Op::start, 0, 0x0102030405060708ULL, 999, -800000, 1234567};
+    ConfigurationFrame frame{ kConfigurationLocationCommandKind, 1, 2, 0, {}, 5 };
+    const auto written = encode_configuration_location_command(start, frame.payload.data(), frame.payload.size());
+    EXPECT(written.encoded() && written.encoded_bytes == 112);
+    EXPECT(frame.payload[0] == 1 && frame.payload[1] == 2 && frame.payload[2] == 1 && frame.payload[3] == 2);
+    EXPECT(frame.payload[28] == 1 && frame.payload[35] == 8 && frame.payload[48] == 0xa3 && frame.payload[80] == 0xb4);
+    frame.payload_bytes = static_cast<std::uint16_t>(written.encoded_bytes);
+    std::array<std::uint8_t, kConfigurationRecordBytes> wire{};
+    const auto encoded = encode_configuration_frame(frame, wire.data(), wire.size());
+    EXPECT(encoded.encoded() && encoded.encoded_bytes == 132);
+    const auto parsed = decode_configuration_frame(wire.data(), encoded.encoded_bytes, 5);
+    EXPECT(parsed.decoded());
+    const auto reseated = decode_configuration_location_command(parsed.value.payload.data(), parsed.value.payload_bytes);
+    EXPECT(reseated.decoded() && reseated.value.latitude_e4 == -800000 &&
+           reseated.value.longitude_e4 == 1234567 && reseated.value.scope == audience.scope);
+    frame.minor_version = 3;
+    EXPECT(!encode_configuration_frame(frame, wire.data(), wire.size()).encoded());
+    frame.minor_version = 5;
+    frame.payload_bytes--;
+    EXPECT(!encode_configuration_frame(frame, wire.data(), wire.size()).encoded());
+    EXPECT(!encode_configuration_location_command({audience.scope, Op::stop, 8, 0, 0, 1, 0},
+        frame.payload.data(), frame.payload.size()).encoded());
+    EXPECT(!encode_configuration_location_result(
+        {Op::stop, ConfigurationLocationStatus::ok, 11, 3, 8},
+        frame.payload.data(), frame.payload.size()).encoded());
+}
+
+void protected_location_frames_drive_the_actual_board_lease_owner() {
+    using Op = ConfigurationLocationOperation;
+    using Status = ConfigurationLocationStatus;
+    using Dispatch = ConfigurationDispatchCode;
+    Source protected_binding;
+    ExactLocationAudience audience;
+    ConfigurationLocationOwner location{protected_binding, audience};
+    Harness h{5, nullptr, &location};
+    const auto time = [&](std::uint64_t ms) {
+        h.source.state.now_ms = ms;
+        protected_binding.state.now_ms = ms;
+    };
+    const auto frame = [&](std::uint32_t id, const ConfigurationLocationCommand& command) {
+        auto request = h.frame(kConfigurationLocationCommandKind, id);
+        const auto encoded = encode_configuration_location_command(command, request.payload.data(), request.payload.size());
+        EXPECT(encoded.encoded());
+        request.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return request;
+    };
+    const auto send = [&](std::uint32_t id, const ConfigurationLocationCommand& command) {
+        EXPECT(h.submit(frame(id, command)).code == Dispatch::accepted);
+        const auto reply = response(h.owner.execute(), 5);
+        EXPECT(reply.kind == kConfigurationLocationResultKind && reply.exchange_id == id &&
+               reply.session_nonce == h.source.state.context.session_nonce && reply.payload_bytes == 28);
+        const auto result = decode_configuration_location_result(reply.payload.data(), reply.payload_bytes);
+        EXPECT(result.decoded() && result.value.operation == command.operation &&
+               result.value.id == command.scope.id && result.value.generation == command.scope.generation);
+        return result.value;
+    };
+
+    const ConfigurationLocationCommand consent{audience.scope, Op::consent};
+    const ConfigurationLocationCommand start{audience.scope, Op::start, 0, 1, 0, 123, -456};
+    EXPECT(h.submit(frame(2, consent)).code == Dispatch::unauthorized && audience.reads == 0);
+    h.ready();
+    protected_binding.state.phase = DeviceNamePhase::ready;
+    time(5);
+    EXPECT(send(2, start).status == Status::denied);
+    auto wrong = consent;
+    wrong.scope.digest[1] = 1;
+    EXPECT(send(3, wrong).status != Status::ok);
+    EXPECT(send(4, consent).status == Status::ok);
+    time(25);
+    const auto started = send(5, start);
+    EXPECT(started.status == Status::ok && started.lease != 0);
+    EXPECT(h.submit(frame(5, start)).code == Dispatch::no_result);
+    time(5025);
+    const auto renewed = send(6, {audience.scope, Op::renew, started.lease});
+    EXPECT(renewed.status == Status::ok && renewed.lease == started.lease);
+    const auto stopped = send(7, {audience.scope, Op::stop, started.lease});
+    EXPECT(stopped.status == Status::ok && stopped.lease == 0);
+    EXPECT(send(8, {audience.scope, Op::renew, started.lease}).status == Status::denied);
+    EXPECT(send(9, {audience.scope, Op::withdraw}).status == Status::ok);
+    time(5030);
+    EXPECT(h.submit(frame(10, consent)).code == Dispatch::accepted);
+    time(10030);
+    const int reads = audience.reads;
+    EXPECT(h.owner.execute().bytes == 0 && audience.reads == reads);
+    time(10031);
+    EXPECT(h.submit(frame(11, consent)).code == Dispatch::accepted);
+    h.source.state.phase = DeviceNamePhase::disconnected;
+    protected_binding.state.phase = DeviceNamePhase::disconnected;
+    EXPECT(h.owner.execute().bytes == 0 && audience.reads == reads);
+}
+
+int main(){location_configuration_codec_uses_profile_five_and_canonical_bytes();
+    protected_location_frames_drive_the_actual_board_lease_owner();
+    parameters_read_requires_confirmed_same_session_continuation();group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 21 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: composed configuration dispatcher groups, including protected location codec and lease flow\n";
     return 0;
 }

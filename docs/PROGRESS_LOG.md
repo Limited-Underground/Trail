@@ -2,6 +2,20 @@
 
 ## 2026-11-22
 
+### OT-0316 Carry MeshTrail location over the protected phone link
+
+The new location operations use the existing authenticated Command and Stream
+and share the Ready snapshot and one-command lane. A protected consent precedes
+the GPS request. The board checks current signed group, exact attachment,
+sequence, age and lease before accepting a position. Stop and withdrawal clear
+the fix. A repeat can never extend its age. The Android adapter pauses when the
+link or visible activity is gone and correlates replies to the exact command.
+
+The location owner adds zero NVS entries under D-163. The Link Test uses the
+profile 5 group owner. A direct scope needs its live authority owner before
+it can participate. Over-the-air routing, radio qualification and device
+acceptance remain open. Part of #102 and #120.
+
 ### OT-0005i Qualify combined board storage (D-163)
 
 The Heltec adapter inventories the whole shared partition before granting

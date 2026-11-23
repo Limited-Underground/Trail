@@ -3,6 +3,7 @@ package io.github.nbjelanovic.otclient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,8 +53,7 @@ class V1ForegroundLocationTest {
         now++
         sharing.tick()
         val renewal = board.renewals.single()
-        assertEquals(5_000L, renewal.fix.ageMs)
-        assertEquals(30_000L, renewal.fix.capturedAtMs)
+        assertNull(renewal.fix) // A renewal reuses the admitted sample without resending coordinates.
         renewal.result(true)
         now = 45_000L
         sharing.tick()
@@ -129,6 +129,58 @@ class V1ForegroundLocationTest {
         assertFalse(sharing.sampling)
     }
 
+    @Test fun anOccupiedConfigurationLaneDefersRenewWithinTheLease() {
+        startSharing()
+        board.available = false
+        now += LOCATION_RENEW_MS
+        sharing.tick()
+        assertEquals(PhoneLocationState.SHARING, sharing.state)
+        assertTrue(board.renewals.isEmpty())
+        board.available = true
+        now++
+        sharing.tick()
+        assertEquals(1, board.renewals.size)
+        assertNull(board.renewals.single().fix)
+    }
+
+    @Test fun aLateConsentAfterPauseNeverStartsGpsOrSendsAFix() {
+        board.holdConsent = true
+        sharing.updateEnvironment(foreground)
+        assertTrue(sharing.chooseShare())
+        assertFalse(sharing.sampling)
+        sharing.phoneFix(12.0, 40.0, now)
+        assertTrue(board.starts.isEmpty())
+        val initial = board.consents.single()
+        sharing.updateEnvironment(PhoneLocationEnvironment())
+        initial(true)
+        assertFalse(sharing.sampling)
+        assertEquals(PhoneLocationState.PAUSED, sharing.state)
+
+        sharing.updateEnvironment(foreground)
+        assertTrue(sharing.resume())
+        assertEquals(2, board.consents.size)
+        assertFalse(sharing.sampling)
+        board.consents.last()(true)
+        assertTrue(sharing.sampling)
+        sharing.tick()
+        assertTrue(board.starts.isEmpty())
+        sharing.phoneFix(12.0, 40.0, now)
+        assertEquals(1, board.starts.size)
+    }
+
+    @Test fun withdrawalIsBoundToOriginalSelectionEvenWhileConsentIsPending() {
+        board.holdConsent = true
+        sharing.updateEnvironment(foreground)
+        assertTrue(sharing.chooseShare())
+        sharing.stopSharing()
+        assertEquals(listOf(link), board.withdrawals)
+        board.consents.single()(true)
+        sharing.phoneFix(12.0, 40.0, now)
+        assertEquals(PhoneLocationState.OFF, sharing.state)
+        assertFalse(sharing.sampling)
+        assertTrue(board.starts.isEmpty())
+    }
+
     private fun startSharing() {
         sharing.updateEnvironment(foreground)
         assertTrue(sharing.chooseShare())
@@ -138,15 +190,26 @@ class V1ForegroundLocationTest {
 
     private class BoardStub : PhoneLocationBoard {
         class Start(val fix: PhoneLocationFix, val result: (Long?) -> Unit)
-        class Renewal(val fix: PhoneLocationFix, val result: (Boolean) -> Unit)
+        class Renewal(val fix: PhoneLocationFix?, val result: (Boolean) -> Unit)
         val starts = mutableListOf<Start>()
         val renewals = mutableListOf<Renewal>()
         val stops = mutableListOf<Pair<LocationBinding, Long>>()
+        val withdrawals = mutableListOf<LocationBinding>()
+        val consents = mutableListOf<(Boolean) -> Unit>()
+        var holdConsent = false
+        var available = true
 
+        override fun laneAvailable(binding: LocationBinding): Boolean = available
+        override fun consent(binding: LocationBinding, result: (Boolean) -> Unit) {
+            if (holdConsent) consents += result else result(true)
+        }
+        override fun withdraw(binding: LocationBinding) {
+            withdrawals += binding
+        }
         override fun start(binding: LocationBinding, fix: PhoneLocationFix, result: (Long?) -> Unit) {
             starts.add(Start(fix, result))
         }
-        override fun renew(binding: LocationBinding, lease: Long, fix: PhoneLocationFix, result: (Boolean) -> Unit) {
+        override fun renew(binding: LocationBinding, lease: Long, fix: PhoneLocationFix?, result: (Boolean) -> Unit) {
             renewals.add(Renewal(fix, result))
         }
         override fun stop(binding: LocationBinding, lease: Long) {

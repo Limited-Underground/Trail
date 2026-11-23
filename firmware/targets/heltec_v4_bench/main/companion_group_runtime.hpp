@@ -22,4 +22,9 @@ CompanionGroupInputs companion_group_inputs();
 companion::ConfigurationGroupBackend& companion_group_backend(
     companion::DeviceNameAuthoritySource& authority);
 
+#if OPENTRAIL_LORA_LINK_TEST
+companion::ConfigurationLocationBackend& companion_location_backend(
+    companion::DeviceNameAuthoritySource& authority);
+#endif
+
 }  // namespace opentrail::target::heltec_v4_bench

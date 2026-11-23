@@ -397,6 +397,27 @@ DurableRosterError DurableGroupRoster::snapshot(DurableRosterSnapshot& output, s
     return Error::none;
 }
 
+std::optional<LocationRule> DurableGroupRoster::read_active_location_rule(
+    std::size_t slot, std::uint32_t version, const Fingerprint& admin, const Digest& digest) {
+    if (busy_ || faulted_ || slot >= std::size(kKeys) || version == 0 ||
+        admin == Fingerprint{} || digest == Digest{}) return std::nullopt;
+    const Busy hold(busy_);
+
+    auto& record = workspace_.readback;
+    if (read(backend_, kKeys[slot], record) != Error::none || !record.names(group_, admin_, local_)) {
+        return std::nullopt;
+    }
+    Fingerprint actual_admin{};
+    if (!crypto_.fingerprint(admin_, actual_admin) || actual_admin != admin) return std::nullopt;
+
+    auto& verified = workspace_.next;
+    verified = {};
+    if (!decode_record(record, verified) || verified.state() != State::active ||
+        !verified.has_roster() || verified.roster().version != version ||
+        verified.digest() != digest) return std::nullopt;
+    return verified.roster().location_rule;
+}
+
 std::size_t DurableGroupRoster::copy_signed_roster(std::uint8_t* out, std::size_t capacity) {
     if (busy_) return 0;
     const Busy hold(busy_);

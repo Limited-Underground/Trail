@@ -170,20 +170,30 @@ ble_npl_event g_configuration_response_event{};
 void configuration_response_event(ble_npl_event*);
 ConfigurationDispatcher* g_configuration_dispatcher = nullptr;
 ConfigurationConfirmationBackend* g_confirmation_backend = nullptr;
+ConfigurationLocationBackend* g_location_backend = nullptr;
 void update_configuration_authority();
 class ConfigurationSource final : public DeviceNameAuthoritySource {
 public:
+    explicit ConfigurationSource(bool requires_ready = false) : requires_ready_(requires_ready) {}
     DeviceNameAuthority current() noexcept override {
         GattLock lock;
         if (!lock) return {};
         update_configuration_authority();
         auto result = g_configuration_authority;
+        if (requires_ready_ && g_phone_status.ready(result, result.context.transport_generation)) {
+            result.phase = DeviceNamePhase::ready;
+        }
         const auto tick = esp_timer_get_time();
         result.now_ms = tick < 0 ? std::numeric_limits<std::uint64_t>::max() : static_cast<std::uint64_t>(tick) / 1000;
         return result;
     }
+private:
+    bool requires_ready_;
 };
 ConfigurationSource g_configuration_source;
+#if OPENTRAIL_LORA_LINK_TEST
+ConfigurationSource g_location_source{true};
+#endif
 #if OPENTRAIL_CONFIRMATION_EVALUATION
 bool confirmation_dispatcher_ready() {
     return g_configuration_dispatcher != nullptr && g_configuration_dispatcher->ready();
@@ -467,7 +477,7 @@ void clear_configuration_lane() {
         cancel_enrollment_for_lane(g_configuration_lane);
         g_indication_port.cancel_reservation(g_configuration_lane.token);
         g_indication_port.abandon_indication(g_configuration_lane.token);
-        if (g_phone_text_backend != nullptr) {
+        if (g_phone_text_backend != nullptr || g_configuration_lane.request_kind == kConfigurationLocationCommandKind) {
             sodium_memzero(g_configuration_lane.record.data(), g_configuration_lane.record.size());
         }
     }
@@ -776,7 +786,9 @@ int command_access(std::uint16_t connection_handle,
     struct RequestWiper {
         std::array<std::uint8_t, kConfigurationRecordBytes>& record;
         ~RequestWiper() {
-            if (g_phone_text_backend != nullptr) sodium_memzero(record.data(), record.size());
+            if (g_phone_text_backend != nullptr || record[6] == kConfigurationLocationCommandKind) {
+                sodium_memzero(record.data(), record.size());
+            }
         }
     } wipe{request};
     if (os_mbuf_copydata(context->om, 0, length, request.data()) != 0) {
@@ -818,6 +830,7 @@ int command_access(std::uint16_t connection_handle,
             // Normalize only the version byte for the selected dispatcher.
             request[5] = kSelectedConfigurationMinor;
             const auto frame = decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor);
+            const bool location = frame.decoded() && frame.value.kind == kConfigurationLocationCommandKind;
             const bool parameters_read = frame.decoded() &&
                 frame.value.kind == kConfigurationParametersRequest;
             if (!frame.decoded() ||
@@ -826,8 +839,9 @@ int command_access(std::uint16_t connection_handle,
                  !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
                  !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8) &&
                  !(wire_minor == kPublicProfileMinor && frame.value.kind == kConfigurationGroupCommandKind) &&
-                 !(kSelectedConfigurationMinor == kPublicProfileMinor && parameters_read)) ||
-                (frame.value.kind == kConfigurationGroupCommandKind &&
+                 !(kSelectedConfigurationMinor == kPublicProfileMinor && parameters_read) &&
+                 !(wire_minor == kPublicProfileMinor && location && g_location_backend != nullptr)) ||
+                ((frame.value.kind == kConfigurationGroupCommandKind || location) &&
                  !g_phone_status.ready(authority, status.transport_generation)) ||
                 (parameters_read &&
                  (!g_phone_status.ready(authority, status.transport_generation) ||
@@ -1373,10 +1387,13 @@ bool initialize_companion_configuration(DeviceNamePersistence& storage, Configur
     g_confirmation_backend = &confirmation_evaluation_backend(g_confirmation_source);
 #else
     group = &companion_group_backend(g_configuration_source);
+#if OPENTRAIL_LORA_LINK_TEST
+    g_location_backend = &companion_location_backend(g_location_source);
+#endif
 #endif
     static ConfigurationDispatcher dispatcher{g_configuration_source, storage, base, &region_storage,
         kSelectedConfigurationMinor, g_confirmation_backend,
-        kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr, group};
+        kSelectedConfigurationMinor == kPublicProfileMinor ? public_profile : nullptr, group, g_location_backend};
     g_configuration_dispatcher = &dispatcher;
     g_configuration_storage = &storage;
     g_configuration_region_storage = &region_storage;
@@ -1537,6 +1554,9 @@ void service_companion_configuration() {
                 } else {
                     g_configuration_lane.executing = true;
                     work = g_configuration_lane;
+                    if (work.request_kind == kConfigurationLocationCommandKind) {
+                        sodium_memzero(g_configuration_lane.record.data(), g_configuration_lane.record.size());
+                    }
                 }
             }
         }
@@ -1561,6 +1581,9 @@ void service_companion_configuration() {
             work.record.data(), work.bytes, kConfigurationRecordBytes, work.admitted_ms);
         if (result.code == ConfigurationDispatchCode::accepted)
             result = g_configuration_dispatcher->execute();
+        if (work.request_kind == kConfigurationLocationCommandKind) {
+            sodium_memzero(work.record.data(), work.record.size());
+        }
     } else if (phone_backend != nullptr) {
         pump_phone_text_event(*phone_backend);
     }

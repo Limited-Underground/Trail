@@ -88,10 +88,13 @@ class AndroidV1ForegroundLocationTest {
     private class TestBoard : PhoneLocationBoard {
         var starts = 0
         var stops = 0
+        override fun laneAvailable(binding: LocationBinding): Boolean = true
+        override fun consent(binding: LocationBinding, result: (Boolean) -> Unit) = result(true)
+        override fun withdraw(binding: LocationBinding) = Unit
         override fun start(binding: LocationBinding, fix: PhoneLocationFix, result: (Long?) -> Unit) {
             result((++starts).toLong())
         }
-        override fun renew(binding: LocationBinding, lease: Long, fix: PhoneLocationFix, result: (Boolean) -> Unit) {
+        override fun renew(binding: LocationBinding, lease: Long, fix: PhoneLocationFix?, result: (Boolean) -> Unit) {
             result(true)
         }
         override fun stop(binding: LocationBinding, lease: Long) { stops++ }

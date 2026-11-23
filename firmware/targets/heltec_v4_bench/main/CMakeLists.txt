@@ -34,6 +34,7 @@ if(OPENTRAIL_LORA_LINK_TEST)
         "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_frame.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_sharing.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_location_owner.cpp"
         "${OPENTRAIL_PAIRING_NOISE_ADAPTER}/noise_xk_libsodium.c"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/serialized_secure_random.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp"

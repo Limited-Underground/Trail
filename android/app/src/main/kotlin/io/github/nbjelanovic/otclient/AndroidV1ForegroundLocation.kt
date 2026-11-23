@@ -84,9 +84,9 @@ internal class AndroidV1ForegroundLocation(
     /** Call on a permission result or a protected binding change as well as the visible tick. */
     fun refresh() {
         refreshEnvironment()
+        sharing.tick()
         if (sharing.sampling) {
             if (subscription == null) startGps()
-            sharing.tick()
         } else {
             stopGps()
         }
@@ -97,7 +97,7 @@ internal class AndroidV1ForegroundLocation(
         closed = true
         visible = false
         main.removeCallbacks(poll)
-        sharing.stopSharing()
+        sharing.updateEnvironment(PhoneLocationEnvironment())
         stopGps()
         owner.lifecycle.removeObserver(this)
     }

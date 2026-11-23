@@ -26,6 +26,8 @@ public:
     [[nodiscard]] bool available() const noexcept override;
     [[nodiscard]] GroupConfigurationResult execute(
         const DeviceNameContext&, const GroupConfigurationCommand&, std::uint64_t admitted_ms) noexcept override;
+    [[nodiscard]] std::optional<identity::roster::LocationRule> verified_location_rule(
+        const ConfigurationLocationScope& scope) noexcept;
 
 private:
     using Slot = identity::roster::DurableRosterSlot;

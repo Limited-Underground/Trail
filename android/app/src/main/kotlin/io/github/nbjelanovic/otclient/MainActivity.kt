@@ -237,6 +237,7 @@ fun TrailApp(controller: TrailUiController, additionalTools: @Composable () -> U
             onSubmitQuickStatus = controller::submitQuickStatus,
             onSubmitText = controller::submitText,
             onBoardGroupAction = controller::submitBoardGroupAction,
+            boardGroupLocationAuthority = controller::groupLocationAuthority,
             onRefreshGroupConfirmation = controller::refreshGroupConfirmation,
             onConfirmGroupConfirmation = controller::confirmGroupConfirmation,
             onCancelGroupConfirmation = controller::cancelGroupConfirmation,
