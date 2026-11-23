@@ -513,7 +513,9 @@ def run(output, cached_component=None):
             else:
                 completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *extra],
                     env=env, check=True, timeout={"enrollment_candidate_budget_adoption_tests": 600,
-                             "enrollment_candidate_runner_tests": 600}.get(name, 90))
+                             "enrollment_candidate_runner_tests": 600,
+                             # 55 timing-based cases: about 45 s idle, over 90 s on a loaded PC.
+                             "enrollment_candidate_operator_tests": 300}.get(name, 90))
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}
             print(name + " passed", flush=True)
