@@ -368,8 +368,13 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\identity\src\durable_group_roster.cpp'),
             (Join-Path $projectRoot 'firmware\components\identity\src\group_roster.cpp'),
             (Join-Path $projectRoot 'firmware\components\identity\src\group_pair.cpp'),
+            (Join-Path $projectRoot 'firmware\components\identity\src\group_qr_invite.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_join_claims.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_public_profile_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_confirmation_codec.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_group_owner_tests.cpp')
         )
     },

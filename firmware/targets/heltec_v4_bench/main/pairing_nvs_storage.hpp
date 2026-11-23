@@ -254,7 +254,8 @@ private:
 // A mutation is staged in RAM, then committed using the exact namespace handle.
 class GroupNvsStorage final : public persistence::PersistentKvBackend {
 public:
-    enum class Store { roster, catalog };
+    // join: the joiner's durable invite claims (F8 live Join).
+    enum class Store { roster, catalog, join };
 
     explicit GroupNvsStorage(Store store) : store_(store) {}
     ~GroupNvsStorage() override;

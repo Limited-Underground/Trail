@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -29,6 +32,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
+import io.github.nbjelanovic.otprotocol.CompanionGroupInvite
 
 @Composable
 internal fun V1BoardGroupPanel(
@@ -68,9 +73,13 @@ internal fun V1BoardGroupPanel(
             Text("Refresh groups")
         }
         confirmationContent()
+        state.invite?.takeIf { currentRoster }?.let { V1BoardGroupInviteCard(it) }
         groups.forEach { group ->
-            V1BoardGroupRoster(group, canChange) { stopping = group }
+            V1BoardGroupRoster(group, canChange, onInvite = { send(V1BoardGroupAction.Invite(group, group.displayName())) }) {
+                stopping = group
+            }
         }
+        if (currentRoster && state.canCreate) V1BoardGroupJoin(canChange) { send(V1BoardGroupAction.Join(it)) }
         if (currentRoster && state.canCreate) {
             Text("Create a group", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text("Location sharing")
@@ -127,6 +136,7 @@ private fun V1BoardGroupSummary.displayName(): String = "Group " + groupId.toStr
 private fun V1BoardGroupRoster(
     group: V1BoardGroupSummary,
     canChange: Boolean,
+    onInvite: () -> Unit,
     onStopTrust: () -> Unit,
 ) {
     val version = group.version
@@ -141,11 +151,108 @@ private fun V1BoardGroupRoster(
                 val role = if (member.administrator) "Administrator" else "Member"
                 Text(member.alias + " · " + role)
             }
+            if (!group.distrusted && group.members.size < 6) {
+                Button(enabled = canChange, onClick = onInvite) { Text("Invite someone") }
+            }
             if (!group.distrusted) {
                 OutlinedButton(enabled = canChange, onClick = onStopTrust) {
                     Text("Stop trusting this group")
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun V1BoardGroupInviteCard(invite: V1BoardGroupInvite) {
+    val qr = V1InviteQrBinding.current
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Invitation to ${invite.label}", style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() })
+            Text("Works once, for 3 minutes, while your device stays on.")
+            val matrix = qr?.matrix(invite.code)
+            if (matrix != null) {
+                V1InviteQrImage(matrix)
+                Text("Let the person joining scan this code.")
+            } else {
+                Text("Invite code. Send it to the person joining, then they paste it under Join a group.")
+                SelectionContainer { Text(invite.code, style = MaterialTheme.typography.bodySmall) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun V1InviteQrImage(matrix: Array<BooleanArray>) {
+    val size = matrix.size
+    androidx.compose.foundation.Canvas(Modifier.fillMaxWidth().padding(16.dp).height(240.dp)) {
+        val cell = minOf(this.size.width, this.size.height) / (size + 8)
+        val left = (this.size.width - cell * size) / 2
+        val top = (this.size.height - cell * size) / 2
+        drawRect(androidx.compose.ui.graphics.Color.White)
+        matrix.forEachIndexed { y, row ->
+            row.forEachIndexed { x, dark ->
+                if (dark) drawRect(
+                    androidx.compose.ui.graphics.Color.Black,
+                    topLeft = androidx.compose.ui.geometry.Offset(left + x * cell, top + y * cell),
+                    size = androidx.compose.ui.geometry.Size(cell, cell),
+                )
+            }
+        }
+    }
+}
+
+private fun locationLabel(rule: Int) = when (rule) {
+    0 -> "Off"
+    1 -> "Preferred"
+    2 -> "Required"
+    else -> "Unknown"
+}
+
+@Composable
+internal fun V1BoardGroupJoin(canChange: Boolean, onJoin: (ByteArray) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var reviewing by remember { mutableStateOf<Pair<ByteArray, CompanionGroupInvite>?>(null) }
+    var invalid by remember { mutableStateOf(false) }
+    val qr = V1InviteQrBinding.current
+    fun review(code: String) {
+        val bytes = V1InviteCodeText.decode(code)
+        val invite = bytes?.let { CompanionGroupConfigurationCodec.decodeInvite(it) }
+        invalid = invite == null
+        reviewing = if (bytes != null && invite != null) bytes to invite else null
+    }
+    Text("Join a group", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+    if (qr != null) {
+        OutlinedButton(enabled = canChange, onClick = { qr.scan { scanned -> scanned?.let(::review) } }) {
+            Text("Scan invitation")
+        }
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it; invalid = false },
+        label = { Text("Invite code") },
+        enabled = canChange,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    if (invalid) Text("That isn't a MeshTrail invite code.")
+    Button(enabled = canChange && text.isNotBlank(), onClick = { review(text) }) { Text("Review invitation") }
+    reviewing?.let { (bytes, invite) ->
+        AlertDialog(
+            onDismissRequest = { reviewing = null },
+            title = { Text("Join ${invite.label}?") },
+            text = {
+                Text("Location sharing: ${locationLabel(invite.locationRule)}\n" +
+                    "Your device checks the administrator's signature before it accepts.")
+            },
+            confirmButton = {
+                TextButton(enabled = canChange, onClick = {
+                    reviewing = null
+                    text = ""
+                    onJoin(bytes)
+                }) { Text("Join") }
+            },
+            dismissButton = { TextButton(onClick = { reviewing = null }) { Text("Cancel") } },
+        )
     }
 }

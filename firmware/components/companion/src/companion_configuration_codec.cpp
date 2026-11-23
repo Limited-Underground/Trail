@@ -214,6 +214,10 @@ std::size_t group_command_size(GroupConfigurationOperation operation, std::uint1
     case GroupConfigurationOperation::stop_trust: return kGroupScopedBytes;
     case GroupConfigurationOperation::read_roster:
         return kGroupReadCommandBytes + (offset == 0 ? 0 : kGroupScopeBytes);
+    case GroupConfigurationOperation::invite:
+    case GroupConfigurationOperation::read_invite:
+    case GroupConfigurationOperation::join:
+        return 0;  // Sized by the invite codec below.
     }
     return 0;
 }
@@ -309,10 +313,229 @@ std::size_t group_result_size(const GroupConfigurationResult& result) {
         group_scope_valid(result.scope) : result.scope == GroupConfigurationScope{};
     return scope_valid ? header_size : 0;
 }
+
+// F8 Invite, Read Invite and Join (operations 5 to 7). Layouts after the
+// 8-byte OTGC header, little-endian:
+//   Invite command:       scope(72) label_size(1) label(1..47)
+//   Read Invite command:  invite_id(16) offset(2)
+//   Join command:         offset(2) total(2) page
+//   Invite result:        scope(72) invite_id(16) total(2)
+//   Read Invite result:   invite_id(16) offset(2) total(2) page
+//   Join result:          offset(2) total(2), then scope(72) invite_id(16) on the last page
+// A page is min(96, total - offset) bytes. Failures carry no body.
+constexpr std::size_t kInviteIdBytes = kConfigurationInviteIdBytes;
+constexpr std::size_t kInvitePageBytes = kConfigurationInviteFragmentBytes;
+constexpr std::size_t kInviteCommandFixed = kGroupScopedBytes + 1;
+constexpr std::size_t kReadInviteCommandBytes = kGroupHeaderBytes + kInviteIdBytes + 2;
+constexpr std::size_t kJoinCommandFixed = kGroupHeaderBytes + 4;
+constexpr std::size_t kInviteResultBytes = kGroupScopedBytes + kInviteIdBytes + 2;
+constexpr std::size_t kReadInviteResultFixed = kGroupHeaderBytes + kInviteIdBytes + 4;
+constexpr std::size_t kJoinResultFinalBytes = kJoinCommandFixed + kGroupScopeBytes + kInviteIdBytes;
+static_assert(kInviteCommandFixed + kConfigurationInviteLabelBytes == kConfigurationPayloadBytes);
+static_assert(kReadInviteResultFixed + kInvitePageBytes <= kConfigurationPayloadBytes);
+static_assert(kJoinCommandFixed + kInvitePageBytes <= kConfigurationPayloadBytes);
+static_assert(kJoinResultFinalBytes <= kConfigurationPayloadBytes);
+
+bool invite_operation(std::uint8_t operation) {
+    return operation >= static_cast<std::uint8_t>(GroupConfigurationOperation::invite) &&
+        operation <= static_cast<std::uint8_t>(GroupConfigurationOperation::join);
+}
+
+bool invite_id_valid(const std::array<std::uint8_t, kInviteIdBytes>& id) {
+    return std::any_of(id.begin(), id.end(), [](std::uint8_t b) { return b != 0; });
+}
+
+// Returns the page size for a valid offset and total, else zero.
+std::size_t invite_page_size(std::uint16_t offset, std::uint16_t total) {
+    if (total < kConfigurationInviteMinimumBytes || total > kConfigurationInviteBytes ||
+        offset >= total || offset % kInvitePageBytes != 0) return 0;
+    return std::min<std::size_t>(kInvitePageBytes, total - offset);
+}
+
+bool invite_label_valid(const GroupConfigurationLabel& label) {
+    return label.size >= 1 && label.size <= kConfigurationInviteLabelBytes &&
+        std::all_of(label.bytes.begin() + label.size, label.bytes.end(), [](std::uint8_t b) { return b == 0; });
+}
+
+std::size_t invite_command_size(const GroupConfigurationCommand& c) {
+    if (c.location_rule != 0 || !(c.read.slot == 0 && c.read.state == GroupConfigurationRosterState::none &&
+            c.read.offset == 0)) return 0;
+    switch (c.operation) {
+    case GroupConfigurationOperation::invite:
+        return group_scope_valid(c.scope) && invite_label_valid(c.label) ? kInviteCommandFixed + c.label.size : 0;
+    case GroupConfigurationOperation::read_invite:
+        return c.scope == GroupConfigurationScope{} && c.label == GroupConfigurationLabel{} &&
+            invite_id_valid(c.invite.invite_id) && c.invite.offset < kConfigurationInviteBytes &&
+            c.invite.offset % kInvitePageBytes == 0 ? kReadInviteCommandBytes : 0;
+    case GroupConfigurationOperation::join: {
+        const auto page = invite_page_size(c.invite.offset, c.invite.total_bytes);
+        return c.scope == GroupConfigurationScope{} && c.label == GroupConfigurationLabel{} &&
+            page != 0 && c.invite.size == page ? kJoinCommandFixed + page : 0;
+    }
+    default: return 0;
+    }
+}
+
+ConfigurationEncodeResult encode_invite_command(const GroupConfigurationCommand& c, std::uint8_t* out,
+    std::size_t capacity) {
+    const auto size = invite_command_size(c);
+    if (size == 0) return {ConfigurationCodecError::malformed, 0};
+    std::array<std::uint8_t, kConfigurationPayloadBytes> b{'O','T','G','C',1, static_cast<std::uint8_t>(c.operation)};
+    auto* p = b.data() + kGroupHeaderBytes;
+    if (c.operation == GroupConfigurationOperation::invite) {
+        write_group_scope(c.scope, p);
+        p[kGroupScopeBytes] = c.label.size;
+        std::copy_n(c.label.bytes.begin(), c.label.size, p + kGroupScopeBytes + 1);
+    } else if (c.operation == GroupConfigurationOperation::read_invite) {
+        std::copy(c.invite.invite_id.begin(), c.invite.invite_id.end(), p);
+        write(p + kInviteIdBytes, c.invite.offset);
+    } else {
+        write(p, c.invite.offset);
+        write(p + 2, c.invite.total_bytes);
+        std::copy_n(c.invite.bytes.begin(), c.invite.size, p + 4);
+    }
+    return emit(b.data(), size, out, capacity);
+}
+
+ConfigurationDecodeResult<GroupConfigurationCommand> decode_invite_command(const std::uint8_t* b, std::size_t size) {
+    GroupConfigurationCommand c{static_cast<GroupConfigurationOperation>(b[5])};
+    const auto* p = b + kGroupHeaderBytes;
+    if (c.operation == GroupConfigurationOperation::invite) {
+        if (size < kInviteCommandFixed) return {ConfigurationCodecError::malformed, {}};
+        c.scope = read_group_scope(p);
+        c.label.size = p[kGroupScopeBytes];
+        if (c.label.size > kConfigurationInviteLabelBytes) return {ConfigurationCodecError::malformed, {}};
+        if (size == kInviteCommandFixed + c.label.size)
+            std::copy_n(p + kGroupScopeBytes + 1, c.label.size, c.label.bytes.begin());
+    } else if (c.operation == GroupConfigurationOperation::read_invite) {
+        if (size != kReadInviteCommandBytes) return {ConfigurationCodecError::malformed, {}};
+        std::copy_n(p, kInviteIdBytes, c.invite.invite_id.begin());
+        c.invite.offset = read<std::uint16_t>(p + kInviteIdBytes);
+    } else {
+        if (size < kJoinCommandFixed) return {ConfigurationCodecError::malformed, {}};
+        c.invite.offset = read<std::uint16_t>(p);
+        c.invite.total_bytes = read<std::uint16_t>(p + 2);
+        c.invite.size = static_cast<std::uint8_t>(std::min<std::size_t>(size - kJoinCommandFixed, 0xff));
+        if (size - kJoinCommandFixed <= kInvitePageBytes)
+            std::copy_n(p + 4, size - kJoinCommandFixed, c.invite.bytes.begin());
+    }
+    if (size != invite_command_size(c)) return {ConfigurationCodecError::malformed, {}};
+    return {ConfigurationCodecError::none, c};
+}
+
+bool invite_result_status_valid(GroupConfigurationStatus status) {
+    return status <= GroupConfigurationStatus::uncertain;
+}
+
+std::size_t invite_result_size(const GroupConfigurationResult& r) {
+    if (!invite_result_status_valid(r.status) || r.fragment.slot != 0 || r.fragment.offset != 0 ||
+        r.fragment.total_bytes != 0 || r.fragment.size != 0 ||
+        r.fragment.state != GroupConfigurationRosterState::none) return 0;
+    const auto& page = r.invite;
+    if (r.status != GroupConfigurationStatus::ok) {
+        const GroupConfigurationInvitePage empty{};
+        return r.scope == GroupConfigurationScope{} && page.invite_id == empty.invite_id && page.offset == 0 &&
+            page.total_bytes == 0 && page.size == 0 && page.bytes == empty.bytes ? kGroupHeaderBytes : 0;
+    }
+    switch (r.operation) {
+    case GroupConfigurationOperation::invite:
+        return group_scope_valid(r.scope) && invite_id_valid(page.invite_id) && page.offset == 0 && page.size == 0 &&
+            page.total_bytes >= kConfigurationInviteMinimumBytes && page.total_bytes <= kConfigurationInviteBytes ?
+            kInviteResultBytes : 0;
+    case GroupConfigurationOperation::read_invite: {
+        const auto count = invite_page_size(page.offset, page.total_bytes);
+        return r.scope == GroupConfigurationScope{} && invite_id_valid(page.invite_id) && count != 0 &&
+            page.size == count ? kReadInviteResultFixed + count : 0;
+    }
+    case GroupConfigurationOperation::join: {
+        const auto count = invite_page_size(page.offset, page.total_bytes);
+        if (count == 0 || page.size != 0) return 0;
+        if (page.offset + count < page.total_bytes)
+            return r.scope == GroupConfigurationScope{} && !invite_id_valid(page.invite_id) ? kJoinCommandFixed : 0;
+        return group_scope_valid(r.scope) && invite_id_valid(page.invite_id) ? kJoinResultFinalBytes : 0;
+    }
+    default: return 0;
+    }
+}
+
+ConfigurationEncodeResult encode_invite_result(const GroupConfigurationResult& r, std::uint8_t* out,
+    std::size_t capacity) {
+    const auto size = invite_result_size(r);
+    if (size == 0) return {ConfigurationCodecError::malformed, 0};
+    std::array<std::uint8_t, kConfigurationPayloadBytes> b{'O','T','G','C',1,
+        static_cast<std::uint8_t>(r.operation), static_cast<std::uint8_t>(r.status)};
+    auto* p = b.data() + kGroupHeaderBytes;
+    const auto& page = r.invite;
+    if (size == kGroupHeaderBytes) return emit(b.data(), size, out, capacity);
+    switch (r.operation) {
+    case GroupConfigurationOperation::invite:
+        write_group_scope(r.scope, p);
+        std::copy(page.invite_id.begin(), page.invite_id.end(), p + kGroupScopeBytes);
+        write(p + kGroupScopeBytes + kInviteIdBytes, page.total_bytes);
+        break;
+    case GroupConfigurationOperation::read_invite:
+        std::copy(page.invite_id.begin(), page.invite_id.end(), p);
+        write(p + kInviteIdBytes, page.offset);
+        write(p + kInviteIdBytes + 2, page.total_bytes);
+        std::copy_n(page.bytes.begin(), page.size, p + kInviteIdBytes + 4);
+        break;
+    default:
+        write(p, page.offset);
+        write(p + 2, page.total_bytes);
+        if (size == kJoinResultFinalBytes) {
+            write_group_scope(r.scope, p + 4);
+            std::copy(page.invite_id.begin(), page.invite_id.end(), p + 4 + kGroupScopeBytes);
+        }
+        break;
+    }
+    return emit(b.data(), size, out, capacity);
+}
+
+ConfigurationDecodeResult<GroupConfigurationResult> decode_invite_result(const std::uint8_t* b, std::size_t size) {
+    GroupConfigurationResult r{static_cast<GroupConfigurationOperation>(b[5]),
+        static_cast<GroupConfigurationStatus>(b[6])};
+    const auto* p = b + kGroupHeaderBytes;
+    auto& page = r.invite;
+    if (r.status == GroupConfigurationStatus::ok) {
+        switch (r.operation) {
+        case GroupConfigurationOperation::invite:
+            if (size != kInviteResultBytes) return {ConfigurationCodecError::malformed, {}};
+            r.scope = read_group_scope(p);
+            std::copy_n(p + kGroupScopeBytes, kInviteIdBytes, page.invite_id.begin());
+            page.total_bytes = read<std::uint16_t>(p + kGroupScopeBytes + kInviteIdBytes);
+            break;
+        case GroupConfigurationOperation::read_invite:
+            if (size < kReadInviteResultFixed || size > kReadInviteResultFixed + kInvitePageBytes)
+                return {ConfigurationCodecError::malformed, {}};
+            std::copy_n(p, kInviteIdBytes, page.invite_id.begin());
+            page.offset = read<std::uint16_t>(p + kInviteIdBytes);
+            page.total_bytes = read<std::uint16_t>(p + kInviteIdBytes + 2);
+            page.size = static_cast<std::uint8_t>(size - kReadInviteResultFixed);
+            std::copy_n(p + kInviteIdBytes + 4, page.size, page.bytes.begin());
+            break;
+        default:
+            if (size != kJoinCommandFixed && size != kJoinResultFinalBytes)
+                return {ConfigurationCodecError::malformed, {}};
+            page.offset = read<std::uint16_t>(p);
+            page.total_bytes = read<std::uint16_t>(p + 2);
+            if (size == kJoinResultFinalBytes) {
+                r.scope = read_group_scope(p + 4);
+                std::copy_n(p + 4 + kGroupScopeBytes, kInviteIdBytes, page.invite_id.begin());
+            }
+            break;
+        }
+    }
+    if (size != invite_result_size(r)) return {ConfigurationCodecError::malformed, {}};
+    return {ConfigurationCodecError::none, r};
+}
 } // namespace
 
 ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigurationCommand& command,
     std::uint8_t* out, std::size_t capacity) {
+    if (invite_operation(static_cast<std::uint8_t>(command.operation)))
+        return encode_invite_command(command, out, capacity);
+    if (!(command.label == GroupConfigurationLabel{}) || command.invite.size != 0 || command.invite.offset != 0 ||
+        command.invite.total_bytes != 0) return {ConfigurationCodecError::malformed, 0};
     const auto size = group_command_size(command.operation, command.read.offset);
     if (size == 0 || !group_command_valid(command)) return {ConfigurationCodecError::malformed, 0};
 
@@ -332,6 +555,7 @@ ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigur
 ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_command(
     const std::uint8_t* b, std::size_t size) {
     if (!group_header_valid(b, size) || b[6] != 0) return {ConfigurationCodecError::malformed, {}};
+    if (invite_operation(b[5])) return decode_invite_command(b, size);
     GroupConfigurationCommand command{static_cast<GroupConfigurationOperation>(b[5])};
     if (command.operation == GroupConfigurationOperation::read_roster) {
         if (size < kGroupReadCommandBytes) return {ConfigurationCodecError::malformed, {}};
@@ -350,6 +574,10 @@ ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_
 
 ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigurationResult& result,
     std::uint8_t* out, std::size_t capacity) {
+    if (invite_operation(static_cast<std::uint8_t>(result.operation)))
+        return encode_invite_result(result, out, capacity);
+    if (result.invite.size != 0 || result.invite.offset != 0 || result.invite.total_bytes != 0)
+        return {ConfigurationCodecError::malformed, 0};
     const auto size = group_result_size(result);
     if (size == 0) return {ConfigurationCodecError::malformed, 0};
 
@@ -369,6 +597,10 @@ ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigura
 ConfigurationDecodeResult<GroupConfigurationResult> decode_group_configuration_result(
     const std::uint8_t* b, std::size_t size) {
     if (!group_header_valid(b, size)) return {ConfigurationCodecError::malformed, {}};
+    if (invite_operation(b[5])) {
+        if (size > kConfigurationPayloadBytes) return {ConfigurationCodecError::malformed, {}};
+        return decode_invite_result(b, size);
+    }
     GroupConfigurationResult result{static_cast<GroupConfigurationOperation>(b[5]),
         static_cast<GroupConfigurationStatus>(b[6])};
     const auto header_size = group_result_header_size(result.operation, result.status);

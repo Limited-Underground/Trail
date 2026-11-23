@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "opentrail/durable_group_roster.hpp"
+#include "opentrail/group_join_claims.hpp"
 #include "opentrail/persistent_storage.hpp"
 
 namespace opentrail::target::heltec_v4_bench::board_storage_budget {
@@ -33,9 +34,11 @@ inline constexpr std::size_t kRosterEntries = persistence::GroupPairIndex::kMaxi
     blob_entries(identity::roster::DurableGroupRoster::kStorageRecordBytes);
 inline constexpr std::size_t kCatalogEntries =
     blob_entries(persistence::GroupPairIndex::kMaximumSerializedBytes);
-inline constexpr std::size_t kActiveNamespaceEntries = 3;
-inline constexpr std::size_t kActiveEntries =
-    kPairingEntries + kRosterEntries + kCatalogEntries + kActiveNamespaceEntries + kFormatSealEntries;
+// F8 live Join: one fixed claim record (newest eight invite IDs) in its own namespace.
+inline constexpr std::size_t kJoinClaimEntries = blob_entries(persistence::GroupJoinClaims::kRecordBytes);
+inline constexpr std::size_t kActiveNamespaceEntries = 4;
+inline constexpr std::size_t kActiveEntries = kPairingEntries + kRosterEntries + kCatalogEntries +
+    kJoinClaimEntries + kActiveNamespaceEntries + kFormatSealEntries;
 
 // Planned stores reserve capacity in the model. Only the active scopes may
 // create records until the group pair and direct formats are admitted.
@@ -66,8 +69,8 @@ inline constexpr std::size_t kResidentEntries =
 inline constexpr std::size_t kPlanningEntries = kResidentEntries + kReceiptEntries + kStagingEntries;
 
 static_assert(kPairingTupleCount == 899 && kPairingEntries == 4'495);
-static_assert(kActiveEntries == 4'687);
-static_assert(kResidentEntries == 11'549 && kPlanningEntries == 12'421);
+static_assert(kJoinClaimEntries == 19 && kActiveEntries == 4'707);
+static_assert(kResidentEntries == 11'569 && kPlanningEntries == 12'441);
 static_assert(kFormatSealEntries <= kStagingEntries && kPlanningEntries < kLimit);
 
 // used and available are validated native partition statistics. A replacement

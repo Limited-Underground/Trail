@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -76,21 +78,56 @@ class V1BoardGroupPanelUiTest {
         ui.onNodeWithText("Stop trusting this group").assertDoesNotExist()
     }
 
-    @Test fun debugInviteAndJoinUseOnlyTheSampleFlow() {
+    @Test fun inviteIsLiveAndShowsTheBoardIssuedCode() {
+        val group = sampleRoster(4u)
+        val state = mutableStateOf(readState(group))
+        val actions = mutableListOf<V1BoardGroupAction>()
+        ui.setContent {
+            MaterialTheme { V1BoardGroupPanel(state.value, connected = true, onAction = actions::add) }
+        }
+        ui.onNodeWithText("Practice inviting and joining (debug)").assertDoesNotExist()
+        ui.onNodeWithText("Invite someone").performScrollTo().performClick()
+        ui.runOnIdle {
+            assertEquals(listOf<V1BoardGroupAction>(V1BoardGroupAction.Invite(group, "Group 0000000000000107")), actions)
+            state.value = readState(group).copy(
+                invite = V1BoardGroupInvite(0x107uL, "Group 0000000000000107", "MESHTRAIL-INVITE-1:AAAA", 0L),
+            )
+        }
+        ui.onNodeWithText("Invitation to Group 0000000000000107").assertExists()
+        ui.onNodeWithText("MESHTRAIL-INVITE-1:AAAA").assertExists()
+        // Not connected: no invite card and no Invite button.
+        ui.runOnIdle { state.value = state.value.copy(available = false) }
+        ui.onNodeWithText("Invitation to Group 0000000000000107").assertDoesNotExist()
+    }
+
+    @Test fun joinReviewsThePastedInviteBeforeTheBoardSeesIt() {
+        val invite = sampleInvite()
         val actions = mutableListOf<V1BoardGroupAction>()
         ui.setContent {
             MaterialTheme {
-                V1BoardGroupPanel(V1BoardGroupState(), connected = false, onAction = actions::add)
+                V1BoardGroupPanel(
+                    V1BoardGroupState(supported = true, available = true, canCreate = true),
+                    connected = true,
+                    onAction = actions::add,
+                )
             }
         }
-        ui.onNodeWithText("Practice inviting and joining (debug)").performScrollTo().performClick()
-        ui.onNodeWithText("Create sample invitation").performScrollTo().performClick()
-        ui.onNodeWithText("Review sample invitation").performScrollTo().performClick()
-        ui.onNodeWithText("Join sample group").performScrollTo().performClick()
-        ui.onNodeWithText("Joined Camp group in practice mode").assertExists()
-        ui.onNodeWithText("Create group").assertDoesNotExist()
+        ui.onNodeWithText("Invite code").performScrollTo().performTextInput("not a code")
+        ui.onNodeWithText("Review invitation").performScrollTo().performClick()
+        ui.onNodeWithText("That isn't a MeshTrail invite code.").assertExists()
+        ui.onNodeWithText("Invite code").performTextClearance()
+        ui.onNodeWithText("Invite code").performTextInput(V1InviteCodeText.encode(invite))
+        ui.onNodeWithText("Review invitation").performScrollTo().performClick()
+        ui.onNodeWithText("Join Crew?").assertExists()
         ui.runOnIdle { assertEquals(emptyList<V1BoardGroupAction>(), actions) }
+        ui.onNodeWithText("Join").performClick()
+        ui.runOnIdle { assertEquals(listOf<V1BoardGroupAction>(V1BoardGroupAction.Join(invite)), actions) }
     }
+
+    private fun sampleInvite(): ByteArray = (
+        "4f54475101010200" + "23".repeat(32) + "f102030405060708" + "00000001" + "86".repeat(32) +
+            "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf" + "0101" + "04" + "43726577" + "5c".repeat(64)
+        ).chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
     private fun sampleRoster(version: UInt, distrusted: Boolean = false) =
         V1BoardGroupSummary(

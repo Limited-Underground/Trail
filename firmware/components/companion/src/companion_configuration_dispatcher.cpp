@@ -16,7 +16,13 @@ time::OledTimeContext time_context(const DeviceNameContext& c) {
 bool group_result_matches(const GroupConfigurationCommand& command, const GroupConfigurationResult& result) {
     if (result.operation != command.operation) return false;
     if (result.status != GroupConfigurationStatus::ok) return true;
-    if (command.operation == GroupConfigurationOperation::stop_trust) return result.scope == command.scope;
+    if (command.operation == GroupConfigurationOperation::stop_trust ||
+        command.operation == GroupConfigurationOperation::invite) return result.scope == command.scope;
+    if (command.operation == GroupConfigurationOperation::read_invite)
+        return result.invite.invite_id == command.invite.invite_id && result.invite.offset == command.invite.offset;
+    if (command.operation == GroupConfigurationOperation::join)
+        return result.invite.offset == command.invite.offset &&
+            result.invite.total_bytes == command.invite.total_bytes;
     if (command.operation != GroupConfigurationOperation::read_roster) return true;
     const auto& read = command.read;
     const auto& fragment = result.fragment;

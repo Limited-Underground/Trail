@@ -88,6 +88,12 @@ GroupConfigurationResult ConfigurationGroupOwner::execute(
         return read(request, slots);
     case Operation::stop_trust:
         return stop_trust(context, admitted_ms, request, slots);
+    case Operation::invite:
+        return invite(context, admitted_ms, request, *signer, slots);
+    case Operation::read_invite:
+        return read_invite(request);
+    case Operation::join:
+        return join(context, admitted_ms, request, *signer, slots);
     default:
         return {request.operation, Status::refused};
     }
@@ -185,6 +191,160 @@ GroupConfigurationResult ConfigurationGroupOwner::stop_trust(const DeviceNameCon
         after.state != roster::State::distrusted || scope_of(after) != request.scope)
         return {operation, Status::uncertain};
     return {operation, Status::ok, request.scope};
+}
+
+GroupConfigurationResult ConfigurationGroupOwner::invite(const DeviceNameContext& context, std::uint64_t admitted_ms,
+    const GroupConfigurationCommand& request, const roster::RosterSigner& signer, const Slots& slots) {
+    constexpr auto operation = Operation::invite;
+    const auto selected = std::find_if(slots.begin(), slots.end(), [&](const Slot& slot) {
+        roster::Fingerprint admin{};
+        return slot.group_id != 0 && slot.group_id == request.scope.group_id &&
+            crypto_.fingerprint(slot.admin, admin) && admin == request.scope.admin;
+    });
+    if (selected == slots.end()) return {operation, Status::stale};
+    // Only the group's admin board issues invites for it.
+    if (selected->admin != signer.public_key()) return {operation, Status::refused};
+
+    roster::DurableRosterSnapshot snapshot{};
+    const auto opened = load_snapshot(*selected, snapshot);
+    if (opened != Error::none) return {operation, opened == Error::refused ? Status::refused : Status::uncertain};
+    if (scope_of(snapshot) != request.scope) return {operation, Status::stale};
+    if (snapshot.state != roster::State::active) return {operation, Status::refused};
+    auto& current_roster = candidate_;
+    current_roster = {};
+    if (roster::decode(roster_bytes_.data(), snapshot.bytes, current_roster) != roster::FormatError::none ||
+        current_roster.version != snapshot.version) return {operation, Status::uncertain};
+    // D-057: at most six members. A full group cannot invite a seventh.
+    if (current_roster.member_count >= roster::kMaximumMembers) return {operation, Status::refused};
+
+    const auto at = now();
+    // One live invite per group: repeat the same Invite to get the same ID.
+    for (const auto& issued : issued_.view()) {
+        std::uint64_t end = 0;
+        if (!issued.issued || !issued.timing.deadline(end) || at >= end) continue;
+        roster::qr::Descriptor live{};
+        if (!roster::qr::verify_descriptor(*issued.issued, crypto_, live)) continue;
+        if (live.group != snapshot.group.group_id || live.admin != signer.public_key()) continue;
+        if (live.roster_version != snapshot.version || live.roster_digest != snapshot.digest)
+            return {operation, Status::refused};  // Roster changed; wait for this invite to expire.
+        GroupConfigurationResult result{operation, Status::ok, request.scope};
+        result.invite.invite_id = live.invite_id;
+        result.invite.total_bytes = static_cast<std::uint16_t>(issued.issued->size);
+        return result;
+    }
+
+    roster::qr::Descriptor descriptor{};
+    descriptor.admin = signer.public_key();
+    descriptor.group = snapshot.group.group_id;
+    descriptor.roster_version = snapshot.version;
+    descriptor.roster_digest = snapshot.digest;
+    descriptor.rule = current_roster.location_rule;
+    descriptor.label_bytes = request.label.size;
+    std::copy_n(request.label.bytes.begin(), request.label.size, descriptor.label.begin());
+    if (!platform_.random_invite_id(descriptor.invite_id) ||
+        std::all_of(descriptor.invite_id.begin(), descriptor.invite_id.end(), [](std::uint8_t b) { return b == 0; }))
+        return {operation, Status::unavailable};
+    const auto* invite_signer = platform_.invite_signer(descriptor);
+    if (!invite_signer || invite_signer->public_key() != signer.public_key()) return {operation, Status::unavailable};
+    if (!current(context, admitted_ms)) return {operation, Status::refused};
+
+    roster::qr::DescriptorBytes wire{};
+    if (!issued_.issue(descriptor, {at, at}, at, crypto_, *invite_signer, wire))
+        return {operation, Status::refused};  // Bad label, four live invites, or clock went back.
+    GroupConfigurationResult result{operation, Status::ok, request.scope};
+    result.invite.invite_id = descriptor.invite_id;
+    result.invite.total_bytes = static_cast<std::uint16_t>(wire.size);
+    return result;
+}
+
+GroupConfigurationResult ConfigurationGroupOwner::read_invite(const GroupConfigurationCommand& request) {
+    constexpr auto operation = Operation::read_invite;
+    const auto at = now();
+    for (const auto& issued : issued_.view()) {
+        std::uint64_t end = 0;
+        if (!issued.issued || !issued.timing.deadline(end) || at >= end) continue;
+        const auto& wire = *issued.issued;
+        // The invite ID sits at a fixed offset in the signed descriptor.
+        constexpr std::size_t kInviteIdOffset = 84;
+        if (!std::equal(request.invite.invite_id.begin(), request.invite.invite_id.end(),
+                wire.bytes.begin() + kInviteIdOffset)) continue;
+        if (request.invite.offset >= wire.size) return {operation, Status::stale};
+        GroupConfigurationResult result{operation, Status::ok};
+        auto& page = result.invite;
+        page.invite_id = request.invite.invite_id;
+        page.offset = request.invite.offset;
+        page.total_bytes = static_cast<std::uint16_t>(wire.size);
+        page.size = static_cast<std::uint8_t>(
+            std::min(kConfigurationInviteFragmentBytes, wire.size - request.invite.offset));
+        std::copy_n(wire.bytes.begin() + page.offset, page.size, page.bytes.begin());
+        return result;
+    }
+    return {operation, Status::stale};  // Unknown, expired, or issued before a restart.
+}
+
+GroupConfigurationResult ConfigurationGroupOwner::join(const DeviceNameContext& context, std::uint64_t admitted_ms,
+    const GroupConfigurationCommand& request, const roster::RosterSigner& signer, const Slots& slots) {
+    constexpr auto operation = Operation::join;
+    if (!joins_) return {operation, Status::unavailable};
+    const auto& page = request.invite;
+    auto& upload = upload_;
+    if (page.offset == 0) {
+        upload = {};
+        upload.context = context;
+        upload.total = page.total_bytes;
+    } else if (upload.context != context || upload.total != page.total_bytes || upload.received != page.offset) {
+        upload = {};
+        return {operation, Status::stale};  // Start again from offset zero.
+    }
+    std::copy_n(page.bytes.begin(), page.size, upload.wire.bytes.begin() + page.offset);
+    upload.received = static_cast<std::uint16_t>(page.offset + page.size);
+
+    GroupConfigurationResult result{operation, Status::ok};
+    result.invite.offset = page.offset;
+    result.invite.total_bytes = page.total_bytes;
+    if (upload.received < upload.total) return result;
+
+    upload.wire.size = upload.total;
+    const auto wire = upload.wire;
+    upload = {};
+    roster::qr::Descriptor descriptor{};
+    if (!roster::qr::verify_descriptor(wire, crypto_, descriptor)) return {operation, Status::refused};
+    // A board does not join a group it administers.
+    if (descriptor.admin == signer.public_key()) return {operation, Status::refused};
+    roster::Fingerprint admin{}, local{};
+    if (!crypto_.fingerprint(descriptor.admin, admin) || !crypto_.fingerprint(signer.public_key(), local))
+        return {operation, Status::unavailable};
+    // Already holding this group (active or distrusted) makes the invite stale.
+    const bool known = std::any_of(slots.begin(), slots.end(), [&](const Slot& slot) {
+        return slot.group_id == descriptor.group && slot.admin == descriptor.admin;
+    });
+    if (known) return {operation, Status::stale};
+    // D-059: at most four groups per board.
+    if (std::none_of(slots.begin(), slots.end(), [](const Slot& slot) { return slot.group_id == 0; }))
+        return {operation, Status::refused};
+
+    persistence::GroupJoinClaims claims(*joins_, local);
+    const auto opened = claims.reopen();
+    if (opened != persistence::GroupJoinClaimError::none && opened != persistence::GroupJoinClaimError::missing)
+        return {operation, Status::uncertain};
+    if (claims.claimed(admin, descriptor.group, descriptor.invite_id)) return {operation, Status::stale};
+    if (!current(context, admitted_ms)) return {operation, Status::refused};
+    const auto claimed = claims.claim(admin, descriptor.group, descriptor.invite_id);
+    if (claimed == persistence::GroupJoinClaimError::replayed) return {operation, Status::stale};
+    if (claimed != persistence::GroupJoinClaimError::none) {
+        // The claim may be durable. The invite is treated as spent.
+        pending_.reset();
+        return {operation, Status::uncertain};
+    }
+    pending_ = GroupPendingJoin{wire, descriptor, now() + roster::qr::kRequestMs};
+
+    result.scope = {admin, descriptor.group, descriptor.roster_digest};
+    result.invite.invite_id = descriptor.invite_id;
+    return result;
+}
+
+const GroupPendingJoin* ConfigurationGroupOwner::pending_join(std::uint64_t now_ms) const noexcept {
+    return pending_ && now_ms < pending_->deadline_ms ? &*pending_ : nullptr;
 }
 
 } // namespace opentrail::companion

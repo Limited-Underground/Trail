@@ -22,8 +22,9 @@ static_assert(budget::kGroupPairEntries == 1'401);
 static_assert(budget::kDirectEntries == 5'466);
 static_assert(budget::kReceiptEntries == 360);
 static_assert(budget::kStagingEntries == 512);
-static_assert(budget::kResidentEntries == 11'549 && budget::kPlanningEntries == 12'421);
-static_assert(kRoomAtPlanningLimit == 3'706);
+static_assert(budget::kJoinClaimEntries == 19);
+static_assert(budget::kResidentEntries == 11'569 && budget::kPlanningEntries == 12'441);
+static_assert(kRoomAtPlanningLimit == 3'686);
 
 static_assert(budget::can_write(budget::kPlanningEntries, kRoomAtPlanningLimit,
                                 0, kRoomAtPlanningLimit, kRoomAtPlanningLimit));

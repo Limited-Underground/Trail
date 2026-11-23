@@ -32,6 +32,18 @@ bool HeltecEnrollmentIdentityOwner::sign_initial_group_roster(const identity::ro
     return signed_roster;
 }
 
+bool HeltecEnrollmentIdentityOwner::sign_invite_descriptor(const identity::roster::qr::Descriptor& descriptor,
+                                                            identity::roster::Signature& output) {
+    if (state_ != State::ready) return false;
+    const bool signed_descriptor =
+        target::heltec_v4_bench::sign_descriptor_with_enrollment_identity(identity_, descriptor, output);
+    if (identity_.failed()) {
+        storage_.retire_cache();
+        state_ = State::fault;
+    }
+    return signed_descriptor;
+}
+
 namespace {
 HeltecEnrollmentIdentityOwner* owner = nullptr;
 bool retired = false;
@@ -80,6 +92,13 @@ bool sign_retained_initial_group_roster(const identity::roster::Roster& roster,
                                         identity::roster::Signature& output) {
     return with_retained_identity([&](auto& identity_owner) {
         return identity_owner.sign_initial_group_roster(roster, output);
+    });
+}
+
+bool sign_retained_invite_descriptor(const identity::roster::qr::Descriptor& descriptor,
+                                     identity::roster::Signature& output) {
+    return with_retained_identity([&](auto& identity_owner) {
+        return identity_owner.sign_invite_descriptor(descriptor, output);
     });
 }
 }

@@ -6,6 +6,41 @@ import java.security.MessageDigest
 
 enum class CompanionGroupOperation(val wire: Int) {
     DISCOVER(1), CREATE(2), STOP_TRUST(3), READ_ROSTER(4),
+    /** F8 live Invite and Join. Invite issues a boot-scoped signed invite on the admin board. */
+    INVITE(5), READ_INVITE(6), JOIN(7),
+}
+
+/** One page of a signed group invite, or Invite's ID and total. */
+class CompanionGroupInvitePage(
+    inviteId: ByteArray?,
+    val offset: Int,
+    val totalBytes: Int,
+    bytes: ByteArray,
+) {
+    private val id = inviteId?.copyOf()
+    private val page = bytes.copyOf()
+    val inviteId: ByteArray? get() = id?.copyOf()
+    val bytes: ByteArray get() = page.copyOf()
+    override fun toString() = "CompanionGroupInvitePage(offset=$offset, total=$totalBytes, bytes=redacted)"
+}
+
+/**
+ * The fields of a signed group invite that a joiner reviews. The joiner's board verifies the
+ * admin signature when it accepts the invite; this projection checks only the layout.
+ */
+class CompanionGroupInvite(
+    adminKey: ByteArray,
+    val groupId: ULong,
+    val rosterVersion: UInt,
+    val locationRule: Int,
+    val label: String,
+    inviteId: ByteArray,
+) {
+    private val admin = adminKey.copyOf()
+    private val id = inviteId.copyOf()
+    val adminKey: ByteArray get() = admin.copyOf()
+    val inviteId: ByteArray get() = id.copyOf()
+    override fun toString() = "CompanionGroupInvite(redacted)"
 }
 
 enum class CompanionGroupStatus(val wire: Int) {
@@ -50,6 +85,7 @@ data class CompanionGroupResult(
     val status: CompanionGroupStatus,
     val scope: CompanionGroupScope? = null,
     val chunk: CompanionGroupChunk? = null,
+    val invite: CompanionGroupInvitePage? = null,
 )
 
 class CompanionGroupRosterMember(
@@ -119,10 +155,145 @@ object CompanionGroupConfigurationCodec {
         }
     }
 
+    const val INVITE_ID_BYTES = 16
+    const val MIN_INVITE_BYTES = 167
+    const val MAX_INVITE_BYTES = 287
+    const val INVITE_PAGE_BYTES = 96
+    const val MAX_INVITE_LABEL_BYTES = 47
+    private const val INVITE_COMMAND_FIXED = HEADER_BYTES + SCOPE_BYTES + 1
+    private const val READ_INVITE_COMMAND_BYTES = HEADER_BYTES + INVITE_ID_BYTES + 2
+    private const val JOIN_FIXED = HEADER_BYTES + 4
+    private const val INVITE_RESULT_BYTES = HEADER_BYTES + SCOPE_BYTES + INVITE_ID_BYTES + 2
+    private const val READ_INVITE_RESULT_FIXED = HEADER_BYTES + INVITE_ID_BYTES + 4
+    private const val JOIN_RESULT_FINAL_BYTES = JOIN_FIXED + SCOPE_BYTES + INVITE_ID_BYTES
+    private val inviteMagic = "OTGQ".encodeToByteArray()
+
+    /** Admin board: issue (or repeat) the live invite for [scope], shown to joiners as [label]. */
+    fun invite(scope: CompanionGroupScope, label: String): ByteArray? {
+        val text = label.encodeToByteArray()
+        if (!scope.valid() || !labelValid(label, text)) return null
+        return command(INVITE_COMMAND_FIXED + text.size, CompanionGroupOperation.INVITE).also {
+            writeScope(it, HEADER_BYTES, scope)
+            it[HEADER_BYTES + SCOPE_BYTES] = text.size.toByte()
+            text.copyInto(it, INVITE_COMMAND_FIXED)
+        }
+    }
+
+    fun readInvite(inviteId: ByteArray, offset: Int): ByteArray? {
+        if (!idValid(inviteId) || offset !in 0 until MAX_INVITE_BYTES || offset % INVITE_PAGE_BYTES != 0) return null
+        return command(READ_INVITE_COMMAND_BYTES, CompanionGroupOperation.READ_INVITE).also {
+            inviteId.copyInto(it, HEADER_BYTES)
+            littleEndian(it).putShort(HEADER_BYTES + INVITE_ID_BYTES, offset.toShort())
+        }
+    }
+
+    /** Joiner board: one page of the scanned invite. Pages are sent in order from offset zero. */
+    fun joinPage(invite: ByteArray, offset: Int): ByteArray? {
+        val count = invitePage(offset, invite.size)
+        if (count == 0) return null
+        return command(JOIN_FIXED + count, CompanionGroupOperation.JOIN).also {
+            littleEndian(it).putShort(HEADER_BYTES, offset.toShort())
+            littleEndian(it).putShort(HEADER_BYTES + 2, invite.size.toShort())
+            invite.copyInto(it, JOIN_FIXED, offset, offset + count)
+        }
+    }
+
+    /** Layout check of a signed invite. The joiner's board verifies its signature. */
+    fun decodeInvite(bytes: ByteArray): CompanionGroupInvite? {
+        if (bytes.size !in MIN_INVITE_BYTES..MAX_INVITE_BYTES ||
+            !inviteMagic.indices.all { bytes[it] == inviteMagic[it] } ||
+            bytes[4] != 1.toByte() || bytes[5] != 1.toByte() || bytes[6] != 2.toByte() || bytes[7] != 0.toByte()
+        ) return null
+        val labelBytes = u8(bytes[102])
+        val rule = u8(bytes[100])
+        if (bytes.size != MIN_INVITE_BYTES + labelBytes || rule !in 0..2 || bytes[101] != 1.toByte()) return null
+        val group = ByteBuffer.wrap(bytes).getLong(40).toULong()  // descriptor integers are big-endian
+        val version = ByteBuffer.wrap(bytes).getInt(48).toUInt()
+        val label = bytes.copyOfRange(103, 103 + labelBytes)
+        val text = label.decodeToString()
+        if (group == 0uL || version == 0u || !text.encodeToByteArray().contentEquals(label) ||
+            !labelValid(text, label)
+        ) return null
+        val id = bytes.copyOfRange(84, 100)
+        if (!idValid(id)) return null
+        return CompanionGroupInvite(bytes.copyOfRange(8, 40), group, version, rule, text, id)
+    }
+
+    private fun labelValid(text: String, bytes: ByteArray) = bytes.size in 1..MAX_INVITE_LABEL_BYTES &&
+        text.isNotEmpty() && text.first() != ' ' && text.last() != ' ' && text.codePointCount(0, text.length) <= 40 &&
+        text.none { it.isISOControl() }
+
+    private fun idValid(id: ByteArray) = id.size == INVITE_ID_BYTES && id.any { it != 0.toByte() }
+
+    private fun invitePage(offset: Int, total: Int): Int =
+        if (total !in MIN_INVITE_BYTES..MAX_INVITE_BYTES || offset !in 0 until total || offset % INVITE_PAGE_BYTES != 0) 0
+        else minOf(INVITE_PAGE_BYTES, total - offset)
+
+    private fun validInviteCommand(operation: CompanionGroupOperation, bytes: ByteArray): Boolean = when (operation) {
+        CompanionGroupOperation.INVITE -> bytes.size >= INVITE_COMMAND_FIXED &&
+            readScope(bytes, HEADER_BYTES) != null &&
+            u8(bytes[HEADER_BYTES + SCOPE_BYTES]).let { size ->
+                size in 1..MAX_INVITE_LABEL_BYTES && bytes.size == INVITE_COMMAND_FIXED + size
+            }
+        CompanionGroupOperation.READ_INVITE -> bytes.size == READ_INVITE_COMMAND_BYTES &&
+            idValid(bytes.copyOfRange(HEADER_BYTES, HEADER_BYTES + INVITE_ID_BYTES)) &&
+            u16(bytes, HEADER_BYTES + INVITE_ID_BYTES).let { it < MAX_INVITE_BYTES && it % INVITE_PAGE_BYTES == 0 }
+        else -> bytes.size >= JOIN_FIXED &&
+            invitePage(u16(bytes, HEADER_BYTES), u16(bytes, HEADER_BYTES + 2)).let { it != 0 && bytes.size == JOIN_FIXED + it }
+    }
+
+    private fun decodeInviteResult(
+        operation: CompanionGroupOperation,
+        status: CompanionGroupStatus,
+        bytes: ByteArray,
+    ): CompanionGroupResult? {
+        if (status == CompanionGroupStatus.MISSING) return null
+        if (status != CompanionGroupStatus.OK) {
+            return CompanionGroupResult(operation, status).takeIf { bytes.size == HEADER_BYTES }
+        }
+        return when (operation) {
+            CompanionGroupOperation.INVITE -> {
+                if (bytes.size != INVITE_RESULT_BYTES) return null
+                val scope = readScope(bytes, HEADER_BYTES) ?: return null
+                val id = bytes.copyOfRange(HEADER_BYTES + SCOPE_BYTES, HEADER_BYTES + SCOPE_BYTES + INVITE_ID_BYTES)
+                val total = u16(bytes, HEADER_BYTES + SCOPE_BYTES + INVITE_ID_BYTES)
+                if (!idValid(id) || total !in MIN_INVITE_BYTES..MAX_INVITE_BYTES) return null
+                CompanionGroupResult(operation, status, scope, invite = CompanionGroupInvitePage(id, 0, total, ByteArray(0)))
+            }
+            CompanionGroupOperation.READ_INVITE -> {
+                if (bytes.size < READ_INVITE_RESULT_FIXED) return null
+                val id = bytes.copyOfRange(HEADER_BYTES, HEADER_BYTES + INVITE_ID_BYTES)
+                val offset = u16(bytes, HEADER_BYTES + INVITE_ID_BYTES)
+                val total = u16(bytes, HEADER_BYTES + INVITE_ID_BYTES + 2)
+                val count = invitePage(offset, total)
+                if (!idValid(id) || count == 0 || bytes.size != READ_INVITE_RESULT_FIXED + count) return null
+                CompanionGroupResult(operation, status, invite = CompanionGroupInvitePage(
+                    id, offset, total, bytes.copyOfRange(READ_INVITE_RESULT_FIXED, bytes.size)))
+            }
+            else -> {
+                if (bytes.size != JOIN_FIXED && bytes.size != JOIN_RESULT_FINAL_BYTES) return null
+                val offset = u16(bytes, HEADER_BYTES)
+                val total = u16(bytes, HEADER_BYTES + 2)
+                val count = invitePage(offset, total)
+                if (count == 0) return null
+                val last = offset + count == total
+                if (last != (bytes.size == JOIN_RESULT_FINAL_BYTES)) return null
+                if (!last) return CompanionGroupResult(operation, status,
+                    invite = CompanionGroupInvitePage(null, offset, total, ByteArray(0)))
+                val scope = readScope(bytes, JOIN_FIXED) ?: return null
+                val id = bytes.copyOfRange(JOIN_FIXED + SCOPE_BYTES, JOIN_RESULT_FINAL_BYTES)
+                if (!idValid(id)) return null
+                CompanionGroupResult(operation, status, scope, invite = CompanionGroupInvitePage(id, offset, total, ByteArray(0)))
+            }
+        }
+    }
+
     internal fun validCommand(bytes: ByteArray): Boolean {
         val operation = operation(bytes) ?: return false
         if (bytes[6] != 0.toByte()) return false
         return when (operation) {
+            CompanionGroupOperation.INVITE, CompanionGroupOperation.READ_INVITE, CompanionGroupOperation.JOIN ->
+                validInviteCommand(operation, bytes)
             CompanionGroupOperation.DISCOVER -> bytes.size == HEADER_BYTES
             CompanionGroupOperation.CREATE -> bytes.size == HEADER_BYTES + 1 && u8(bytes[HEADER_BYTES]) in 0..2
             CompanionGroupOperation.STOP_TRUST ->
@@ -143,6 +314,9 @@ object CompanionGroupConfigurationCodec {
     fun decodeResult(bytes: ByteArray): CompanionGroupResult? {
         val operation = operation(bytes) ?: return null
         val status = CompanionGroupStatus.entries.firstOrNull { it.wire == u8(bytes[6]) } ?: return null
+        if (operation == CompanionGroupOperation.INVITE || operation == CompanionGroupOperation.READ_INVITE ||
+            operation == CompanionGroupOperation.JOIN
+        ) return decodeInviteResult(operation, status, bytes)
         if (status == CompanionGroupStatus.MISSING && operation != CompanionGroupOperation.READ_ROSTER) return null
         if (operation == CompanionGroupOperation.DISCOVER) {
             if (status != CompanionGroupStatus.OK && status != CompanionGroupStatus.UNAVAILABLE) return null

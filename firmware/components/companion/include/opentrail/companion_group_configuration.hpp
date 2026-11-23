@@ -9,9 +9,20 @@ inline constexpr std::uint8_t kConfigurationGroupResultKind = 0x8f;
 inline constexpr std::size_t kConfigurationGroupSlots = 4;
 inline constexpr std::size_t kConfigurationRosterFragmentBytes = 42;
 inline constexpr std::size_t kConfigurationGroupRosterBytes = 439;
+inline constexpr std::size_t kConfigurationInviteIdBytes = 16;
+// qr::kDescriptorBaseBytes, and that plus the longest label (qr::kNameBytes).
+inline constexpr std::size_t kConfigurationInviteMinimumBytes = 167;
+inline constexpr std::size_t kConfigurationInviteBytes = 287;
+inline constexpr std::size_t kConfigurationInviteFragmentBytes = 96;
+// The Invite command carries its label after the scope in the 128-byte body.
+inline constexpr std::size_t kConfigurationInviteLabelBytes = 47;
 
 enum class GroupConfigurationOperation : std::uint8_t {
     discover = 1, create = 2, stop_trust = 3, read_roster = 4,
+    // F8 live Invite and Join, QR route. Invite issues a boot-scoped signed
+    // invite on the admin board, Read Invite pages it out, and Join pages a
+    // scanned invite into the joiner board, which verifies and claims it once.
+    invite = 5, read_invite = 6, join = 7,
 };
 enum class GroupConfigurationStatus : std::uint8_t {
     ok = 0, unavailable = 1, refused = 2, stale = 3, uncertain = 4, missing = 5,
@@ -47,12 +58,34 @@ struct GroupConfigurationRosterFragment {
     std::array<std::uint8_t, kConfigurationRosterFragmentBytes> bytes{};
 };
 
+// Invite paging. Read Invite names the invite ID and offset; Join carries
+// offset, total and the bytes; both results echo offset and total. Pages are
+// kConfigurationInviteFragmentBytes, except a shorter last page.
+struct GroupConfigurationInvitePage {
+    std::array<std::uint8_t, kConfigurationInviteIdBytes> invite_id{};
+    std::uint16_t offset{0};
+    std::uint16_t total_bytes{0};
+    std::uint8_t size{0};
+    std::array<std::uint8_t, kConfigurationInviteFragmentBytes> bytes{};
+};
+
+struct GroupConfigurationLabel {
+    std::uint8_t size{0};
+    std::array<std::uint8_t, kConfigurationInviteLabelBytes> bytes{};
+    bool operator==(const GroupConfigurationLabel& other) const {
+        return size == other.size && bytes == other.bytes;
+    }
+};
+
 struct GroupConfigurationCommand {
     GroupConfigurationOperation operation{GroupConfigurationOperation::discover};
     std::uint8_t location_rule{0};
     GroupConfigurationScope scope{};
     // Offset zero opens a read by slot. Continuations pin scope and state.
     GroupConfigurationReadRequest read{};
+    // Invite: label shown to the joiner. Read Invite and Join: page.
+    GroupConfigurationLabel label{};
+    GroupConfigurationInvitePage invite{};
 };
 
 struct GroupConfigurationResult {
@@ -60,6 +93,9 @@ struct GroupConfigurationResult {
     GroupConfigurationStatus status{GroupConfigurationStatus::unavailable};
     GroupConfigurationScope scope{};
     GroupConfigurationRosterFragment fragment{};
+    // Invite: ID and total. Read Invite: page. Join: offset and total, plus
+    // the invite ID and scope once the last page is accepted.
+    GroupConfigurationInvitePage invite{};
 };
 
 [[nodiscard]] ConfigurationEncodeResult encode_group_configuration_command(

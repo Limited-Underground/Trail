@@ -17,6 +17,31 @@ constexpr auto kInitialBodyBytes = group_roster::kHeaderBytes +
 bool valid_key(const group_roster::PublicKey& key) {
     return crypto_core_ed25519_is_valid_point(key.data()) == 1;
 }
+
+// Records the exact signing input the QR codec builds for a descriptor. It
+// never signs: its placeholder signature is discarded.
+class CanonicalDescriptorInput final : public group_roster::RosterSigner {
+public:
+    explicit CanonicalDescriptorInput(const group_roster::PublicKey& key) : key_(key) {}
+    const group_roster::PublicKey& public_key() const override { return key_; }
+    bool sign(const std::uint8_t* message, std::size_t size, group_roster::Signature& output) const override {
+        if (!message || size == 0 || size > bytes.size()) return false;
+        std::memcpy(bytes.data(), message, size);
+        this->size = size;
+        output.fill(0xa5);
+        return true;
+    }
+    mutable std::array<std::uint8_t, 512> bytes{};
+    mutable std::size_t size{0};
+
+private:
+    group_roster::PublicKey key_;
+};
+
+bool canonical_descriptor_input(const group_roster::qr::Descriptor& descriptor, CanonicalDescriptorInput& input) {
+    group_roster::qr::DescriptorBytes unused{};
+    return group_roster::qr::issue_descriptor(descriptor, HeltecGroupRosterCrypto{}, input, unused) && input.size != 0;
+}
 }  // namespace
 
 bool HeltecGroupRosterCrypto::verify(const group_roster::Signature& signature,
@@ -68,6 +93,38 @@ bool HeltecGroupRosterSigner::sign(const std::uint8_t* message, std::size_t size
         !HeltecGroupRosterCrypto{}.verify(candidate, message, size, key_)) return false;
     output = candidate;
     return true;
+}
+
+HeltecInviteSigner::HeltecInviteSigner(Source source, const group_roster::qr::Descriptor& expected)
+    : source_(source), expected_(expected) {
+    group_roster::PublicKey key{};
+    if (source_.read && source_.sign_descriptor && source_.read(source_.context, key) && valid_key(key) &&
+        expected_.admin == key) {
+        key_ = key;
+        ready_ = true;
+    }
+}
+
+bool HeltecInviteSigner::sign(const std::uint8_t* message, std::size_t size, group_roster::Signature& output) const {
+    if (!ready_ || !message) return false;
+    CanonicalDescriptorInput canonical(key_);
+    if (!canonical_descriptor_input(expected_, canonical) || size != canonical.size ||
+        std::memcmp(message, canonical.bytes.data(), size) != 0) return false;
+    group_roster::Signature candidate{};
+    if (!source_.sign_descriptor(source_.context, expected_, candidate) ||
+        !HeltecGroupRosterCrypto{}.verify(candidate, message, size, key_)) return false;
+    output = candidate;
+    return true;
+}
+
+bool sign_descriptor_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
+                                              const group_roster::qr::Descriptor& descriptor,
+                                              group_roster::Signature& output) {
+    group_roster::PublicKey local{};
+    if (!identity.public_key(local) || descriptor.admin != local) return false;
+    CanonicalDescriptorInput canonical(local);
+    return canonical_descriptor_input(descriptor, canonical) &&
+           identity.sign(canonical.bytes.data(), canonical.size, output);
 }
 
 bool sign_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
