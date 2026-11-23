@@ -244,8 +244,11 @@ composition binds stable catalog slots and the exact packet claim to a fresh
 authenticated F5 session. Both boards must confirm before protected text is
 eligible. End and Block fence that scope and release its storage after packet
 borrowers drain. Block also covers an unwanted invitation before anyone
-accepts it. The live route, MeshTrail App controls and device validation
-remain open.
+accepts it. The live route and device validation remain open. For A6, the
+OTDC v1 command set gives the MeshTrail App invite, review, accept, decline,
+finish, read, end, block, unblock and one-frame text, checked by the board
+and the app against the same vectors. The app model opens the composer only
+for a Ready conversation. The dispatcher route and screens remain open.
 
 ## F12 host validation
 
