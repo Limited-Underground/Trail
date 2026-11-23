@@ -286,6 +286,11 @@ def run(output, cached_component=None):
               [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, *f5_includes,
                f5_components / "identity/include"], (), " direct protected text groups",
               defines=("-DOPENTRAIL_HOST_F5_NVS_FIXTURE=1",))
+        suite("companion_direct_configuration_tests",
+              [f5_components / "companion/src/companion_direct_configuration.cpp",
+               ROOT / "tests/host/companion_direct_configuration_tests.cpp"],
+              [f5_components / "companion/include", *base], (), " direct configuration vectors",
+              [str(ROOT / "tests/fixtures/companion_direct_configuration_v1.tsv")])
         suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
               base, (), " pairing completion journal groups")
         suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
