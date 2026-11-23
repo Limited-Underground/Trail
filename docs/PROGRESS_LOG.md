@@ -35,6 +35,20 @@ text stays available as a fallback. Host owner, codec, dispatcher and budget
 tests, Android tests and lint, and both Heltec builds passed. The
 board-to-board handshake and pair activation follow. Part of #148.
 
+### OT-0174a Direct conversation commands for the app (A6)
+
+OTDC v1 is the protected app command set for conversations outside a
+group: start or join an invite, review the peer the boards reached, accept,
+decline, finish, read each of the eight conversations, end, block, unblock
+and one-frame text with delivery results. The board and the app decode the
+same 54 independently generated vectors. The app keeps drafts on the phone
+and opens the composer only when the board reports the exact conversation
+Ready with a live traffic generation. A changed peer drops its drafts.
+
+The companion dispatcher route, the frame kind and the screens follow. The
+local host runner also gets more time for two slow enrollment suites; they
+were slow, not hung. Advances #100 and #114.
+
 ## 2026-11-22
 
 ### OT-0005i Refuse exhausted enrollment journal prepares
