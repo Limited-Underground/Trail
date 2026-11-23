@@ -41,6 +41,18 @@ struct Base:ConfigurationBaseHandler {
     bool corrupt=false, wrong_minor=false;
     bool pairing_response_as_v0=false, legacy_response_as_pairing=false;
     int executions=0;
+    std::uint8_t parameter_reads{0};
+
+    bool read_device_parameters(std::uint64_t,
+        std::array<std::uint8_t, kConfigurationParametersRecordBytes>& record) override {
+        record = {'O', 'T', 'D', 'P', 1, 0, 212, 0};
+        record[8] = ++parameter_reads;
+        record[25] = 8;
+        record[168] = parameter_reads;
+        record[172] = 1;
+        record[180] = 'v';
+        return true;
+    }
     bool execute(const DeviceNameContext& c,const ConfigurationFrame& request,ConfigurationFrame& response) override {
         ++executions;
         const bool pairing_request=decode_companion_pairing_snapshot_request(
@@ -852,8 +864,100 @@ void group_execution_respects_expiry_and_disconnect() {
 }
 }
 
-int main(){group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+void parameters_read_requires_confirmed_same_session_continuation() {
+    using opentrail::target::heltec_v4_bench::ConfigurationLane;
+    using opentrail::target::heltec_v4_bench::ConfigurationParametersContinuation;
+
+    Harness h(5);
+    const auto request = [&](std::uint32_t exchange, std::uint8_t first_exchange = 0) {
+        auto frame = h.frame(kConfigurationParametersRequest, exchange);
+        const std::uint8_t page = first_exchange == 0 ? 0 : 1;
+        frame.payload = {'O', 'T', 'D', 'Q', 1, page, 0, 0, first_exchange};
+        frame.payload_bytes = page == 0 ? 8 : 12;
+        return frame;
+    };
+    const auto first = request(2);
+    EXPECT(h.submit(first).code == ConfigurationDispatchCode::unauthorized);
+    EXPECT(h.base.parameter_reads == 0);
+    h.ready();
+    h.source.state.now_ms = 100;
+    EXPECT(h.submit(first).code == ConfigurationDispatchCode::accepted);
+    const auto first_result = h.owner.execute();
+    const auto first_response = response(first_result, 5);
+    EXPECT(first_response.kind == kConfigurationParametersResponse);
+    EXPECT(first_response.payload_bytes == 128 && first_response.payload[5] == 0);
+    EXPECT(first_response.payload[8] == 'O' && first_response.payload[16] == 1);
+    EXPECT(h.submit(first).code == ConfigurationDispatchCode::no_result);
+
+    ConfigurationLane lane{};
+    lane.occupied = true;
+    lane.indicated = true;
+    lane.context = h.source.state.context;
+    lane.exchange = 2;
+    lane.admitted_ms = 100;
+    lane.record = first_result.record;
+    lane.bytes = first_result.bytes;
+
+    const auto second = request(3, 2);
+    ConfigurationParametersContinuation continuation;
+    EXPECT(!continuation.permits(second, h.source.state, 101));
+    continuation.complete(lane, h.source.state, false, 101);
+    EXPECT(!continuation.permits(second, h.source.state, 101));
+    continuation.complete(lane, h.source.state, true, 101);
+    EXPECT(continuation.permits(second, h.source.state, 101));
+    EXPECT(!continuation.permits(second, h.source.state, 5100));
+    EXPECT(!continuation.permits(request(4, 3), h.source.state, 101));
+    auto other_session = h.source.state;
+    other_session.context.transport_generation++;
+    EXPECT(!continuation.permits(second, other_session, 101));
+    other_session = h.source.state;
+    other_session.phase = DeviceNamePhase::revoked;
+    EXPECT(!continuation.permits(second, other_session, 101));
+    continuation.clear();
+    EXPECT(!continuation.permits(second, h.source.state, 101));
+
+    h.source.state.now_ms = 102;
+    EXPECT(h.submit(second).code == ConfigurationDispatchCode::accepted);
+    const auto second_response = response(h.owner.execute(), 5);
+    EXPECT(second_response.kind == kConfigurationParametersResponse);
+    EXPECT(second_response.payload_bytes == 100 && second_response.payload[5] == 1);
+    EXPECT(second_response.payload[8 + 168 - 120] == 1);
+    EXPECT(h.base.parameter_reads == 1);
+    EXPECT(h.submit(second).code == ConfigurationDispatchCode::no_result);
+    EXPECT(h.submit(request(4, 2)).code == ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes == 0);
+
+    EXPECT(h.submit(request(5)).code == ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes != 0 && h.base.parameter_reads == 2);
+    h.source.state.now_ms = 5102;
+    EXPECT(h.submit(request(6, 5)).code == ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes == 0);
+    EXPECT(h.submit(request(7)).code == ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes != 0);
+    h.source.state.phase = DeviceNamePhase::disconnected;
+    h.owner.observe();
+    h.source.state.phase = DeviceNamePhase::connected;
+    h.source.state.context.session_nonce++;
+    h.source.state.context.transport_generation++;
+    EXPECT(h.base.coordinator.close_session(h.source.state.context.controller) ==
+           CompanionSessionError::none);
+    h.ready();
+    EXPECT(h.submit(request(8, 7)).code == ConfigurationDispatchCode::accepted);
+    EXPECT(h.owner.execute().bytes == 0);
+
+    std::array<std::uint8_t, kConfigurationRecordBytes> encoded{};
+    auto malformed = request(10, 10);
+    EXPECT(!encode_configuration_frame(malformed, encoded.data(), encoded.size()).encoded());
+    malformed = request(10);
+    malformed.minor_version = 3;
+    EXPECT(!encode_configuration_frame(malformed, encoded.data(), encoded.size()).encoded());
+    malformed.minor_version = 5;
+    malformed.payload[7] = 1;
+    EXPECT(!encode_configuration_frame(malformed, encoded.data(), encoded.size()).encoded());
+}
+
+int main(){parameters_read_requires_confirmed_same_session_continuation();group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: 20 composed configuration dispatcher groups\n";
+    std::cout<<"PASS: 21 composed configuration dispatcher groups\n";
     return 0;
 }

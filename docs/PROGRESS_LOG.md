@@ -134,6 +134,31 @@ and catalog retirement after durable Stop Trust. The shared storage budget
 also covers all 32 I-080 packet claims. See the
 [companion contract](security/GROUP_PAIRWISE_V1.md#protected-companion-commands).
 
+### OT-0341 Connect board readings to the MeshTrail operation log
+
+The Heltec V4 app task samples live parameters using the collector from
+PR #280. The protected profile advertises support through the existing
+feature descriptor. Two reads return one versioned record and keep the
+session and exchange checks in the existing command lane. Android accepts
+and displays readings after it validates both pages. The operation log
+retains approved numeric readings and fixed labels with their ages.
+
+Device → Help & support can share the UTF-8 log through the chooser from
+PR #286 or save it as a file for the tester's own cloud upload. The focused
+host checks cover protected request and session lifetime, complete-record
+log output and file save. A retained-bond upgrade, live readings, email
+receipt and cloud link access still require the owner phone test. This
+increment is part of issues #125 and #103.
+
+The PR #300 follow-up restores the BLE host stack observer's evaluation and
+connection-diagnostics guards. The topic rebases onto PR #298 and retains
+separate admission and response handling for group commands and F11 reads.
+
+The next rebase keeps the A10 outbox, F7 phone transport and I-080 storage
+claims from main. The protected profile 0.6 phone trial distinguishes F11
+pages from F7 authority records by kind and payload. Group commands retain
+profile 0.5 admission. The BLE host observer remains diagnostic-only.
+
 ### OT-0305 Add protected group command framing
 
 Added versioned group discovery, Create and Stop Trust request and result

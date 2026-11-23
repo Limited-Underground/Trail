@@ -42,7 +42,9 @@ bool version_character(char value) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
            (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-' || c == '+';
 }
-bool value_valid(const Firmware& v) {
+}  // namespace
+
+bool valid_firmware(const Firmware& v) {
     if (v.release_generation >= 1000000000U || v.version_length == 0 ||
         v.version_length > v.version.size() ||
         (v.application_partition_offset != 0 &&
@@ -55,6 +57,9 @@ bool value_valid(const Firmware& v) {
     }
     return true;
 }
+namespace {
+bool value_valid(const Firmware& value) { return valid_firmware(value); }
+
 template <class T> bool sample_valid(const Sample<T>& sample, std::uint64_t at) {
     return sample.available ? sample.age_ms <= at && value_valid(sample.value) :
                               sample.age_ms == 0;

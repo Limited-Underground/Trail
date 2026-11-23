@@ -123,7 +123,7 @@ internal fun V1HomeScreen(
                 Column(Modifier.fillMaxSize()) {
                     TextButton(onClick = { support = false }) { Text("Back to Device") }
                     retainedDevicePages.SaveableStateProvider("support") {
-                        V1SupportScreen(v1SupportSnapshot(state))
+                        V1SupportScreen(v1SupportSnapshot(state), deviceReading = readySession?.deviceParameters)
                     }
                 }
             } else {

@@ -78,6 +78,8 @@ public:
 
 portMUX_TYPE g_snapshot_mux = portMUX_INITIALIZER_UNLOCKED;
 HeltecV4GnssSnapshot g_gnss_snapshot;
+// Both the collector's publication and ConfigurationBaseAuthority run on app_main.
+device_parameters::Snapshot g_parameters_snapshot;
 
 #if OPENTRAIL_LORA_LINK_TEST
 // Bench diagnostic: every status reply served to a phone.
@@ -282,6 +284,19 @@ public:
         } else return false;
         response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
         return encoded.encoded();
+    }
+
+    bool read_device_parameters(std::uint64_t now_ms,
+        std::array<std::uint8_t, kConfigurationParametersRecordBytes>& record) override {
+        static_assert(kConfigurationParametersRecordBytes == device_parameters::kRecordBytes);
+        device_parameters::Snapshot served{};
+        if (g_parameters_snapshot.sequence == 0 ||
+            device_parameters::serve(g_parameters_snapshot, now_ms, served) !=
+                device_parameters::Error::none) {
+            return false;
+        }
+        const auto encoded = device_parameters::encode(served, record.data(), record.size());
+        return encoded.error == device_parameters::Error::none && encoded.bytes == record.size();
     }
 };
 ConfigurationBaseAuthority g_configuration_base;
@@ -1607,6 +1622,10 @@ SnapshotServedDiagnostic snapshot_served_diagnostic() {
             g_snapshot_served_gnss.load(), g_snapshot_served_revision.load()};
 }
 #endif
+
+void publish_companion_device_parameters(const device_parameters::Snapshot& snapshot) {
+    g_parameters_snapshot = snapshot;
+}
 
 void publish_companion_gnss_observation(
     bool initialized, GnssFixObservation fix, std::uint64_t observed_at_ms) {

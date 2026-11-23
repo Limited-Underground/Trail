@@ -152,6 +152,7 @@ bool g_configuration_name_loaded = false;
 std::uint64_t g_configuration_blocked_generation = 0;
 std::uint64_t g_configuration_token = (std::uint64_t{1} << 63);
 ConfigurationLane g_configuration_lane{};
+ConfigurationParametersContinuation g_parameters_continuation;
 CompanionPhoneTextBackend* g_phone_text_backend = nullptr;
 std::uint16_t g_phone_text_connection = BLE_HS_CONN_HANDLE_NONE;
 // Only the app task accesses this backend binding and staged event.
@@ -348,7 +349,8 @@ int stream_access(std::uint16_t connection_handle,
                   void* argument);
 
 #if !OPENTRAIL_CONFIRMATION_EVALUATION
-// Version metadata only. Pairing results remain on the protected status lane.
+// Version 1 indicates pairing-result support. Version 2 additionally indicates
+// the F11 device-parameter reads. The descriptor UUID and handle stay fixed.
 const ble_uuid128_t kPairingResultFeatureUuid = BLE_UUID128_INIT(
     0x84, 0xaa, 0x60, 0x74, 0x52, 0x8a, 0x8b, 0x86,
     0xd3, 0x4c, 0xb7, 0x1d, 0x1d, 0xdc, 0x53, 0x8d);
@@ -356,7 +358,7 @@ int pairing_result_feature_access(std::uint16_t, std::uint16_t,
                                  ble_gatt_access_ctxt* context, void*) {
     if (context == nullptr || context->om == nullptr ||
         context->op != BLE_GATT_ACCESS_OP_READ_DSC) return BLE_ATT_ERR_READ_NOT_PERMITTED;
-    constexpr std::uint8_t version = 1;
+    constexpr std::uint8_t version = 2;
     return os_mbuf_append(context->om, &version, sizeof(version)) == 0
         ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
@@ -470,6 +472,7 @@ void clear_configuration_lane() {
         }
     }
     g_configuration_lane = {};
+    g_parameters_continuation.clear();
 }
 
 bool is_factory_reset_command(radio::ByteView encoded) {
@@ -797,8 +800,10 @@ int command_access(std::uint16_t connection_handle,
             length <= 5 || request[5] != wire_minor) {
             return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         }
+        const auto admitted_ms = now_ms();
         const auto phone = phone_text_gatt::decode(encoded, phone_text_gatt::target_payload);
         std::uint32_t nonce = 0, exchange = 0;
+        std::uint8_t request_kind = 0;
         if (g_phone_text_backend != nullptr && phone.command()) {
             if (!phone_text_link_current_locked(authority.context) ||
                 g_phone_text_connection != connection_handle ||
@@ -813,18 +818,25 @@ int command_access(std::uint16_t connection_handle,
             // Normalize only the version byte for the selected dispatcher.
             request[5] = kSelectedConfigurationMinor;
             const auto frame = decode_configuration_frame(encoded.data, encoded.size, kSelectedConfigurationMinor);
+            const bool parameters_read = frame.decoded() &&
+                frame.value.kind == kConfigurationParametersRequest;
             if (!frame.decoded() ||
                 (frame.value.kind != 1 && frame.value.kind != 2 && frame.value.kind != 4 &&
                  frame.value.kind != 5 && frame.value.kind != 6 &&
                  !(kSelectedConfigurationMinor == kConfirmationEvaluationMinor && frame.value.kind == 7) &&
                  !(kSelectedConfigurationMinor == kPublicProfileMinor && frame.value.kind == 8) &&
-                 !(wire_minor == kPublicProfileMinor && frame.value.kind == kConfigurationGroupCommandKind)) ||
+                 !(wire_minor == kPublicProfileMinor && frame.value.kind == kConfigurationGroupCommandKind) &&
+                 !(kSelectedConfigurationMinor == kPublicProfileMinor && parameters_read)) ||
                 (frame.value.kind == kConfigurationGroupCommandKind &&
-                 !g_phone_status.ready(authority, status.transport_generation))) {
+                 !g_phone_status.ready(authority, status.transport_generation)) ||
+                (parameters_read &&
+                 (!g_phone_status.ready(authority, status.transport_generation) ||
+                  !g_parameters_continuation.permits(frame.value, authority, admitted_ms)))) {
                 return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
             }
             nonce = frame.value.session_nonce;
             exchange = frame.value.exchange_id;
+            request_kind = frame.value.kind;
         }
         if (nonce != authority.context.session_nonce) return BLE_ATT_ERR_INSUFFICIENT_AUTHOR;
         const auto token = ++g_configuration_token;
@@ -835,8 +847,10 @@ int command_access(std::uint16_t connection_handle,
         g_configuration_lane.context = authority.context;
         g_configuration_lane.connection = connection_handle;
         g_configuration_lane.token = token;
-        g_configuration_lane.admitted_ms = now_ms();
+        if (request_kind == kConfigurationParametersRequest) g_parameters_continuation.clear();
+        g_configuration_lane.admitted_ms = admitted_ms;
         g_configuration_lane.exchange = exchange;
+        g_configuration_lane.request_kind = request_kind;
         g_configuration_lane.bytes = length;
         g_configuration_lane.record = request;
         queue_verified_gatt_progress(connection_handle, now_ms());
@@ -1221,7 +1235,10 @@ static int configuration_guarded_gap_event(ble_gap_event* event, void* argument)
                 const bool delivered_current = confirmed &&
                     g_configuration_lane.current(g_configuration_authority) &&
                     !g_configuration_lane.expired(completed_ms);
-                if (!phone) {
+                if (g_configuration_lane.request_kind == kConfigurationParametersRequest) {
+                    g_parameters_continuation.complete(
+                        g_configuration_lane, g_configuration_authority, delivered_current, completed_ms);
+                } else if (!phone) {
                     g_phone_status.complete(g_configuration_lane, g_configuration_authority,
                                             delivered_current, completed_ms, kSelectedConfigurationMinor);
                 }

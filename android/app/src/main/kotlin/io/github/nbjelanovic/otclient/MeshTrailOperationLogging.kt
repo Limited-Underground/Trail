@@ -3,6 +3,7 @@ package io.github.nbjelanovic.otclient
 import android.content.Context
 import android.os.SystemClock
 import io.github.nbjelanovic.otprotocol.CompanionPairingReason
+import io.github.nbjelanovic.otprotocol.CompanionDeviceParameters
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
@@ -57,16 +58,10 @@ internal class MeshTrailOperationLogging private constructor(context: Context) {
             }
         }
 
-    // Called only at the future protected F11 receive boundary, after transport/session checks.
-    // No polling, local fixture or radio action is installed here.
-    fun recordDeviceParameters(record: ByteArray) {
+    fun recordDeviceParameters(snapshot: CompanionDeviceParameters) {
         val seconds = seconds()
-        if (record.size != io.github.nbjelanovic.otprotocol.CompanionDeviceParametersCodec.RECORD_BYTES) {
-            record(MeshTrailLogKind.PARAMETERS, "invalid record")
-            return
-        }
-        val copy = record.copyOf()
-        enqueue { store?.recordDeviceParameters(seconds, copy) }
+        val entries = meshTrailParameterEntries(snapshot)
+        enqueue { store?.appendBatch(seconds, entries) }
     }
 
     suspend fun exportText(): String? = suspendCancellableCoroutine { continuation ->

@@ -44,6 +44,9 @@ import io.github.nbjelanovic.otprotocol.CompanionSemanticCodecError
 import io.github.nbjelanovic.otprotocol.CompanionStatusSnapshot
 import io.github.nbjelanovic.otprotocol.CompanionPairingResult
 import io.github.nbjelanovic.otprotocol.CompanionPairingState
+import io.github.nbjelanovic.otprotocol.CompanionDeviceParameterPages
+import io.github.nbjelanovic.otprotocol.CompanionDeviceParameters
+import io.github.nbjelanovic.otprotocol.CompanionDeviceParametersCodec
 
 private val configurationScopeCounter = java.util.concurrent.atomic.AtomicLong(0)
 private fun nextConfigurationScope(): Long? {
@@ -219,6 +222,7 @@ interface BleScanLease : BleLease {
 
 interface BleGattLease : BleLease {
     val pairingResultSupported: Boolean get() = false
+    val deviceParametersSupported: Boolean get() = false
     fun start(): Boolean
     fun requestMtu(mtu: Int): Boolean
     fun readProtocolInfo(): Boolean
@@ -371,6 +375,11 @@ data class BlePacketDeliveryObservation(
     override fun toString() = "BlePacketDeliveryObservation(available=$available, request=${currentRequest?.phase}, gap=$observationGap)"
 }
 
+data class BleDeviceParameterReading(
+    val snapshot: CompanionDeviceParameters,
+    val requestedAtMillis: Long,
+)
+
 data class BleActiveSession(
     val companion: BleDiscoveredCompanion,
     val sessionNonce: Long,
@@ -381,6 +390,7 @@ data class BleActiveSession(
     val configuration: BleConfigurationState = BleConfigurationState(),
     val statusReadAtMillis: Long? = null,
     val boardPairing: BoardPairingState? = null,
+    val deviceParameters: BleDeviceParameterReading? = null,
 )
 
 enum class FactoryResetLocalCleanupResult {
@@ -456,6 +466,7 @@ class BleCompanionRuntime(
     private val packetAuthority: BlePacketAuthorityProvider = BlePacketAuthorityProvider { null },
     private val bluetoothRecoveryObserver: (BluetoothRecoveryTrigger) -> Unit = {},
     benchTextRecord: ByteArray? = null,
+    private val deviceParameterObserver: (CompanionDeviceParameters) -> Unit = {},
 ) : AutoCloseable {
     private val benchTextPins = F7BenchPins.decode(benchTextRecord)
     private val benchQuickStatus = benchTextPins?.quickStatus == true
@@ -552,6 +563,7 @@ class BleCompanionRuntime(
     private var statusRefreshForeground = false
     private var statusRefreshTimer: BleReconnectLease? = null
     private var pendingStatusRefresh: PendingStatusRefresh? = null
+    private var lastParameterRequestAtMillis: Long? = null
     private var pairingResultEnabled = false
     private var pairingOrigin: PairingOrigin? = null
     private var lastPairingResult: CompanionPairingResult? = null
@@ -564,8 +576,13 @@ class BleCompanionRuntime(
         val pairingDeadlineMillis: Long? = null,
     )
     private data class PendingStatusRefresh(
-        val exchangeId: Long, val startedAtMillis: Long, val pairing: Boolean = false,
+        val exchangeId: Long,
+        val startedAtMillis: Long,
+        val pairing: Boolean = false,
+        val parameters: ParameterRead? = null,
     )
+    private data class ParameterRead(val firstExchange: UInt = 0u, val firstPage: ByteArray? = null)
+
     private data class FactoryResetVerificationTarget(
         val receipt: ULong,
         val companion: BleDiscoveredCompanion?,
@@ -1036,7 +1053,11 @@ class BleCompanionRuntime(
 
     private fun canRefreshStatus() = statusRefreshForeground && state is BleRuntimeState.Ready &&
         normalProfileConfirmedAfterPromotion &&
-        configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE
+        (configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE || canPollPacketParameters())
+
+    private fun canPollPacketParameters() = packetV1Enabled &&
+        configurationInfo?.minorVersion == CompanionAuthorityCodec.PROFILE &&
+        gattLease?.deviceParametersSupported == true
 
     private fun statusRefreshInterval(): Long {
         val pairing = (state as? BleRuntimeState.Ready)?.session?.boardPairing
@@ -1047,17 +1068,18 @@ class BleCompanionRuntime(
     }
 
     private fun requestStatusRefresh() {
-        val lease = gattLease ?: return
-        if (deliveringObserver || pendingStatusRefresh != null || pendingAction != null ||
-            textConversation.busy || packetReceiver.pendingRequest || packetReceiver.activeEvent != null ||
-            configurationSession?.busy == true || groupConfirmationSession?.busy == true
-        ) {
+        val packetParameters = canPollPacketParameters()
+        if (deliveringObserver || textLaneBusy() || (packetParameters && packetOrigin?.terminal == false)) {
             scheduleStatusRefresh(1_000)
             return
         }
         val exchange = nextRequestId
         val started = confirmationClockMillis()
         if (exchange !in 1..0xffff_ffffL || started < 0) return
+        if (packetParameters) {
+            requestParameterPage(ParameterRead(), started, started)
+            return
+        }
         val encoded = encodeNormalFragment(CompanionFragment(
             kind = CompanionFrameKind.SNAPSHOT_REQUEST,
             sessionNonce = activeSessionNonce,
@@ -1065,18 +1087,20 @@ class BleCompanionRuntime(
             payload = if (pairingResultEnabled) CompanionSemanticCodec.encodePairingSnapshotRequest()
                 else CompanionSemanticCodec.encodeSnapshotRequest(),
         )) ?: return
-        val pending = PendingStatusRefresh(exchange, started, pairingResultEnabled)
+        writeStatusRefresh(PendingStatusRefresh(exchange, started, pairingResultEnabled), encoded,
+            ACTION_RESULT_TIMEOUT_MILLIS)
+    }
+
+    private fun writeStatusRefresh(pending: PendingStatusRefresh, encoded: ByteArray, remainingMillis: Long) {
+        val lease = gattLease ?: return finishStatusRefresh()
         val callbackGeneration = generation
         nextRequestId++
         pendingStatusRefresh = pending
         val written = runCatching { lease.writeCommandWithResponse(encoded) }.getOrDefault(false)
         if (!accepts(callbackGeneration) || pendingStatusRefresh !== pending) return
-        if (!written) {
-            finishStatusRefresh()
-            return
-        }
-        // Keep the lane occupied through the existing response deadline, even if the UI leaves.
-        operationTimeoutLease = scheduler.schedule(ACTION_RESULT_TIMEOUT_MILLIS) {
+        if (!written) return finishStatusRefresh()
+        // Retain the shared command slot until the reply or the original request deadline.
+        val timeout = scheduler.schedule(remainingMillis) {
             requireOwnerThread()
             if (accepts(callbackGeneration) && pendingStatusRefresh === pending) {
                 // A cached feature descriptor can outlive a firmware change. A missing optional
@@ -1091,6 +1115,53 @@ class BleCompanionRuntime(
                 finishStatusRefresh()
             }
         }
+        if (accepts(callbackGeneration) && pendingStatusRefresh === pending) operationTimeoutLease = timeout
+        else timeout.close()
+    }
+
+    private fun requestParameterPage(read: ParameterRead, startedAt: Long, now: Long) {
+        val exchange = nextRequestId
+        val remaining = CompanionDeviceParameterPages.DEADLINE_MILLIS - (now - startedAt)
+        val profile = configurationInfo?.minorVersion ?: return finishStatusRefresh()
+        if (!canRefreshStatus() || gattLease?.deviceParametersSupported != true ||
+            exchange !in 1..0xffff_ffffL || now < startedAt || remaining <= 0 ||
+            (profile == CompanionAuthorityCodec.PROFILE && !currentPacketAuthority())
+        ) return finishStatusRefresh()
+        val encoded = CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(
+            CompanionDeviceParameterPages.REQUEST, activeSessionNonce.toUInt(), exchange.toUInt(),
+            CompanionDeviceParameterPages.request(read.firstExchange), profile,
+        ), allowProfile06 = packetV1Enabled) ?: return finishStatusRefresh()
+        operationTimeoutLease?.close()
+        operationTimeoutLease = null
+        writeStatusRefresh(PendingStatusRefresh(exchange, startedAt, parameters = read), encoded, remaining)
+    }
+
+    private fun acceptDeviceParameterPage(frame: CompanionConfigurationFrame) {
+        val ready = state as? BleRuntimeState.Ready ?: return
+        val pending = pendingStatusRefresh ?: return
+        val read = pending.parameters ?: return
+        if (frame.sessionNonce.toLong() != activeSessionNonce || frame.exchangeId.toLong() != pending.exchangeId) return
+        val now = confirmationClockMillis()
+        if (now < pending.startedAtMillis ||
+            now - pending.startedAtMillis >= CompanionDeviceParameterPages.DEADLINE_MILLIS
+        ) return
+        if (!canRefreshStatus()) return finishStatusRefresh()
+        val firstPage = read.firstPage
+        val page = CompanionDeviceParameterPages.responsePage(frame.payload, if (firstPage == null) 0 else 1)
+            ?: return finishStatusRefresh()
+        if (firstPage == null) {
+            requestParameterPage(ParameterRead(frame.exchangeId, page), pending.startedAtMillis, now)
+            return
+        }
+        val record = CompanionDeviceParametersCodec.decode(firstPage + page)
+        val previous = ready.session.deviceParameters?.snapshot
+        if (record != null && (previous == null || record.sequence > previous.sequence)) {
+            publish(BleRuntimeState.Ready(ready.session.copy(
+                deviceParameters = BleDeviceParameterReading(record, pending.startedAtMillis),
+            )))
+            runCatching { deviceParameterObserver(record) }
+        }
+        if (pendingStatusRefresh === pending) finishStatusRefresh()
     }
 
     private fun finishStatusRefresh() {
@@ -2535,8 +2606,13 @@ class BleCompanionRuntime(
     }
 
     private fun onStreamValue(companion: BleDiscoveredCompanion, value: ByteArray) {
+        val configurationFrame = configurationInfo?.let {
+            CompanionConfigurationCodec.decodeFrame(value, it.minorVersion, allowProfile06 = packetV1Enabled)
+        }
+        // Only canonical OTDR pages share this kind with the bench authority response.
         if (benchTextPins != null && configurationInfo?.minorVersion == CompanionAuthorityCodec.PROFILE &&
-            value.size > 6 && (value[6].toInt() and 255) == CompanionAuthorityCodec.RESPONSE_KIND) {
+            value.size > 6 && (value[6].toInt() and 255) == CompanionAuthorityCodec.RESPONSE_KIND &&
+            configurationFrame?.kind != CompanionDeviceParameterPages.RESPONSE) {
             acceptBenchPacketAuthority(companion, value)
             return
         }
@@ -2553,7 +2629,10 @@ class BleCompanionRuntime(
             retirePacket(BleRuntimeFailure.SECURITY_REQUIREMENT_FAILED,unknown=packetOrigin?.handedOff==true)
             return
         }
-        val configurationFrame = if(configurationInfo != null) CompanionConfigurationCodec.decodeFrame(value,checkNotNull(configurationInfo).minorVersion,allowProfile06=packetV1Enabled) else null
+        if (configurationFrame?.kind == CompanionDeviceParameterPages.RESPONSE) {
+            acceptDeviceParameterPage(configurationFrame)
+            return
+        }
         if (configurationFrame?.kind == CompanionConfirmationCodec.RESPONSE) {
             if (groupConfirmationSession?.receive(configurationFrame) == true) {
                 armGroupConfirmationTimeout()
@@ -2856,7 +2935,7 @@ class BleCompanionRuntime(
             configurationInfo?.minorVersion == CompanionPublicProfileCodec.PROFILE &&
             gattLease?.pairingResultSupported == true
         if (statusRefreshTimer == null) {
-            scheduleStatusRefresh(if (pairingResultEnabled) 0 else STATUS_REFRESH_INTERVAL_MILLIS)
+            scheduleStatusRefresh(if (pairingResultEnabled || canPollPacketParameters()) 0 else STATUS_REFRESH_INTERVAL_MILLIS)
         }
     }
 
@@ -2880,7 +2959,7 @@ class BleCompanionRuntime(
 
     private fun acceptStatusRefresh(ready: BleRuntimeState.Ready, fragment: CompanionFragment) {
         val pending = pendingStatusRefresh ?: return
-        if (fragment.exchangeId != pending.exchangeId) return
+        if (pending.parameters != null || fragment.exchangeId != pending.exchangeId) return
         val now = confirmationClockMillis()
         if (now < pending.startedAtMillis || now - pending.startedAtMillis >= ACTION_RESULT_TIMEOUT_MILLIS) return
         val previous = ready.session.snapshot
@@ -2901,7 +2980,16 @@ class BleCompanionRuntime(
             snapshot = snapshot, groupLocation = groupLocation, statusReadAtMillis = now,
             boardPairing = pairingState,
         )))
-        if (pendingStatusRefresh === pending) finishStatusRefresh()
+        if (pendingStatusRefresh !== pending) return
+        val lastAttempt = lastParameterRequestAtMillis
+        if (canRefreshStatus() && gattLease?.deviceParametersSupported == true &&
+            (lastAttempt == null || now - lastAttempt >= STATUS_REFRESH_INTERVAL_MILLIS)
+        ) {
+            lastParameterRequestAtMillis = now
+            requestParameterPage(ParameterRead(), now, now)
+        } else {
+            finishStatusRefresh()
+        }
     }
 
     private fun acceptPairingProjection(
@@ -3517,6 +3605,7 @@ class BleCompanionRuntime(
         statusRefreshTimer?.close()
         statusRefreshTimer = null
         pendingStatusRefresh = null
+        lastParameterRequestAtMillis = null
         pairingResultEnabled = false
         pairingOrigin = null
         lastPairingResult = null

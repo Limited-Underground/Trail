@@ -52,6 +52,32 @@ bool frame_valid(const ConfigurationFrame& f) {
         const auto d=decode_configuration_region_payload(f.payload.data(),f.payload_bytes);
         return d.decoded() && ((f.kind==6)==(d.value.kind==1 || d.value.kind==2));
     }
+    case kConfigurationParametersRequest: {
+        const auto* payload = f.payload.data();
+        if (f.minor_version != kPublicProfileMinor ||
+            f.payload_bytes < kConfigurationParametersHeaderBytes ||
+            !magic(payload, "OTDQ") || payload[4] != 1 || payload[6] || payload[7]) {
+            return false;
+        }
+        if (payload[5] == 0) return f.payload_bytes == kConfigurationParametersHeaderBytes;
+        if (payload[5] != 1 || f.payload_bytes != kConfigurationParametersHeaderBytes + 4) {
+            return false;
+        }
+        const auto previous = configuration_parameters_first_exchange(f);
+        return previous != 0 && previous < f.exchange_id;
+    }
+    case kConfigurationParametersResponse: {
+        const auto* payload = f.payload.data();
+        if (f.minor_version != kPublicProfileMinor ||
+            f.payload_bytes < kConfigurationParametersHeaderBytes ||
+            !magic(payload, "OTDR") || payload[4] != 1 || payload[6] || payload[7]) {
+            return false;
+        }
+        if (payload[5] == 0) return f.payload_bytes == kConfigurationPayloadBytes;
+        return payload[5] == 1 &&
+            f.payload_bytes == kConfigurationParametersHeaderBytes +
+                kConfigurationParametersRecordBytes - kConfigurationParametersFirstPageBytes;
+    }
     case 8: case 0x8a: {
         if(f.minor_version!=kPublicProfileMinor) return false;
         const auto d=decode_public_profile_payload(f.payload.data(),f.payload_bytes);
@@ -78,6 +104,12 @@ ConfigurationEncodeResult emit(const std::uint8_t* bytes, std::size_t size, std:
     return {ConfigurationCodecError::none, size};
 }
 }
+std::uint32_t configuration_parameters_first_exchange(const ConfigurationFrame& frame) {
+    return frame.payload[5] == 1
+        ? read<std::uint32_t>(frame.payload.data() + kConfigurationParametersHeaderBytes)
+        : 0;
+}
+
 ConfigurationEncodeResult encode_configuration_info(const ConfigurationInfo& i, std::uint8_t* out, std::size_t cap) {
     if (!info_valid(i)) return {ConfigurationCodecError::malformed, 0};
     const std::array<std::uint8_t, 16> b{'O','T','B','0',0,i.minor_version,1,i.capabilities,128,0,151,0,1,1,0,0};

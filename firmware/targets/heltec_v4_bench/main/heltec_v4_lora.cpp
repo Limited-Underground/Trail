@@ -302,6 +302,7 @@ void HeltecV4Lora::back_off(std::uint64_t now_ms) {
     const auto delay_ms = (static_cast<std::uint64_t>(airtime_us) * slots + 999U) / 1000U;
     retry_at_ms_ = now_ms + delay_ms;
     ++backoffs_;
+    ++counters_.cad_backoffs_scheduled;
     ESP_LOGI("lora_link", "CAD busy: backoff=%lu ms airtime=%lu us slots=%u retry=%u/%u",
              static_cast<unsigned long>(delay_ms), static_cast<unsigned long>(airtime_us),
              static_cast<unsigned>(slots), backoffs_, kMaximumBackoffs);

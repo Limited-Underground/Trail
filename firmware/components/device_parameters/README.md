@@ -1,9 +1,9 @@
 # MeshTrail device parameters, version 1
 
-This is the host-tested F11 / requirement 8 candidate (OT-0341). It is not wired
-into a board application, protected BLE route, Android logger or export flow.
-TASK-6 reserves the existing bench/status/pairing files for concurrent work.
-No existing status bytes, capabilities, UUIDs or permissions are changed.
+The Heltec V4 application samples device parameters for MeshTrail logging
+(F11, V1 requirement 8). The app task owns acquisition, the collector and the
+published snapshot. A Ready phone can request that snapshot through the
+authorized companion session.
 
 ## Record
 
@@ -13,7 +13,7 @@ bits, reserved bytes, noncanonical booleans, unrecognized enum values, out-of-ra
 measurements, hidden data in absent groups, and any extra or missing bytes.
 Encoding validates first and leaves the caller's buffer unchanged on failure.
 Decoding never returns a partial snapshot. This codec is not an authentication
-layer: a future route must retain protected-session ownership and framing.
+layer. The protected Companion session supplies authorization and framing.
 
 | Offset | Bytes | Field |
 | --- | ---: | --- |
@@ -55,11 +55,10 @@ a pre-launch discard; do not add those columns to claim unique lost messages.
 Attempts are recorded before startTransmit; completions require TX_DONE and
 successful finishTransmit. A pre-launch drop is not a frame sent over RF.
 Counter wrap does not establish delivery, paired-peer commitment or a new driver
-lifetime. The backoff counter requires a new driver observation hook; it is
-unavailable in current firmware.
+lifetime. The backoff counter increments when the driver schedules a CAD deferral.
 
 Power source values: unknown 0, battery-only 1, external 2, charging 3, fault 4.
-The current board has no input/charger sampler; leave this group absent.
+The current board has no input or charger sampler, so this group is absent.
 GNSS: unknown 0, unavailable 1, searching 2, fix 3, stale 4, invalid 5.
 The satellite-known flag is independent of the fix state. Unknown satellite
 counts must be encoded as zero, and known counts are bounded to 0-99.
@@ -77,7 +76,7 @@ Heap is bounded to 64 MiB with minimum <= current free. Stack headroom is bounde
 to 1 MiB and uses the installed ESP-IDF byte units, not generic FreeRTOS words.
 Storage requires used + free = total, total 1..1,000,000 entries, without u32
 addition overflow. It represents only the named partition; it is not filesystem
-space, flash wear or payload bytes. Current NVS checks do not publish this value.
+space, flash wear or payload bytes.
 
 Firmware generation is 0..999,999,999. Its 1-32 character version uses only ASCII
 letters, digits, dot, underscore, hyphen or plus, followed by zero padding. The
@@ -111,100 +110,58 @@ between tasks; the collector itself has no lock and is not thread-safe. Leave an
 unmeasured group absent. Do not substitute zero for an unavailable heap, battery,
 power, stack or backoff measurement.
 
-Recommended collection cadence is once per second, with independent source ages:
+The app collects once per second and each source retains its observation age.
 
-| Source | Proposed observation cadence and freshness policy |
+| Source | Observation |
 | --- | --- |
-| Battery | Reuse existing 30-second ADC sampling; show stale after 60 seconds. Retain millivolts as well as approximate percent. |
-| Last packet and radio counters | Observe every accepted RX frame, including pairing frames; use the driver's real timestamp. Copy counters in their owner context. An old last-packet sample remains visibly old. |
-| CAD deferrals | Increment a new cumulative observation only when an actual deferral is scheduled. Until its driver owner supplies this hook, leave the group absent. |
-| GNSS | Reuse the existing parser/poll path and 5-second freshness policy; do not start another UART reader. Preserve unknown satellite state. |
-| Heap and stack | Observe at most every 5 seconds. Read main stack in its owner context; use the existing guarded BLE host observer for that task. Keep ESP-IDF byte units. |
-| Reset and firmware | Capture after the existing boot self-check; retain the true source time. Map reset enums and copy bounded public lu_ident metadata. |
-| Storage | Copy the existing storage owner's partition statistics after its budget check, or arrange a separately reviewed low-frequency read. Never query NVS in a GATT callback. |
-| Power | Absent until a real input/charging measurement exists. |
+| Battery | Existing 30-second ADC sampling supplies millivolts and approximate percent. An invalid read leaves the previous valid measurement with its original age. |
+| Packet, radio counters, CAD | The link-test build copies the last accepted receive metadata with its original timestamp, native driver counters after successful initialization, and scheduled CAD deferrals. |
+| GNSS | The existing parser supplies fix and satellite state. Valid samples become stale after five seconds. Unknown satellite counts remain unknown. |
+| Heap and stack | The five-second heartbeat samples heap and app-task stack. Only confirmation evaluation and connection diagnostics can sample the BLE host stack. Other builds leave that group unavailable. Stack values are ESP-IDF bytes. |
+| Reset and firmware | One boot observation after self-check uses the coarse SDK reset mapping and validated public release metadata. |
+| Storage | The link-test build publishes the last successful existing ot_state budget observation. No diagnostic request scans NVS. |
+| Power | Unavailable on the current board. |
 
-A freshness threshold affects the app presentation, not the encoded availability
-of a successfully measured historical sample. Snapshot age plus each source age
-separates an old source reading from an old cached response. UINT32_MAX means at
-least that old; the phone must never display it as fresh.
+The phone ages sources from the board-reported ages and its own monotonic
+receipt clock. Board uptime and phone uptime have different origins.
 
-## Future board and protected transport hook
+## Protected read
 
-The bench application, status plumbing and pairing adapters are reserved to other
-TASK-6 owners. No build registration, source acquisition, shared coordinator,
-existing 32-byte status record or GATT route is edited here. This module is
-intentionally unwired. A separate integration change must:
+The existing Protocol Info feature descriptor
+`8d53dc1d-1db7-4cd3-868b-8a527460aa84` returns one byte. Value 1 means
+pairing-result reads are available. Value 2 also enables F11 reads. The
+descriptor UUID and handle are unchanged. A client that does not see value 2
+skips F11. The descriptor discloses feature support only.
 
-1. Register these two .cpp files and the include directory in the owning target.
-   Construct one collector under the application task and fill Inputs from the
-   observations above, without changing radio/pairing ownership or scheduling.
-2. Add a distinct admitted device-parameters request/response discriminator and
-   capability through the existing protected companion session. Keep identity,
-   authorization, connection generation, exchange ID, timeout and replay checks.
-   Do not overload the existing status snapshot or silently change its version.
-3. Publish a bounded coherent snapshot to the session owner and call serve() just
-   before encoding a response. Do not perform ADC, NVS, GNSS or driver work in a
-   BLE callback. A request for parameters does not authorize radio transmission.
-4. Add bounded multi-fragment response ownership, cancellation and completion
-   tests. The existing coordinator allows only a 20-byte envelope plus 32 bytes
-   of status (52 total) and currently emits a single fragment. A 212-byte record
-   cannot be inserted into that buffer.
+Profile 0.5's existing protected Command and Stream carry two ordinary
+one-fragment exchanges. Both exchanges require the exact encrypted,
+authenticated and app-authorized Ready session. Session nonce and exchange ID
+are in the existing 20-byte envelope. A Command write must be followed by a
+confirmed Stream indication before the lane accepts another page. The minimum
+ATT MTU stays 151. Stream remains indication-only.
 
-The generic protocol permits a 128-byte fragment payload, a 20-byte envelope and
-16 fragments. This record requires two payload fragments (128 + 84 bytes) and the
-existing minimum ATT MTU of 151. Reassembly must be bounded, exact-length and tied
-to one authorized session/exchange. Reserve each transport buffer before using it,
-retain it until confirmed completion, and discard partial output on timeout,
-authorization loss, disconnect, or malformed/conflicting fragments.
+The opt-in F7 phone trial also carries these pages over protected profile 0.6.
+The OTDQ and OTDR payloads distinguish F11 from OTY0 authority records that
+use the same kinds. The trial still requires the current authenticated,
+authorized attachment. Group commands retain their profile 0.5 gate.
 
-The proposed operation is a protected application-level read request answered on
-the existing protected stream. That stream uses authenticated, encrypted and
-authorized GATT INDICATE; direct characteristic READ is refused and NOTIFY is
-forbidden. Calling this a read does not grant a new direct GATT read permission.
-Do not change these properties to make parameters fit. Unsolicited indications
-are a later option only after explicit bounded scheduling and session tests.
+| Exchange | Request kind 0x09 payload | Response kind 0x8b payload |
+| --- | --- | --- |
+| First | `OTDQ`, version 1, page 0, two zero bytes (8 bytes) | `OTDR`, version 1, page 0, two zero bytes, first 120 OTDP bytes (128 bytes) |
+| Second | Same request prefix with page 1, then the first exchange ID as little-endian u32 (12 bytes) | Same reply prefix with page 1, then the remaining 92 OTDP bytes (100 bytes) |
 
-Start with request-driven refresh: request on session Ready, every 5 seconds while
-the logging/display view is active, and after reconnect or app resume. Permit one
-outstanding exchange, coalesce repeated requests, bound response time, and stop
-polling when authorization or the active session is lost. Align the discriminator
-and scheduling with the D-111/status and Android owners before wiring. The cadence
-is a recommendation for that review, not a shipped behavior or owner decision.
+The first request stamps the cached snapshot age and freezes one record.
+The second uses its own increasing exchange ID and references the first.
+The board permits continuation once, after indication confirmation, for the
+same exact session and within five seconds of first-page admission. Interrupted
+reads start a new exchange. An expired or disconnected session cannot continue,
+and replaying an earlier exchange cannot return sampled bytes with an old age.
+There are no unsolicited records. Sensor reads and storage calls stay on their
+owning firmware paths, out of GATT callbacks.
 
-I-045 remains open: no existing firmware or Android refresh behavior changes in
-this host foundation. The served age, per-source age, bounded refresh and visible
-staleness are the proposed integration remedy. Host tests do not demonstrate BLE
-transport, RF performance, battery accuracy or physical acceptance.
-
-## Separate Android task (requirements 8 and 9)
-
-- Admit the new version/capability and protected request route without changing
-  the existing status decoder. Reassemble exactly one bounded 212-byte record for
-  the current session/exchange; reject unknown versions, malformed fields, mixed
-  fragments and expired or unauthorized responses. Add independent wire vectors
-  and lifecycle tests, including disconnect and authentication loss.
-- Log sequence, board collection uptime, snapshot/source ages, phone receipt time,
-  units and availability. Preserve known zero, absent and stale as separate states.
-  Derive each field's age with saturating addition. Never subtract the board's
-  monotonic uptime from the phone's clock. For a requested response, conservatively
-  add the phone-measured request round trip to the board-reported age, then advance
-  with the phone's elapsed clock after receipt. Treat clock/session changes and
-  saturation explicitly; do not claim a wall-clock acquisition time without a
-  separately established clock relationship.
-- Show useful current values with their observation age and a clear stale/unknown
-  indication. Refresh on Ready, visible logging, reconnect and resume as above.
-  Clear cached session data and counter-delta baselines on a new session, sequence
-  reset or uptime rollback. Native counter deltas wrap modulo 2^32 only within a
-  known continuous driver lifetime; overlapping drop columns are not additive.
-- Keep a bounded local log with retention and storage-failure behavior. Record
-  schema/app versions and firmware metadata so later quality reviews can interpret
-  the file. Device identifiers, locations, payloads and secrets are unnecessary.
-- Provide an explicit user-initiated UTF-8 .txt export with field names, units,
-  availability, ages and schema version. Offer the Android share sheet for the
-  user's chosen email application or cloud destination. Do not automatically send
-  email, upload logs or imply a cloud account exists. Preview/redact optional
-  sensitive context and report cancellation or failed export accurately.
+The app reassembles and validates the exact 212 bytes before displaying or
+logging measurements. A user-initiated export includes the operation log and
+its admitted parameter measurements.
 
 ## Validation and review boundary
 
@@ -216,7 +173,7 @@ The codec mutation test visits all 1,696 single-bit changes to a full record;
 accepted mutations must still round-trip canonically. Acceptance of an altered
 but valid value is not cryptographic integrity; protected transport supplies that.
 
-Review transport ownership and refresh policy with the concurrent firmware/status
-and Android owners before integration. This design requires no owner decision to
-complete the host foundation. Recommendation: agree one distinct protected route
-and the request-driven cadence above, then validate the wired lifecycle separately.
+The composed dispatcher host suite covers both pages, a confirmed and
+unconfirmed first indication, exchange and session mismatch, disconnect,
+timeout and replay. Phone interoperability, retained-bond behavior and actual
+measurement accuracy require an owner-present test.

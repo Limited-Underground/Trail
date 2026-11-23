@@ -77,8 +77,14 @@ bool ConfigurationDispatcher::refresh() {
         !(block_==Block::owner && same_epoch(next.context,blocked_context_));
     if(!allowed || (observed_ && next.context!=authority_.context)) {
         ready_=false; pending_=false; holding_time_=false;
+        parameters_exchange_=0;
         // Preserve the last exchange fence even when a response cannot publish.
         if(request_bytes_!=0) { terminal_=true; cached_=status(ConfigurationDispatchCode::no_result); }
+    }
+    if (parameters_exchange_ != 0 &&
+        (next.now_ms < parameters_admitted_ms_ ||
+         next.now_ms - parameters_admitted_ms_ >= kConfigurationParametersLifetimeMs)) {
+        parameters_exchange_=0;
     }
     authority_=next; observed_=true;
     if(holding_time_ && (next.now_ms<issued_ms_ || next.now_ms-issued_ms_>=time::OledTimeAdmissionOwner::challenge_lifetime_ms)) holding_time_=false;
@@ -125,6 +131,7 @@ bool ConfigurationDispatcher::lifecycle(const DeviceNameContext& expected,Device
     if(event==DeviceNameLifecycle::disconnected) { if(block_!=Block::owner) block_=Block::session; }
     else block_=Block::owner;
     blocked_context_=expected; ready_=false; holding_time_=false; pending_=false;
+    parameters_exchange_=0;
     terminal_=request_bytes_!=0; cached_=status(ConfigurationDispatchCode::no_result);
     if(event==DeviceNameLifecycle::reset) { confirmed_name_={}; confirmed_name_.kind=DeviceNameKind::snapshot; }
     if(region_owner_ && event!=DeviceNameLifecycle::disconnected) region_owner_->clear();
@@ -143,11 +150,15 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
         !(frame.kind==6 && (selected_minor_==3 || selected_minor_==kPublicProfileMinor || selected_minor_==kConfirmationEvaluationMinor) && region_owner_) &&
         !(frame.kind==8 && selected_minor_==kPublicProfileMinor && public_profile_owner_) &&
         !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor) &&
+        !(frame.kind==kConfigurationParametersRequest && selected_minor_==kPublicProfileMinor) &&
         !(frame.kind==kConfigurationGroupCommandKind && selected_minor_==kPublicProfileMinor)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
         if(size!=request_bytes_ || !std::equal(bytes,bytes+size,request_.begin())) return status(ConfigurationDispatchCode::conflict);
         if(pending_) return status(ConfigurationDispatchCode::busy);
-        if(!terminal_) return status(ConfigurationDispatchCode::no_result);
+        // A retry of a time-stamped read starts a new exchange so cached
+        // bytes cannot make a measurement appear younger than it is.
+        if(!terminal_ || frame.kind==kConfigurationParametersRequest)
+            return status(ConfigurationDispatchCode::no_result);
         auto result=cached_;
         if(result.bytes!=0) result.code=ConfigurationDispatchCode::replayed;
         return result;
@@ -176,13 +187,47 @@ ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationF
     pending_=false; terminal_=true; cached_=status(ConfigurationDispatchCode::no_result);
     if(!refresh() || authority_.context!=request_context_ || frame==nullptr ||
         frame->minor_version!=selected_minor_) return cached_;
-    if((frame->kind==0x8a || frame->kind==kConfigurationGroupResultKind) &&
+    if((frame->kind==0x8a || frame->kind==kConfigurationGroupResultKind ||
+        frame->kind==kConfigurationParametersResponse) &&
         (authority_.now_ms<request_admitted_ms_ ||
         authority_.now_ms-request_admitted_ms_>=5000)) return cached_;
     const auto encoded=encode_configuration_frame(*frame,cached_.record.data(),cached_.record.size());
     if(encoded.encoded()) { cached_.bytes=encoded.encoded_bytes; cached_.code=ConfigurationDispatchCode::responded; }
     return cached_;
 }
+ConfigurationDispatchResult ConfigurationDispatcher::execute_parameters(
+    const ConfigurationFrame& request, ConfigurationFrame& response) {
+    if (authority_.now_ms < request_admitted_ms_ ||
+        authority_.now_ms - request_admitted_ms_ >= kConfigurationParametersLifetimeMs) {
+        return finish(nullptr);
+    }
+    const auto first_exchange = configuration_parameters_first_exchange(request);
+    std::size_t offset = 0;
+    if (first_exchange == 0) {
+        parameters_exchange_ = 0;
+        if (!base_.read_device_parameters(authority_.now_ms, parameters_record_)) {
+            return finish(nullptr);
+        }
+        parameters_exchange_ = request.exchange_id;
+        parameters_admitted_ms_ = request_admitted_ms_;
+    } else {
+        if (first_exchange != parameters_exchange_) return finish(nullptr);
+        offset = kConfigurationParametersFirstPageBytes;
+    }
+    const auto count = offset == 0 ? kConfigurationParametersFirstPageBytes
+        : kConfigurationParametersRecordBytes - offset;
+    response.kind = kConfigurationParametersResponse;
+    response.payload = {'O', 'T', 'D', 'R', 1, request.payload[5]};
+    std::copy_n(parameters_record_.begin() + offset, count,
+                response.payload.begin() + kConfigurationParametersHeaderBytes);
+    response.payload_bytes = static_cast<std::uint16_t>(kConfigurationParametersHeaderBytes + count);
+    const auto result = finish(&response);
+    if (offset != 0 || result.code != ConfigurationDispatchCode::responded) {
+        parameters_exchange_ = 0;
+    }
+    return result;
+}
+
 ConfigurationDispatchResult ConfigurationDispatcher::execute() {
     observe();
     if(!pending_) return status(ConfigurationDispatchCode::no_pending);
@@ -237,6 +282,7 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
         return finish(&response);
     }
+    if(request.kind==kConfigurationParametersRequest) return execute_parameters(request,response);
     if(request.kind==7) {
         if(authority_.now_ms<request_admitted_ms_ || authority_.now_ms-request_admitted_ms_>=5000) return finish(nullptr);
         if(!confirmation_ || selected_minor_!=kConfirmationEvaluationMinor ||

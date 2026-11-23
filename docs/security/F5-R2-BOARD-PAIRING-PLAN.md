@@ -112,7 +112,9 @@ are in D:/LimitedUnderground/Build/codex-pairing-design/out/REPORT-4.md.
 
 ## Protected phone outcome (D-111)
 
-The metadata-only ProtocolInfo descriptor advertises result version 1. After the
+The metadata-only ProtocolInfo descriptor originally advertised pairing results
+with value 1. [F11 firmware](../../firmware/components/device_parameters/README.md)
+uses value 2 to advertise pairing results and device parameter reads. After the
 unchanged V0 protected Ready bootstrap, the app opts into OTX1/OTN1 status.
 The 40-byte snapshot preserves ordinary telemetry and adds state/reason,
 the confirmed peer suffix, originating action exchange/nonce and an independent
