@@ -109,9 +109,12 @@ Step 3b reserves the sender's group message numbers durably against the full gro
 The MeshTrail App's A5 candidate uses the profile 5 protected group commands
 from the Heltec roster lifecycle. The Group tab reads the signed roster,
 creates a group with the selected location rule and stops trust for the
-group selected from the current readback. Invite and Join are Debug
-practice only. See the [OT-0305 app entry](PROGRESS_LOG.md#ot-0305-show-protected-group-rosters-in-the-meshtrail-app).
-Real phone and board acceptance remain open.
+group selected from the current readback. See the [OT-0305 app entry](PROGRESS_LOG.md#ot-0305-show-protected-group-rosters-in-the-meshtrail-app).
+Live Invite and Join replace the Debug practice: the admin board issues a
+signed QR invite and the joiner board verifies and claims it once. See
+[OT-0306 Add live Invite and Join on profile 5](PROGRESS_LOG.md#ot-0306-add-live-invite-and-join-on-profile-5).
+The board-to-board handshake, pair activation, and real phone and board
+acceptance remain open.
 
 ## V1 tester build guards
 
