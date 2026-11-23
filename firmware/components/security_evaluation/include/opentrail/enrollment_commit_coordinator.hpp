@@ -77,6 +77,7 @@ public:
             if(!initialized_ || !exact() || !valid(c) || (!empty_ &&
                 (record_.stage!=4 || c.session_generation<=record_.context.session_generation ||
                  c.operation==record_.context.operation))) return refuse();
+            if(!empty_ && record_.generation==std::numeric_limits<std::uint64_t>::max()) return refuse();
             return commit({c,empty_?1:record_.generation+1,1});
         });
         if(ok) { restarted_=false; output=PreparedEnrollmentReceipt(c); }

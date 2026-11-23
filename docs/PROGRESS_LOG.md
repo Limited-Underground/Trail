@@ -2,6 +2,12 @@
 
 ## 2026-11-22
 
+### OT-0005i Refuse exhausted enrollment journal prepares
+
+Preparing a new attempt now refuses an aborted public journal at its maximum
+generation before erasing or writing. The host regression checks that the
+retained record and its bytes survive refusal. Part of #232 (I-078).
+
 ### OT-0005i Qualify combined board storage (D-163)
 
 The Heltec adapter inventories the whole shared partition before granting

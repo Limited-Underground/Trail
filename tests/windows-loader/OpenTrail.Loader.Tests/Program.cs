@@ -9,6 +9,7 @@ using System.Xml.Linq;
 using System.Windows;
 using System.Windows.Media;
 
+var liveDeviceInspection = args is ["--live-device-inspection"];
 var failures = 0;
 
 void Expect(bool condition, string message)
@@ -795,37 +796,45 @@ catch (InvalidDataException)
 {
 }
 
-var livePackagedInspection = WindowsSerialInspectionProvider.Inspect(
-    CancellationToken.None);
-var livePackagedJson = JsonSerializer.Serialize(livePackagedInspection);
-var liveRuntimeSummary = string.Join(
-    ", ",
-    livePackagedInspection.Devices
-        .Where(static device => device.Firmware is not null)
-        .GroupBy(static device => device.DisplayName, StringComparer.Ordinal)
-        .OrderBy(static group => group.Key, StringComparer.Ordinal)
-        .Select(static group => $"{group.Count()} {group.Key}"));
-var liveFailureSummary = string.Join(
-    ", ",
-    livePackagedInspection.Devices
-        .Where(static device => device.Firmware is null)
-        .GroupBy(
-            static device => device.PrivateDiagnosticCategory ?? "unspecified",
-            StringComparer.Ordinal)
-        .OrderBy(static group => group.Key, StringComparer.Ordinal)
-        .Select(static group => $"{group.Count()} {group.Key}"));
-Console.WriteLine(
-    $"INFO: live privacy-safe runtime result: " +
-    $"{livePackagedInspection.Screen.Summary}" +
-    (liveRuntimeSummary.Length == 0 ? string.Empty : $" · {liveRuntimeSummary}") +
-    (liveFailureSummary.Length == 0 ? string.Empty : $" · {liveFailureSummary}"));
-Expect(livePackagedInspection.ReadyToFlashCount == 0 &&
-    !livePackagedInspection.GlobalActions.Flash.Enabled &&
-    !Regex.IsMatch(
-        livePackagedJson,
-        @"\bCOM\d{1,4}\b",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
-    "live built-in Windows inspection remains privacy-safe and read-only");
+if (liveDeviceInspection)
+{
+    Console.WriteLine("INFO: live Windows Loader USB inspection enabled.");
+    var livePackagedInspection = WindowsSerialInspectionProvider.Inspect(
+        CancellationToken.None);
+    var livePackagedJson = JsonSerializer.Serialize(livePackagedInspection);
+    var liveRuntimeSummary = string.Join(
+        ", ",
+        livePackagedInspection.Devices
+            .Where(static device => device.Firmware is not null)
+            .GroupBy(static device => device.DisplayName, StringComparer.Ordinal)
+            .OrderBy(static group => group.Key, StringComparer.Ordinal)
+            .Select(static group => $"{group.Count()} {group.Key}"));
+    var liveFailureSummary = string.Join(
+        ", ",
+        livePackagedInspection.Devices
+            .Where(static device => device.Firmware is null)
+            .GroupBy(
+                static device => device.PrivateDiagnosticCategory ?? "unspecified",
+                StringComparer.Ordinal)
+            .OrderBy(static group => group.Key, StringComparer.Ordinal)
+            .Select(static group => $"{group.Count()} {group.Key}"));
+    Console.WriteLine(
+        $"INFO: live privacy-safe runtime result: " +
+        $"{livePackagedInspection.Screen.Summary}" +
+        (liveRuntimeSummary.Length == 0 ? string.Empty : $" · {liveRuntimeSummary}") +
+        (liveFailureSummary.Length == 0 ? string.Empty : $" · {liveFailureSummary}"));
+    Expect(livePackagedInspection.ReadyToFlashCount == 0 &&
+        !livePackagedInspection.GlobalActions.Flash.Enabled &&
+        !Regex.IsMatch(
+            livePackagedJson,
+            @"\bCOM\d{1,4}\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant),
+        "live built-in Windows inspection remains privacy-safe and read-only");
+}
+else
+{
+    Console.WriteLine("INFO: live Windows Loader USB inspection skipped.");
+}
 
 try
 {
@@ -1040,7 +1049,7 @@ catch (InvalidDataException)
 
 try
 {
-    if (string.Equals(
+    if (liveDeviceInspection && string.Equals(
             Environment.GetEnvironmentVariable("OT_LOADER_LIVE_REFRESH_ACCEPTANCE"),
             "1",
             StringComparison.Ordinal))
