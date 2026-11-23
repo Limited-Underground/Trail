@@ -113,6 +113,7 @@ group selected from the current readback. See the [OT-0305 app entry](PROGRESS_L
 Live Invite and Join replace the Debug practice: the admin board issues a
 signed QR invite and the joiner board verifies and claims it once. See
 [OT-0306 Add live Invite and Join on profile 5](PROGRESS_LOG.md#ot-0306-add-live-invite-and-join-on-profile-5).
+QR join decisions are [retained durably on the host](PROGRESS_LOG.md#ot-0306-retain-qr-join-decisions-durably-on-the-host).
 The board-to-board handshake, pair activation, and real phone and board
 acceptance remain open.
 

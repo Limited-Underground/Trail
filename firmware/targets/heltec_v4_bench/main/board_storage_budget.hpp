@@ -4,6 +4,7 @@
 
 #include "opentrail/durable_group_roster.hpp"
 #include "opentrail/group_join_claims.hpp"
+#include "opentrail/group_qr_receipts.hpp"
 #include "opentrail/persistent_storage.hpp"
 
 namespace opentrail::target::heltec_v4_bench::board_storage_budget {
@@ -63,6 +64,10 @@ inline constexpr std::size_t kDirectEntries =
 inline constexpr std::size_t kReceiptBytes = 168;
 inline constexpr std::size_t kReceiptEntries =
     persistence::GroupPairIndex::kMaximumPairs * 2 * blob_entries(kReceiptBytes);
+// F8 step 2b: the retained QR decisions (one fixed record and its namespace)
+// live inside this reserve, so the planning total does not grow.
+inline constexpr std::size_t kQrReceiptEntries = blob_entries(persistence::GroupQrReceipts::kRecordBytes);
+static_assert(kQrReceiptEntries == 47 && kQrReceiptEntries + 1 <= kReceiptEntries);
 inline constexpr std::size_t kStagingEntries = 512;
 inline constexpr std::size_t kResidentEntries =
     kActiveEntries - kFormatSealEntries + kGroupPairEntries + kDirectEntries;
