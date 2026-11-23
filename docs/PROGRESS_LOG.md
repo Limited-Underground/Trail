@@ -57,6 +57,18 @@ profile 5 group owner. A direct scope needs its live authority owner before
 it can participate. Over-the-air routing, radio qualification and device
 acceptance remain open. Part of #102 and #120.
 
+### OT-0310 Connect direct storage and protected text on the host
+
+The direct catalog assigns eight stable slots within the D-163 reservation.
+It keeps block records separate. Each scope uses its own F5 journals, and
+the 32 enrollment attempts share one bounded pool. End and Block revoke
+traffic before draining the packet borrowers and releasing the exact slot.
+
+The host composition checks bilateral consent and a fresh authenticated F5
+session, then uses the existing Packet-v1 text, ACK and replay paths. Its
+scope and packet claim are checked again at launch. The live radio and app
+routes remain open. Advances #100, #114 and #115.
+
 ### OT-0005i Qualify combined board storage (D-163)
 
 The Heltec adapter inventories the whole shared partition before granting

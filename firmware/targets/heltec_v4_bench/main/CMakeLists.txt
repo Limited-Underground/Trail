@@ -32,6 +32,7 @@ if(OPENTRAIL_LORA_LINK_TEST)
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_conversation_owner.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_text_session.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_frame.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_sharing.cpp"

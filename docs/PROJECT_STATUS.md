@@ -239,9 +239,12 @@ catalog, packet claim admission and retirement. It exercises the existing
 protected request owner and the #302 allocator with a synthetic pairing
 endpoint. A follow-up uses the signed F5 exchange to verify a direct peer and
 transcript and wait for each board's consent before its Prepared receipt.
-D-155 calls for a revised budget before integrating the live journals for eight
-conversations with group storage. The MeshTrail App invite and composer gate
-and device validation remain open.
+D-163 reserves eight direct scopes within the shared NVS budget. The host
+composition binds stable catalog slots and the exact packet claim to a fresh
+authenticated F5 session. Both boards must confirm before protected text is
+eligible. End and Block fence that scope and release its storage after packet
+borrowers drain. The live route, MeshTrail App controls and device validation
+remain open.
 
 ## F12 host validation
 

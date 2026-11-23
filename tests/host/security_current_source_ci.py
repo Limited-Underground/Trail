@@ -277,6 +277,15 @@ def run(output, cached_component=None):
                ROOT / "tests/host/direct_conversation_owner_tests.cpp"],
               [f5_components / "companion/include", *base], (),
               " direct-conversation owner scenario groups")
+        suite("direct_protected_text_tests",
+              [*common, *f5_sources, f5_components / "companion/src/direct_conversation_owner.cpp",
+               f5_components / "companion/src/companion_device_name_owner.cpp",
+               f5_components / "companion/src/companion_device_name_codec.cpp",
+               f5_components / "companion/src/direct_text_session.cpp", f5_target / "pairing_nvs_storage.cpp",
+               ROOT / "tests/host/f5_pairing_nvs_tests.cpp", ROOT / "tests/host/direct_protected_text_tests.cpp"],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, *f5_includes,
+               f5_components / "identity/include"], (), " direct protected text groups",
+              defines=("-DOPENTRAIL_HOST_F5_NVS_FIXTURE=1",))
         suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
               base, (), " pairing completion journal groups")
         suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],

@@ -230,7 +230,8 @@ def admitted_target_sources(cmake: str) -> list[str]:
                                  "board_messaging_runtime.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp",
-                                     "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_conversation_owner.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_conversation_owner.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_text_session.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_frame.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_sharing.cpp",
@@ -240,7 +241,7 @@ def admitted_target_sources(cmake: str) -> list[str]:
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
-            len(lora_tokens) == 16 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            len(lora_tokens) == 17 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
