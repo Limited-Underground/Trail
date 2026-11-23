@@ -1,3 +1,4 @@
+#include "opentrail/durable_group_roster.hpp"
 #include "opentrail/group_qr_invite.hpp"
 
 #include <algorithm>
@@ -6,8 +7,12 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <optional>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #ifdef OPENTRAIL_QR_REAL_CRYPTO
 #include <sodium/crypto_core_ed25519.h>
@@ -18,6 +23,9 @@
 namespace {
 namespace r = opentrail::identity::roster;
 namespace qr = r::qr;
+namespace p = opentrail::persistence;
+using KvError = p::PersistentKvBackendError;
+using RosterBytes = std::array<std::uint8_t, r::kMaximumRosterBytes>;
 using qr::Kind;
 using qr::Side;
 
@@ -116,6 +124,53 @@ bool same_ticket(const qr::Descriptor& a, const qr::Descriptor& b) {
            a.label == b.label && a.label_bytes == b.label_bytes;
 }
 
+// Keep the durable test seam separate from the synthetic QR receipt marker.
+// Each namespace has an independent staged write and a committed memory image.
+class MemoryKv final : public p::PersistentKvBackend {
+public:
+    explicit MemoryKv(std::string_view name) : name_(name) {}
+    bool fail_after_apply{false};
+    unsigned commits{};
+
+    KvError read_blob(const char* partition, const char* ns, const char* key, std::uint8_t* out,
+                      std::size_t capacity, std::size_t& size) override {
+        CHECK(std::string_view(partition) == "ot_state" && ns == name_);
+        const auto found = committed_.find(key);
+        if (found == committed_.end()) return KvError::not_found;
+        size = found->second.size();
+        if (size > capacity) return KvError::invalid_argument;
+        std::copy(found->second.begin(), found->second.end(), out);
+        return KvError::none;
+    }
+
+    KvError write_blob(const char* partition, const char* ns, const char* key,
+                       const std::uint8_t* bytes, std::size_t size) override {
+        CHECK(std::string_view(partition) == "ot_state" && ns == name_ && staged_.empty());
+        staged_key_ = key;
+        staged_.assign(bytes, bytes + size);
+        return KvError::none;
+    }
+
+    KvError erase_key(const char*, const char*, const char*) override {
+        CHECK(false);
+        return KvError::io_failure;
+    }
+
+    KvError commit(const char* partition, const char* ns) override {
+        CHECK(std::string_view(partition) == "ot_state" && ns == name_ && !staged_.empty());
+        committed_[staged_key_] = std::move(staged_);
+        staged_.clear();
+        ++commits;
+        return fail_after_apply ? KvError::io_failure : KvError::none;
+    }
+
+private:
+    const std::string_view name_;
+    std::map<std::string, std::vector<std::uint8_t>> committed_;
+    std::string staged_key_;
+    std::vector<std::uint8_t> staged_;
+};
+
 class Port final : public qr::Authority {
 public:
     enum class Cut { none, before_marker, after_marker, late_marker, bad_readback, wrong_state };
@@ -134,6 +189,7 @@ public:
     std::uint32_t epoch{0x01020304};
     std::array<std::uint8_t, r::kMaximumRosterBytes> signed_roster{};
     std::size_t signed_size{};
+    r::DurableGroupRoster* successor_storage{};
     unsigned writes{};
     std::uint64_t cutoff{};
     std::uint64_t now() const override { return tick; }
@@ -185,6 +241,11 @@ public:
                manifest == d.decision.manifest;
     }
     bool successor_readback(const std::uint8_t* p, std::size_t size) const override {
+        if (successor_storage) {
+            RosterBytes readback{};
+            const auto read_size = successor_storage->copy_signed_roster(readback.data(), readback.size());
+            return read_size && size == read_size && std::equal(p, p + size, readback.begin());
+        }
         return signed_size && size == signed_size && std::equal(p, p + size, signed_roster.begin());
     }
 };
@@ -496,6 +557,111 @@ void roster_add_only_after_exact_commit_and_readback() {
     CHECK(!pair.a_session.successor(pair.current, "New", next));
 }
 
+std::vector<std::uint8_t> signed_bytes(r::Roster& roster) {
+    RosterBytes bytes{};
+    CHECK(r::sign(roster, admin));
+    const auto size = r::encode(roster, bytes.data(), bytes.size());
+    CHECK(size != 0);
+    return {bytes.begin(), bytes.begin() + size};
+}
+
+void expect_snapshot(r::DurableGroupRoster& owner, const r::Roster& expected,
+                     const std::vector<std::uint8_t>& wire, const r::Fingerprint& local) {
+    r::DurableRosterSnapshot snapshot{};
+    RosterBytes actual{};
+    r::Digest digest{};
+    CHECK(r::roster_digest(expected, crypto, digest));
+    CHECK(owner.snapshot(snapshot, actual.data(), actual.size()) == r::DurableRosterError::none);
+    CHECK(snapshot.state == r::State::active && snapshot.group.admin == local &&
+          snapshot.group.group_id == expected.group_id && snapshot.version == expected.version &&
+          snapshot.digest == digest && snapshot.bytes == wire.size());
+    CHECK(std::equal(wire.begin(), wire.end(), actual.begin()));
+}
+
+void qr_successor_through_durable_roster() {
+    using Error = r::DurableRosterError;
+    for (const bool applied_unconfirmed : {false, true}) {
+        Pair pair;
+        pair.through_commit();
+        r::Roster next{}, other_first{}, other_current{};
+        CHECK(pair.a_session.successor(pair.current, "New", next));
+        const auto initial = signed_bytes(pair.current);
+        const auto successor = signed_bytes(next);
+        // Same author and local board, different qualified group. Preserve an
+        // existing mapping as well as that group's exact signed bytes.
+        CHECK(r::create_first(pair.current.group_id + 1, admin.public_key(), "Admin",
+                              r::LocationRule::off, other_first));
+        const auto other_initial = signed_bytes(other_first);
+        CHECK(r::add_member(other_first, crypto, outsider.public_key(), "Existing", other_current));
+        const auto other_wire = signed_bytes(other_current);
+        r::Fingerprint local{}, peer{}, applicant{};
+        CHECK(crypto.fingerprint(admin.public_key(), local));
+        CHECK(crypto.fingerprint(outsider.public_key(), peer));
+        CHECK(crypto.fingerprint(joiner.public_key(), applicant));
+        MemoryKv roster_kv("ot_group_rost"), index_kv("ot_group_idx");
+        std::optional<r::DurablePairScope> prior_mapping;
+        {
+            p::GroupPairIndex index(index_kv, local);
+            CHECK(index.initialize() == p::GroupPairIndexError::none);
+            r::DurableGroupRoster target(roster_kv, index, crypto, admin.public_key(),
+                                        pair.current.group_id, admin.public_key());
+            r::DurableGroupRoster other(roster_kv, index, crypto, admin.public_key(),
+                                       other_first.group_id, admin.public_key());
+            CHECK(target.create_owned(initial.data(), initial.size()) == Error::none);
+            CHECK(other.create_owned(other_initial.data(), other_initial.size()) == Error::none);
+            const auto installed = other.offer(other_wire.data(), other_wire.size());
+            CHECK(installed.error == Error::none && installed.outcome == r::Outcome::accepted);
+            CHECK(other.accept_member(outsider.public_key()) == Error::none);
+            prior_mapping = other.reserve_pair(peer);
+            CHECK(prior_mapping.has_value());
+
+            pair.a.successor_storage = &target;
+            const auto roster_commits = roster_kv.commits;
+            const auto index_commits = index_kv.commits;
+            CHECK(!pair.a_session.membership(pair.current, "New", successor.data(), successor.size()));
+            const auto wrong = target.offer(other_wire.data(), other_wire.size());
+            CHECK(wrong.error == Error::none && wrong.outcome == r::Outcome::rejected_group);
+            CHECK(roster_kv.commits == roster_commits && index_kv.commits == index_commits);
+            expect_snapshot(target, pair.current, initial, local);
+
+            roster_kv.fail_after_apply = applied_unconfirmed;
+            const auto result = target.offer(successor.data(), successor.size());
+            roster_kv.fail_after_apply = false;
+            CHECK(roster_kv.commits == roster_commits + 1);
+            CHECK(result.error == (applied_unconfirmed ? Error::storage_failure : Error::none));
+            if (!applied_unconfirmed) CHECK(result.outcome == r::Outcome::accepted);
+
+            // Even a matching successor sent to the QR session must read back
+            // from its own scope, and an uncertain owner returns no authority.
+            pair.a.successor_storage = &other;
+            CHECK(!pair.a_session.membership(pair.current, "New", successor.data(), successor.size()));
+            pair.a.successor_storage = &target;
+            CHECK(pair.a_session.membership(pair.current, "New", successor.data(), successor.size()) ==
+                  !applied_unconfirmed);
+            CHECK(!pair.a_session.membership(pair.current, "New", successor.data(), successor.size()));
+            pair.a.successor_storage = nullptr;
+        }
+        // Reconcile the applied image with fresh owners. This verifies roster
+        // recovery without resuming a QR session or granting pair authority.
+        p::GroupPairIndex reopened_index(index_kv, local);
+        r::DurableGroupRoster reopened(roster_kv, reopened_index, crypto, admin.public_key(),
+                                      pair.current.group_id, admin.public_key());
+        CHECK(reopened.reopen() == Error::none);
+        expect_snapshot(reopened, next, successor, local);
+        CHECK(!reopened.find_pair(applicant));
+
+        r::DurableGroupRoster unaffected(roster_kv, reopened_index, crypto, admin.public_key(),
+                                        other_current.group_id, admin.public_key());
+        CHECK(unaffected.reopen() == Error::none);
+        expect_snapshot(unaffected, other_current, other_wire, local);
+        const auto mapping = unaffected.find_pair(peer);
+        CHECK(mapping.has_value() && mapping->location.slot == prior_mapping->location.slot &&
+              mapping->location.incarnation == prior_mapping->location.incarnation &&
+              mapping->roster_version == prior_mapping->roster_version &&
+              mapping->roster_digest == prior_mapping->roster_digest);
+    }
+}
+
 void cuts_retain_only_exact_authority() {
     for (const auto cut : {Port::Cut::before_marker, Port::Cut::after_marker, Port::Cut::late_marker,
                            Port::Cut::bad_readback, Port::Cut::wrong_state}) {
@@ -593,10 +759,11 @@ int main() {
     both_independent_board_confirmations();
     original_deadlines_and_copy_budgets();
     roster_add_only_after_exact_commit_and_readback();
+    qr_successor_through_durable_roster();
     cuts_retain_only_exact_authority();
 #ifdef OPENTRAIL_QR_REAL_CRYPTO
-    std::cout << "PASS 7 QR invitation contract groups (pinned Ed25519/SHA-256)\n";
+    std::cout << "PASS 8 QR invitation contract groups (pinned Ed25519/SHA-256)\n";
 #else
-    std::cout << "PASS 7 QR invitation contract groups (deterministic crypto seam)\n";
+    std::cout << "PASS 8 QR invitation contract groups (deterministic crypto seam)\n";
 #endif
 }
