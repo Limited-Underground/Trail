@@ -2,6 +2,17 @@
 
 ## 2026-11-23
 
+### OT-0306 Bind the QR group join to Noise XK on the host
+
+Owner decision D-170 binds the QR join to the existing Noise XK suite. The
+joiner board is the initiator, and each static key is the board's Ed25519
+identity converted to X25519. Noise must use exactly the ephemerals signed
+in the QR Start and Reply, and the prologue binds the QR scope. The result
+feeds the QR transcript both boards confirm and gives the pair keys. Six
+pinned-libsodium host groups cover the matching transcript, substituted
+boards and ephemerals, another scope, tampering and replay. The radio route
+follows, in the Link Test build only. Part of #148.
+
 ### OT-0306 Add live Invite and Join on profile 5
 
 Three protected group operations carry the signed QR invite between the
