@@ -21,7 +21,7 @@ internal class BleGroupRosterSession(
         val bytes: ByteArray,
         var used: Int = 0,
     )
-    private data class Group(val scope: CompanionGroupScope, val summary: V1BoardGroupSummary)
+    internal class Group(val scope: CompanionGroupScope, val summary: V1BoardGroupSummary)
 
     private var pending: Pending? = null
     private var intent: V1BoardGroupAction? = null
@@ -35,6 +35,11 @@ internal class BleGroupRosterSession(
         private set
     val busy get() = intent != null
     val pendingExchange get() = pending?.exchange
+
+    fun locationGroup(selected: V1BoardGroupSummary): Group? =
+        if (!isCurrent() || busy) null else confirmed.firstOrNull {
+            it.summary === selected && !selected.distrusted && selected.locationRule in 1..2
+        }
 
     fun submit(action: V1BoardGroupAction): Boolean {
         if (busy || !isCurrent()) return false

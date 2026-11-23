@@ -36,6 +36,30 @@ Keep the latest fix and each received position only in bounded memory. Discard r
 
 Send protected best-effort positions and stop events per eligible pair. Check consent, scope, epoch, fix age and radio budget before launch. Coalesce updates and prioritize text, rekey and roster traffic. Use durable replay admission and receiver freshness proof before showing a pin. Show a received pin as stale at 150 seconds and remove it by 240 seconds. Stop clears a pin on receipt. If the stop is lost, expiry clears it. Require fresh consent after rekey or authority loss.
 
+## Protected phone commands in the Link Test candidate
+
+The profile 5 Command and Stream use the existing authenticated owner,
+selected configuration session, Ready snapshot, nonce and exchange fence.
+The location request kind is 0x0a. The 112-byte body starts with version 1,
+operation, scope kind and slot. The rest is big-endian scope ID, generation,
+lease, monotonic sample ID (all 8 bytes), fix age in ms, signed latitude and
+longitude in E4 (all 4 bytes), then the 32-byte admin fingerprint and 32-byte
+roster digest. A group uses slot 0 through 3 and the current roster version
+for its generation. A direct scope uses slot 255 and zero roster fields.
+
+Operations 1 through 5 mean Consent, Start, Renew, Stop and Withdraw. Only
+Start and Renew can include a fix. Renew can reuse an already admitted fix
+with zeroed fix fields. Consent, Start and Withdraw use a zero lease field.
+The 28-byte reply (kind 0x8c) echoes version, operation, status (1 accepted,
+2 denied, 3 unavailable), a reserved zero, scope ID, generation and lease.
+Only a successful Start or Renew returns a lease ID. A repeat cannot obtain
+a new result or extend the lease.
+
+The Link Test resolves a group scope against the current trusted signed
+roster without a storage write. Consent, lease and fix occupy bounded RAM
+and add zero NVS entries. The current board rejects direct location while
+its authenticated direct-conversation owner remains open.
+
 ## Radio fit and acceptance
 
 D-133 and D-136 select the US 64-channel, 125 kHz hybrid route on 902.3–914.9 MHz, pending exact qualification. D-135 sets the separate 925.1 MHz/500 kHz interim bench. D-134 keeps Repeater transmit off in the first US release, and D-138 requires fresh pairing on the hopping profile.

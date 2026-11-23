@@ -73,7 +73,7 @@ class ConnectedDeviceManifestPolicyTest {
     }
 
     @Test
-    fun manifestDeclaresExactConnectedDeviceForegroundSurface() {
+    fun manifestKeepsConnectedDeviceServiceAndForegroundLocationPermissions() {
         val manifest = projectFile("src/main/AndroidManifest.xml").readText()
         val permissions = Regex("<uses-permission[^>]+android:name=\"([^\"]+)\"")
             .findAll(manifest)
@@ -86,6 +86,8 @@ class ConnectedDeviceManifestPolicyTest {
                 "android.permission.FOREGROUND_SERVICE",
                 "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
                 "android.permission.POST_NOTIFICATIONS",
+                "android.permission.ACCESS_FINE_LOCATION",
+                "android.permission.ACCESS_COARSE_LOCATION",
             ),
             permissions,
         )
@@ -93,7 +95,8 @@ class ConnectedDeviceManifestPolicyTest {
         assertTrue(manifest.contains("android:exported=\"false\""))
         assertTrue(manifest.contains("android:foregroundServiceType=\"connectedDevice\""))
         assertFalse(manifest.contains("<receiver"))
-        listOf("LOCATION", "INTERNET", "STORAGE", "MANAGE_EXTERNAL_STORAGE").forEach {
+        listOf("ACCESS_BACKGROUND_LOCATION", "FOREGROUND_SERVICE_LOCATION",
+            "INTERNET", "STORAGE", "MANAGE_EXTERNAL_STORAGE").forEach {
             assertFalse(manifest.contains(it))
         }
     }

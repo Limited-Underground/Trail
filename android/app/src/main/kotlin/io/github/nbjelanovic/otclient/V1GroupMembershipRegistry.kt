@@ -3,7 +3,7 @@ package io.github.nbjelanovic.otclient
 enum class V1GroupRegistryFailure {
     ALREADY_IN_GROUP,
     NOT_A_MEMBER,
-    LOCATION_MUST_START_ON,
+    LOCATION_CONSENT_OR_FIX_REQUIRED,
     NO_ACTIVE_GROUP,
     ADMINISTRATOR_MUST_DELETE,
     NON_ADMINISTRATOR,
@@ -84,13 +84,19 @@ class V1GroupMembershipRegistry private constructor(
     val active: V1ActiveGroupMembership?,
     private val pendingDelete: V1PendingGroupDelete?,
 ) {
-    fun join(groupToken: V1GroupToken, profile: V1GroupProfile): V1GroupRegistryResult {
+    fun join(
+        groupToken: V1GroupToken,
+        profile: V1GroupProfile,
+        choice: V1GroupJoinChoice = V1GroupJoinChoice.WITHOUT_LOCATION,
+        freshFixAvailable: Boolean = false,
+    ): V1GroupRegistryResult {
         if (active != null) return reject(V1GroupRegistryFailure.ALREADY_IN_GROUP)
-        if (profile.members.none { it.token == localMemberToken }) {
-            return reject(V1GroupRegistryFailure.NOT_A_MEMBER)
-        }
-        if (!profile.members.single { it.token == localMemberToken }.locationSharingEnabled) {
-            return reject(V1GroupRegistryFailure.LOCATION_MUST_START_ON)
+        val member = profile.members.firstOrNull { it.token == localMemberToken }
+            ?: return reject(V1GroupRegistryFailure.NOT_A_MEMBER)
+        if (!profile.locationRule.allowsJoin(choice, freshFixAvailable) ||
+            member.locationSharingEnabled != (choice == V1GroupJoinChoice.SHARE_LOCATION)
+        ) {
+            return reject(V1GroupRegistryFailure.LOCATION_CONSENT_OR_FIX_REQUIRED)
         }
         return accept(V1ActiveGroupMembership(groupToken, profile), profile)
     }

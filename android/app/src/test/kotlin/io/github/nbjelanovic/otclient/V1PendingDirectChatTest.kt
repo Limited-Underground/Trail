@@ -86,9 +86,77 @@ class V1PendingDirectChatTest {
             assertIs<V1PendingDirectChatResult.Rejected>(pending.receiveDecision(receipt)).failure)
     }
 
+    @Test fun bothDirectChoicesAreIndependentAndWaitForFreshConversationReadback() {
+        for (share in listOf(false, true)) {
+            for (shareBack in listOf(false, true)) {
+                val outgoingInvite = V1DirectLocationInvite(peer(), token())
+                val incomingInvite = V1DirectLocationInvite(peer(), token())
+                val outgoing = pending(share, outgoingInvite)
+                val incoming = assertNotNull(V1PendingDirectChat.receive(contact(), incomingInvite))
+                assertFalse(outgoing.takeLocationConsent(V1DirectConversationReady(outgoingInvite)))
+                assertFalse(incoming.takeLocationConsent(V1DirectConversationReady(incomingInvite)))
+                assertIs<V1PendingDirectChatResult.Rejected>(
+                    incoming.receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, incomingInvite)),
+                )
+
+                val outgoingAccepted = assertIs<V1PendingDirectChatResult.Applied>(
+                    outgoing.receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, outgoingInvite)),
+                )
+                val incomingAccepted = assertIs<V1PendingDirectChatResult.Applied>(
+                    assertNotNull(incoming.acceptIncoming(shareBack))
+                        .receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, incomingInvite)),
+                )
+                assertNotNull(outgoingAccepted.messageToQueue)
+                assertNull(incomingAccepted.messageToQueue)
+                assertFalse(outgoingAccepted.next.locationSharingEnabled)
+                assertFalse(incomingAccepted.next.locationSharingEnabled)
+                assertFalse(outgoingAccepted.next.takeLocationConsent(V1DirectConversationReady(incomingInvite)))
+                assertEquals(share, outgoingAccepted.next.takeLocationConsent(V1DirectConversationReady(outgoingInvite)))
+                assertEquals(shareBack, incomingAccepted.next.takeLocationConsent(V1DirectConversationReady(incomingInvite)))
+                assertFalse(outgoingAccepted.next.takeLocationConsent(V1DirectConversationReady(outgoingInvite)))
+                assertFalse(incomingAccepted.next.takeLocationConsent(V1DirectConversationReady(incomingInvite)))
+            }
+        }
+    }
+
+    @Test fun retainedAcceptanceAndAnotherAttachmentCannotRestoreOrReleaseIntent() {
+        val invite = V1DirectLocationInvite(peer(), token())
+        val otherAttachment = V1DirectLocationInvite(peer(), token())
+        val pending = pending(true, invite)
+        for (different in listOf(otherAttachment, null)) {
+            val accepted = assertIs<V1PendingDirectChatResult.Applied>(
+                pending.receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, different)),
+            )
+            assertNotNull(accepted.messageToQueue)
+            assertFalse(accepted.next.takeLocationConsent(V1DirectConversationReady(invite)))
+        }
+        val accepted = assertIs<V1PendingDirectChatResult.Applied>(
+            pending.receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, invite)),
+        )
+        assertFalse(accepted.next.takeLocationConsent(V1DirectConversationReady(invite)))
+    }
+
+    @Test fun cancelBlockDeclineAndContextLossClearChoicesEvenFromOlderSnapshots() {
+        for (end in listOf<(V1PendingDirectChat) -> Unit>(
+            { it.cancel() }, { it.block() }, { it.clearLocationConsent() }, { pending ->
+                pending.receiveDecision(receipt(V1ChatRequestDecision.DECLINED))
+            },
+        )) {
+            val invite = V1DirectLocationInvite(peer(), token())
+            val old = pending(true, invite)
+            end(old)
+            val late = assertIs<V1PendingDirectChatResult.Applied>(
+                old.receiveDecision(receipt(V1ChatRequestDecision.ACCEPTED, invite)),
+            )
+            assertFalse(late.next.takeLocationConsent(V1DirectConversationReady(invite)))
+        }
+    }
+
     private fun peer(value: Byte = 1) = requireNotNull(V1DirectPeerToken.create(ByteArray(16) { value }))
     private fun token(value: Byte = 1) = requireNotNull(V1ChatRequestToken.create(ByteArray(16) { value }))
     private fun contact() = V1DirectContact.available(peer(), requireNotNull(V1PublicName.create("Alex")))
-    private fun pending() = requireNotNull(V1PendingDirectChat.begin(contact(), token(), "Meet at the trailhead"))
-    private fun receipt(decision: V1ChatRequestDecision) = V1ChatDecisionReceipt(peer(), token(), decision)
+    private fun pending(share: Boolean = false, invite: V1DirectLocationInvite? = null) =
+        requireNotNull(V1PendingDirectChat.begin(contact(), token(), "Meet at the trailhead", share, invite))
+    private fun receipt(decision: V1ChatRequestDecision, invite: V1DirectLocationInvite? = null) =
+        V1ChatDecisionReceipt(peer(), token(), decision, invite)
 }

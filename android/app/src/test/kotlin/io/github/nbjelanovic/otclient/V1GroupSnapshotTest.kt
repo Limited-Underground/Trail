@@ -26,6 +26,52 @@ class V1GroupSnapshotTest {
         assertNull(assertNotNull(V1GroupSnapshotCodec.decode(encoded(removed))).membership)
     }
 
+    @Test fun legacyRulesRemainButTheirForcedConsentIsCleared() {
+        for (optional in listOf(false, true)) {
+            val current = snapshot(optional = optional)
+            val retained = rewrite(encoded(current)) { it[4] = 1 }
+            val decoded = assertNotNull(V1GroupSnapshotCodec.decode(retained))
+            val profile = assertNotNull(decoded.membership).profile
+            assertEquals(current.membership!!.profile.locationRule, profile.locationRule)
+            assertEquals(current.membership.profile.members.map { it.token }, profile.members.map { it.token })
+            assertTrue(profile.members.none { it.locationSharingEnabled })
+            assertEquals(optional, profile.memberCanParticipate(token(1)))
+        }
+    }
+
+    @Test fun equalRevisionMigrationClearsLegacyConsentAndStillRefusesChangedContent() {
+        val retained = rewrite(encoded(snapshot())) { it[4] = 1 }
+        val storage = MemoryStorage(retained)
+        val fixture = Fixture()
+        val normalized = assertNotNull(V1GroupSnapshotCodec.decode(retained))
+        fixture.read = { V1GroupDeviceRead.Admitted(fixture.context, normalized) }
+        val owner = fixture.owner(storage)
+        assertTrue(owner.refresh())
+        assertEquals(1, storage.writes)
+        assertContentEquals(encoded(normalized), storage.bytes)
+
+        val conflictingStorage = MemoryStorage(retained)
+        val conflictingOwner = Fixture().owner(conflictingStorage)
+        assertFalse(conflictingOwner.refresh())
+        assertEquals(V1GroupSnapshotRefusal.REVISION_CONFLICT, conflictingOwner.firstRefusal)
+        assertEquals(0, conflictingStorage.writes)
+        assertContentEquals(retained, conflictingStorage.bytes)
+    }
+
+    @Test fun offRuleRoundTripsWithConsentDisabled() {
+        val starting = snapshot()
+        val membership = assertNotNull(starting.membership)
+        val changed = membership.profile.setLocationRule(token(1), V1GroupLocationRule.OFF)
+        val off = (changed as V1GroupMutationResult.Accepted).group
+        val saved = assertNotNull(V1GroupSnapshot.create(DEVICE, token(1), starting.revision,
+            V1ActiveGroupMembership(membership.groupToken, off)))
+        val bytes = encoded(saved)
+        val decoded = assertNotNull(V1GroupSnapshotCodec.decode(bytes))
+        assertEquals(V1GroupLocationRule.OFF, decoded.membership!!.profile.locationRule)
+        assertTrue(decoded.membership.profile.members.none { it.locationSharingEnabled })
+        assertNull(V1GroupSnapshotCodec.decode(rewrite(bytes) { it[4] = 1 }))
+    }
+
     @Test fun creationReusesGroupConstraintsAndRequiresLocalMembership() {
         assertNull(V1GroupSnapshot.create("00", token(1), 1, null))
         assertNull(V1GroupSnapshot.create("AB", token(1), 1, null))
@@ -44,7 +90,7 @@ class V1GroupSnapshotTest {
         assertNull(V1GroupSnapshotCodec.decode(ByteArray(V1GroupSnapshotCodec.MAX_BYTES + 1)))
         assertNull(V1GroupSnapshotCodec.decode(valid.copyOf().also { it[7] = 'f'.code.toByte() }))
         val firstMember = HEADER + 16 + 16 + 1 + 1
-        for ((offset, value) in listOf(4 to 2, HEADER - 1 to 2, HEADER + 32 to 2,
+        for ((offset, value) in listOf(4 to 3, HEADER - 1 to 2, HEADER + 32 to 3,
             HEADER + 33 to 7, firstMember + 16 to 8)) {
             assertNull(V1GroupSnapshotCodec.decode(rewrite(valid) { it[offset] = value.toByte() }), "offset=$offset")
         }
@@ -52,7 +98,7 @@ class V1GroupSnapshotTest {
             for (offset in (HEADER - 9) until (HEADER - 1)) it[offset] = 0
         }))
         assertNull(V1GroupSnapshotCodec.decode(rewrite(valid) { it[firstMember + 18] = 0xc3.toByte() }))
-        assertNull(V1GroupSnapshotCodec.decode(rewrite(valid) { it[firstMember + 16] = 1 })) // Required sharing OFF.
+        assertNull(V1GroupSnapshotCodec.decode(rewrite(valid) { it[HEADER + 32] = 2 })) // Off with consent.
         val secondMember = firstMember + 16 + 1 + 1 + "Owner".length
         assertNull(V1GroupSnapshotCodec.decode(rewrite(valid) {
             it.copyInto(it, secondMember, firstMember, firstMember + 16)

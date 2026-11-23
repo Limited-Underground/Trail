@@ -416,6 +416,17 @@ void owned_creation_and_snapshot() {
     CHECK(snapshot.state == State::active && snapshot.version == 1);
     CHECK(snapshot.bytes == initial.size());
     CHECK(std::equal(initial.begin(), initial.end(), bytes.begin()));
+
+    GroupPairIndex unopened_catalog(kv, admin);
+    DurableGroupRoster read_only(kv, unopened_catalog, crypto, admin, group, admin);
+    CHECK(read_only.read_active_location_rule(0, 1, admin, snapshot.digest) == LocationRule::required);
+    CHECK(!read_only.read_active_location_rule(1, 1, admin, snapshot.digest));
+    CHECK(!read_only.read_active_location_rule(0, 2, admin, snapshot.digest));
+    CHECK(!read_only.read_active_location_rule(0, 1, peer, snapshot.digest));
+    auto wrong_digest = snapshot.digest;
+    wrong_digest.back() ^= 1;
+    CHECK(!read_only.read_active_location_rule(0, 1, admin, wrong_digest));
+    CHECK(kv.committed.size() == 3);
     CHECK(owner.create_owned(initial.data(), initial.size()) == Err::refused);
     CHECK(kv.committed.size() == 3);
 
@@ -509,6 +520,8 @@ void terminal_pair_retirement() {
     CHECK(snapshot.bytes == f.rosters.initial_bytes.size());
     CHECK(std::equal(f.rosters.initial_bytes.begin(), f.rosters.initial_bytes.end(), readback.begin()));
     CHECK(restored.copy_signed_roster(readback.data(), readback.size()) == 0);
+    CHECK(!restored.read_active_location_rule(0, snapshot.version, admin, snapshot.digest));
+    CHECK(f.kv.committed.size() == before + 2);
     CHECK(!restored.find_pair(peer) && !restored.reserve_pair(peer));
 }
 

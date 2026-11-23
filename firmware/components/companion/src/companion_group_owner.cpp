@@ -1,6 +1,7 @@
 #include "opentrail/companion_group_owner.hpp"
 
 #include <algorithm>
+#include <limits>
 
 namespace opentrail::companion {
 namespace {
@@ -59,6 +60,29 @@ Error ConfigurationGroupOwner::load_snapshot(const Slot& slot, roster::DurableRo
     const auto opened = owner.reopen();
     return opened == Error::none ?
         owner.snapshot(snapshot, roster_bytes_.data(), roster_bytes_.size()) : opened;
+}
+
+std::optional<roster::LocationRule> ConfigurationGroupOwner::verified_location_rule(
+    const ConfigurationLocationScope& scope) noexcept {
+    if (scope.kind != ConfigurationLocationKind::group || scope.slot >= kConfigurationGroupSlots ||
+        scope.generation == 0 || scope.generation > std::numeric_limits<std::uint32_t>::max()) {
+        return std::nullopt;
+    }
+
+    const auto* signer = platform_.prepare();
+    roster::DurableRosterSlot slot{};
+    roster::Fingerprint local{};
+    if (!signer || !crypto_.fingerprint(signer->public_key(), local) || local == roster::Fingerprint{} ||
+        roster::DurableGroupRoster::inspect_slot(rosters_, scope.slot, slot) != Error::none ||
+        slot.group_id != scope.id || slot.local != signer->public_key()) return std::nullopt;
+
+    // Build the existing owner's read scratch without reopening either store.
+    roster_.reset();
+    index_.emplace(catalog_, local);
+    auto& owner = roster_.emplace(rosters_, *index_, crypto_, slot.admin, slot.group_id,
+        slot.local, slot.minimum_version);
+    return owner.read_active_location_rule(scope.slot, static_cast<std::uint32_t>(scope.generation),
+                                           scope.admin, scope.digest);
 }
 
 GroupConfigurationResult ConfigurationGroupOwner::execute(
