@@ -113,8 +113,10 @@ group selected from the current readback. See the [OT-0305 app entry](PROGRESS_L
 Live Invite and Join replace the Debug practice: the admin board issues a
 signed QR invite and the joiner board verifies and claims it once. See
 [OT-0306 Add live Invite and Join on profile 5](PROGRESS_LOG.md#ot-0306-add-live-invite-and-join-on-profile-5).
-The board-to-board handshake, pair activation, and real phone and board
-acceptance remain open.
+The boards bind their key agreement to the QR session with Noise XK on the
+host ([OT-0306 Bind the QR group join to Noise XK on the host](PROGRESS_LOG.md#ot-0306-bind-the-qr-group-join-to-noise-xk-on-the-host)).
+The radio route, pair activation, and real phone and board acceptance remain
+open.
 
 ## V1 tester build guards
 
