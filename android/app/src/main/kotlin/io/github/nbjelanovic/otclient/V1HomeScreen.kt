@@ -40,6 +40,7 @@ internal fun V1HomeScreen(
     onSubmitQuickStatus: (V1QuickStatusRecipient, io.github.nbjelanovic.otprotocol.CompanionQuickStatus) -> Boolean = { _, _ -> false },
     onSubmitText: (V1QuickStatusRecipient, String) -> Boolean = { _, _ -> false },
     onBoardGroupAction: (V1BoardGroupAction) -> Boolean = { false },
+    boardGroupLocationAuthority: ((V1BoardGroupSummary) -> V1GroupLocationAuthority?)? = null,
     deviceContent: @Composable (onSetupComplete: (V1OnboardingScope) -> Unit, onSetUpLater: () -> Unit) -> Unit,
 ) {
     val launchSaver=remember { Saver<V1HomeLaunchState,Any>(
@@ -95,6 +96,7 @@ internal fun V1HomeScreen(
                 state = bluetooth?.groupRoster ?: V1BoardGroupState(),
                 connected = connected,
                 onAction = onBoardGroupAction,
+                locationAuthority = boardGroupLocationAuthority,
             ) {
                 if (confirmation != V1GroupConfirmationState.Unsupported) {
                     V1DeviceGroupConfirmation(confirmation) { action ->

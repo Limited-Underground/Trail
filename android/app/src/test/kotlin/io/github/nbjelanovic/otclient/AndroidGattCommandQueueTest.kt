@@ -45,6 +45,20 @@ class AndroidGattCommandQueueTest {
         assertFalse(f.queue.hasQueued)
     }
 
+    @Test fun immediateOnlyCommandNeverEntersTheDeferredQueue() {
+        val f = Fixture()
+        assertTrue(f.queue.canWriteImmediately)
+        assertTrue(f.queue.submit(byteArrayOf(1), f.write))
+        assertFalse(f.queue.canWriteImmediately)
+        assertFalse(f.queue.submit(byteArrayOf(2), allowQueue = false, write = f.write))
+        assertFalse(f.queue.hasQueued)
+        assertTrue(f.queue.acknowledge(f.write))
+        assertEquals(1, f.sent.size)
+        assertTrue(f.queue.canWriteImmediately)
+        assertTrue(f.queue.submit(byteArrayOf(3), allowQueue = false, write = f.write))
+        assertContentEquals(byteArrayOf(3), f.sent.last())
+    }
+
     @Test fun closeOrExpiryDiscardsQueuedBytesAndCannotReplay() {
         val f = Fixture()
         f.queue.submit(byteArrayOf(1), f.write)

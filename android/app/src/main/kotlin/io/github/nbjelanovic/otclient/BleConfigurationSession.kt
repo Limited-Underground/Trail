@@ -31,6 +31,7 @@ internal class BleConfigurationSession(
     private val changed: (BleConfigurationState) -> Unit,
     private val minorVersion: Int = 2,
     private val allowProfile06: Boolean = false,
+    private val sendImmediateLocation: (ByteArray) -> Boolean = send,
 ) {
     private val names = V1NameTransaction(V1NameAuthoritySource {
         V1NameAuthority(if(isCurrent()) V1NamePhase.READY else V1NamePhase.DISCONNECTED,context)
@@ -39,6 +40,17 @@ internal class BleConfigurationSession(
     private var regionPending: RegionPending? = null
     private data class PublicPending(val exchange: UInt, val request: CompanionPublicProfilePayload)
     private var publicPending: PublicPending? = null
+    private class LocationTarget(val group: V1BoardGroupSummary, val binding: LocationBinding)
+    private class LocationPending(
+        val exchange: UInt,
+        val target: LocationTarget,
+        val operation: CompanionLocationOperation,
+        val lease: ULong,
+        val result: (CompanionLocationReply?) -> Unit,
+    )
+    private class LocationCleanup(val target: LocationTarget, val operation: CompanionLocationOperation, val lease: Long)
+    private var locationPending: LocationPending? = null
+    private val locationCleanup = linkedMapOf<LocationBinding, LocationCleanup>()
     private var namePending: V1NameRequest? = null
     private var timeExchange: UInt? = null
     private var challenge: ULong? = null
@@ -53,12 +65,99 @@ internal class BleConfigurationSession(
     ) else null
 
     val busy: Boolean get() = namePending != null || timeExchange != null || regionPending != null ||
-        publicPending != null || groups?.busy == true
+        publicPending != null || groups?.busy == true || locationPending != null
 
     fun boardGroupState() = groups?.state ?: V1BoardGroupState()
 
     fun submitBoardGroupAction(action: V1BoardGroupAction): Boolean =
         !closed && !busy && groups?.submit(action) == true
+
+    fun groupLocationBinding(group: V1BoardGroupSummary): LocationBinding? {
+        if (closed || !isCurrent()) return null
+        val current = groups?.locationGroup(group) ?: return null
+        return LocationBinding(
+            LocationAudience(LocationAudienceKind.GROUP, current.scope.groupId.toLong(),
+                group.version.toLong(), rosterAuthority = current),
+            context.device,
+        )
+    }
+
+    fun submitGroupLocation(
+        group: V1BoardGroupSummary,
+        binding: LocationBinding,
+        operation: CompanionLocationOperation,
+        lease: Long,
+        fix: PhoneLocationFix?,
+        result: (CompanionLocationReply?) -> Unit,
+    ): Boolean {
+        if (locationCleanup.isNotEmpty()) return false
+        return sendLocation(LocationTarget(group, binding), operation, lease, fix, result)
+    }
+
+    fun queueGroupLocationCleanup(
+        group: V1BoardGroupSummary,
+        binding: LocationBinding,
+        operation: CompanionLocationOperation,
+        lease: Long = 0L,
+    ) {
+        if ((operation != CompanionLocationOperation.STOP && operation != CompanionLocationOperation.WITHDRAW) ||
+            groupLocationBinding(group) != binding) return
+        // Only the current board's four verified slots can contribute cleanup work.
+        locationCleanup.entries.removeAll { groupLocationBinding(it.value.target.group) != it.key }
+        val previous = locationCleanup[binding]
+        if (previous?.operation == CompanionLocationOperation.WITHDRAW) return
+        if (locationCleanup.size >= CompanionGroupConfigurationCodec.SLOT_COUNT && previous == null) return
+        locationCleanup[binding] = LocationCleanup(LocationTarget(group, binding), operation, lease)
+    }
+
+    val hasLocationCleanup: Boolean get() = locationCleanup.isNotEmpty()
+
+    fun flushLocationCleanup(): Boolean {
+        while (!busy && locationCleanup.isNotEmpty()) {
+            val next = locationCleanup.entries.first().value
+            locationCleanup.remove(next.target.binding)
+            if (sendLocation(next.target, next.operation, next.lease, null) {}) return true
+        }
+        return false
+    }
+
+    private fun sendLocation(
+        target: LocationTarget,
+        operation: CompanionLocationOperation,
+        lease: Long,
+        fix: PhoneLocationFix?,
+        result: (CompanionLocationReply?) -> Unit,
+    ): Boolean {
+        if (busy || groupLocationBinding(target.group) != target.binding) return false
+        if (fix != null && (fix.capturedAtMs <= 0L || fix.ageMs !in 0L until PHONE_FIX_FRESH_MS)) return false
+        val scope = groups?.locationGroup(target.group)?.scope ?: return false
+        val request = CompanionLocationRequest(
+            operation = operation, kind = CompanionLocationCodec.GROUP_KIND, slot = target.group.slot,
+            scopeId = scope.groupId, generation = target.group.version.toULong(), lease = lease.toULong(),
+            sample = fix?.capturedAtMs?.toULong() ?: 0uL, ageMs = fix?.ageMs?.toInt() ?: 0,
+            latitudeE4 = fix?.latitudeE4 ?: 0, longitudeE4 = fix?.longitudeE4 ?: 0,
+            adminFingerprint = scope.adminFingerprint, rosterDigest = scope.rosterDigest,
+        )
+        val payload = CompanionLocationCodec.encode(request) ?: return false
+        val exchange = allocate() ?: return false
+        if (groupLocationBinding(target.group) != target.binding) return false
+        val pending = LocationPending(exchange, target, operation, lease.toULong(), result)
+        locationPending = pending
+        // Keep the coordinate buffer inside this dispatch. No observer runs between admission and the write.
+        val write = if (fix == null) send else sendImmediateLocation
+        val sent = runCatching { transmit(CompanionLocationCodec.REQUEST_KIND, exchange, payload, write) }
+            .getOrDefault(false)
+        if (locationPending === pending) {
+            if (sent) update(state.copy(busy = true)) else finishLocation(pending, null)
+        }
+        return true
+    }
+
+    private fun finishLocation(pending: LocationPending, reply: CompanionLocationReply?) {
+        locationPending = null
+        update(state.copy(busy = busy))
+        pending.result(reply.takeIf { groupLocationBinding(pending.target.group) == pending.target.binding })
+    }
 
     fun readRegion(): Boolean = startRegion(CompanionRegionPayload(1))
     fun writeRegion(selectionId: Int): Boolean {
@@ -119,16 +218,26 @@ internal class BleConfigurationSession(
         update(state.copy(busy=true,notice="Setting your device clock."))
         return transmit(5,id,checkNotNull(CompanionConfigurationCodec.encodeTime(CompanionTimePayload(1))))
     }
-    private fun transmit(kind: Int,id: UInt,payload: ByteArray): Boolean {
+    private fun transmit(kind: Int,id: UInt,payload: ByteArray, write: (ByteArray) -> Boolean = send): Boolean {
         if(closed || !isCurrent()) return false
         val wire=CompanionConfigurationCodec.encodeFrame(CompanionConfigurationFrame(kind,context.sessionNonce,id,payload,minorVersion),allowProfile06=allowProfile06)
             ?: return false
-        if(send(wire)) return true
+        if(write(wire)) return true
         if(namePending?.exchangeId==id || timeExchange==id || regionPending?.exchange==id || publicPending?.exchange==id) lost(id)
         return false
     }
     fun receive(frame: CompanionConfigurationFrame): Boolean {
         if(closed || !isCurrent() || minorVersion==6 && !allowProfile06 || frame.sessionNonce!=context.sessionNonce || frame.minorVersion!=minorVersion) return false
+        if (frame.kind == CompanionLocationCodec.RESPONSE_KIND) {
+            val pending = locationPending ?: return false
+            if (pending.exchange != frame.exchangeId) return false
+            val target = pending.target
+            val reply = CompanionLocationCodec.decodeReply(frame.payload, pending.operation,
+                target.binding.audience.scopeId.toULong(), target.binding.audience.generation.toULong(), pending.lease)
+            if (reply == null) return false
+            finishLocation(pending, reply)
+            return true
+        }
         if (frame.kind == CompanionGroupConfigurationCodec.RESPONSE_KIND) {
             return groups?.receive(frame.exchangeId, frame.payload) == true
         }
@@ -207,6 +316,10 @@ internal class BleConfigurationSession(
     }
     fun lost(exchange: UInt) {
         if(closed || !isCurrent()) return
+        locationPending?.takeIf { it.exchange == exchange }?.let {
+            finishLocation(it, null)
+            return
+        }
         if (groups?.pendingExchange == exchange) {
             groups.lost(exchange)
             return
@@ -221,11 +334,16 @@ internal class BleConfigurationSession(
         }
     }
     fun pendingExchange(): UInt? = namePending?.exchangeId ?: timeExchange ?: regionPending?.exchange ?:
-        publicPending?.exchange ?: groups?.pendingExchange
+        publicPending?.exchange ?: groups?.pendingExchange ?: locationPending?.exchange
     fun close() {
+        closed = true
         groups?.close()
-        state=clearPublic(state).copy(available=false,publicProfileAvailable=false,suggestedDeviceName=null)
-        closed=true;regionPending=null;publicPending=null;namePending=null;timeExchange=null;challenge=null
+        val pending = locationPending
+        locationPending = null
+        locationCleanup.clear()
+        state=clearPublic(state).copy(available=false,busy=false,publicProfileAvailable=false,suggestedDeviceName=null)
+        regionPending=null;publicPending=null;namePending=null;timeExchange=null;challenge=null
+        pending?.result?.invoke(null)
         names.lifecycle(context,V1NameLifecycle.DISCONNECTED)
     }
     private fun uncertain() = update(state.copy(busy=false,nameRevision=null,suggestedDeviceName=null,

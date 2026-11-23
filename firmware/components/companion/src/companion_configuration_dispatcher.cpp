@@ -47,8 +47,9 @@ std::uint8_t time_code(time::OledTimeCode c) {
 }
 ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b,
     RegionPersistence* region,std::uint8_t selected_minor,ConfigurationConfirmationBackend* confirmation,PublicProfilePersistence* public_profile,
-    ConfigurationGroupBackend* group)
-    : source_(s),base_(b),confirmation_(confirmation),group_(group),name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
+    ConfigurationGroupBackend* group, ConfigurationLocationBackend* location)
+    : source_(s),base_(b),confirmation_(confirmation),group_(group),location_(location),
+      name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
       selected_minor_(selected_minor),time_owner_(time_source_) {
     confirmed_name_.kind=DeviceNameKind::snapshot;
     if(region) region_owner_.emplace(name_source_,*region);
@@ -84,6 +85,7 @@ bool ConfigurationDispatcher::refresh() {
     if(!allowed || (observed_ && next.context!=authority_.context)) {
         ready_=false; pending_=false; holding_time_=false;
         parameters_exchange_=0;
+        if (location_exchange_) request_.fill(0);
         // Preserve the last exchange fence even when a response cannot publish.
         if(request_bytes_!=0) { terminal_=true; cached_=status(ConfigurationDispatchCode::no_result); }
     }
@@ -116,7 +118,8 @@ time::OledTimeAuthority ConfigurationDispatcher::TimeSource::current() noexcept 
     return {phase,time_context(a.context)};
 }
 void ConfigurationDispatcher::observe() {
-    (void)refresh();
+    const bool allowed = refresh();
+    if (location_) location_->observe(allowed && ready_ ? &authority_.context : nullptr, authority_.now_ms);
     if(confirmation_) confirmation_->observe();
     (void)name_owner_.observe();
     (void)time_owner_.observe(authority_.now_ms);
@@ -137,6 +140,8 @@ bool ConfigurationDispatcher::lifecycle(const DeviceNameContext& expected,Device
     if(event==DeviceNameLifecycle::disconnected) { if(block_!=Block::owner) block_=Block::session; }
     else block_=Block::owner;
     blocked_context_=expected; ready_=false; holding_time_=false; pending_=false;
+    if (location_exchange_) request_.fill(0);
+    if (location_) location_->observe(nullptr, authority_.now_ms);
     parameters_exchange_=0;
     terminal_=request_bytes_!=0; cached_=status(ConfigurationDispatchCode::no_result);
     if(event==DeviceNameLifecycle::reset) { confirmed_name_={}; confirmed_name_.kind=DeviceNameKind::snapshot; }
@@ -157,8 +162,12 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
         !(frame.kind==8 && selected_minor_==kPublicProfileMinor && public_profile_owner_) &&
         !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor) &&
         !(frame.kind==kConfigurationParametersRequest && selected_minor_==kPublicProfileMinor) &&
-        !(frame.kind==kConfigurationGroupCommandKind && selected_minor_==kPublicProfileMinor)) return status(ConfigurationDispatchCode::rejected);
+        !(frame.kind==kConfigurationGroupCommandKind && selected_minor_==kPublicProfileMinor) &&
+        !(frame.kind==kConfigurationLocationCommandKind && selected_minor_==kPublicProfileMinor && location_)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
+        // A timed location command is never retried or cached by exchange.
+        if (location_exchange_) return status(pending_ ? ConfigurationDispatchCode::busy : ConfigurationDispatchCode::no_result);
+        if (frame.kind == kConfigurationLocationCommandKind) return status(ConfigurationDispatchCode::conflict);
         if(size!=request_bytes_ || !std::equal(bytes,bytes+size,request_.begin())) return status(ConfigurationDispatchCode::conflict);
         if(pending_) return status(ConfigurationDispatchCode::busy);
         // A retry of a time-stamped read starts a new exchange so cached
@@ -181,6 +190,7 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
     }
     sequence_context_=context; request_context_=context; last_exchange_=frame.exchange_id;
     request_admitted_ms_=admitted_ms.value_or(authority_.now_ms);
+    location_exchange_ = frame.kind == kConfigurationLocationCommandKind;
     request_bytes_=size; std::copy(bytes,bytes+size,request_.begin());
     terminal_=false; cached_={}; pending_=true;
     if(frame.kind==4) {
@@ -191,10 +201,11 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
 }
 ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationFrame* frame) {
     pending_=false; terminal_=true; cached_=status(ConfigurationDispatchCode::no_result);
+    if (location_exchange_) request_.fill(0);
     if(!refresh() || authority_.context!=request_context_ || frame==nullptr ||
         frame->minor_version!=selected_minor_) return cached_;
     if((frame->kind==0x8a || frame->kind==kConfigurationGroupResultKind ||
-        frame->kind==kConfigurationParametersResponse) &&
+        frame->kind==kConfigurationParametersResponse || frame->kind==kConfigurationLocationResultKind) &&
         (authority_.now_ms<request_admitted_ms_ ||
         authority_.now_ms-request_admitted_ms_>=5000)) return cached_;
     const auto encoded=encode_configuration_frame(*frame,cached_.record.data(),cached_.record.size());
@@ -264,6 +275,25 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         return finish(&response);
     }
     if(!ready_) return finish(nullptr);
+    if (request.kind == kConfigurationLocationCommandKind) {
+        if (!location_ || authority_.now_ms < request_admitted_ms_ ||
+            authority_.now_ms - request_admitted_ms_ >= kConfigurationLocationCommandLifetimeMs) return finish(nullptr);
+        const auto decoded_location = decode_configuration_location_command(request.payload.data(), request.payload_bytes);
+        if (!decoded_location.decoded()) return finish(nullptr);
+        const auto& command = decoded_location.value;
+        const auto result = location_->execute(request_context_, command, request_admitted_ms_);
+        if (result.operation != command.operation || result.id != command.scope.id ||
+            result.generation != command.scope.generation ||
+            (result.status == ConfigurationLocationStatus::ok &&
+             command.operation == ConfigurationLocationOperation::renew && result.lease != command.lease)) {
+            return finish(nullptr);
+        }
+        response.kind = kConfigurationLocationResultKind;
+        const auto encoded = encode_configuration_location_result(result, response.payload.data(), response.payload.size());
+        if (!encoded.encoded()) return finish(nullptr);
+        response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return finish(&response);
+    }
     if (request.kind == kConfigurationGroupCommandKind) {
         if (authority_.now_ms < request_admitted_ms_ ||
             authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);

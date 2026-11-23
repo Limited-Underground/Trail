@@ -285,6 +285,15 @@ class TrailActivityController(
         return canMutate() && lifecycleActive && mode == TrailConnectionMode.BLUETOOTH_DEVICE &&
             port?.submitBoardGroupAction(action) == true
     }
+    override fun groupLocationAuthority(group: V1BoardGroupSummary): V1GroupLocationAuthority? {
+        requireOwnerThread()
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE) return null
+        val current = currentRecoveryPort() ?: return null
+        val authority = current.groupLocationAuthority(group) ?: return null
+        return V1GroupLocationAuthority(authority.binding, authority.board) {
+            mode == TrailConnectionMode.BLUETOOTH_DEVICE && currentRecoveryPort() === current && authority.isCurrent()
+        }
+    }
     override fun readPublicProfile(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readPublicProfile()==true }
     override fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.writePublicProfile(name,visible)==true }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return canMutate() && mode==TrailConnectionMode.BLUETOOTH_DEVICE && port?.readDeviceName()==true }

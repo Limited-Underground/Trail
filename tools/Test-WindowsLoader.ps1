@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param([switch] $PreflightOnly)
+param(
+    [switch] $PreflightOnly,
+    [switch] $LiveDeviceInspection
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -109,7 +112,11 @@ try {
     }
 
     $testAssembly = Join-Path $outputRoot 'OpenTrail.Loader.Tests\Release\net8.0-windows\OpenTrail.Loader.Tests.dll'
-    & $dotnet.Source $testAssembly
+    $testArguments = @($testAssembly)
+    if ($LiveDeviceInspection) {
+        $testArguments += '--live-device-inspection'
+    }
+    & $dotnet.Source @testArguments
     if ($LASTEXITCODE -ne 0) {
         throw "Windows loader tests failed with exit code $LASTEXITCODE."
     }

@@ -225,7 +225,7 @@ class GroupLocationPresentationTest {
     }
 
     @Test
-    fun uiIsScrollableAccessibleAndContainsNoPhoneGpsOrMapDependency() {
+    fun presentationStaysScrollableAccessibleAndSeparateFromGpsSampling() {
         val source = projectFile("src/main/kotlin/io/github/nbjelanovic/otclient/MainActivity.kt").readText()
         val development = projectFile(
             "src/development/kotlin/io/github/nbjelanovic/otclient/ActivityLocalConnection.kt",
@@ -250,8 +250,8 @@ class GroupLocationPresentationTest {
             assertFalse(development.contains(it))
             assertFalse(build.contains(it))
         }
-        assertFalse(manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
-        assertFalse(manifest.contains("android.permission.ACCESS_COARSE_LOCATION"))
+        assertFalse(manifest.contains("android.permission.ACCESS_BACKGROUND_LOCATION"))
+        assertFalse(manifest.contains("android.permission.FOREGROUND_SERVICE_LOCATION"))
         assertFalse(manifest.contains("android.permission.INTERNET"))
     }
 

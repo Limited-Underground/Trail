@@ -330,6 +330,10 @@ class TrailConnectedDeviceService : Service() {
             assertMainThread()
             return attached?.submitBoardGroupAction(action) == true
         }
+        override fun groupLocationAuthority(group: V1BoardGroupSummary): V1GroupLocationAuthority? {
+            assertMainThread()
+            return attached?.groupLocationAuthority(group)
+        }
         override fun readPublicProfile(): Boolean {
             assertMainThread()
             return attached?.readPublicProfile() == true
