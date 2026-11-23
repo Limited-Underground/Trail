@@ -500,7 +500,8 @@ def run(output, cached_component=None):
             elif name in ("enrollment_candidate_capture_runner_tests",
                           "enrollment_candidate_predevice_resume_tests"):
                 need(not extra, "grouped_test_extra_arguments_refused")
-                timeout = 300 if name == "enrollment_candidate_capture_runner_tests" else 90
+                # Each capture runner half takes about 260 s on an idle PC.
+                timeout = 900 if name == "enrollment_candidate_capture_runner_tests" else 90
                 for index, selectors in enumerate(unittest_groups(path, 2, name), 1):
                     sibling = f"{name}_part{index}"
                     completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *selectors],
