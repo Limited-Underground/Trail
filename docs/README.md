@@ -27,7 +27,7 @@ merging, signing and releases).
 
 | Area | Entry point |
 | --- | --- |
-| Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md) |
+| Product scope | [Product boundaries](PRODUCT_BOUNDARIES_V0.md), [V1 user experience](product/V1_USER_EXPERIENCE.md), [V1/V1.5 acceptance scope](testing/V1_V1_5_ACCEPTANCE_SCOPE_V0.md), [V1 tester guide (draft)](product/MESHTRAIL_V1_TESTER_GUIDE.md) |
 | Android | [Client development](../android/README.md) |
 | Firmware | [V1 guide](firmware/README.md), [build and recovery](firmware/BUILD_AND_RECOVERY.md), [remaining acceptance](firmware/V1_ACCEPTANCE.md), [porting lessons](firmware-porting-lessons.md), [experimental Heltec V4 bench target](../firmware/targets/heltec_v4_bench/README.md) |
 | Hardware | [Inventory](../hardware/INVENTORY.md), [hardware procedures](../hardware/), [integration and troubleshooting runbook](HARDWARE_INTEGRATION_RUNBOOK.md) |
