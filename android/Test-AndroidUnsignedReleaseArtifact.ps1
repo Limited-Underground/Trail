@@ -121,6 +121,8 @@ foreach ($line in $permissionLines) {
 }
 $permissions = @($permissions | Sort-Object)
 $expectedPermissions = @(
+    'android.permission.ACCESS_COARSE_LOCATION',
+    'android.permission.ACCESS_FINE_LOCATION',
     'android.permission.BLUETOOTH_CONNECT',
     'android.permission.BLUETOOTH_SCAN',
     'android.permission.FOREGROUND_SERVICE',

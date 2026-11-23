@@ -78,7 +78,11 @@ SUPPORT_POLICY = {
     "safety_boundary": "supplemental_not_guaranteed_rescue",
 }
 
+# F10/A7 (D-155): precise phone GPS only while the app is in front, asked only
+# when the user turns location sharing on. Background location stays forbidden.
 AUTHORED_PERMISSIONS = [
+    "android.permission.ACCESS_COARSE_LOCATION",
+    "android.permission.ACCESS_FINE_LOCATION",
     "android.permission.BLUETOOTH_CONNECT",
     "android.permission.BLUETOOTH_SCAN",
     "android.permission.FOREGROUND_SERVICE",
@@ -89,8 +93,8 @@ GENERATED_PERMISSIONS = [
     "io.github.nbjelanovic.otclient.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
 ]
 FORBIDDEN_PERMISSIONS = [
-    "android.permission.ACCESS_COARSE_LOCATION",
-    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_BACKGROUND_LOCATION",
+    "android.permission.FOREGROUND_SERVICE_LOCATION",
     "android.permission.INTERNET",
     "android.permission.MANAGE_EXTERNAL_STORAGE",
     "android.permission.READ_EXTERNAL_STORAGE",

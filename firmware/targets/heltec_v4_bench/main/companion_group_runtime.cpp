@@ -8,6 +8,7 @@
 #if OPENTRAIL_LORA_LINK_TEST
 #include "board_messaging_runtime.hpp"
 #include "board_pairing_runtime.hpp"
+#include "opentrail/companion_location_owner.hpp"
 #endif
 #include "pairing_nvs_storage.hpp"
 
@@ -67,15 +68,44 @@ private:
     std::optional<HeltecGroupRosterSigner> signer_;
 };
 
-}  // namespace
-
-companion::ConfigurationGroupBackend& companion_group_backend(
-    companion::DeviceNameAuthoritySource& authority) {
+companion::ConfigurationGroupOwner& group_owner(companion::DeviceNameAuthoritySource& authority) {
     static BoardGroupPlatform platform{companion_group_inputs()};
     static HeltecGroupRosterCrypto crypto;
     static companion::ConfigurationGroupOwner owner{
         authority, platform.rosters, platform.catalog, crypto, platform};
     return owner;
 }
+
+#if OPENTRAIL_LORA_LINK_TEST
+class BoardLocationAudiences final : public companion::ConfigurationLocationAudienceSource {
+public:
+    explicit BoardLocationAudiences(companion::ConfigurationGroupOwner& groups) : groups_(groups) {}
+
+    std::optional<identity::roster::LocationRule> verified_rule(
+        const companion::ConfigurationLocationScope& scope) noexcept override {
+        // Current firmware has no live authenticated direct-conversation owner.
+        return groups_.verified_location_rule(scope);
+    }
+
+private:
+    companion::ConfigurationGroupOwner& groups_;
+};
+#endif
+
+}  // namespace
+
+companion::ConfigurationGroupBackend& companion_group_backend(
+    companion::DeviceNameAuthoritySource& authority) {
+    return group_owner(authority);
+}
+
+#if OPENTRAIL_LORA_LINK_TEST
+companion::ConfigurationLocationBackend& companion_location_backend(
+    companion::DeviceNameAuthoritySource& authority) {
+    static BoardLocationAudiences audiences{group_owner(authority)};
+    static companion::ConfigurationLocationOwner owner{authority, audiences};
+    return owner;
+}
+#endif
 
 }  // namespace opentrail::target::heltec_v4_bench

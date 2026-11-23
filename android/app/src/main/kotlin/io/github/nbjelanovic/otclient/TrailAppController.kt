@@ -328,6 +328,11 @@ class TrailAppController(
         requireOwnerThread()
         return mode == TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.submitBoardGroupAction(action)
     }
+    override fun groupLocationAuthority(group: V1BoardGroupSummary): V1GroupLocationAuthority? {
+        requireOwnerThread()
+        if (mode != TrailConnectionMode.BLUETOOTH_DEVICE || !canMutate()) return null
+        return bluetoothRuntime.groupLocationAuthority(group)
+    }
     override fun readPublicProfile(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readPublicProfile() }
     override fun writePublicProfile(name: String, visible: Boolean): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.writePublicProfile(name,visible) }
     override fun readDeviceName(): Boolean { requireOwnerThread(); return mode==TrailConnectionMode.BLUETOOTH_DEVICE && canMutate() && bluetoothRuntime.readDeviceName() }

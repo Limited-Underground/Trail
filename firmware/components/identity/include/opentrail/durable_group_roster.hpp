@@ -72,6 +72,10 @@ public:
                                                          std::size_t slot, DurableRosterSlot& output);
     [[nodiscard]] DurableRosterError snapshot(DurableRosterSnapshot& output, std::uint8_t* bytes,
                                                std::size_t capacity);
+    // Verify the exact signed active roster without reopening or reconciling
+    // the pair catalog. This read never writes or grants pair authority.
+    [[nodiscard]] std::optional<LocationRule> read_active_location_rule(
+        std::size_t slot, std::uint32_t version, const Fingerprint& admin, const Digest& digest);
     // Restore the verified roster and retained member consent into a fresh
     // durable GroupState. Pair epoch history is imported separately.
     [[nodiscard]] DurableRosterError hydrate_group(GroupState& live);
