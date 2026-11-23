@@ -248,7 +248,8 @@ accepts it. The live route and device validation remain open. For A6, the
 OTDC v1 command set gives the MeshTrail App invite, review, accept, decline,
 finish, read, end, block, unblock and one-frame text, checked by the board
 and the app against the same vectors. The app model opens the composer only
-for a Ready conversation. The dispatcher route and screens remain open.
+for a Ready conversation. The dispatcher carries it as profile 5 kinds
+0x0c and 0x90. The board backend and screens remain open.
 
 ## F12 host validation
 

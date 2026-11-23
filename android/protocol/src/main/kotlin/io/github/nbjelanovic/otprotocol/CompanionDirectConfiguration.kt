@@ -106,6 +106,9 @@ sealed interface CompanionDirectResult {
  * the board's direct conversation owner decides consent, block and traffic authority.
  */
 object CompanionDirectConfigurationCodec {
+    /** OTC0 profile 5 frame kinds (firmware kConfigurationDirectCommandKind / ResultKind). */
+    const val REQUEST_KIND = 0x0c
+    const val RESPONSE_KIND = 0x90
     const val CONVERSATIONS = 8
     const val BLOCKED = 16
     const val MAX_TEXT_BYTES = 90

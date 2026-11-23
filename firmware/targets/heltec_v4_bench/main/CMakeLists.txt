@@ -87,6 +87,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/time/src/oled_clock.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/time/src/oled_time_admission.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_configuration_codec.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_direct_configuration.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_collector.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_confirmation_codec.cpp"

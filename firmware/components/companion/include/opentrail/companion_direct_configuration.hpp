@@ -10,7 +10,9 @@ namespace opentrail::companion {
 // OTDC v1: the protected app's commands for conversations outside a group
 // (F9/A6). The payload rides inside a negotiated OTC0 configuration frame.
 // Wire validation only: the board's DirectConversationOwner decides authority.
-// The frame kind and profile are assigned when the dispatcher route is added.
+// Carried on negotiated profile 5 (OTC0 minor 5) as kinds 0x0c and 0x90.
+inline constexpr std::uint8_t kConfigurationDirectCommandKind = 0x0c;
+inline constexpr std::uint8_t kConfigurationDirectResultKind = 0x90;
 inline constexpr std::size_t kDirectConfigurationHeaderBytes = 8;
 inline constexpr std::size_t kDirectConfigurationIdentityBytes = 32;
 inline constexpr std::size_t kDirectConfigurationConversations = 8;
