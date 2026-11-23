@@ -314,7 +314,7 @@ The two-board, two-phone check still needs the owner.
 | Blocker | Native flash interruption, flash wear, reclaim timing and service-level restoration need owner-present evidence. Live group pair and direct storage owners are future increments. |
 | Next action | Use a separately approved bench session to qualify the new storage and its exact restore route. The F7 phone and I-087 display acceptance steps remain under their own gates. |
 | Restrictions | D-156 assigns review and publication of the local bundle to Claude. Physical operations and merges require separate owner authority. |
-| Latest record | [OT-0005i Qualify combined board storage (D-163)](PROGRESS_LOG.md#ot-0005i-qualify-combined-board-storage-d-163). See the [F7 phone record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane) and the [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
+| Latest record | [OT-0005i Refuse exhausted enrollment journal prepares](PROGRESS_LOG.md#ot-0005i-refuse-exhausted-enrollment-journal-prepares). See the [D-163 storage record](PROGRESS_LOG.md#ot-0005i-qualify-combined-board-storage-d-163), the [F7 phone record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane) and the [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
 | Evidence access | Candidate images, host receipts, restore-refusal evidence and source bundle are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 

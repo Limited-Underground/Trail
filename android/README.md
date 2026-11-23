@@ -1,4 +1,4 @@
-# Limited Underground Trail Android App
+# MeshTrail App
 
 The Android app is part of this [Trail repository](../README.md), in `android/`;
 there is no separate public Android source repository. It presents device state
