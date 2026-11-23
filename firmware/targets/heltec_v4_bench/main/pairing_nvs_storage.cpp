@@ -10,19 +10,22 @@
 #include "freertos/semphr.h"
 #include "nvs_flash.h"
 #include "opentrail/durable_group_roster.hpp"
+#include "opentrail/group_join_claims.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
-constexpr std::size_t kPairingScope = 0, kRosterScope = 1, kCatalogScope = 2;
-constexpr std::size_t kScopeCount = 3;
+constexpr std::size_t kPairingScope = 0, kRosterScope = 1, kCatalogScope = 2, kJoinScope = 3;
+constexpr std::size_t kScopeCount = 4;
 constexpr auto& kPartition = PairingNvsStorage::kPartition;
 using Catalog = persistence::GroupPairIndex;
 using Roster = identity::roster::DurableGroupRoster;
+using JoinClaims = persistence::GroupJoinClaims;
 
 namespace budget = board_storage_budget;
 static_assert(Catalog::kMaximumGroups <= 10);
 static_assert(Roster::kStorageRecordBytes <= Catalog::kMaximumSerializedBytes);
 static_assert(Catalog::kMaximumSerializedBytes <= 2048);
+static_assert(JoinClaims::kRecordBytes <= Catalog::kMaximumSerializedBytes);
 static_assert(static_cast<unsigned>(PairingNvsStorage::Domain::outbound_counter_state) ==
               pairing_key::kPacketLaneDomain);
 
@@ -41,6 +44,7 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
         budget::kPairingEntries + budget::kFormatSealEntries},
     {"ot_group_rost", Roster::kStorageRecordBytes, budget::kRosterEntries},
     {"ot_group_idx", Catalog::kMaximumSerializedBytes, budget::kCatalogEntries},
+    {JoinClaims::kNamespace, JoinClaims::kRecordBytes, budget::kJoinClaimEntries},
 }};
 
 // The existing storage lock protects this registry, the partition mount, and
@@ -48,9 +52,10 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
 // retirement, including the interval before register_pairing_storage().
 PairingNvsStorage* g_pairing_owner = nullptr;
 bool g_pairing_registered = false;
-std::array<GroupNvsStorage*, 2> g_group_owners{};
+std::array<GroupNvsStorage*, kScopeCount - 1> g_group_owners{};
 std::array<bool, kScopeCount> g_namespaces{};
-constexpr std::size_t kGroupKeys = Catalog::kMaximumGroups + 1;
+// Roster keys g0 to g3, then the catalog, then the join claims.
+constexpr std::size_t kGroupKeys = Catalog::kMaximumGroups + 2;
 std::array<bool, kGroupKeys> g_group_records{};
 std::size_t g_mount_users = 0;
 bool g_reset_retired = false;
@@ -105,6 +110,8 @@ std::size_t group_record_slot(std::size_t scope, const char* key) {
     if (key == nullptr) return kGroupKeys;
     if (scope == kCatalogScope)
         return std::strcmp(key, "catalog") == 0 ? Catalog::kMaximumGroups : kGroupKeys;
+    if (scope == kJoinScope)
+        return std::strcmp(key, JoinClaims::kKey) == 0 ? Catalog::kMaximumGroups + 1 : kGroupKeys;
     if (scope == kRosterScope && key[0] == 'g' && key[1] >= '0' &&
         key[1] < '0' + static_cast<int>(Catalog::kMaximumGroups) && key[2] == '\0')
         return static_cast<std::size_t>(key[1] - '0');
@@ -242,6 +249,7 @@ std::size_t group_scope(GroupNvsStorage::Store store) {
     switch (store) {
     case GroupNvsStorage::Store::roster: return kRosterScope;
     case GroupNvsStorage::Store::catalog: return kCatalogScope;
+    case GroupNvsStorage::Store::join: return kJoinScope;
     }
     return kScopeCount;
 }

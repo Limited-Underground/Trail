@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- D-170: scanning a group invite QR. Requested only when Scan invitation is tapped. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -48,5 +51,9 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/support_file_paths" />
         </provider>
+        <!-- ZXing capture screen for invite QR: follow the phone's rotation. -->
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            tools:remove="android:screenOrientation" />
     </application>
 </manifest>

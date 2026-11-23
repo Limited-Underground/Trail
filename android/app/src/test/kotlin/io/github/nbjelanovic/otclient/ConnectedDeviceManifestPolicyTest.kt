@@ -86,6 +86,8 @@ class ConnectedDeviceManifestPolicyTest {
                 "android.permission.FOREGROUND_SERVICE",
                 "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
                 "android.permission.POST_NOTIFICATIONS",
+                // D-170: group invite QR scanning, asked only when Scan is tapped.
+                "android.permission.CAMERA",
                 "android.permission.ACCESS_FINE_LOCATION",
                 "android.permission.ACCESS_COARSE_LOCATION",
             ),

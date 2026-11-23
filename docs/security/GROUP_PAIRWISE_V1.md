@@ -659,8 +659,53 @@ exact cached result without repeating the mutation. After uncertainty or a
 disconnect, read back before retrying. The app's protected lease and original
 five-second admission window are checked before durable mutation.
 
-Group-qualified invitation and join, introduced pairs, member messaging, board
-receipt events, and app integration follow.
+### Invite and Join (F8, QR route)
+
+Three more operations carry the signed QR invite from the D-163 host contract
+(`group_qr_invite.hpp`) between the phone and its board. All little-endian
+after the OTGC header; failures carry no body and never report missing.
+
+| Operation | Code | Command body | Successful result body |
+|---|---:|---|---|
+| Invite | 5 | Qualified scope, label size (1 to 47), label | Same scope, 16-byte invite ID, invite size |
+| Read Invite | 6 | Invite ID, offset | Invite ID, offset, size, page |
+| Join | 7 | Offset, size, page | Offset and size; on the last page also the qualified scope and invite ID |
+
+Pages are 96 bytes except the last. A signed invite is 167 bytes plus a label
+of up to 120 bytes (287 at most).
+
+**Invite (admin board).** Only the group's own admin board issues invites,
+for an active group whose current scope matches and which has fewer than six
+members (a seventh is refused). The invite names the current roster version
+and digest, the location rule and a fresh 128-bit ID from board entropy, and
+is signed by the board identity through a signer bound to that exact
+descriptor. Invites are boot-scoped: at most four live at once, one per group,
+each for 180 seconds; a repeat Invite returns the same live invite, a roster
+change refuses a second invite until the first expires, and a restart revokes
+them all. Issuing writes nothing to storage.
+
+**Join (joiner board).** The phone uploads the scanned invite in order from
+offset zero; a different attachment, total or offset restarts the upload. On
+the last page the board verifies the admin signature and refuses its own
+invite, an invite for a group it already holds (stale), and a fifth group
+(D-059). It then claims the invite ID durably in `ot_group_join` before
+reporting success: the record keeps the newest eight claimed IDs, bound to
+the board identity and checked by CRC. A claimed ID is refused as stale, also
+after a restart. If the claim's commit is uncertain, the result is uncertain
+and the invite is treated as spent once the record shows it. The accepted
+invite is held as the board's pending join for 300 seconds, in memory only;
+a restart drops it and the person needs a new invite.
+
+The storage guard counts the claim record as 19 entries plus its namespace
+(modeled total 12,441 of the 16,128 limit). A write the guard refuses leaves
+nothing claimed.
+
+The pending join is the only input to the next step: the authenticated QR
+handshake over the radio and activation of the admin pair record from the
+durable receipt. That step, introduced pairs, member messaging and board
+receipt events follow. The broadcast and PIN route (D-169) is designed in
+[GROUP_BROADCAST_PIN_JOIN_V1.md](GROUP_BROADCAST_PIN_JOIN_V1.md) to reach the
+same pending join.
 
 ## Implementation order
 

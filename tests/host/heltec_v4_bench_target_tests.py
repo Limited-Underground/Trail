@@ -254,10 +254,12 @@ def admitted_target_sources(cmake: str) -> list[str]:
         "${OPENTRAIL_COMPONENT_ROOT}/identity/src/durable_group_roster.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_roster.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_pair.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_qr_invite.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_join_claims.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp",
     }
-    require(len(ordinary_tokens) == 65 and len(set(ordinary_tokens)) == 65 and
+    require(len(ordinary_tokens) == 67 and len(set(ordinary_tokens)) == 67 and
             group_sources.issubset(ordinary_tokens) and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_codec.cpp" in ordinary_tokens and
@@ -1374,7 +1376,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 71,
+    require(len(other_linked_sources) == 73,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1449,7 +1451,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 71,
+    require(len(other_linked_sources) == 73,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2444,8 +2446,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 72,
-            "target must admit 65 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 74,
+            "target must admit 67 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",

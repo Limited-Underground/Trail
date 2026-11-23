@@ -21,7 +21,26 @@ public:
 
     const identity::roster::RosterSigner* prepare() noexcept override {
         auto& signer = signer_.emplace(HeltecGroupRosterSigner::Source{&inputs_, read_key, sign_roster});
-        return signer.ready() && rosters.ready() && catalog.ready() ? &signer : nullptr;
+        return signer.ready() && rosters.ready() && catalog.ready() && joins.ready() ? &signer : nullptr;
+    }
+
+    bool random_invite_id(identity::roster::qr::Nonce& out) noexcept override {
+        identity::roster::qr::Nonce bytes{};
+        const auto filled = inputs_.entropy.fill(bytes.data(), bytes.size());
+        if (!filled.ok() || filled.bytes_written != bytes.size()) return false;
+        out = bytes;
+        return true;
+    }
+
+    const identity::roster::RosterSigner* invite_signer(
+        const identity::roster::qr::Descriptor& descriptor) noexcept override {
+#if OPENTRAIL_LORA_LINK_TEST
+        if ((inputs_.pairing && inputs_.pairing->owns_enrollment_identity()) ||
+            (inputs_.messaging && inputs_.messaging->owns_enrollment_identity())) return nullptr;
+#endif
+        auto& signer = invite_signer_.emplace(
+            HeltecInviteSigner::Source{&inputs_, read_key, sign_descriptor}, descriptor);
+        return signer.ready() ? &signer : nullptr;
     }
 
     bool random_group_id(std::uint64_t& out) noexcept override {
@@ -37,8 +56,23 @@ public:
 
     GroupNvsStorage rosters{GroupNvsStorage::Store::roster};
     GroupNvsStorage catalog{GroupNvsStorage::Store::catalog};
+    GroupNvsStorage joins{GroupNvsStorage::Store::join};
 
 private:
+    static bool sign_descriptor(void* context, const identity::roster::qr::Descriptor& descriptor,
+        identity::roster::Signature& signature) {
+#if OPENTRAIL_LORA_LINK_TEST
+        // While a radio owner holds the identity, invites are not issued yet.
+        // The Link Test handshake increment adds that path with the radio route.
+        const auto& inputs = *static_cast<const CompanionGroupInputs*>(context);
+        if (inputs.pairing && inputs.pairing->owns_enrollment_identity()) return false;
+        if (inputs.messaging && inputs.messaging->owns_enrollment_identity()) return false;
+#else
+        (void)context;
+#endif
+        return ::opentrail::targets::heltec_v4_bench::sign_retained_invite_descriptor(descriptor, signature);
+    }
+
     static bool read_key(void* context, identity::roster::PublicKey& key) {
 #if OPENTRAIL_LORA_LINK_TEST
         const auto& inputs = *static_cast<const CompanionGroupInputs*>(context);
@@ -66,13 +100,14 @@ private:
 
     CompanionGroupInputs inputs_;
     std::optional<HeltecGroupRosterSigner> signer_;
+    std::optional<HeltecInviteSigner> invite_signer_;
 };
 
 companion::ConfigurationGroupOwner& group_owner(companion::DeviceNameAuthoritySource& authority) {
     static BoardGroupPlatform platform{companion_group_inputs()};
     static HeltecGroupRosterCrypto crypto;
     static companion::ConfigurationGroupOwner owner{
-        authority, platform.rosters, platform.catalog, crypto, platform};
+        authority, platform.rosters, platform.catalog, platform.joins, crypto, platform};
     return owner;
 }
 

@@ -65,6 +65,10 @@ def main():
     qr = args.suite == 'qr-invite'
     sources = (('firmware/components/identity/src/group_roster.cpp',
                 'firmware/components/identity/src/group_qr_invite.cpp',
+                'firmware/components/identity/src/group_pair.cpp',
+                'firmware/components/identity/src/durable_group_roster.cpp',
+                'firmware/components/persistence/src/group_pair_index.cpp',
+                'firmware/components/persistence/src/configuration_store.cpp',
                 'tests/host/group_qr_invite_tests.cpp') if qr else
                ('tests/host/f5_rekey_status_tests.cpp','firmware/components/protocol/src/quick_status_codec.cpp'))
     if qr:

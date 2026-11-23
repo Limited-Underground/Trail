@@ -1,11 +1,14 @@
 package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
+import io.github.nbjelanovic.otprotocol.CompanionGroupInvite
 import io.github.nbjelanovic.otprotocol.CompanionGroupOperation
 import io.github.nbjelanovic.otprotocol.CompanionGroupResult
 import io.github.nbjelanovic.otprotocol.CompanionGroupRosterState
 import io.github.nbjelanovic.otprotocol.CompanionGroupScope
 import io.github.nbjelanovic.otprotocol.CompanionGroupStatus
+
+private const val MAX_MEMBERS = 6
 
 /** Runs on the protected configuration owner. A mutation is never repeated. */
 internal class BleGroupRosterSession(
@@ -13,6 +16,7 @@ internal class BleGroupRosterSession(
     private val allocate: () -> UInt?,
     private val send: (UInt, ByteArray) -> Boolean,
     private val changed: () -> Unit,
+    private val now: () -> Long = System::currentTimeMillis,
 ) {
     private data class Pending(val exchange: UInt, val operation: CompanionGroupOperation)
     private data class Readback(
@@ -30,6 +34,12 @@ internal class BleGroupRosterSession(
     private val discovered = mutableListOf<Group>()
     private var slot = 0
     private var readback: Readback? = null
+    // F8 Invite readback and Join upload, one at a time.
+    private class InviteBytes(val id: ByteArray?, val bytes: ByteArray, var used: Int = 0)
+    private var inviteRead: InviteBytes? = null
+    private var joinUpload: InviteBytes? = null
+    private var joinReview: CompanionGroupInvite? = null
+    private var issued: V1BoardGroupInvite? = null
 
     var state = V1BoardGroupState(supported = true)
         private set
@@ -43,9 +53,19 @@ internal class BleGroupRosterSession(
 
     fun submit(action: V1BoardGroupAction): Boolean {
         if (busy || !isCurrent()) return false
-        val target = (action as? V1BoardGroupAction.StopTrust)?.let { stop ->
-            confirmed.firstOrNull { it.summary === stop.group && !it.summary.distrusted }
-                ?: return false
+        val selected = when (action) {
+            is V1BoardGroupAction.StopTrust -> action.group
+            is V1BoardGroupAction.Invite -> action.group
+            else -> null
+        }
+        val target = selected?.let { group ->
+            confirmed.firstOrNull { it.summary === group && !it.summary.distrusted } ?: return false
+        }
+        if (action is V1BoardGroupAction.Invite &&
+            checkNotNull(target).summary.members.size >= MAX_MEMBERS) return false
+        val review = (action as? V1BoardGroupAction.Join)?.let { join ->
+            if (!state.available || !state.canCreate) return false
+            CompanionGroupConfigurationCodec.decodeInvite(join.invite) ?: return false
         }
         val (operation, payload) = when (action) {
             V1BoardGroupAction.Refresh ->
@@ -56,11 +76,20 @@ internal class BleGroupRosterSession(
             }
             is V1BoardGroupAction.StopTrust ->
                 CompanionGroupOperation.STOP_TRUST to (CompanionGroupConfigurationCodec.stopTrust(checkNotNull(target).scope) ?: return false)
+            is V1BoardGroupAction.Invite ->
+                CompanionGroupOperation.INVITE to
+                    (CompanionGroupConfigurationCodec.invite(checkNotNull(target).scope, action.label) ?: return false)
+            is V1BoardGroupAction.Join ->
+                CompanionGroupOperation.JOIN to (CompanionGroupConfigurationCodec.joinPage(action.invite, 0) ?: return false)
+        }
+        if (action is V1BoardGroupAction.Join) {
+            joinUpload = InviteBytes(null, action.invite)
+            joinReview = review
         }
         intent = action
         expectedScope = target?.scope
         confirmed = emptyList()
-        state = state.copy(busy = true, canCreate = false, groups = emptyList(), notice = null)
+        state = state.copy(busy = true, canCreate = false, groups = emptyList(), notice = null, invite = null)
         return request(operation, payload, announce = true)
     }
 
@@ -74,9 +103,12 @@ internal class BleGroupRosterSession(
             result.operation == CompanionGroupOperation.READ_ROSTER -> read(result)
             result.status != CompanionGroupStatus.OK -> fail(result.status)
             result.operation == CompanionGroupOperation.DISCOVER -> readSlot()
+            result.operation == CompanionGroupOperation.READ_INVITE -> readInvitePage(result)
+            result.operation == CompanionGroupOperation.JOIN -> joined(result)
             else -> {
                 val scope = result.scope
                 if (scope == null || expectedScope?.let { it != scope } == true) fail()
+                else if (result.operation == CompanionGroupOperation.INVITE) startInviteRead(result)
                 else {
                     expectedScope = scope
                     readSlot()
@@ -94,6 +126,59 @@ internal class BleGroupRosterSession(
         clearTransaction()
         confirmed = emptyList()
         state = V1BoardGroupState()
+    }
+
+    private fun startInviteRead(result: CompanionGroupResult) {
+        val page = result.invite ?: return fail()
+        val id = page.inviteId ?: return fail()
+        inviteRead = InviteBytes(id, ByteArray(page.totalBytes))
+        readInviteNext()
+    }
+
+    private fun readInviteNext() {
+        val read = inviteRead ?: return fail()
+        val payload = CompanionGroupConfigurationCodec.readInvite(checkNotNull(read.id), read.used) ?: return fail()
+        request(CompanionGroupOperation.READ_INVITE, payload)
+    }
+
+    private fun readInvitePage(result: CompanionGroupResult) {
+        val read = inviteRead
+        val page = result.invite
+        if (read == null || page == null || page.inviteId?.contentEquals(read.id) != true ||
+            page.offset != read.used || page.totalBytes != read.bytes.size ||
+            page.bytes.isEmpty() || page.bytes.size > read.bytes.size - read.used
+        ) return fail()
+        page.bytes.copyInto(read.bytes, read.used)
+        read.used += page.bytes.size
+        if (read.used < read.bytes.size) return readInviteNext()
+        val scope = expectedScope ?: return fail()
+        val invite = CompanionGroupConfigurationCodec.decodeInvite(read.bytes)
+        if (invite == null || invite.groupId != scope.groupId || !invite.adminKey.contentEquals(scope.adminFingerprint) ||
+            !invite.inviteId.contentEquals(read.id)
+        ) return fail()
+        issued = V1BoardGroupInvite(invite.groupId, invite.label, V1InviteCodeText.encode(read.bytes), now())
+        inviteRead = null
+        readSlot()
+    }
+
+    private fun joined(result: CompanionGroupResult) {
+        val upload = joinUpload
+        val page = result.invite
+        if (upload == null || page == null || page.offset != upload.used || page.totalBytes != upload.bytes.size) return fail()
+        upload.used += minOf(CompanionGroupConfigurationCodec.INVITE_PAGE_BYTES, upload.bytes.size - upload.used)
+        if (upload.used < upload.bytes.size) {
+            if (result.scope != null) return fail()
+            val payload = CompanionGroupConfigurationCodec.joinPage(upload.bytes, upload.used) ?: return fail()
+            request(CompanionGroupOperation.JOIN, payload)
+            return
+        }
+        val review = joinReview ?: return fail()
+        val scope = result.scope
+        if (scope == null || scope.groupId != review.groupId || !scope.adminFingerprint.contentEquals(review.adminKey) ||
+            page.inviteId?.contentEquals(review.inviteId) != true
+        ) return fail()
+        joinUpload = null
+        readSlot()
     }
 
     private fun readSlot() {
@@ -165,9 +250,19 @@ internal class BleGroupRosterSession(
                 if (match?.distrusted != true) return fail()
                 "Your board confirmed that it stopped trusting this group."
             }
+            is V1BoardGroupAction.Invite -> {
+                if (match == null || match.distrusted || issued == null) return fail()
+                "Invitation ready. It works once, for 3 minutes."
+            }
+            is V1BoardGroupAction.Join -> {
+                val accepted = joinReview ?: return fail()
+                "Your device accepted the invitation to ${accepted.label}. Joining finishes when " +
+                    "your device reaches the group's administrator device."
+            }
             else -> null
         }
         confirmed = discovered.toList()
+        val invite = issued.takeIf { intent is V1BoardGroupAction.Invite }
         clearTransaction()
         state = V1BoardGroupState(
             supported = true,
@@ -175,12 +270,26 @@ internal class BleGroupRosterSession(
             canCreate = confirmed.size < CompanionGroupConfigurationCodec.SLOT_COUNT,
             groups = confirmed.map { it.summary },
             notice = message,
+            invite = invite,
         )
         changed()
     }
 
     private fun fail(status: CompanionGroupStatus? = null) {
         val notice = when {
+            intent is V1BoardGroupAction.Invite && status == CompanionGroupStatus.REFUSED ->
+                "Your device can't invite to this group now. Only the administrator's device invites, " +
+                    "and a group holds six people."
+            intent is V1BoardGroupAction.Invite && status == CompanionGroupStatus.STALE ->
+                "The group changed. Refresh groups and try again."
+            intent is V1BoardGroupAction.Invite -> "Couldn't create the invitation. Refresh groups before trying again."
+            intent is V1BoardGroupAction.Join && status == CompanionGroupStatus.STALE ->
+                "This invitation was already used, has expired, or is for a group this device already has. " +
+                    "Ask for a new one."
+            intent is V1BoardGroupAction.Join && status == CompanionGroupStatus.REFUSED ->
+                "Your device refused this invitation. It may be damaged or your own, or this device " +
+                    "already has four groups."
+            intent is V1BoardGroupAction.Join -> "Couldn't confirm the invitation. Refresh groups before trying again."
             intent is V1BoardGroupAction.Create || intent is V1BoardGroupAction.StopTrust ->
                 "Couldn't confirm the group change. Refresh groups before trying again."
             status == CompanionGroupStatus.UNAVAILABLE ->
@@ -200,6 +309,10 @@ internal class BleGroupRosterSession(
         discovered.clear()
         slot = 0
         readback = null
+        inviteRead = null
+        joinUpload = null
+        joinReview = null
+        issued = null
     }
 
     private fun request(operation: CompanionGroupOperation, payload: ByteArray, announce: Boolean = false): Boolean {

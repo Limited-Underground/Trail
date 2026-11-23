@@ -1,6 +1,7 @@
 #pragma once
 #include "enrollment_identity_nvs_storage.hpp"
 #include "opentrail/enrollment_identity_store.hpp"
+#include "opentrail/group_qr_invite.hpp"
 #include "opentrail/group_roster.hpp"
 namespace opentrail::targets::heltec_v4_bench {
 // One runtime owner, loaded before BLE host callbacks and retired by serialized
@@ -14,6 +15,7 @@ public:
     State state() const { return state_; }
     bool read_group_roster_key(identity::roster::PublicKey&);
     bool sign_initial_group_roster(const identity::roster::Roster&, identity::roster::Signature&);
+    bool sign_invite_descriptor(const identity::roster::qr::Descriptor&, identity::roster::Signature&);
 private:
     class NoProvisioningEntropy final : public security::SecureRandomSource {
         security::EntropyState state() const override { return security::EntropyState::not_ready; }
@@ -35,4 +37,5 @@ void retire_retained_enrollment_identity();
 // enrollment identity. The caller must also hold the protected command lease.
 bool read_retained_group_roster_key(identity::roster::PublicKey&);
 bool sign_retained_initial_group_roster(const identity::roster::Roster&, identity::roster::Signature&);
+bool sign_retained_invite_descriptor(const identity::roster::qr::Descriptor&, identity::roster::Signature&);
 }
