@@ -357,7 +357,7 @@ def test_plan_baseline_matches_android_source() -> None:
         r'<uses-permission\b[^>]*android:name="([^"]+)"', manifest
     )
     authored_permissions = plan()["artifact_policy"]["authored_permissions"]
-    assert len(source_permissions) == len(set(source_permissions)) == 5
+    assert len(source_permissions) == len(set(source_permissions)) == 7
     assert set(source_permissions) == set(admission.AUTHORED_PERMISSIONS)
     assert authored_permissions == admission.AUTHORED_PERMISSIONS
     assert set(source_permissions).isdisjoint(admission.GENERATED_PERMISSIONS)
