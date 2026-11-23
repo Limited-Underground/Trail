@@ -163,6 +163,7 @@ public:
 
 private:
     friend class GroupNvsStorage;
+    friend class DirectNvsStorage;
     static bool acquire_partition();
     static bool admit_partition();
 

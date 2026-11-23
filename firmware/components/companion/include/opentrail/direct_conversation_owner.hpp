@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 
@@ -21,6 +22,12 @@ struct DirectBinding {
     }
 };
 
+struct DirectTrafficGrant {
+    std::size_t slot;
+    std::uint64_t session;
+    std::uint64_t generation;
+};
+
 enum class DirectResult : std::uint8_t {
     ok, busy, refused, blocked, full, expired, stale, unavailable
 };
@@ -38,6 +45,9 @@ public:
     virtual bool commit_local_vote(const SelectedEnrollmentRequest&, const DirectBinding&) = 0;
     virtual bool peer_committed(const SelectedEnrollmentRequest&, const DirectBinding&) = 0;
     virtual void cancel(const SelectedEnrollmentRequest&) = 0;
+    // Clear the scoped pairing and rekey records after the durable retirement
+    // and packet drain. A retry for the same empty slot must succeed.
+    virtual bool retire_scope(std::size_t slot, const DirectBinding&) = 0;
     // Returns zero unless the exact direct scope has a current, fresh,
     // authenticated F5 session. The session number increases across rekeys.
     virtual std::uint64_t ready_session(const DirectBinding&) const = 0;
@@ -81,7 +91,11 @@ public:
     void observe(const DeviceNameAuthority&, std::uint16_t handle);
     SelectedEnrollmentRequest request() const { return request_.request(); }
 
+    // A durable consent reserves one stable board storage index. Local consent
+    // alone permits that slot to hold pairing records, never protected traffic.
+    [[nodiscard]] std::optional<std::size_t> scope_slot(const DirectBinding&) const;
     DirectResult activate(const DirectBinding&);
+    [[nodiscard]] std::optional<DirectTrafficGrant> traffic_grant(const DirectBinding&) const;
     // Checked again by the launch caller for each exact queued generation.
     std::uint64_t send_generation(const DirectBinding&) const;
     bool blocked(const DirectIdentity&) const;
@@ -103,14 +117,14 @@ private:
     using Bytes = std::array<std::uint8_t, kCatalogBytes>;
 
     static Bytes encode(const Records&, std::uint64_t sequence);
-    static bool decode(const Bytes&, Records&, std::uint64_t& sequence);
+    static bool decode(const Bytes&, Records&, std::uint64_t& sequence, bool& legacy);
     static bool valid(const DirectBinding&);
     bool save();
     void cancel();
     DirectResult check(const DeviceNameAuthority&, const SelectedEnrollmentRequest&);
     std::optional<std::size_t> find(const DirectIdentity&) const;
     DirectResult retire(const DirectBinding&, State);
-    bool finish_retirement(Record&);
+    bool finish_retirement(std::size_t slot);
 
     persistence::PersistentKvBackend& backend_;
     DirectPairingPort& pairing_;

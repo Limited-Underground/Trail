@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <utility>
 
@@ -95,6 +96,8 @@ struct Pairing final : DirectPairingPort {
     DirectIdentity identity{};
     unsigned votes{0};
     unsigned cancellations{0};
+    bool scope_retirement_available{true};
+    std::optional<std::pair<std::size_t, DirectBinding>> retired_scope;
 
     bool matches(const SelectedEnrollmentRequest& request) const {
         return pending.exchange_id != 0 && pending.exchange_id == request.exchange_id &&
@@ -146,6 +149,13 @@ struct Pairing final : DirectPairingPort {
             pending = {};
             local_vote = false;
         }
+    }
+
+    bool retire_scope(std::size_t slot, const DirectBinding& binding) override {
+        if (!scope_retirement_available) return false;
+        retired_scope = {slot, binding};
+        sessions.erase(binding.scope);
+        return true;
     }
 
     std::uint64_t ready_session(const DirectBinding& binding) const override {
@@ -482,6 +492,8 @@ void capacity_reuses_ended_slots_and_preserves_blocks() {
     for (std::size_t i = 1; i <= DirectConversationOwner::kConversations; ++i) {
         const auto binding = contact(static_cast<std::uint8_t>(i));
         full.accept(binding);
+        CHECK(full.owner->scope_slot(binding) == i - 1);
+        CHECK(!full.owner->traffic_grant(binding));
         full.pairing.sessions[binding.scope] = 1;
         CHECK(full.owner->activate(binding) == DirectResult::ok);
         const auto generation = full.owner->send_generation(binding);
@@ -494,6 +506,7 @@ void capacity_reuses_ended_slots_and_preserves_blocks() {
     CHECK(full.owner->accept(full.authority, request) == DirectResult::full);
     CHECK(full.owner->end(contact(1)) == DirectResult::ok);
     full.accept(ninth);
+    CHECK(full.owner->scope_slot(ninth) == 0);
     full.pairing.sessions[ninth.scope] = 1;
     CHECK(full.owner->activate(ninth) == DirectResult::ok);
     CHECK(full.owner->send_generation(ninth) > previous_generation);
@@ -518,6 +531,70 @@ void capacity_reuses_ended_slots_and_preserves_blocks() {
     CHECK(blocks.owner->blocked(newest.peer));
 }
 
+void scope_clear_precedes_slot_reuse() {
+    Fixture f;
+    const auto first = contact(1);
+    const auto neighbor = contact(2);
+    f.accept(first);
+    f.accept(neighbor);
+    f.pairing.sessions[first.scope] = 3;
+    f.pairing.sessions[neighbor.scope] = 5;
+    CHECK(f.owner->activate(first) == DirectResult::ok);
+    CHECK(f.owner->activate(neighbor) == DirectResult::ok);
+
+    const auto grant = f.owner->traffic_grant(first);
+    CHECK(grant && grant->slot == 0 && grant->session == 3 &&
+          grant->generation == f.owner->send_generation(first));
+    CHECK(!f.owner->traffic_grant(contact(1, 2)));
+
+    f.pairing.scope_retirement_available = false;
+    CHECK(f.owner->block(first) == DirectResult::unavailable);
+    CHECK(!f.owner->traffic_grant(first) && !f.owner->scope_slot(first));
+    CHECK(f.packets.claims.count(first.scope) == 0);
+    const auto neighbor_grant = f.owner->traffic_grant(neighbor);
+    CHECK(neighbor_grant && neighbor_grant->slot == 1);
+    f.accept(contact(3));
+    CHECK(f.owner->scope_slot(contact(3)) == 2);
+
+    f.pairing.scope_retirement_available = true;
+    f.restart();
+    CHECK(f.pairing.retired_scope && f.pairing.retired_scope->first == 0 &&
+          f.pairing.retired_scope->second == first);
+    CHECK(f.owner->blocked(first.peer));
+    CHECK(f.owner->scope_slot(neighbor) == 1);
+    CHECK(!f.owner->traffic_grant(neighbor));
+    f.accept(contact(4));
+    CHECK(f.owner->scope_slot(contact(4)) == 0);
+}
+
+void catalog_migrates_earlier_rows_once() {
+    Fixture f;
+    const auto blocked = contact(1);
+    const auto retained = contact(2);
+    f.accept(blocked);
+    f.accept(retained);
+    CHECK(f.owner->block(blocked) == DirectResult::ok);
+    constexpr std::size_t header = 16;
+    constexpr std::size_t row = 81;
+    auto& old = *f.storage.durable;
+    old[3] = '1';
+    std::swap_ranges(old.begin() + header, old.begin() + header + row,
+                     old.begin() + header + 8 * row);
+    std::swap_ranges(old.begin() + header + row, old.begin() + header + 2 * row,
+                     old.begin() + header + 11 * row);
+    const auto before = f.storage.commits;
+    f.restart();
+    CHECK(f.storage.commits == before + 1 && (*f.storage.durable)[3] == '2');
+    CHECK(f.owner->blocked(blocked.peer));
+    CHECK(f.owner->scope_slot(retained) == 0);
+    f.accept(contact(3));
+    CHECK(f.owner->scope_slot(contact(3)) == 1);
+    const auto migrated = f.storage.commits;
+    f.restart();
+    CHECK(f.storage.commits == migrated);
+    CHECK(f.owner->scope_slot(retained) == 0 && f.owner->scope_slot(contact(3)) == 1);
+}
+
 }  // namespace
 
 int main() {
@@ -531,10 +608,12 @@ int main() {
         {"exact persistent retirement", &retirement_is_exact_and_persistent},
         {"interrupted retirement recovery", &interrupted_retirement_reconciles_on_restart},
         {"bounded capacity", &capacity_reuses_ended_slots_and_preserves_blocks},
+        {"scope cleanup before reuse", &scope_clear_precedes_slot_reuse},
+        {"earlier catalog rows", &catalog_migrates_earlier_rows_once},
     };
     for (const auto& test : tests) {
         scenario = test.first;
         test.second();
     }
-    std::cout << "PASS 9 direct-conversation owner scenario groups\n";
+    std::cout << "PASS " << std::size(tests) << " direct-conversation owner scenario groups\n";
 }

@@ -376,6 +376,7 @@ def test_contract() -> None:
         "main/heltec_group_roster_identity.cpp",
         "main/heltec_group_roster_identity.hpp",
         "main/pairing_nvs_storage.hpp",
+        "main/direct_nvs_storage.hpp",
         "main/board_storage_budget.hpp",
         "main/pairing_nvs_reset.hpp",
         "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested

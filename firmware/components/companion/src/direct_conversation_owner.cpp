@@ -8,7 +8,8 @@ namespace {
 
 using KvError = persistence::PersistentKvBackendError;
 constexpr auto kPartition = persistence::kPersistentKvPartitionLabel;
-constexpr std::array<std::uint8_t, 4> kFormat{'O', 'T', 'D', '1'};
+constexpr std::array<std::uint8_t, 4> kFormat{'O', 'T', 'D', '2'};
+constexpr std::array<std::uint8_t, 4> kLegacyFormat{'O', 'T', 'D', '1'};
 constexpr std::size_t kHeaderBytes = 16;
 constexpr std::size_t kRecordBytes = 81;
 
@@ -68,8 +69,9 @@ DirectConversationOwner::Bytes DirectConversationOwner::encode(
 }
 
 bool DirectConversationOwner::decode(const Bytes& bytes, Records& records,
-                                     std::uint64_t& sequence) {
-    if (!std::equal(kFormat.begin(), kFormat.end(), bytes.begin()) ||
+                                     std::uint64_t& sequence, bool& legacy) {
+    legacy = std::equal(kLegacyFormat.begin(), kLegacyFormat.end(), bytes.begin());
+    if ((!legacy && !std::equal(kFormat.begin(), kFormat.end(), bytes.begin())) ||
         std::any_of(bytes.begin() + 12, bytes.begin() + kHeaderBytes,
                     [](std::uint8_t value) { return value != 0; })) return false;
     sequence = get_u64(bytes.data() + 4);
@@ -92,6 +94,7 @@ bool DirectConversationOwner::decode(const Bytes& bytes, Records& records,
         }
         if (!nonzero(record.binding.peer) || record.generation > sequence ||
             ((record.session == 0) != (record.generation == 0))) return false;
+        if (!legacy && (record.state == State::blocked) != (i >= kConversations)) return false;
         if (record.state == State::blocked) {
             if (nonzero(record.binding.scope) || record.generation) return false;
         } else {
@@ -109,7 +112,20 @@ bool DirectConversationOwner::decode(const Bytes& bytes, Records& records,
             }
         }
     }
-    return conversations <= kConversations && blocks <= kBlocked;
+    if (conversations > kConversations || blocks > kBlocked) return false;
+    if (legacy) {
+        // OTD1 could place a block or a conversation in any row. It predated
+        // durable scoped journals, so its rows can be assigned once on import.
+        Records separated{};
+        std::size_t conversation = 0;
+        std::size_t block = kConversations;
+        for (const auto& record : records) {
+            if (record.state == State::empty) continue;
+            separated[record.state == State::blocked ? block++ : conversation++] = record;
+        }
+        records = separated;
+    }
+    return true;
 }
 
 bool DirectConversationOwner::load() {
@@ -123,12 +139,15 @@ bool DirectConversationOwner::load() {
         healthy_ = true;
         return true;
     }
+    bool legacy = false;
     if (result != KvError::none || size != bytes.size() ||
-        !decode(bytes, records_, sequence_)) return false;
+        !decode(bytes, records_, sequence_, legacy)) return false;
     healthy_ = true;
-    for (auto& record : records_) {
-        if ((record.state == State::retiring_end || record.state == State::retiring_block) &&
-            !finish_retirement(record)) {
+    if (legacy && !save()) return false;
+    for (std::size_t slot = 0; slot < kConversations; ++slot) {
+        const auto state = records_[slot].state;
+        if ((state == State::retiring_end || state == State::retiring_block) &&
+            !finish_retirement(slot)) {
             healthy_ = false;
             return false;
         }
@@ -222,20 +241,14 @@ DirectResult DirectConversationOwner::accept(const DeviceNameAuthority& current,
             return DirectResult::stale;
         }
     } else {
-        const auto occupied = std::count_if(records_.begin(), records_.end(), [](const Record& r) {
-            return r.state != State::empty && r.state != State::blocked;
-        });
-        if (occupied >= static_cast<std::ptrdiff_t>(kConversations)) {
-            cancel();
-            return DirectResult::full;
-        }
-        for (const auto& record : records_) {
-            if (record.binding.scope == binding->scope) { cancel(); return DirectResult::refused; }
-        }
-        const auto slot = std::find_if(records_.begin(), records_.end(), [](const Record& r) {
+        const auto end = records_.begin() + kConversations;
+        const auto slot = std::find_if(records_.begin(), end, [](const Record& r) {
             return r.state == State::empty;
         });
-        if (slot == records_.end()) { cancel(); return DirectResult::full; }
+        if (slot == end) { cancel(); return DirectResult::full; }
+        for (auto other = records_.begin(); other != end; ++other) {
+            if (other->binding.scope == binding->scope) { cancel(); return DirectResult::refused; }
+        }
         *slot = {*binding, 0, 0, State::local_accepted};
         if (!save()) { cancel(); return DirectResult::unavailable; }
     }
@@ -273,12 +286,28 @@ DirectResult DirectConversationOwner::finish(const DeviceNameAuthority& current,
     return DirectResult::ok;
 }
 
-std::uint64_t DirectConversationOwner::send_generation(const DirectBinding& binding) const {
+std::optional<std::size_t> DirectConversationOwner::scope_slot(const DirectBinding& binding) const {
+    if (!healthy_) return std::nullopt;
     const auto index = find(binding.peer);
-    if (!healthy_ || !index || !live_[*index]) return 0;
-    const Record& record = records_[*index];
-    return record.state == State::accepted && record.binding == binding &&
-           record.session == pairing_.ready_session(binding) ? record.generation : 0;
+    if (!index || *index >= kConversations) return std::nullopt;
+    const auto& record = records_[*index];
+    if (!(record.binding == binding) ||
+        (record.state != State::local_accepted && record.state != State::accepted)) return std::nullopt;
+    return index;
+}
+
+std::optional<DirectTrafficGrant> DirectConversationOwner::traffic_grant(const DirectBinding& binding) const {
+    const auto slot = scope_slot(binding);
+    if (!slot || !live_[*slot]) return std::nullopt;
+    const auto& record = records_[*slot];
+    if (record.state != State::accepted || !record.generation ||
+        record.session != pairing_.ready_session(binding)) return std::nullopt;
+    return DirectTrafficGrant{*slot, record.session, record.generation};
+}
+
+std::uint64_t DirectConversationOwner::send_generation(const DirectBinding& binding) const {
+    const auto grant = traffic_grant(binding);
+    return grant ? grant->generation : 0;
 }
 
 DirectResult DirectConversationOwner::activate(const DirectBinding& binding) {
@@ -303,16 +332,21 @@ DirectResult DirectConversationOwner::activate(const DirectBinding& binding) {
     return live_[*index] ? DirectResult::ok : DirectResult::stale;
 }
 
-bool DirectConversationOwner::finish_retirement(Record& record) {
+bool DirectConversationOwner::finish_retirement(std::size_t slot) {
+    auto& record = records_[slot];
+    const bool deny = record.state == State::retiring_block;
+    const auto tombstone = deny ? std::find_if(records_.begin() + kConversations, records_.end(),
+                                             [](const Record& entry) { return entry.state == State::empty; })
+                                : records_.end();
+    if (deny && tombstone == records_.end()) return false;
     if (record.generation &&
         !packets_.quiesce_and_retire(record.binding.scope, record.generation)) return false;
-    const auto peer = record.binding.peer;
-    const bool deny = record.state == State::retiring_block;
-    record = {};
+    if (!pairing_.retire_scope(slot, record.binding)) return false;
     if (deny) {
-        record.binding.peer = peer;
-        record.state = State::blocked;
+        tombstone->binding.peer = record.binding.peer;
+        tombstone->state = State::blocked;
     }
+    record = {};
     return save();
 }
 
@@ -327,7 +361,7 @@ DirectResult DirectConversationOwner::retire(const DirectBinding& binding, State
     if (!(record.binding == binding)) return DirectResult::stale;
     if (record.state == State::retiring_end || record.state == State::retiring_block) {
         if (record.state != state) return DirectResult::stale;
-        return finish_retirement(record) ? DirectResult::ok : DirectResult::unavailable;
+        return finish_retirement(*index) ? DirectResult::ok : DirectResult::unavailable;
     }
     if (state == State::retiring_block) {
         const auto blocks = std::count_if(records_.begin(), records_.end(), [](const Record& r) {
@@ -344,7 +378,7 @@ DirectResult DirectConversationOwner::retire(const DirectBinding& binding, State
         if (record.generation) (void)packets_.quiesce_and_retire(binding.scope, record.generation);
         return DirectResult::unavailable;
     }
-    return finish_retirement(record) ? DirectResult::ok : DirectResult::unavailable;
+    return finish_retirement(*index) ? DirectResult::ok : DirectResult::unavailable;
 }
 
 DirectResult DirectConversationOwner::end(const DirectBinding& binding) {
