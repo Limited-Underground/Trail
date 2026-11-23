@@ -953,6 +953,15 @@ $builds = @(
         )
     },
     @{
+        Name = 'durable QR receipts and invite consumption (F8 step 2b)'
+        Output = Join-Path $buildDirectory 'group_qr_receipts_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_qr_receipts.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_qr_receipts_tests.cpp')
+        )
+    },
+    @{
         Name = 'combined board storage budget (D-163)'
         Output = Join-Path $buildDirectory 'board_storage_budget_tests.exe'
         Sources = @(

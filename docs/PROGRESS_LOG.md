@@ -2,6 +2,18 @@
 
 ## 2026-11-23
 
+### OT-0306 Retain QR join decisions durably on the host
+
+Both boards keep their QR join decisions in one fixed record of four
+slots, one per invite ID. The first decision consumes the invite, whatever
+scope or peer a later attempt names. A later decision must be the same exact
+transaction and original deadline, and may only advance a prepared decision
+to committed or aborted. Positive decisions are refused at the deadline. A
+full record gives up only its oldest finished decision. After any failed
+write the owner must reopen and read what was kept. The record fits inside
+the D-163 receipt reserve. Six host groups cover these rules and interrupted
+writes. Part of #148.
+
 ### OT-0306 Add live Invite and Join on profile 5
 
 Three protected group operations carry the signed QR invite between the
