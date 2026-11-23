@@ -1,5 +1,6 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_group_configuration.hpp"
+#include "opentrail/companion_location_codec.hpp"
 #include "opentrail/companion_device_name_codec.hpp"
 #include "opentrail/companion_confirmation_codec.hpp"
 #include <algorithm>
@@ -83,6 +84,12 @@ bool frame_valid(const ConfigurationFrame& f) {
         const auto d=decode_public_profile_payload(f.payload.data(),f.payload_bytes);
         return d.decoded() && ((f.kind==8)==(d.value.kind==DeviceNameKind::read || d.value.kind==DeviceNameKind::write));
     }
+    case kConfigurationLocationCommandKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_configuration_location_command(f.payload.data(), f.payload_bytes).decoded();
+    case kConfigurationLocationResultKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_configuration_location_result(f.payload.data(), f.payload_bytes).decoded();
     case kConfigurationGroupCommandKind:
         return f.minor_version == kPublicProfileMinor &&
             decode_group_configuration_command(f.payload.data(), f.payload_bytes).decoded();
@@ -104,6 +111,134 @@ ConfigurationEncodeResult emit(const std::uint8_t* bytes, std::size_t size, std:
     return {ConfigurationCodecError::none, size};
 }
 }
+namespace {
+
+constexpr std::uint8_t kLocationFormat = 1;
+constexpr std::uint8_t kDirectLocationSlot = 0xff;
+
+template<class T> T read_location_word(const std::uint8_t* bytes) {
+    T value = 0;
+    for (std::size_t n = 0; n < sizeof(T); ++n) value = static_cast<T>((value << 8U) | bytes[n]);
+    return value;
+}
+
+template<class T> void write_location_word(std::uint8_t* bytes, T value) {
+    for (std::size_t n = sizeof(T); n != 0; --n) {
+        bytes[n - 1] = static_cast<std::uint8_t>(value);
+        value >>= 8U;
+    }
+}
+
+std::int32_t read_location_coordinate(const std::uint8_t* bytes) {
+    const auto value = read_location_word<std::uint32_t>(bytes);
+    const auto decoded = static_cast<std::int64_t>(value) -
+        ((value & 0x80000000U) != 0 ? 0x100000000LL : 0);
+    return static_cast<std::int32_t>(decoded);
+}
+
+bool location_scope_valid(const ConfigurationLocationScope& scope) {
+    if (scope.id == 0 || scope.generation == 0) return false;
+    const auto nonzero = [](std::uint8_t value) { return value != 0; };
+    const bool admin = std::any_of(scope.admin.begin(), scope.admin.end(), nonzero);
+    const bool digest = std::any_of(scope.digest.begin(), scope.digest.end(), nonzero);
+    switch (scope.kind) {
+        case ConfigurationLocationKind::group:
+            return scope.slot < kConfigurationGroupSlots && scope.generation <= 0xffffffffULL && admin && digest;
+        case ConfigurationLocationKind::direct:
+            return scope.slot == kDirectLocationSlot && !admin && !digest;
+    }
+    return false;
+}
+
+bool location_command_valid(const ConfigurationLocationCommand& command) {
+    if (!location_scope_valid(command.scope)) return false;
+    using Op = ConfigurationLocationOperation;
+    const bool no_fix = command.sample == 0 && command.age_ms == 0 &&
+        command.latitude_e4 == 0 && command.longitude_e4 == 0;
+    const bool fresh_fix = command.sample != 0 && command.age_ms < kConfigurationLocationFixLifetimeMs &&
+        command.latitude_e4 >= -900000 && command.latitude_e4 <= 900000 &&
+        command.longitude_e4 >= -1800000 && command.longitude_e4 <= 1800000;
+    switch (command.operation) {
+        case Op::consent: case Op::withdraw: return command.lease == 0 && no_fix;
+        case Op::start: return command.lease == 0 && fresh_fix;
+        case Op::renew: return command.lease != 0 && (fresh_fix || no_fix);
+        case Op::stop: return command.lease != 0 && no_fix;
+    }
+    return false;
+}
+
+bool location_result_valid(const ConfigurationLocationResult& result) {
+    using Op = ConfigurationLocationOperation;
+    using Status = ConfigurationLocationStatus;
+    if (result.id == 0 || result.generation == 0 || result.operation < Op::consent || result.operation > Op::withdraw ||
+        result.status < Status::ok || result.status > Status::unavailable) return false;
+    const bool has_lease = result.status == Status::ok &&
+        (result.operation == Op::start || result.operation == Op::renew);
+    return has_lease == (result.lease != 0);
+}
+
+}  // namespace
+
+ConfigurationEncodeResult encode_configuration_location_command(const ConfigurationLocationCommand& command,
+    std::uint8_t* out, std::size_t capacity) {
+    if (!location_command_valid(command)) return {ConfigurationCodecError::malformed, 0};
+    std::array<std::uint8_t, kConfigurationLocationCommandBytes> bytes{
+        kLocationFormat, static_cast<std::uint8_t>(command.operation),
+        static_cast<std::uint8_t>(command.scope.kind), command.scope.slot};
+    write_location_word(bytes.data() + 4, command.scope.id);
+    write_location_word(bytes.data() + 12, command.scope.generation);
+    write_location_word(bytes.data() + 20, command.lease);
+    write_location_word(bytes.data() + 28, command.sample);
+    write_location_word(bytes.data() + 36, command.age_ms);
+    write_location_word(bytes.data() + 40, static_cast<std::uint32_t>(command.latitude_e4));
+    write_location_word(bytes.data() + 44, static_cast<std::uint32_t>(command.longitude_e4));
+    std::copy(command.scope.admin.begin(), command.scope.admin.end(), bytes.begin() + 48);
+    std::copy(command.scope.digest.begin(), command.scope.digest.end(), bytes.begin() + 80);
+    return emit(bytes.data(), bytes.size(), out, capacity);
+}
+
+ConfigurationDecodeResult<ConfigurationLocationCommand> decode_configuration_location_command(
+    const std::uint8_t* bytes, std::size_t size) {
+    if (!bytes || size != kConfigurationLocationCommandBytes || bytes[0] != kLocationFormat) return {};
+    ConfigurationLocationCommand command{};
+    command.operation = static_cast<ConfigurationLocationOperation>(bytes[1]);
+    command.scope.kind = static_cast<ConfigurationLocationKind>(bytes[2]);
+    command.scope.slot = bytes[3];
+    command.scope.id = read_location_word<std::uint64_t>(bytes + 4);
+    command.scope.generation = read_location_word<std::uint64_t>(bytes + 12);
+    command.lease = read_location_word<std::uint64_t>(bytes + 20);
+    command.sample = read_location_word<std::uint64_t>(bytes + 28);
+    command.age_ms = read_location_word<std::uint32_t>(bytes + 36);
+    command.latitude_e4 = read_location_coordinate(bytes + 40);
+    command.longitude_e4 = read_location_coordinate(bytes + 44);
+    std::copy_n(bytes + 48, command.scope.admin.size(), command.scope.admin.begin());
+    std::copy_n(bytes + 80, command.scope.digest.size(), command.scope.digest.begin());
+    if (!location_command_valid(command)) return {ConfigurationCodecError::malformed, {}};
+    return {ConfigurationCodecError::none, command};
+}
+
+ConfigurationEncodeResult encode_configuration_location_result(const ConfigurationLocationResult& result,
+    std::uint8_t* out, std::size_t capacity) {
+    if (!location_result_valid(result)) return {ConfigurationCodecError::malformed, 0};
+    std::array<std::uint8_t, kConfigurationLocationResultBytes> bytes{
+        kLocationFormat, static_cast<std::uint8_t>(result.operation), static_cast<std::uint8_t>(result.status)};
+    write_location_word(bytes.data() + 4, result.id);
+    write_location_word(bytes.data() + 12, result.generation);
+    write_location_word(bytes.data() + 20, result.lease);
+    return emit(bytes.data(), bytes.size(), out, capacity);
+}
+
+ConfigurationDecodeResult<ConfigurationLocationResult> decode_configuration_location_result(
+    const std::uint8_t* bytes, std::size_t size) {
+    if (!bytes || size != kConfigurationLocationResultBytes || bytes[0] != kLocationFormat || bytes[3] != 0) return {};
+    const ConfigurationLocationResult result{
+        static_cast<ConfigurationLocationOperation>(bytes[1]), static_cast<ConfigurationLocationStatus>(bytes[2]),
+        read_location_word<std::uint64_t>(bytes + 4), read_location_word<std::uint64_t>(bytes + 12),
+        read_location_word<std::uint64_t>(bytes + 20)};
+    if (!location_result_valid(result)) return {ConfigurationCodecError::malformed, {}};
+    return {ConfigurationCodecError::none, result};
+}
+
 std::uint32_t configuration_parameters_first_exchange(const ConfigurationFrame& frame) {
     return frame.payload[5] == 1
         ? read<std::uint32_t>(frame.payload.data() + kConfigurationParametersHeaderBytes)

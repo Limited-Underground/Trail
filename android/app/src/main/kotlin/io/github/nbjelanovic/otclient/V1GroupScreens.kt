@@ -41,16 +41,26 @@ data class V1GroupMemberUi(
     val isAdministrator: Boolean = false,
     val isYou: Boolean = false,
     val locationStatus: String = "Location unavailable",
+    val canShowCoordinates: Boolean = false,
 )
 
 data class V1GroupJoinRequestUi(val key: String, val name: String)
+
+/** Issued by the current authenticated invitation source after verifying the signed rule. */
+class V1GroupJoinOffer internal constructor(
+    val groupName: String,
+    val locationRule: V1GroupLocationRule,
+)
+
+/** Fix readiness applies only to this offer and contains no coordinates. */
+data class V1GroupVerifiedJoinState(val offer: V1GroupJoinOffer, val freshFixAvailable: Boolean = false)
 
 data class V1GroupScreenState(
     val groupName: String? = null,
     val members: List<V1GroupMemberUi> = emptyList(),
     val isAdministrator: Boolean = false,
-    val locationRule: V1GroupLocationRule = V1GroupLocationRule.REQUIRED,
-    val locationSharingEnabled: Boolean = true,
+    val locationRule: V1GroupLocationRule = V1GroupLocationRule.OFF,
+    val locationSharingEnabled: Boolean = false,
     val requests: List<V1GroupJoinRequestUi> = emptyList(),
     val canSubmit: Boolean = false,
     val statusMessage: String? = null,
@@ -59,11 +69,22 @@ data class V1GroupScreenState(
     val canScanQr: Boolean = false,
     val confirmation: V1GroupConfirmationState = V1GroupConfirmationState.Unsupported,
     val setupAvailable: Boolean = true,
+    val verifiedJoin: V1GroupVerifiedJoinState? = null,
+    val locationState: PhoneLocationState = PhoneLocationState.OFF,
 )
+
+internal fun V1GroupScreenState.currentJoinOffer(offer: V1GroupJoinOffer): V1GroupVerifiedJoinState? =
+    verifiedJoin?.takeIf { setupAvailable && canSubmit && it.offer === offer }
+
+internal fun V1GroupScreenState.canCompleteJoin(offer: V1GroupJoinOffer, choice: V1GroupJoinChoice): Boolean =
+    currentJoinOffer(offer)?.let { offer.locationRule.allowsJoin(choice, it.freshFixAvailable) } == true
 
 sealed interface V1GroupUiAction {
     data class Create(val name: String) : V1GroupUiAction
-    data class Join(val pin: String) : V1GroupUiAction
+    data class ReviewInvitation(val pin: String) : V1GroupUiAction
+    data class PrepareJoinLocation(val offer: V1GroupJoinOffer) : V1GroupUiAction
+    data class CompleteJoin(val offer: V1GroupJoinOffer, val choice: V1GroupJoinChoice) : V1GroupUiAction
+    data class CancelJoin(val offer: V1GroupJoinOffer) : V1GroupUiAction
     data object ScanQr : V1GroupUiAction
     data class Rename(val name: String) : V1GroupUiAction
     data class SetLocationRule(val rule: V1GroupLocationRule) : V1GroupUiAction
@@ -170,11 +191,14 @@ private fun V1NoGroupContent(
     val form: @Composable () -> Unit = {
       Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
       V1DeviceGroupConfirmation(state.confirmation, onAction)
-      V1GroupCard(if (createSelected) "Create a group" else "Join a group") {
-        if (createSelected) {
+      V1GroupCard(if (createSelected && state.verifiedJoin == null) "Create a group" else "Join a group") {
+        val offer = state.verifiedJoin?.offer
+        if (offer != null) {
+            V1GroupJoinConsent(state, offer, onAction)
+        } else if (createSelected) {
             OutlinedTextField(name, { if (it.length <= 40) name = it }, label = { Text("Group name") },
                 singleLine = true, modifier = Modifier.fillMaxWidth())
-            Text("You will be the administrator. Location sharing starts ON.")
+            Text("You will be the administrator. Location sharing starts off.")
             Button(
                 onClick = { onAction(V1GroupUiAction.Create(name.trim())) },
                 enabled = state.canSubmit && name.isNotBlank(), modifier = Modifier.fillMaxWidth(),
@@ -182,8 +206,8 @@ private fun V1NoGroupContent(
         } else {
             OutlinedTextField(pin, { if (it.length <= 16) pin = it.filter(Char::isDigit) },
                 label = { Text("Invitation PIN") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Text("Review the group's location rule before joining. Sharing starts ON.")
-            Button(onClick = { onAction(V1GroupUiAction.Join(pin)); pin = "" },
+            Text("Review the group's location rule before joining.")
+            Button(onClick = { onAction(V1GroupUiAction.ReviewInvitation(pin)); pin = "" },
                 enabled = state.canSubmit && pin.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                 Text("Review invitation")
             }
@@ -208,6 +232,59 @@ private fun V1NoGroupContent(
             }
         }
     }
+}
+
+@Composable
+private fun V1GroupJoinConsent(
+    state: V1GroupScreenState,
+    offer: V1GroupJoinOffer,
+    onAction: (V1GroupUiAction) -> Unit,
+) {
+    val currentState by rememberUpdatedState(state)
+    var agreed by remember(offer, state.canSubmit) { mutableStateOf(false) }
+    val share = V1GroupJoinChoice.SHARE_LOCATION
+    val noShare = V1GroupJoinChoice.WITHOUT_LOCATION
+    val complete: (V1GroupJoinChoice) -> Unit = { choice ->
+        if (currentState.canCompleteJoin(offer, choice)) onAction(V1GroupUiAction.CompleteJoin(offer, choice))
+    }
+    Text(offer.groupName, style = MaterialTheme.typography.titleMedium)
+    when (offer.locationRule) {
+        V1GroupLocationRule.OFF -> {
+            Text("Location is off for this group.")
+            Button(onClick = { complete(noShare) }, enabled = state.canCompleteJoin(offer, noShare)) {
+                Text("Join group")
+            }
+        }
+        V1GroupLocationRule.MEMBER_OPTIONAL -> {
+            Text("Location sharing is preferred. You can join either way.")
+            Button(onClick = { complete(share) }, enabled = state.canCompleteJoin(offer, share)) {
+                Text("Share and join")
+            }
+            OutlinedButton(onClick = { complete(noShare) }, enabled = state.canCompleteJoin(offer, noShare)) {
+                Text("Join without sharing")
+            }
+        }
+        V1GroupLocationRule.REQUIRED -> {
+            Text("This group requires location sharing. Agree and get a phone GPS fix to join.")
+            if (!agreed) {
+                Button(onClick = {
+                    if (currentState.currentJoinOffer(offer) != null) {
+                        agreed = true
+                        onAction(V1GroupUiAction.PrepareJoinLocation(offer))
+                    }
+                }, enabled = state.currentJoinOffer(offer) != null) { Text("Agree to share") }
+            } else {
+                if (!state.canCompleteJoin(offer, share)) Text(PhoneLocationState.WAITING_FOR_FIX.label)
+                Button(onClick = { complete(share) }, enabled = state.canCompleteJoin(offer, share)) {
+                    Text("Join group")
+                }
+            }
+        }
+    }
+    TextButton(onClick = {
+        agreed = false
+        if (currentState.currentJoinOffer(offer) != null) onAction(V1GroupUiAction.CancelJoin(offer))
+    }, enabled = state.currentJoinOffer(offer) != null) { Text("Cancel") }
 }
 
 @Composable
@@ -278,10 +355,13 @@ private fun V1GroupMembers(state: V1GroupScreenState, onAction: (V1GroupUiAction
                 Text(member.name + if (member.isYou) " (you)" else "",
                     style = MaterialTheme.typography.titleMedium)
                 Text(if (member.isAdministrator) "Administrator" else "Member")
-                Text(member.locationStatus, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (state.locationRule == V1GroupLocationRule.OFF) "Location off" else member.locationStatus,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { onAction(V1GroupUiAction.ShowCoordinates(member.key)) }) {
-                        Text("Coordinates")
+                    if (state.locationRule != V1GroupLocationRule.OFF && member.canShowCoordinates) {
+                        TextButton(onClick = { onAction(V1GroupUiAction.ShowCoordinates(member.key)) }) {
+                            Text("Coordinates")
+                        }
                     }
                     if (state.isAdministrator && !member.isAdministrator) {
                         TextButton(onClick = { removeKey = member.key }, enabled = state.canSubmit) {
@@ -323,7 +403,9 @@ private fun V1GroupRequests(state: V1GroupScreenState, onAction: (V1GroupUiActio
 @Composable
 private fun V1GroupControls(state: V1GroupScreenState, onAction: (V1GroupUiAction) -> Unit) {
     var destructiveConfirmation by rememberSaveable(state.groupName, state.isAdministrator) { mutableStateOf(false) }
-    var requiredConfirmation by rememberSaveable(state.groupName, state.isAdministrator) { mutableStateOf(false) }
+    var pendingRule by remember(state.groupName, state.isAdministrator, state.locationRule) {
+        mutableStateOf<V1GroupLocationRule?>(null)
+    }
     var editedName by rememberSaveable(state.groupName) { mutableStateOf(state.groupName.orEmpty()) }
     if (state.isAdministrator) {
         V1GroupCard("Invitations & joining") {
@@ -350,28 +432,32 @@ private fun V1GroupControls(state: V1GroupScreenState, onAction: (V1GroupUiActio
                 Text("Save name")
             }
             Text("Location sharing", style = MaterialTheme.typography.titleMedium)
-            Text(if (state.locationRule == V1GroupLocationRule.REQUIRED)
-                "Required for everyone. Members leave the group to stop sharing."
-                else "ON when joining. Each member may turn sharing off.")
-            OutlinedButton(onClick = {
-                if (state.locationRule == V1GroupLocationRule.REQUIRED) {
-                    onAction(V1GroupUiAction.SetLocationRule(V1GroupLocationRule.MEMBER_OPTIONAL))
-                } else requiredConfirmation = true
-            }, enabled = state.canSubmit, modifier = Modifier.fillMaxWidth()) {
-                Text(if (state.locationRule == V1GroupLocationRule.REQUIRED)
-                    "Let members turn sharing off" else "Require location sharing")
+            Text("Current rule: ${state.locationRule.label}")
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(V1GroupLocationRule.OFF, V1GroupLocationRule.MEMBER_OPTIONAL,
+                    V1GroupLocationRule.REQUIRED).forEach { rule ->
+                    OutlinedButton(onClick = { pendingRule = rule },
+                        enabled = state.canSubmit && rule != state.locationRule) { Text(rule.label) }
+                }
             }
         }
     }
     V1GroupCard("Your location") {
-        Text(if (state.locationRule == V1GroupLocationRule.REQUIRED)
-            "Your administrator requires sharing. GPS loss is shown as unavailable."
-            else "Choose whether this group receives your location.")
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (state.locationSharingEnabled) "Sharing ON" else "Sharing OFF")
-            Switch(checked = state.locationSharingEnabled,
-                onCheckedChange = { onAction(V1GroupUiAction.SetLocationSharing(it)) },
-                enabled = state.canSubmit && state.locationRule == V1GroupLocationRule.MEMBER_OPTIONAL)
+        when (state.locationRule) {
+            V1GroupLocationRule.OFF -> Text("Location is off for this group.")
+            V1GroupLocationRule.MEMBER_OPTIONAL -> Text("Choose whether to share your phone location with this group.")
+            V1GroupLocationRule.REQUIRED -> Text(if (state.locationSharingEnabled)
+                "You can stop sharing and stay a member. Participation pauses until you agree again."
+                else "Group participation is paused until you agree to share or leave.")
+        }
+        if (state.locationRule != V1GroupLocationRule.OFF) {
+            Text(if (state.locationSharingEnabled) state.locationState.label else PhoneLocationState.OFF.label)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("I agree to share my location")
+                Switch(checked = state.locationSharingEnabled,
+                    onCheckedChange = { onAction(V1GroupUiAction.SetLocationSharing(it)) },
+                    enabled = state.canSubmit)
+            }
         }
     }
     OutlinedButton(onClick = { destructiveConfirmation = true },
@@ -389,15 +475,27 @@ private fun V1GroupControls(state: V1GroupScreenState, onAction: (V1GroupUiActio
             destructiveConfirmation = false
         }
     }
-    if (requiredConfirmation && state.isAdministrator) {
-        V1GroupConfirmation("Require location sharing?",
-            "Members who turned sharing off must enable it themselves or leave before this rule can change.",
-            "Request required sharing", state.canSubmit, { requiredConfirmation = false }) {
-            onAction(V1GroupUiAction.SetLocationRule(V1GroupLocationRule.REQUIRED))
-            requiredConfirmation = false
+    val rule = pendingRule
+    if (rule != null && state.isAdministrator) {
+        val effect = when (rule) {
+            V1GroupLocationRule.OFF -> "This stops location sharing for everyone."
+            V1GroupLocationRule.MEMBER_OPTIONAL -> "Members choose again whether to share. Everyone keeps their membership."
+            V1GroupLocationRule.REQUIRED -> "Members keep their membership. Participation pauses until each person agrees."
+        }
+        V1GroupConfirmation("Set location rule to ${rule.label}?", effect, "Change rule", state.canSubmit,
+            { pendingRule = null }) {
+            onAction(V1GroupUiAction.SetLocationRule(rule))
+            pendingRule = null
         }
     }
 }
+
+private val V1GroupLocationRule.label: String
+    get() = when (this) {
+        V1GroupLocationRule.OFF -> "Off"
+        V1GroupLocationRule.MEMBER_OPTIONAL -> "Preferred"
+        V1GroupLocationRule.REQUIRED -> "Required"
+    }
 
 @Composable
 private fun V1GroupCard(title: String, content: @Composable ColumnScope.() -> Unit) {

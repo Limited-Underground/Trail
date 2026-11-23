@@ -109,6 +109,29 @@ static auto journal_bytes(const Storage& storage) {
         bytes[d*2+bank]=storage.memory.slot_bytes(static_cast<Domain>(d),bank);
     return bytes;
 }
+static unsigned prepare_after_saturated_abort() {
+    const auto verified=binding();
+    const auto limit=std::numeric_limits<std::uint64_t>::max();
+    Storage media;
+    EnrollmentCommitCoordinator first(media);
+    std::optional<PreparedEnrollmentReceipt> original;
+    CHECK(first.initialize() && first.prepare(verified,1,op(),original));
+    ProductEnrollmentActivation::public_state_fixture(media,original->context(),limit-1,1);
+    EnrollmentCommitCoordinator recovery(media);
+    CHECK(ProductEnrollmentActivation::pairing_abort_recovery(recovery,verified,1));
+    CHECK(ProductEnrollmentActivation::abort_pairing_recovery(recovery,original->context()));
+
+    EnrollmentCommitCoordinator restarted(media);
+    CHECK(restarted.initialize() && restarted.state()==EnrollmentJournalState::aborted);
+    const auto before=journal_bytes(media);
+    media.clear();
+    std::optional<PreparedEnrollmentReceipt> next;
+    CHECK(!restarted.prepare(verified,2,op(2),next));
+    CHECK(media.count('e')==0 && media.count('w')==0 && media.count('s')==0);
+    CHECK(journal_bytes(media)==before && !next);
+    return 1;
+}
+
 static unsigned mixed_recovery_bank(bool foreign,bool aborting=false) {
     const auto verified=binding();
     Storage media;EnrollmentCommitCoordinator journal(media);
@@ -437,5 +460,6 @@ int main(int argc,char** argv) {
     groups+=mixed_recovery_bank(false)+mixed_recovery_bank(true)+pairing_recovery_torn_transition_sweep()+pairing_counter_exact_headroom();
     for(unsigned variant=0;variant<4;++variant) groups+=uncompletable_pairing_counter(variant);
     groups+=pairing_abort_intent_capacity();
+    groups+=prepare_after_saturated_abort();
     std::cout << "PASS " << groups << " enrollment commit journal groups (no peer-commit or traffic authority)\n";
 }
