@@ -1,5 +1,25 @@
 # OpenTrail Progress Log
 
+## 2026-11-23
+
+### OT-0306 Add live Invite and Join on profile 5
+
+Three protected group operations carry the signed QR invite between the
+phone and its board. Invite runs on the group's own admin board for an
+active group with fewer than six members. It issues a boot-scoped invite for
+180 seconds, one per group, through a signer bound to that exact descriptor.
+Read Invite pages it out. Join pages a scanned invite into the joiner board,
+which verifies the admin signature. It refuses its own invite, a group it
+already holds and a fifth group. It claims the invite ID durably before
+reporting success, so a replay is refused after a restart. The claim record
+adds 19 entries to the D-163 model (12,441 of 16,128).
+
+The MeshTrail App's Group tab uses these commands in place of the Debug
+practice. The QR codec sits behind one interface. Until a QR library is
+bound, the invite travels as text. Host owner, codec, dispatcher and budget
+tests, Android tests and lint, and both Heltec builds passed. The
+board-to-board handshake and pair activation follow. Part of #148.
+
 ## 2026-11-22
 
 ### OT-0005i Qualify combined board storage (D-163)
