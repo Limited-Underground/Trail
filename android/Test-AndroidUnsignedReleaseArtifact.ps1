@@ -123,6 +123,7 @@ $permissions = @($permissions | Sort-Object)
 $expectedPermissions = @(
     'android.permission.BLUETOOTH_CONNECT',
     'android.permission.BLUETOOTH_SCAN',
+    'android.permission.CAMERA',
     'android.permission.FOREGROUND_SERVICE',
     'android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE',
     'android.permission.POST_NOTIFICATIONS',

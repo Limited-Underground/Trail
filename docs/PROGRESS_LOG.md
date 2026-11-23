@@ -15,8 +15,11 @@ reporting success, so a replay is refused after a restart. The claim record
 adds 19 entries to the D-163 model (12,441 of 16,128).
 
 The MeshTrail App's Group tab uses these commands in place of the Debug
-practice. The QR codec sits behind one interface. Until a QR library is
-bound, the invite travels as text. Host owner, codec, dispatcher and budget
+practice. The QR codec sits behind one interface. Under owner decision
+D-170 it uses open-source ZXing to show the code (core 3.5.3) and scan it
+(zxing-android-embedded 4.3.0), with no Google Play services. The camera
+permission is requested only when Scan invitation is tapped. The invite code
+text stays available as a fallback. Host owner, codec, dispatcher and budget
 tests, Android tests and lint, and both Heltec builds passed. The
 board-to-board handshake and pair activation follow. Part of #148.
 

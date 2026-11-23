@@ -86,12 +86,15 @@ failed evidence is retained as failure history rather than silently discarded.
 - The exact authored permission set is
   `android.permission.BLUETOOTH_CONNECT`,
   `android.permission.BLUETOOTH_SCAN`,
+  `android.permission.CAMERA`,
   `android.permission.FOREGROUND_SERVICE`,
   `android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE`, and
-  `android.permission.POST_NOTIFICATIONS`.
+  `android.permission.POST_NOTIFICATIONS`. CAMERA (D-170) scans a group
+  invite QR with ZXing. It is requested only when the person taps Scan
+  invitation, and the camera is not a required feature.
 - The exact current toolchain-generated merged permission is
   `io.github.nbjelanovic.otclient.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
-  It is tracked separately from the five authored permissions and does not
+  It is tracked separately from the six authored permissions and does not
   expand application intent. A future candidate must independently verify the
   merged production artifact contains exactly the authored/generated union,
   with neither omissions nor additional permissions; source-manifest review

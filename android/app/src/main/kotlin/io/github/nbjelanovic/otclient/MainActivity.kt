@@ -67,6 +67,10 @@ import java.util.Locale
 open class MainActivity : ComponentActivity() {
     private lateinit var lifecycleBinding: TrailAppLifecycleBinding
     private lateinit var appController: TrailActivityController
+    private var inviteQr: ZxingInviteQr? = null
+    private val inviteScan = registerForActivityResult(com.journeyapps.barcodescanner.ScanContract()) { result ->
+        inviteQr?.delivered(result.contents)
+    }
 
     protected open fun createConnectedDeviceServiceConnector(): ConnectedDeviceServiceConnector =
         AndroidConnectedDeviceServiceConnector(applicationContext)
@@ -90,6 +94,7 @@ open class MainActivity : ComponentActivity() {
         lifecycleBinding = TrailAppLifecycleBinding(lifecycle, appController)
 
         operationLog.appOpened()
+        inviteQr = ZxingInviteQr { inviteScan.launch(it) }.also { V1InviteQrBinding.current = it }
         setContent { TrailTheme { TrailApp(appController) { AdditionalTools() } } }
     }
 
@@ -100,6 +105,8 @@ open class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         if (::lifecycleBinding.isInitialized) lifecycleBinding.close()
+        if (V1InviteQrBinding.current === inviteQr) V1InviteQrBinding.current = null
+        inviteQr = null
         super.onDestroy()
     }
 }
