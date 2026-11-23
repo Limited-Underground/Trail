@@ -595,6 +595,47 @@ void catalog_migrates_earlier_rows_once() {
     CHECK(f.owner->scope_slot(retained) == 0 && f.owner->scope_slot(contact(3)) == 1);
 }
 
+void unwanted_invitation_can_be_blocked_before_consent() {
+    // I-105: Block names only the peer the pending authenticated attempt reviewed.
+    Fixture f;
+    const auto stranger = contact(4);
+    CHECK(f.owner->block(stranger) == DirectResult::stale);  // no attempt
+    const auto request = f.review(stranger);
+    CHECK(f.owner->block(contact(5)) == DirectResult::stale);  // not the reviewed peer
+    auto other_scope = stranger;
+    other_scope.scope[1] = 9;
+    CHECK(f.owner->block(other_scope) == DirectResult::stale);
+    const auto commits = f.storage.commits;
+    CHECK(f.owner->block(stranger) == DirectResult::ok);
+    CHECK(f.storage.commits == commits + 1);
+    CHECK(f.pairing.cancellations == 1 && f.pairing.votes == 0);
+    CHECK(f.owner->blocked(stranger.peer));
+    CHECK(!f.owner->scope_slot(stranger) && f.packets.claims.empty());
+    CHECK(f.owner->accept(f.authority, request) != DirectResult::ok);
+    CHECK(f.owner->block(stranger) == DirectResult::ok);  // repeat is harmless
+
+    f.restart();
+    CHECK(f.owner->blocked(stranger.peer));
+    const auto again = f.review(stranger);
+    CHECK(f.owner->accept(f.authority, again) == DirectResult::blocked);
+    CHECK(f.owner->unblock(stranger.peer) == DirectResult::ok);
+    CHECK(!f.owner->blocked(stranger.peer));
+    f.accept(stranger);
+    CHECK(f.owner->scope_slot(stranger) == 0);
+
+    // The board-wide block list stays bounded.
+    Fixture full;
+    for (std::uint8_t i = 0; i < DirectConversationOwner::kBlocked; ++i) {
+        const auto peer = contact(static_cast<std::uint8_t>(20 + i));
+        full.review(peer);
+        CHECK(full.owner->block(peer) == DirectResult::ok);
+    }
+    const auto extra = contact(60);
+    full.review(extra);
+    CHECK(full.owner->block(extra) == DirectResult::full);
+    CHECK(!full.owner->blocked(extra.peer));
+}
+
 }  // namespace
 
 int main() {
@@ -610,6 +651,7 @@ int main() {
         {"bounded capacity", &capacity_reuses_ended_slots_and_preserves_blocks},
         {"scope cleanup before reuse", &scope_clear_precedes_slot_reuse},
         {"earlier catalog rows", &catalog_migrates_earlier_rows_once},
+        {"block an unwanted invitation", &unwanted_invitation_can_be_blocked_before_consent},
     };
     for (const auto& test : tests) {
         scenario = test.first;

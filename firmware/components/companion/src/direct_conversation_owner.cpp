@@ -353,7 +353,9 @@ bool DirectConversationOwner::finish_retirement(std::size_t slot) {
 DirectResult DirectConversationOwner::retire(const DirectBinding& binding, State state) {
     if (!healthy_) return DirectResult::unavailable;
     const auto index = find(binding.peer);
-    if (!index) return DirectResult::stale;
+    if (!index) {
+        return state == State::retiring_block ? block_reviewed(binding) : DirectResult::stale;
+    }
     auto& record = records_[*index];
     if (record.state == State::blocked) {
         return state == State::retiring_block ? DirectResult::ok : DirectResult::blocked;
@@ -379,6 +381,28 @@ DirectResult DirectConversationOwner::retire(const DirectBinding& binding, State
         return DirectResult::unavailable;
     }
     return finish_retirement(*index) ? DirectResult::ok : DirectResult::unavailable;
+}
+
+// I-105: an unwanted invitation can be blocked before anyone accepts. Only
+// the peer the authenticated pending attempt reviewed can be named, so a
+// block never comes from an unverified identity. It holds no scope or slot.
+DirectResult DirectConversationOwner::block_reviewed(const DirectBinding& binding) {
+    if (!valid(binding) || !request_.pending()) return DirectResult::stale;
+    const auto pending = request_.request();
+    const auto reviewed = pairing_.reviewed(pending);
+    if (!reviewed || !(*reviewed == binding)) return DirectResult::stale;
+    // Blocks still being retired keep their reserved tombstones.
+    const auto blocks = std::count_if(records_.begin(), records_.end(), [](const Record& r) {
+        return r.state == State::blocked || r.state == State::retiring_block;
+    });
+    if (blocks >= static_cast<std::ptrdiff_t>(kBlocked)) return DirectResult::full;
+    const auto tombstone = std::find_if(records_.begin() + kConversations, records_.end(),
+                                        [](const Record& entry) { return entry.state == State::empty; });
+    if (tombstone == records_.end()) return DirectResult::full;
+    cancel();
+    tombstone->binding.peer = binding.peer;
+    tombstone->state = State::blocked;
+    return save() ? DirectResult::ok : DirectResult::unavailable;
 }
 
 DirectResult DirectConversationOwner::end(const DirectBinding& binding) {

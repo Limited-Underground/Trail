@@ -100,6 +100,7 @@ public:
     std::uint64_t send_generation(const DirectBinding&) const;
     bool blocked(const DirectIdentity&) const;
     DirectResult end(const DirectBinding&);
+    // Also blocks the reviewed peer of a pending invitation before consent.
     DirectResult block(const DirectBinding&);
     DirectResult unblock(const DirectIdentity&);
 
@@ -124,6 +125,7 @@ private:
     DirectResult check(const DeviceNameAuthority&, const SelectedEnrollmentRequest&);
     std::optional<std::size_t> find(const DirectIdentity&) const;
     DirectResult retire(const DirectBinding&, State);
+    DirectResult block_reviewed(const DirectBinding&);
     bool finish_retirement(std::size_t slot);
 
     persistence::PersistentKvBackend& backend_;

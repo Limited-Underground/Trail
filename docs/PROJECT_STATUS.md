@@ -243,7 +243,8 @@ D-163 reserves eight direct scopes within the shared NVS budget. The host
 composition binds stable catalog slots and the exact packet claim to a fresh
 authenticated F5 session. Both boards must confirm before protected text is
 eligible. End and Block fence that scope and release its storage after packet
-borrowers drain. The live route, MeshTrail App controls and device validation
+borrowers drain. Block also covers an unwanted invitation before anyone
+accepts it. The live route, MeshTrail App controls and device validation
 remain open.
 
 ## F12 host validation
