@@ -52,6 +52,8 @@ public:
     [[nodiscard]] bool available() const noexcept override;
     [[nodiscard]] GroupConfigurationResult execute(
         const DeviceNameContext&, const GroupConfigurationCommand&, std::uint64_t admitted_ms) noexcept override;
+    [[nodiscard]] std::optional<identity::roster::LocationRule> verified_location_rule(
+        const ConfigurationLocationScope& scope) noexcept;
 
     // The live pending join on this boot, if any and not expired. The radio
     // handshake (next increment) starts only from this.

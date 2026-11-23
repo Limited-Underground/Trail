@@ -84,17 +84,23 @@ failed evidence is retained as failure history rather than silently discarded.
   exported test/debug component, debug-only dependency, test runner, private
   path, credential, or unexpected permission.
 - The exact authored permission set is
+  `android.permission.ACCESS_COARSE_LOCATION`,
+  `android.permission.ACCESS_FINE_LOCATION`,
   `android.permission.BLUETOOTH_CONNECT`,
   `android.permission.BLUETOOTH_SCAN`,
   `android.permission.CAMERA`,
   `android.permission.FOREGROUND_SERVICE`,
   `android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE`, and
-  `android.permission.POST_NOTIFICATIONS`. CAMERA (D-170) scans a group
-  invite QR with ZXing. It is requested only when the person taps Scan
-  invitation, and the camera is not a required feature.
+  `android.permission.POST_NOTIFICATIONS`.
+  The two location permissions serve F10/A7 location sharing (D-155): phone
+  GPS only while the app is in front, asked only when the user turns sharing
+  on. `ACCESS_BACKGROUND_LOCATION` and `FOREGROUND_SERVICE_LOCATION` stay
+  forbidden. CAMERA (D-170) scans a group invite QR with ZXing. It is
+  requested only when the person taps Scan invitation, and the camera is not
+  a required feature.
 - The exact current toolchain-generated merged permission is
   `io.github.nbjelanovic.otclient.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
-  It is tracked separately from the six authored permissions and does not
+  It is tracked separately from the eight authored permissions and does not
   expand application intent. A future candidate must independently verify the
   merged production artifact contains exactly the authored/generated union,
   with neither omissions nor additional permissions; source-manifest review

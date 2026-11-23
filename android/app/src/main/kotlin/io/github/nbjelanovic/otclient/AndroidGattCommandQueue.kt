@@ -12,12 +12,16 @@ internal class AndroidGattCommandQueue(
     private var closed = false
     val hasQueued: Boolean get() = queued != null
 
-    fun submit(value: ByteArray, write: (ByteArray) -> Boolean): Boolean {
+    val canWriteImmediately: Boolean get() = !closed && operations.stage == AndroidGattStage.READY
+
+    fun submit(value: ByteArray, write: (ByteArray) -> Boolean): Boolean = submit(value, true, write)
+
+    fun submit(value: ByteArray, allowQueue: Boolean, write: (ByteArray) -> Boolean): Boolean {
         if (closed || value.isEmpty() || value.size > maximumBytes) return false
         return when (operations.stage) {
             AndroidGattStage.READY -> send(value.copyOf(), write)
             AndroidGattStage.COMMAND_WRITE_PENDING -> {
-                if (queued != null) false else {
+                if (!allowQueue || queued != null) false else {
                     queued = value.copyOf()
                     true
                 }

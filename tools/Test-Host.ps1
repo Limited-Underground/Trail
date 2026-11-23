@@ -355,6 +355,9 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_clock.cpp'),
             (Join-Path $projectRoot 'firmware\components\time\src\oled_time_admission.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_location_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_sharing.cpp'),
             (Join-Path $projectRoot 'tests\host\companion_configuration_dispatcher_tests.cpp')
         )
     },
@@ -903,6 +906,35 @@ $builds = @(
         )
     },
     @{
+        Name = 'V1 protected location frame'
+        Output = Join-Path $buildDirectory 'v1_location_frame_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'tests\host\v1_location_frame_tests.cpp')
+        )
+    },
+    @{
+        Name = 'V1 protected companion location owner'
+        Output = Join-Path $buildDirectory 'companion_location_owner_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_device_name_codec.cpp'),
+            (Join-Path $projectRoot 'firmware\components\companion\src\companion_location_owner.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_sharing.cpp'),
+            (Join-Path $projectRoot 'tests\host\companion_location_owner_tests.cpp')
+        )
+    },
+    @{
+        Name = 'V1 foreground location lease, consent and dispatch'
+        Output = Join-Path $buildDirectory 'v1_location_sharing_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_frame.cpp'),
+            (Join-Path $projectRoot 'firmware\components\location\src\v1_location_sharing.cpp'),
+            (Join-Path $projectRoot 'tests\host\v1_location_sharing_tests.cpp')
+        )
+    },
+    @{
         Name = 'group frame, receiving and delivery state (V1 pairwise groups, step 3a)'
         Output = Join-Path $buildDirectory 'group_frame_tests.exe'
         Sources = @(
@@ -918,6 +950,15 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\delivery\src\group_message_numbers.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
             (Join-Path $projectRoot 'tests\host\group_message_number_tests.cpp')
+        )
+    },
+    @{
+        Name = 'durable QR receipts and invite consumption (F8 step 2b)'
+        Output = Join-Path $buildDirectory 'group_qr_receipts_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_qr_receipts.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_qr_receipts_tests.cpp')
         )
     },
     @{

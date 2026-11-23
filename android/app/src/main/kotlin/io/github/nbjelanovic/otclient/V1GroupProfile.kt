@@ -6,6 +6,19 @@ internal const val V1_ADMINISTRATOR_COUNT = 1
 enum class V1GroupLocationRule {
     REQUIRED,
     MEMBER_OPTIONAL,
+    OFF;
+
+    internal fun allowsJoin(choice: V1GroupJoinChoice, freshFixAvailable: Boolean): Boolean =
+        when (this) {
+            OFF -> choice == V1GroupJoinChoice.WITHOUT_LOCATION
+            MEMBER_OPTIONAL -> true
+            REQUIRED -> choice == V1GroupJoinChoice.SHARE_LOCATION && freshFixAvailable
+        }
+}
+
+enum class V1GroupJoinChoice {
+    WITHOUT_LOCATION,
+    SHARE_LOCATION,
 }
 
 enum class V1GroupMutationFailure {
@@ -16,7 +29,8 @@ enum class V1GroupMutationFailure {
     ADMINISTRATOR_CANNOT_BE_REMOVED,
     NON_ADMINISTRATOR,
     MEMBER_MAY_ONLY_CHANGE_SELF,
-    LOCATION_RECONSENT_REQUIRED,
+    LOCATION_CONSENT_OR_FIX_REQUIRED,
+    LOCATION_DISABLED,
 }
 
 class V1GroupMemberToken private constructor(private val bytes: ByteArray) {
@@ -42,6 +56,7 @@ class V1GroupMember private constructor(
     val token: V1GroupMemberToken,
     val displayName: StablePeerDisplayAlias,
     val isAdministrator: Boolean,
+    /** Consent in this profile. The board's current lease determines whether GPS is sharing. */
     val locationSharingEnabled: Boolean,
 ) {
     override fun equals(other: Any?): Boolean =
@@ -67,7 +82,7 @@ class V1GroupMember private constructor(
             token: V1GroupMemberToken,
             displayName: String,
             isAdministrator: Boolean = false,
-            locationSharingEnabled: Boolean = true,
+            locationSharingEnabled: Boolean = false,
         ): V1GroupMember? =
             StablePeerDisplayAlias.create(displayName)?.let {
                 V1GroupMember(token, it, isAdministrator, locationSharingEnabled)
@@ -87,33 +102,40 @@ class V1GroupProfile private constructor(
 ) {
     val members: List<V1GroupMember> = members.toList()
 
-    fun addMember(actor: V1GroupMemberToken, member: V1GroupMember): V1GroupMutationResult {
+    fun addMember(
+        actor: V1GroupMemberToken,
+        member: V1GroupMember,
+        choice: V1GroupJoinChoice = V1GroupJoinChoice.WITHOUT_LOCATION,
+        freshFixAvailable: Boolean = false,
+    ): V1GroupMutationResult {
         if (actor != administratorToken) return reject(V1GroupMutationFailure.NON_ADMINISTRATOR)
         if (member.isAdministrator) return reject(V1GroupMutationFailure.INVALID_MEMBER)
         if (members.any { it.token == member.token }) return reject(V1GroupMutationFailure.DUPLICATE_MEMBER)
         if (members.size >= V1_MAX_GROUP_MEMBERS) return reject(V1GroupMutationFailure.GROUP_FULL)
-        return accept(locationRule, members + member.withLocationSharing(true))
+        if (!locationRule.allowsJoin(choice, freshFixAvailable)) {
+            return reject(V1GroupMutationFailure.LOCATION_CONSENT_OR_FIX_REQUIRED)
+        }
+        val joining = member.withLocationSharing(choice == V1GroupJoinChoice.SHARE_LOCATION)
+        return accept(locationRule, members.map { it.withLocationSharing(false) } + joining)
     }
 
     fun removeMember(actor: V1GroupMemberToken, member: V1GroupMemberToken): V1GroupMutationResult {
         if (actor != administratorToken) return reject(V1GroupMutationFailure.NON_ADMINISTRATOR)
         if (member == administratorToken) return reject(V1GroupMutationFailure.ADMINISTRATOR_CANNOT_BE_REMOVED)
         if (members.none { it.token == member }) return reject(V1GroupMutationFailure.INVALID_MEMBER)
-        return accept(locationRule, members.filterNot { it.token == member })
+        return accept(locationRule, members.filterNot { it.token == member }.map { it.withLocationSharing(false) })
     }
 
     fun leave(member: V1GroupMemberToken): V1GroupMutationResult {
         if (member == administratorToken) return reject(V1GroupMutationFailure.ADMINISTRATOR_CANNOT_LEAVE)
         if (members.none { it.token == member }) return reject(V1GroupMutationFailure.INVALID_MEMBER)
-        return accept(locationRule, members.filterNot { it.token == member })
+        return accept(locationRule, members.filterNot { it.token == member }.map { it.withLocationSharing(false) })
     }
 
     fun setLocationRule(actor: V1GroupMemberToken, rule: V1GroupLocationRule): V1GroupMutationResult {
         if (actor != administratorToken) return reject(V1GroupMutationFailure.NON_ADMINISTRATOR)
-        if (rule == V1GroupLocationRule.REQUIRED && members.any { !it.locationSharingEnabled }) {
-            return reject(V1GroupMutationFailure.LOCATION_RECONSENT_REQUIRED)
-        }
-        return accept(rule, members)
+        if (rule == locationRule) return V1GroupMutationResult.Accepted(this)
+        return accept(rule, members.map { it.withLocationSharing(false) })
     }
 
     fun setMemberLocationSharing(
@@ -123,14 +145,18 @@ class V1GroupProfile private constructor(
     ): V1GroupMutationResult {
         if (members.none { it.token == member }) return reject(V1GroupMutationFailure.INVALID_MEMBER)
         if (actor != member) return reject(V1GroupMutationFailure.MEMBER_MAY_ONLY_CHANGE_SELF)
-        if (!enabled && locationRule == V1GroupLocationRule.REQUIRED) {
-            return reject(V1GroupMutationFailure.INVALID_MEMBER)
+        if (enabled && locationRule == V1GroupLocationRule.OFF) {
+            return reject(V1GroupMutationFailure.LOCATION_DISABLED)
         }
         return accept(
             locationRule,
             members.map { if (it.token == member) it.withLocationSharing(enabled) else it },
         )
     }
+
+    fun memberCanParticipate(member: V1GroupMemberToken): Boolean =
+        members.any { it.token == member &&
+            (locationRule != V1GroupLocationRule.REQUIRED || it.locationSharingEnabled) }
 
     override fun toString(): String =
         "V1GroupProfile(administratorToken=redacted, locationRule=$locationRule, memberCount=${members.size})"
@@ -154,8 +180,8 @@ class V1GroupProfile private constructor(
             if (administrators.size != V1_ADMINISTRATOR_COUNT ||
                 administrators.single().token != administratorToken
             ) return null
-            if (locationRule == V1GroupLocationRule.REQUIRED &&
-                members.any { !it.locationSharingEnabled }
+            if (locationRule == V1GroupLocationRule.OFF &&
+                members.any { it.locationSharingEnabled }
             ) return null
             return V1GroupProfile(administratorToken, locationRule, members)
         }

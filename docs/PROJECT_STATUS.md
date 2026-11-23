@@ -113,6 +113,7 @@ group selected from the current readback. See the [OT-0305 app entry](PROGRESS_L
 Live Invite and Join replace the Debug practice: the admin board issues a
 signed QR invite and the joiner board verifies and claims it once. See
 [OT-0306 Add live Invite and Join on profile 5](PROGRESS_LOG.md#ot-0306-add-live-invite-and-join-on-profile-5).
+QR join decisions are [retained durably on the host](PROGRESS_LOG.md#ot-0306-retain-qr-join-decisions-durably-on-the-host).
 The boards bind their key agreement to the QR session with Noise XK on the
 host ([OT-0306 Bind the QR group join to Noise XK on the host](PROGRESS_LOG.md#ot-0306-bind-the-qr-group-join-to-noise-xk-on-the-host)).
 The radio route, pair activation, and real phone and board acceptance remain
@@ -225,7 +226,15 @@ original completed evidence scope. No physical or release acceptance is added.
 The [direct conversation proposal](security/DIRECT_CONVERSATIONS_V1.md)
 covers F9/A6 through issue #100. The [location sharing proposal](security/V1_LOCATION_SHARING.md)
 covers F10/A7 through issue #102. D-155 accepts both designs with phone GPS
-for V1 location. Implementation and device validation remain open.
+for V1 location. The rebased F10/A7 topic carries separate consent, start,
+renew, stop and withdrawal commands over protected Bluetooth. The profile 5
+Link Test verifies the signed group scope and owns the 15-second lease in
+memory. The largest radio position candidate including Packet-v1 overhead
+remains 124 bytes. Direct-conversation authority, radio delivery, profile
+qualification and device acceptance remain open.
+See [the protected phone link](PROGRESS_LOG.md#ot-0316-carry-meshtrail-location-over-the-protected-phone-link),
+[location dispatch](PROGRESS_LOG.md#ot-0316-gate-meshtrail-position-and-stop-frames-on-the-current-lease)
+and [location consent](PROGRESS_LOG.md#ot-0315-check-the-signed-group-rule-before-meshtrail-location-consent).
 
 ## F12 host validation
 
@@ -311,7 +320,7 @@ The two-board, two-phone check still needs the owner.
 | Blocker | Native flash interruption, flash wear, reclaim timing and service-level restoration need owner-present evidence. Live group pair and direct storage owners are future increments. |
 | Next action | Use a separately approved bench session to qualify the new storage and its exact restore route. The F7 phone and I-087 display acceptance steps remain under their own gates. |
 | Restrictions | D-156 assigns review and publication of the local bundle to Claude. Physical operations and merges require separate owner authority. |
-| Latest record | [OT-0005i Qualify combined board storage (D-163)](PROGRESS_LOG.md#ot-0005i-qualify-combined-board-storage-d-163). See the [F7 phone record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane) and the [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
+| Latest record | [OT-0005i Refuse exhausted enrollment journal prepares](PROGRESS_LOG.md#ot-0005i-refuse-exhausted-enrollment-journal-prepares). See the [D-163 storage record](PROGRESS_LOG.md#ot-0005i-qualify-combined-board-storage-d-163), the [F7 phone record](PROGRESS_LOG.md#ot-0312-integrate-phone-text-with-the-outbox-and-group-command-lane) and the [I-087 record](PROGRESS_LOG.md#ot-0005i-keep-the-meshtrail-board-pairing-result-visible). |
 | Evidence access | Candidate images, host receipts, restore-refusal evidence and source bundle are maintainer-local. Historical diagnostic primary root is Recovery-Records/Trail-G3-Console-Gate-20261102/physical-g3/981e43cff4914a948386933fb3edb7fb and its grant is consumed. |
 <!-- current-handoff:end -->
 

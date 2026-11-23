@@ -2,6 +2,7 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_owner.hpp"
 #include "opentrail/companion_group_configuration.hpp"
+#include "opentrail/companion_location_codec.hpp"
 #include "opentrail/companion_region_owner.hpp"
 #include "opentrail/companion_public_profile_owner.hpp"
 #include "opentrail/oled_time_admission.hpp"
@@ -41,6 +42,14 @@ public:
     [[nodiscard]] virtual GroupConfigurationResult execute(
         const DeviceNameContext&, const GroupConfigurationCommand&, std::uint64_t admitted_ms) noexcept = 0;
 };
+// Runs on the same externally serialized app owner as configuration.
+class ConfigurationLocationBackend {
+public:
+    virtual ~ConfigurationLocationBackend() = default;
+    [[nodiscard]] virtual ConfigurationLocationResult execute(
+        const DeviceNameContext&, const ConfigurationLocationCommand&, std::uint64_t admitted_ms) noexcept = 0;
+    virtual void observe(const DeviceNameContext* ready_context, std::uint64_t now_ms) noexcept = 0;
+};
 struct ConfigurationDispatchResult {
     ConfigurationDispatchCode code{ConfigurationDispatchCode::rejected};
     std::size_t bytes{0};
@@ -59,7 +68,7 @@ public:
     ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
         RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2,
         ConfigurationConfirmationBackend* confirmation = nullptr, PublicProfilePersistence* public_profile = nullptr,
-        ConfigurationGroupBackend* group = nullptr);
+        ConfigurationGroupBackend* group = nullptr, ConfigurationLocationBackend* location = nullptr);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -94,6 +103,7 @@ private:
     ConfigurationBaseHandler& base_;
     ConfigurationConfirmationBackend* confirmation_;
     ConfigurationGroupBackend* group_;
+    ConfigurationLocationBackend* location_;
     NameSource name_source_;
     TimeSource time_source_;
     DeviceNameOwner name_owner_;
@@ -112,6 +122,7 @@ private:
     Block block_{Block::none};
     std::uint32_t last_exchange_{0};
     std::size_t request_bytes_{0};
+    bool location_exchange_{false};
     std::array<std::uint8_t,kConfigurationRecordBytes> request_{};
     ConfigurationDispatchResult cached_{};
     DeviceNamePayload confirmed_name_{};

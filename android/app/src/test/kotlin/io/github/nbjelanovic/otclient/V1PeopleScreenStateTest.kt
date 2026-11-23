@@ -17,7 +17,7 @@ class V1PeopleScreenStateTest {
     @Test fun unacceptedStatesNeverExposeSuppliedContentOrLocation() {
         V1DirectContactState.entries.filter { it != V1DirectContactState.ACCEPTED }.forEach { contact ->
             val state = V1PeopleScreenState(contactState = contact, locationSharingEnabled = true,
-                messages = listOf(V1DirectMessageUi("Hidden first message", V1DirectMessageStatus.QUEUED)))
+                phoneLocationState = PhoneLocationState.SHARING, messages = listOf(V1DirectMessageUi("Hidden first message", V1DirectMessageStatus.QUEUED)))
             assertTrue(state.visibleMessages.isEmpty())
             assertFalse(state.effectiveLocationSharing)
         }
@@ -28,7 +28,20 @@ class V1PeopleScreenStateTest {
         val state = V1PeopleScreenState(contactState = V1DirectContactState.ACCEPTED, messages = messages)
         assertEquals(messages, state.visibleMessages)
         assertFalse(state.effectiveLocationSharing)
-        assertTrue(state.copy(locationSharingEnabled = true).effectiveLocationSharing)
+        assertFalse(state.copy(locationOptedIn = true, locationSharingEnabled = true).effectiveLocationSharing)
+        assertTrue(state.copy(phoneLocationState = PhoneLocationState.SHARING).effectiveLocationSharing)
+    }
+
+    @Test fun invitationOptInsStartOffAndRequireTheCurrentInviteForShareBack() {
+        assertFalse(V1PeopleUiAction.RequestChat("peer", "Hello").shareWhenAccepted)
+        assertFalse(V1PeopleUiAction.Accept("peer").shareBack)
+        val outgoing = V1PeopleScreenState(canSubmit = true, locationConsentAvailable = true)
+        assertTrue(outgoing.mayChooseInvitationLocation)
+        val incoming = outgoing.copy(contactState = V1DirectContactState.INCOMING_REQUEST_PENDING)
+        assertFalse(incoming.mayChooseInvitationLocation)
+        val invitation = requireNotNull(V1ChatRequestToken.create(ByteArray(16) { 1 }))
+        assertTrue(incoming.copy(incomingInvitation = invitation).mayChooseInvitationLocation)
+        assertFalse(incoming.copy(incomingInvitation = invitation, canSubmit = false).mayChooseInvitationLocation)
     }
 
     @Test fun draftsAreBoundedAndRejectControls() {

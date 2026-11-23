@@ -391,7 +391,7 @@ and the privacy-safe public-name multiset on every live refresh:
 $env:OT_LOADER_LIVE_REFRESH_ACCEPTANCE = '1'
 $env:OT_LOADER_LIVE_EXPECTED_DEVICE_COUNT = '3'
 $env:OT_LOADER_LIVE_EXPECTED_DISPLAY_NAMES = 'Heltec V4 OLED|SenseCAP Solar|Wio Tracker L1'
-.\tools\Test-WindowsLoader.ps1
+.\tools\Test-WindowsLoader.ps1 -LiveDeviceInspection
 ```
 
 The display-name comparison is order-independent and duplicate-aware. It does

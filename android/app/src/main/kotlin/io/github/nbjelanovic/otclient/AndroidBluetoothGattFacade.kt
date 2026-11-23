@@ -1254,13 +1254,21 @@ class AndroidBluetoothGattFacade(
                 current.setCharacteristicNotification(characteristic, true) && writeIndicationDescriptor(current, descriptor)
             }
 
-        override fun writeCommandWithResponse(value: ByteArray): Boolean {
+        override val immediateCommandAvailable: Boolean
+            get() = onMainThread() && !leaseClosed && commandQueue.canWriteImmediately
+
+        override fun writeCommandWithResponse(value: ByteArray): Boolean = writeCommandWithResponse(value, allowQueue = true)
+
+        override fun writeImmediateCommandWithResponse(value: ByteArray): Boolean =
+            immediateCommandAvailable && writeCommandWithResponse(value, allowQueue = false)
+
+        private fun writeCommandWithResponse(value: ByteArray, allowQueue: Boolean): Boolean {
             if (value.isEmpty() || value.size > COMPANION_FRAGMENT_HEADER_BYTES + COMPANION_MAX_FRAGMENT_PAYLOAD_BYTES) {
                 return false
             }
             val accepted = beginGattOperation(AndroidBlePlatformOperation.WRITE_COMMAND, { true }) { current ->
                 val characteristic = command ?: return@beginGattOperation false
-                commandQueue.submit(value) { bytes ->
+                commandQueue.submit(value, allowQueue) { bytes ->
                     try {
                         writeCommand(current, characteristic, bytes)
                     } catch (_: SecurityException) {
