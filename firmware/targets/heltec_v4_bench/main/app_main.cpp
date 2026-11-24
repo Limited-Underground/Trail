@@ -34,6 +34,7 @@
 #include "lora_link_test.hpp"
 #include "board_pairing_runtime.hpp"
 #include "board_messaging_runtime.hpp"
+#include "board_group_join_runtime.hpp"
 #include "pairing_nvs_storage.hpp"
 #endif
 #if OPENTRAIL_LORA_F7_PHONE_TEST || OPENTRAIL_LORA_F6_PHONE_TEST
@@ -153,6 +154,9 @@ opentrail::target::heltec_v4_bench::BoardMessagingRuntime g_board_messaging{
     g_lora, g_board_pairing_random};
 // Same app task owns the one-entry queue and this exact pairing-copy tag.
 bool g_pairing_frame_queued = false;
+// F8 QR group join over LoRa (D-170 b: Link Test only), and its queued-copy tag.
+opentrail::target::heltec_v4_bench::BoardGroupJoinRuntime g_group_join{g_board_pairing_random};
+bool g_join_frame_queued = false;
 
 // Board tag for the link test: the low four bytes of the factory MAC.
 std::uint32_t lora_link_test_tag() {
@@ -168,6 +172,8 @@ std::uint32_t lora_link_test_tag() {
 bool lora_transmit_permitted(void*) {
     if (!link_test::transmit_allowed(
             opentrail::target::heltec_v4_bench::companion_configuration_region().selection_id)) return false;
+    // The queued frame is the join's own copy: the same region grant covers it.
+    if (g_join_frame_queued) return true;
     if (g_board_messaging.owns_radio()) return g_board_messaging.queued_launch_allowed(
         static_cast<std::uint64_t>(esp_timer_get_time() / 1000));
     if (!g_pairing_frame_queued) return true;
@@ -372,6 +378,7 @@ bool run_companion_codec_self_check() {
 
 [[noreturn]] void contain_runtime_failure(const char* site, unsigned code) {
 #if OPENTRAIL_LORA_LINK_TEST
+    g_group_join.close();
     g_board_messaging.close();
     g_board_pairing.close();
     g_lora.stop();
@@ -561,6 +568,7 @@ extern "C" void app_main() {
 #if OPENTRAIL_LORA_LINK_TEST
     link_test::Beaconer beaconer{lora_link_test_tag()};
     g_lora.set_transmit_permission(&lora_transmit_permitted, nullptr);
+    g_group_join.attach(&g_board_pairing, &g_board_messaging);
     const bool lora_started = g_lora.start();
     if (lora_started) {
         ESP_LOGI(kLogTag, "lora_link start ok tag=%08lx period_ms=%llu",
@@ -650,6 +658,7 @@ extern "C" void app_main() {
             // result reboots: verified intent resumes cleanup, uncertain
             // intent is reconciled, and known no-change restores old state.
 #if OPENTRAIL_LORA_LINK_TEST
+            g_group_join.close();
             g_board_messaging.close();
             g_board_pairing.close();
 #endif
@@ -727,7 +736,7 @@ extern "C" void app_main() {
                              static_cast<int>(got.metadata.rssi_dbm),
                              static_cast<int>(got.metadata.snr_db_quarter),
                              static_cast<unsigned long>(beaconer.heard_count()));
-                } else {
+                } else if (!g_group_join.on_receive(rx.data(), got.received_bytes, elapsed_ms)) {
                     if (g_board_messaging.owns_radio()) {
                         g_board_messaging.on_receive(rx.data(), got.received_bytes, elapsed_ms);
                     } else {
@@ -751,7 +760,10 @@ extern "C" void app_main() {
             const bool pairing_dropped = g_pairing_frame_queued &&
                 g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
             if (pairing_dropped) g_board_pairing.unsent();
-            if (g_lora.status().transmit_queue_depth == 0) g_pairing_frame_queued = false;
+            if (g_lora.status().transmit_queue_depth == 0) {
+                g_pairing_frame_queued = false;
+                g_join_frame_queued = false;
+            }
             if (pairing_size != 0) {
                 // A drop changes the send count. Recompute any offer on the
                 // next poll so its first-send or retry floor is checked again.
@@ -764,7 +776,24 @@ extern "C" void app_main() {
                          static_cast<unsigned>(pairing_size),
                          static_cast<unsigned>(accepted));
             }
-            if (pairing_size == 0 && tx_allowed && !g_board_pairing.active() && !g_board_messaging.owns_radio()) {
+            // The QR group join sends only into an empty queue, never during
+            // first pairing (which also holds the board identity).
+            g_group_join.service(elapsed_ms);
+            if (pairing_size == 0 && tx_allowed && !g_board_pairing.active() && !g_pairing_frame_queued &&
+                g_lora.status().transmit_queue_depth == 0 &&
+                g_lora.status().state != opentrail::radio::RadioState::transmitting) {
+                opentrail::identity::roster::qr::RadioFrame join_frame{};
+                if (g_group_join.next(join_frame)) {
+                    const bool accepted =
+                        g_lora.send({join_frame.bytes.data(), join_frame.size}, elapsed_ms).accepted();
+                    g_group_join.sent(accepted);
+                    if (accepted) g_join_frame_queued = true;
+                    ESP_LOGI(kLogTag, "group_join tx bytes=%u accepted=%u",
+                             static_cast<unsigned>(join_frame.size), static_cast<unsigned>(accepted));
+                }
+            }
+            if (pairing_size == 0 && tx_allowed && !g_board_pairing.active() && !g_board_messaging.owns_radio() &&
+                !g_group_join.active() && !g_join_frame_queued) {
                 link_test::Beacon outgoing{};
                 if (beaconer.due(elapsed_ms, outgoing)) {
                     const auto frame = link_test::encode(outgoing);
@@ -777,6 +806,7 @@ extern "C" void app_main() {
                 }
             }
         } else if (!lora_fault_logged) {
+            g_group_join.close();
             g_board_messaging.close();
             g_board_pairing.radio_lost();
             ESP_LOGE(kLogTag, "lora_link stopped state=%u error=%u",

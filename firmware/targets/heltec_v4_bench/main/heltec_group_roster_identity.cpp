@@ -127,6 +127,29 @@ bool sign_descriptor_with_enrollment_identity(const security_evaluation::Enrollm
            identity.sign(canonical.bytes.data(), canonical.size, output);
 }
 
+bool sign_qr_join_frame_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
+                                                 const std::uint8_t* bytes, std::size_t size,
+                                                 group_roster::Signature& output) {
+    return group_roster::qr::frame_signing_input(bytes, size) && identity.sign(bytes, size, output);
+}
+
+bool use_group_join_static_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
+                                                    GroupJoinStaticUse use, void* context) {
+    return use != nullptr &&
+           identity.with_group_join_static([&](const std::array<std::uint8_t, 32>& x25519) {
+               return use(context, x25519);
+           });
+}
+
+HeltecQrJoinSigner::HeltecQrJoinSigner(Source source) : source_(source) {
+    ready_ = source_.read && source_.sign_frame && source_.read(source_.context, key_);
+}
+
+bool HeltecQrJoinSigner::sign(const std::uint8_t* bytes, std::size_t size, group_roster::Signature& output) const {
+    return ready_ && group_roster::qr::frame_signing_input(bytes, size) &&
+           source_.sign_frame(source_.context, bytes, size, output);
+}
+
 bool sign_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
                                    const group_roster::Roster& roster, group_roster::Signature& output) {
     if (roster.version != 1 || group_roster::validate(roster) != group_roster::FormatError::none) return false;

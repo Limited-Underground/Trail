@@ -44,6 +44,30 @@ bool HeltecEnrollmentIdentityOwner::sign_invite_descriptor(const identity::roste
     return signed_descriptor;
 }
 
+bool HeltecEnrollmentIdentityOwner::sign_qr_join_frame(const std::uint8_t* bytes, std::size_t size,
+                                                       identity::roster::Signature& output) {
+    if (state_ != State::ready) return false;
+    const bool signed_frame =
+        target::heltec_v4_bench::sign_qr_join_frame_with_enrollment_identity(identity_, bytes, size, output);
+    if (identity_.failed()) {
+        storage_.retire_cache();
+        state_ = State::fault;
+    }
+    return signed_frame;
+}
+
+bool HeltecEnrollmentIdentityOwner::use_group_join_static(
+    bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context) {
+    if (state_ != State::ready) return false;
+    const bool used =
+        target::heltec_v4_bench::use_group_join_static_with_enrollment_identity(identity_, use, context);
+    if (identity_.failed()) {
+        storage_.retire_cache();
+        state_ = State::fault;
+    }
+    return used;
+}
+
 namespace {
 HeltecEnrollmentIdentityOwner* owner = nullptr;
 bool retired = false;
@@ -99,6 +123,18 @@ bool sign_retained_invite_descriptor(const identity::roster::qr::Descriptor& des
                                      identity::roster::Signature& output) {
     return with_retained_identity([&](auto& identity_owner) {
         return identity_owner.sign_invite_descriptor(descriptor, output);
+    });
+}
+
+bool sign_retained_qr_join_frame(const std::uint8_t* bytes, std::size_t size, identity::roster::Signature& output) {
+    return with_retained_identity([&](auto& identity_owner) {
+        return identity_owner.sign_qr_join_frame(bytes, size, output);
+    });
+}
+
+bool use_retained_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context) {
+    return with_retained_identity([&](auto& identity_owner) {
+        return identity_owner.use_group_join_static(use, context);
     });
 }
 }

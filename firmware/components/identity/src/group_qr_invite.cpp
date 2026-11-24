@@ -390,6 +390,21 @@ LocalInvites IssuedInvites::view() const {
     return result;
 }
 
+bool frame_signing_input(const std::uint8_t* bytes, std::size_t size) {
+    if (bytes == nullptr) return false;
+    for (std::uint8_t raw = 1; raw <= static_cast<std::uint8_t>(Kind::recovery_aborted); ++raw) {
+        const auto kind = static_cast<Kind>(raw);
+        const auto label = domain(kind);
+        const auto body = size_of(kind) - kSignatureBytes;
+        if (label.empty() || size != label.size() + body ||
+            !std::equal(label.begin(), label.end(), reinterpret_cast<const char*>(bytes))) continue;
+        const auto* frame = bytes + label.size();
+        return std::equal(kRadioMagic.begin(), kRadioMagic.end(), frame) && frame[4] == kVersion &&
+               frame[5] == raw && valid(static_cast<Side>(frame[6])) && frame[7] == 0;
+    }
+    return false;
+}
+
 bool public_manifest(const PublicState& value, const Digest& scope, const RosterCrypto& crypto, Digest& out) {
     if (!value.group || !value.roster_version || !value.epoch || !nonzero(scope) || !nonzero(value.invite_id) ||
         !nonzero(value.joiner) || !nonzero(value.admin) || value.joiner == value.admin ||

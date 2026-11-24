@@ -13,6 +13,7 @@
 #include <limits>
 
 namespace opentrail::identity::roster { struct Roster; }
+namespace opentrail::identity::roster::qr { struct Descriptor; }
 
 namespace opentrail::security_evaluation {
 class F5RekeySession final {
@@ -192,6 +193,12 @@ public:
     // signing is available, independent of the short-lived RF traffic lease.
     bool read_group_roster_key(InvitationKey&);
     bool sign_initial_group_roster(const identity::roster::Roster&, std::array<std::uint8_t, 64>&);
+    // F8 Invite while this session holds the identity (I-101): one exact
+    // canonical descriptor with this board as admin.
+    bool sign_invite_descriptor(const identity::roster::qr::Descriptor&, std::array<std::uint8_t, 64>&);
+    // F8 QR join over the radio: QR session frames only, and the D-172 static.
+    bool sign_qr_join_frame(const std::uint8_t*, std::size_t, std::array<std::uint8_t, 64>&);
+    bool use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context);
 private:
     struct Candidate {
         bool present{};unsigned phase{},initiating_member{};std::uint32_t target{};std::uint64_t allocation{},deadline{};

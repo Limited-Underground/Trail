@@ -95,6 +95,8 @@ def main():
                 'tests/host/group_qr_join_conversation_tests.cpp' if join else
                 'tests/host/group_qr_invite_tests.cpp') if qr else
                ('tests/host/f5_rekey_status_tests.cpp','firmware/components/protocol/src/quick_status_codec.cpp'))
+    if join:
+        sources = sources + ('firmware/components/persistence/src/group_qr_receipts.cpp',)
     if qr:
         command = list(c_template)
         command[command.index('-c')+1] = str(source/'libsodium/src/libsodium/crypto_core/ed25519/core_ed25519.c')

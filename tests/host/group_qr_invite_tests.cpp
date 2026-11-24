@@ -88,6 +88,9 @@ public:
     }
 };
 
+// Every signing input the test signers see, in order.
+std::vector<std::vector<std::uint8_t>> g_signed;
+
 class Signer final : public r::RosterSigner {
 public:
     explicit Signer(std::uint8_t tag) {
@@ -100,6 +103,7 @@ public:
     }
     const r::PublicKey& public_key() const override { return key_; }
     bool sign(const std::uint8_t* p, std::size_t n, r::Signature& sig) const override {
+        g_signed.emplace_back(p, p + n);
 #ifdef OPENTRAIL_QR_REAL_CRYPTO
         return crypto_sign_detached(sig.data(), nullptr, p, n, secret_.data()) == 0;
 #else
@@ -752,7 +756,45 @@ void cuts_retain_only_exact_authority() {
 
 }  // namespace
 
+// The radio join's board signer accepts exactly the QR frame inputs.
+void frame_signing_inputs_only() {
+    g_signed.clear();
+    Pair pair;
+    // The fixture signs the roster and the invite, then the Start and Reply.
+    const std::size_t setup = 2;
+    CHECK(g_signed.size() == setup + 2);
+    for (std::size_t i = 0; i < setup; ++i)
+        CHECK(!qr::frame_signing_input(g_signed[i].data(), g_signed[i].size()));
+    pair.through_commit();
+    CHECK(g_signed.size() > setup + 8);
+    for (std::size_t i = setup; i < g_signed.size(); ++i) {
+        const auto& input = g_signed[i];
+        CHECK(qr::frame_signing_input(input.data(), input.size()));
+        auto shorter = input;
+        shorter.pop_back();
+        CHECK(!qr::frame_signing_input(shorter.data(), shorter.size()));
+        auto longer = input;
+        longer.push_back(0);
+        CHECK(!qr::frame_signing_input(longer.data(), longer.size()));
+        for (std::size_t at : {std::size_t{0}, input.size() - 1}) {
+            auto changed = input;
+            changed[at] ^= 1;
+            CHECK(at != 0 || !qr::frame_signing_input(changed.data(), changed.size()));
+        }
+    }
+    // A frame header with the wrong kind, side or reserved byte is refused.
+    const auto& start = g_signed[setup];
+    const std::size_t label = std::string_view("OpenTrail QR PairStart v1").size();
+    for (std::size_t offset : {label + 4, label + 5, label + 6, label + 7}) {
+        auto changed = start;
+        changed[offset] ^= 0x40;
+        CHECK(!qr::frame_signing_input(changed.data(), changed.size()));
+    }
+    CHECK(!qr::frame_signing_input(nullptr, 10));
+}
+
 int main() {
+    frame_signing_inputs_only();
     layouts();
     strict_frames_and_scope();
     matching_only_locally_issued_live_ticket();
@@ -762,8 +804,8 @@ int main() {
     qr_successor_through_durable_roster();
     cuts_retain_only_exact_authority();
 #ifdef OPENTRAIL_QR_REAL_CRYPTO
-    std::cout << "PASS 8 QR invitation contract groups (pinned Ed25519/SHA-256)\n";
+    std::cout << "PASS 9 QR invitation contract groups (pinned Ed25519/SHA-256)\n";
 #else
-    std::cout << "PASS 8 QR invitation contract groups (deterministic crypto seam)\n";
+    std::cout << "PASS 9 QR invitation contract groups (deterministic crypto seam)\n";
 #endif
 }

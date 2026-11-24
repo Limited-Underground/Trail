@@ -92,6 +92,23 @@ public:
         if(ok) output=candidate;
         return ok;
     }
+    // D-172: the X25519 static for the QR group join's Noise XK, derived from
+    // this identity with libsodium's standard conversion. Only `use` sees it,
+    // for this one call, and it is wiped afterwards. A refusal by `use` is
+    // not an identity fault.
+    template<class F> bool with_group_join_static(F use) const {
+        bool used=false;
+        const bool ok=operation([&] {
+            if (!ready_ || !exact()) return refuse();
+            Secret<64> secret; Secret<32> x25519; InvitationKey key{};
+            if (crypto_sign_seed_keypair(key.data(),secret.bytes.data(),retained_[2].data()+8)!=0 ||
+                crypto_sign_ed25519_sk_to_curve25519(x25519.bytes.data(),secret.bytes.data())!=0 || !exact())
+                return refuse();
+            used=use(static_cast<const std::array<std::uint8_t,32>&>(x25519.bytes));
+            return true;
+        });
+        return ok && used;
+    }
     bool failed() const { return failed_; }
 private:
     template<std::size_t N> struct Secret { std::array<std::uint8_t,N> bytes{}; ~Secret(){sodium_memzero(bytes.data(),N);} };

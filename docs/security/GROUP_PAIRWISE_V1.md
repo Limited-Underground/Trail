@@ -779,6 +779,41 @@ tampered Noise, the deadline and cancel, and replay after use. The board
 wiring (Link Test radio loop, identity sharing with pairing and messaging, the
 board `qr::Authority` with `GroupQrReceipts`) is the next step.
 
+### QR join on the board (F8 step 2c, Link Test)
+
+Under D-170 (b) the join runs only in Link Test builds
+(`board_group_join_runtime.cpp`). One app-task owner:
+
+- **Starting:** the joiner board opens a join from the group owner's live
+  pending join, once per invite ID. The admin board listens for a Start while
+  it has a live issued invite. Nothing runs while first pairing holds the
+  board identity.
+- **Board authority** (`group_qr_join_board_authority.hpp`):
+  - the admin answers only an invite it issued on this boot that is still
+    live, for a joiner other than itself;
+  - the joiner continues only its own live pending join, matched field by
+    field;
+  - both use pair epoch 1, because a QR join always makes a new group pair;
+  - decisions go to the durable QR receipts, and a failed write reopens the
+    record.
+- **Identity:** the board signs only exact QR session frame inputs
+  (`qr::frame_signing_input`), never a descriptor, a roster or anything else.
+  Its X25519 static (D-172) is derived and used only inside the identity
+  owner's call. The same two paths exist on the retained identity and on the
+  messaging runtime's live copy, so a paired Link Test board can join. Invite
+  signing gained the messaging path too (I-101).
+- **Storage:** `ot_group_qrr` (1,404 B, 47 entries) is part of the board
+  storage inventory in every build, so an ordinary build accepts what a Link
+  Test build wrote. It sits inside the D-163 receipt reserve, so the modeled
+  total stays at 12,441 of 16,128.
+- **Radio:** join frames are routed to the join before pairing and messaging.
+  A join frame is sent only into an empty queue, never during first pairing,
+  and under the same US915 transmit grant. Beacons pause during a join. A
+  finished join answers the peer's repeats for 10 seconds.
+- **Not yet:** the board review on the OLED and button (step 2d). Until then
+  the review port refuses, so a join stops after the Noise handshake with
+  nothing kept. Pair activation and roster N+1 also follow in 2d.
+
 ## Implementation order
 
 1. Roster record, digest chain, signature domain and acceptance rules,

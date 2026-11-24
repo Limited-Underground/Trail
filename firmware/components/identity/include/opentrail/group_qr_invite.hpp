@@ -112,6 +112,10 @@ bool sign_reply(const RadioFrame& start, const Fresh&, const RosterCrypto&, cons
 bool verify_reply(const RadioFrame&, const PublicKey& admin, const RosterCrypto&, Reply&);
 bool verify_receipt(const RadioFrame&, const PublicKey& signer, const RosterCrypto&, Decision&);
 bool public_manifest(const PublicState&, const Digest& scope, const RosterCrypto&, Digest&);
+// True only for the exact signing input of a QR session frame: one of the
+// frame domains followed by that frame's unsigned bytes. Never a descriptor
+// or a roster. A board signer for the radio join signs nothing else.
+bool frame_signing_input(const std::uint8_t* bytes, std::size_t size);
 
 // Boot-scoped authorized issuer owned by the admin's trusted local port.
 // Its caller supplies a new, unique 128-bit ID from board entropy. The codec

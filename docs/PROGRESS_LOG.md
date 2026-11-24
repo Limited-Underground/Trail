@@ -1,5 +1,20 @@
 # OpenTrail Progress Log
 
+## 2026-11-24
+
+### OT-0306 Wire the QR group join to the Link Test radio
+
+In Link Test builds the joiner board now opens the QR join from its live
+pending join, and the admin board answers Starts for its live invites. The
+board signs only QR session frames and uses its derived Noise static only
+inside the identity owner, through the retained identity or the messaging
+runtime. A paired Link Test board can also issue invites now. The durable QR
+receipts have their own storage scope in every build, inside the D-163
+receipt reserve. Join frames go out only into an empty radio queue, never
+during first pairing. The board review comes next, so for now a join stops
+after the Noise handshake with nothing kept. Host suites, target admission
+and all three Heltec builds passed. Part of #148.
+
 ## 2026-11-23
 
 ### OT-0306 Run the QR group join exchange on the host
