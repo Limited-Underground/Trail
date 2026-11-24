@@ -2,6 +2,19 @@
 
 ## 2026-11-23
 
+### OT-0306 Run the QR group join exchange on the host
+
+One QR group join is now one ordered exchange of radio frames between the
+joiner and admin boards. It carries the signed QR session and the three Noise
+XK messages, each Noise message in a small envelope that names the QR scope.
+Every frame fits the 236-byte radio limit. Frames retry within the existing
+copy limits, and a repeated peer frame brings back the board's own frame of
+that step, so a lost frame does not stall the join. Approvals and durable
+receipts stay with the board. Nine pinned-libsodium host groups cover a clean
+join with mirrored pair keys, lost frames, waiting for approvals, strangers and
+other scopes, a substituted Reply, tampered Noise, the deadline, cancel and
+replay. The Link Test board wiring follows. Part of #148.
+
 ### OT-0306 Bind the QR group join to Noise XK on the host
 
 Owner decision D-170 binds the QR join to the existing Noise XK suite. The
