@@ -57,6 +57,18 @@ profile 5 group owner. A direct scope needs its live authority owner before
 it can participate. Over-the-air routing, radio qualification and device
 acceptance remain open. Part of #102 and #120.
 
+### OT-0310 Connect direct storage and protected text on the host
+
+The direct catalog assigns eight stable slots within the D-163 reservation.
+It keeps block records separate. Each scope uses its own F5 journals, and
+the 32 enrollment attempts share one bounded pool. End and Block revoke
+traffic before draining the packet borrowers and releasing the exact slot.
+
+The host composition checks bilateral consent and a fresh authenticated F5
+session, then uses the existing Packet-v1 text, ACK and replay paths. Its
+scope and packet claim are checked again at launch. The live radio and app
+routes remain open. Advances #100, #114 and #115.
+
 ### OT-0005i Qualify combined board storage (D-163)
 
 The Heltec adapter inventories the whole shared partition before granting
@@ -138,6 +150,26 @@ choice off by default and bind it to the exact live invitation. Old stored
 group rules are readable and their sharing flags require fresh consent.
 Binding the verified invitation and roster to the protected board owner
 remains open. Part of #119.
+
+### OT-0310 Gate authenticated MeshTrail direct pairing on consent
+
+Direct pairing uses a separate frame version and a signed purpose. The
+routing code selects an attempt. The F5 session verifies the peer and
+transcript before exposing the review and gates Prepared on consent for
+that exact transaction on each board. The live board connection is pending
+a D-155 storage budget for eight retained scopes alongside the group stores.
+
+### OT-0310 Add MeshTrail direct conversation consent owner
+
+The host composition reuses protected F5 request admission and requires
+verified peer review, local durable consent, peer commitment and a fresh F5
+session before traffic becomes eligible. A checked catalog keeps eight
+conversations and separate persistent blocks. End and Block fence launch and
+retire the exact F5 packet claim. The host tests exercise actual slot reuse
+through the Heltec NVS adapter with simulated NVS and pairing evidence.
+The live scoped F5 endpoint and app invite/composer remain open. Advances
+[#114](https://github.com/Limited-Underground/Trail/issues/114) and
+[#115](https://github.com/Limited-Underground/Trail/issues/115).
 
 ### OT-0086a Guard V1 tester builds (A11)
 

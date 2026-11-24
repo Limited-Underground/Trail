@@ -192,8 +192,90 @@ public:
             pairing_outer_deadline_ = deadline;
     }
     bool recoverable_pairing() const { return pairing_storage_ != nullptr; }
+    // Scope is the authenticated F5 transaction digest. The signed group
+    // field binds the direct purpose while the separate code only routes frames.
+    struct DirectPairingEvidence {
+        InvitationKey peer{}, scope{};
+        bool operator==(const DirectPairingEvidence& other) const {
+            return peer == other.peer && scope == other.scope;
+        }
+    };
+    static constexpr std::uint64_t kDirectPairingGroup = 0x4f542d4449523100ULL;  // OT-DIR1
+
+    bool start_direct_pairing(InvitationRole role, std::uint32_t code,
+                              std::optional<DirectPairingEvidence> retained = std::nullopt) {
+        if (attempted_ || busy_ || !pairing_storage_ || !request_owner_.pending()) return cancel();
+        const auto request = request_owner_.request();
+        const bool exact_role =
+            (role == InvitationRole::initiator &&
+             request.role == companion::CompanionEnrollmentRole::initiator) ||
+            (role == InvitationRole::responder &&
+             request.role == companion::CompanionEnrollmentRole::responder);
+        if (!exact_role || code == 0 || code != request.pairing_code) return cancel();
+
+        if (retained) {
+            direct_pairing_ = true;
+            return start_pairing_recovery(role, kDirectPairingGroup, &*retained);
+        }
+        PairingCompletionJournal probe(*pairing_storage_);
+        if (!probe.initialize()) return cancel();
+        const auto phase = probe.snapshot().phase;
+        if (phase != PairingCompletionPhase::none && phase != PairingCompletionPhase::aborted)
+            return cancel();
+        if (phase == PairingCompletionPhase::aborted) {
+            PairingCompletionRecord record{};
+            if (!probe.load(record) || record.group != kDirectPairingGroup) return cancel();
+        }
+        direct_pairing_ = true;
+        return start_pairing(role, kDirectPairingGroup);
+    }
+
+    // Only the coordinator reaches this after the authenticated controls.
+    bool prepare_direct_review() {
+        if (!direct_pairing_ || pairing_recovery_ || !completion_ || !endpoint_ || failed_ || busy_)
+            return false;
+        if (direct_review_ready_) return true;
+        direct_review_ready_ = operation([&] {
+            return endpoint_->pairing_confirmed() &&
+                completion_->snapshot().phase == PairingCompletionPhase::confirmed;
+        });
+        return direct_review_ready_;
+    }
+    std::optional<DirectPairingEvidence> direct_reviewed() const {
+        if (!direct_pairing_ || failed_ || busy_ || !completion_ ||
+            !(pairing_recovery_ ? recovery_proved_ : direct_review_ready_))
+            return std::nullopt;
+        const auto proof = completion_->snapshot();
+        if (proof.phase == PairingCompletionPhase::none || proof.phase == PairingCompletionPhase::aborted ||
+            proof.phase == PairingCompletionPhase::uncertain)
+            return std::nullopt;
+        return DirectPairingEvidence{proof.peer, proof.transaction};
+    }
+    bool direct_vote_committed() const {
+        return !failed_ && completion_ && completion_->locally_prepared() &&
+            completion_->snapshot().phase != PairingCompletionPhase::aborted &&
+            (pairing_recovery_ ? direct_pairing_ && recovery_proved_ : direct_vote_authorized_);
+    }
+    bool commit_direct_vote(const DirectPairingEvidence& evidence) {
+        const auto proof = direct_reviewed();
+        if (!proof || !(*proof == evidence)) return false;
+        if (direct_vote_committed()) return true;
+        if (pairing_recovery_) return false;
+        direct_vote_authorized_ = true;
+        PairingCompletionReceipt receipt{};
+        if (export_pairing_receipt(PairingCompletionKind::prepared, receipt)) return true;
+        direct_vote_authorized_ = false;
+        return false;
+    }
+    bool direct_peer_committed(const DirectPairingEvidence& evidence) const {
+        const auto proof = direct_reviewed();
+        return proof && *proof == evidence && pairing_finished_ &&
+            completion_->snapshot().phase == PairingCompletionPhase::peer_confirmed;
+    }
+
     // Read-only routing occurs before a start consumes the request or identity.
     bool start_pairing(InvitationRole role, std::uint64_t group) {
+        if ((group == kDirectPairingGroup) != direct_pairing_) return cancel();
         if (!pairing_storage_) return start(role, group);
         PairingCompletionJournal probe(*pairing_storage_);
         if (!probe.initialize()) return cancel();
@@ -228,7 +310,7 @@ public:
     }
 
     bool select_pairing_archive(const InvitationKey& transaction) {
-        if (!pairing_archive_ || busy_ || active_ || pairing_finished_ || failed_) return false;
+        if (direct_pairing_ || !pairing_archive_ || busy_ || active_ || pairing_finished_ || failed_) return false;
         // A routing miss is untrusted radio input, not a failed enrollment
         // operation. It must not consume or cancel the current owner request.
         std::optional<PairingCompletionArchiveEntry> selected;
@@ -286,6 +368,9 @@ public:
         });
     }
     bool export_pairing_receipt(PairingCompletionKind kind, PairingCompletionReceipt& out) {
+        if (direct_pairing_ && kind == PairingCompletionKind::prepared &&
+            (!direct_vote_authorized_ || !completion_ ||
+             completion_->snapshot().phase == PairingCompletionPhase::aborted)) return false;
         PairingCompletionReceipt staged{};
         const bool ok = operation([&] {
             if (!completion_ || !pairing_identity_current()) return false;
@@ -302,6 +387,7 @@ public:
         return ok;
     }
     bool receive_pairing_receipt(const PairingCompletionReceipt& input) {
+        if (direct_pairing_ && !direct_vote_committed()) return false;
         const auto candidate = input;
         return operation([&] {
             if (!completion_ || (pairing_recovery_ && !recovery_proved_)) return false;
@@ -330,13 +416,19 @@ public:
                                       endpoint_->finish_pairing(*completion_);
         });
         if (!ok || !request_owner_.cancel_exact(request_)) return cancel();
-        // Restored public proof never recreates a traffic endpoint or old keys.
-        active_ = !pairing_recovery_;
+        // Direct pairing and recovered public proof leave traffic to fresh F5 rekey.
+        active_ = !pairing_recovery_ && !direct_pairing_;
         pairing_finished_ = true;
         return true;
     }
     bool start_pairing_recovery(InvitationRole role, std::uint64_t group) {
-        if (attempted_ || busy_ || !pairing_storage_ || !request_owner_.pending()) return cancel();
+        return start_pairing_recovery(role, group, nullptr);
+    }
+private:
+    bool start_pairing_recovery(InvitationRole role, std::uint64_t group,
+                                const DirectPairingEvidence* retained) {
+        if ((group == kDirectPairingGroup) != direct_pairing_ || (retained != nullptr) != direct_pairing_ ||
+            attempted_ || busy_ || !pairing_storage_ || !request_owner_.pending()) return cancel();
         attempted_ = true;
         captured_ = true;
         request_ = request_owner_.request();
@@ -349,6 +441,9 @@ public:
             if (!completion_->initialize() || !completion_->load(record) || record.role != role ||
                 record.group != group || record.phase == PairingCompletionPhase::none ||
                 record.phase == PairingCompletionPhase::uncertain ||
+                (retained && (record.phase == PairingCompletionPhase::aborted ||
+                    !completion_->locally_prepared() ||
+                    !(DirectPairingEvidence{record.peer, record.transaction} == *retained))) ||
                 identity_.load_existing() != EnrollmentIdentityStore::LoadResult::ready ||
                 !identity_.public_key(local_key_)) return false;
             generation_ = record.generation;
@@ -366,6 +461,7 @@ public:
                    invitation_detail::nonzero(recovery_nonce_);
         });
     }
+public:
     bool export_pairing_challenge(std::array<std::uint8_t, 48>& output) {
         return operation([&] {
             PairingCompletionRecord record{};
@@ -399,6 +495,7 @@ public:
     bool export_pairing_recovery_response(std::array<std::uint8_t, 164>& output) {
         return operation([&] {
             if (!pairing_recovery_ || !recovery_peer_nonce_set_ || !pairing_identity_current()) return false;
+            if (direct_pairing_ && completion_->snapshot().phase == PairingCompletionPhase::aborted) return false;
             PairingCompletionReceipt receipt{};
             if (archive_mode_) {
                 if (!archive_entry_) return false;
@@ -519,7 +616,7 @@ private:
         request_=request_owner_.request();captured_=true;role_=role;group_=group;rekey_=retained;
         start_refusal_=StartRefusal::other;
         return operation([&] {
-            if (!clock_domain_ || !group_ ||
+            if (!clock_domain_ || !group_ || ((group_ == kDirectPairingGroup) != direct_pairing_) ||
                 (role_!=InvitationRole::initiator && role_!=InvitationRole::responder) ||
                 &identity_storage_==&journal_storage_ || &identity_storage_==&binding_storage_ ||
                 &journal_storage_==&binding_storage_ ||
@@ -789,6 +886,7 @@ public:
     }
     bool receive_control(const EvaluationRecord& input) {const auto in=input;return operation([&]{return trusted_ && endpoint_->receive_control(in);});}
     bool commit() {
+        if (direct_pairing_) return false;
         const bool ok=operation([&]{return trusted_ && !active_ && endpoint_->commit_membership();});
         if(!ok)return false;
         // No delegated operation between the final request check and detachment.
@@ -808,7 +906,7 @@ public:
         if(ok)out=staged;
         return ok;
     }
-    bool ready() {return operation([&]{return active_ && endpoint_->ready();});}
+    bool ready() {return !direct_pairing_ && operation([&]{return active_ && endpoint_->ready();});}
     // Trusted local control admission is upstream, separate from permission to
     // enroll. No radio/phone packet or Boolean grants this entrypoint authority.
     // Only this attempt's allocated generation may change retained membership.
@@ -1371,6 +1469,7 @@ private:
     std::optional<VerifiedIdentityBinding> recovery_binding_;
     std::array<std::uint8_t,16> recovery_nonce_{}, recovery_peer_nonce_{};
     bool pairing_recovery_{}, recovery_peer_nonce_set_{}, recovery_proved_{}, pairing_finished_{};
+    bool direct_pairing_{}, direct_review_ready_{}, direct_vote_authorized_{};
     std::uint64_t pairing_outer_deadline_{};
     companion::DeviceFactoryResetMarkerPort* containment_marker_{};std::uint64_t containment_receipt_{};
     bool containing_{},containment_reentered_{},containment_observing_{};
