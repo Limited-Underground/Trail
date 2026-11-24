@@ -116,8 +116,9 @@ signed QR invite and the joiner board verifies and claims it once. See
 QR join decisions are [retained durably on the host](PROGRESS_LOG.md#ot-0306-retain-qr-join-decisions-durably-on-the-host).
 The boards bind their key agreement to the QR session with Noise XK on the
 host ([OT-0306 Bind the QR group join to Noise XK on the host](PROGRESS_LOG.md#ot-0306-bind-the-qr-group-join-to-noise-xk-on-the-host)).
-The radio route, pair activation, and real phone and board acceptance remain
-open.
+The [join exchange runs on the host](PROGRESS_LOG.md#ot-0306-run-the-qr-group-join-exchange-on-the-host).
+The Link Test board wiring, pair activation, and real phone and board
+acceptance remain open.
 
 ## V1 tester build guards
 

@@ -733,6 +733,52 @@ receipt events follow. The broadcast and PIN route (D-169) is designed in
 [GROUP_BROADCAST_PIN_JOIN_V1.md](GROUP_BROADCAST_PIN_JOIN_V1.md) to reach the
 same pending join.
 
+### QR join exchange over the radio (F8 step 2c)
+
+One join is one ordered exchange between the joiner board and the admin board
+(`group_qr_join_conversation.hpp`):
+
+| Step | Joiner sends | Admin sends |
+|---|---|---|
+| 1 | Start (220 B), then Noise message 1 (88 B) | |
+| 2 | | Reply (184 B), then Noise message 2 (88 B) |
+| 3 | Noise message 3 (104 B) | |
+| 4 | Admission (104 B), after its fingerprint review | Admission, after its fingerprint review |
+| 5 | Confirmation (104 B), after its transcript review | Confirmation, after its transcript review |
+| 6 | Prepared receipt (168 B), durable first | Prepared receipt, durable first |
+| 7 | Committed receipt (168 B), durable first | Committed receipt, durable first |
+
+- **Frames:** QR frames keep their signed layout (`OTGJ`). Each Noise message
+  travels in its own envelope (`OTGN`, 40-byte header) that names the QR
+  scope. A board ignores Noise messages for any other scope or from its own
+  role. Every frame fits the 236-byte radio limit.
+- **Order:** the joiner reads Noise message 2 only after it has verified the
+  Reply. The admin answers only a Start that matches one of its live invites
+  and passes the session checks; any other Start leaves it free for the right
+  one.
+- **Retries:** each QR frame follows `qr::Copies` (Start up to 70 copies 5 s
+  apart, the others 4 copies). Each accepted copy of the Start, the Reply and
+  the joiner's admission carries the board's Noise message after it. A frame
+  made in the same poll as the next one still goes out first. When a peer
+  repeats a frame from an earlier step, the board offers its own frame of that
+  step again.
+- **Endings:** a tampered Noise message for the live scope ends the join on
+  that board, with nothing durable; a new invite starts again. The 3-minute
+  invite deadline ends it on both boards. A cancel before the commit sends an
+  aborted receipt, and the peer records an aborted decision too. The pair keys
+  are given out once, only after both receipts commit.
+- **Trusted ports:** approvals, the durable receipts, the clock, the current
+  roster and the issued invites stay with the board's `qr::Authority`. The
+  conversation adds only the Noise result. The board's static is used only
+  inside its identity port.
+
+Host suite `qr-join` (pinned libsodium, `tests/host/f5_rekey_status_ci.py`)
+covers a clean join, loss of the first copy of every frame, waiting for both
+approvals, the envelope, strangers and other scopes, a substituted Reply,
+tampered Noise, the deadline and cancel, and replay after use. The board
+wiring (Link Test radio loop, identity sharing with pairing and messaging, the
+board `qr::Authority` with `GroupQrReceipts`) is the next step.
+
 ## Implementation order
 
 1. Roster record, digest chain, signature domain and acceptance rules,

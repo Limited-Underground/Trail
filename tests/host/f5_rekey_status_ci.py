@@ -11,7 +11,7 @@ ROOT=Path(__file__).resolve().parents[2]
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--suite',choices=('f5-rekey','qr-invite','qr-noise'),default='f5-rekey')
+    parser.add_argument('--suite',choices=('f5-rekey','qr-invite','qr-noise','qr-join'),default='f5-rekey')
     parser.add_argument('--sodium-source',type=Path,required=True,help='Expanded exact espressif component (733 pinned files)')
     args=parser.parse_args()
     out=args.out.resolve()
@@ -84,13 +84,15 @@ def main():
         (out/'RESULT.json').write_text(json.dumps(record,indent=2)+'\n')
         print(stdout,end='')
         return
-    qr = args.suite == 'qr-invite'
+    qr = args.suite in ('qr-invite', 'qr-join')
+    join = args.suite == 'qr-join'
     sources = (('firmware/components/identity/src/group_roster.cpp',
                 'firmware/components/identity/src/group_qr_invite.cpp',
                 'firmware/components/identity/src/group_pair.cpp',
                 'firmware/components/identity/src/durable_group_roster.cpp',
                 'firmware/components/persistence/src/group_pair_index.cpp',
                 'firmware/components/persistence/src/configuration_store.cpp',
+                'tests/host/group_qr_join_conversation_tests.cpp' if join else
                 'tests/host/group_qr_invite_tests.cpp') if qr else
                ('tests/host/f5_rekey_status_tests.cpp','firmware/components/protocol/src/quick_status_codec.cpp'))
     if qr:
@@ -108,11 +110,18 @@ def main():
         command=list(map(expand,command));command[0]=str(compiler_dir/'g++.exe')
         if qr:
             command += ['-DOPENTRAIL_QR_REAL_CRYPTO=1','-I',str(ROOT/'firmware/components/identity/include')]
+        if join:
+            for include in (ROOT/'firmware/targets/heltec_v4_security_eval/main/noise_adapter',
+                            ROOT/'firmware/components/security_evaluation/include',
+                            ROOT/'firmware/components/security/include'):
+                command += ['-I', str(include)]
         run(command);objects.append(out/f'f5-{index}.o')
-    exe=out/('qr-invite.exe' if qr else 'f5-rekey-status.exe')
+    exe=out/('qr-join.exe' if join else 'qr-invite.exe' if qr else 'f5-rekey-status.exe')
     run([compiler_dir/'g++.exe','-Wl,--gc-sections',*objects,'-ladvapi32','-o',exe])
     stdout=run([exe])
-    marker = ' QR invitation contract groups (pinned Ed25519/SHA-256)' if qr else ' real retained F5 rekey/status groups'
+    marker = (' QR join conversation groups (pinned libsodium)' if join else
+              ' QR invitation contract groups (pinned Ed25519/SHA-256)' if qr else
+              ' real retained F5 rekey/status groups')
     if not stdout.startswith('PASS ') or marker not in stdout:
         raise RuntimeError('Missing expected host result')
     record={'result':'PASS','physical':False,'network':False,'stdout':stdout,'dependency_files':733,
