@@ -150,6 +150,8 @@ public:
     [[nodiscard]] Phase phase() const { return phase_; }
     [[nodiscard]] Side side() const { return side_; }
     [[nodiscard]] const identity::roster::Digest& scope() const { return scope_; }
+    // The join's original deadline (zero until the join starts).
+    [[nodiscard]] std::uint64_t deadline() const { return deadline_; }
 
     // Joiner only: the invite this board verified and claimed, the local
     // timing of that Join, and the authoritative pair epoch.

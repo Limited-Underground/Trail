@@ -155,7 +155,8 @@ opentrail::target::heltec_v4_bench::BoardMessagingRuntime g_board_messaging{
 // Same app task owns the one-entry queue and this exact pairing-copy tag.
 bool g_pairing_frame_queued = false;
 // F8 QR group join over LoRa (D-170 b: Link Test only), and its queued-copy tag.
-opentrail::target::heltec_v4_bench::BoardGroupJoinRuntime g_group_join{g_board_pairing_random};
+opentrail::target::heltec_v4_bench::BoardGroupJoinRuntime g_group_join{
+    g_factory_reset_input, g_board_pairing_random};
 bool g_join_frame_queued = false;
 
 // Board tag for the link test: the low four bytes of the factory MAC.
@@ -760,6 +761,11 @@ extern "C" void app_main() {
             const bool pairing_dropped = g_pairing_frame_queued &&
                 g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
             if (pairing_dropped) g_board_pairing.unsent();
+            // I-112: a join copy dropped before launch is offered again.
+            const bool join_dropped = g_join_frame_queued &&
+                g_lora.counters().tx_prelaunch_dropped != before.tx_prelaunch_dropped;
+            if (join_dropped) g_group_join.unsent();
+            else if (g_join_frame_queued && g_lora.status().transmit_queue_depth == 0) g_group_join.launched();
             if (g_lora.status().transmit_queue_depth == 0) {
                 g_pairing_frame_queued = false;
                 g_join_frame_queued = false;

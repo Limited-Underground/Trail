@@ -11,6 +11,8 @@
 #include "opentrail/companion_group_owner.hpp"
 #include "opentrail/group_qr_join_board_authority.hpp"
 #include "opentrail/group_qr_join_conversation.hpp"
+#include "opentrail/group_qr_join_review.hpp"
+#include "opentrail/enrollment_session_review_device_port.hpp"
 #include "opentrail/group_qr_receipts.hpp"
 #include "pairing_nvs_storage.hpp"
 
@@ -52,8 +54,15 @@ const char* phase_name(Phase phase) {
 }  // namespace
 
 struct BoardGroupJoinRuntime::Parts final : security_evaluation::GroupQrJoinBoardState,
-                                            security_evaluation::GroupQrJoinIdentity {
+                                            security_evaluation::GroupQrJoinIdentity,
+                                            security_evaluation::GroupQrJoinReviewPorts {
     explicit Parts(BoardGroupJoinRuntime& runtime) : owner(runtime) {}
+
+    // GroupQrJoinReviewPorts: a fresh one-shot port on the board's single
+    // display and button owner for each review.
+    using Device = security_evaluation::EnrollmentSessionReviewDevicePort<HeltecEnrollmentInputArbiter>;
+    security_evaluation::EnrollmentSessionDevicePort* open() override { return &device.emplace(owner.input_); }
+    void close() override { device.reset(); }
 
     // GroupQrJoinBoardState
     std::uint64_t now() const override { return owner.now_; }
@@ -66,15 +75,11 @@ struct BoardGroupJoinRuntime::Parts final : security_evaluation::GroupQrJoinBoar
         const auto* pending = group ? group->pending_join(owner.now_) : nullptr;
         return pending ? &pending->wire : nullptr;
     }
-    bool approve(qr::Review review, qr::Side, const qr::Descriptor&, const roster::PublicKey&,
-                 const roster::Digest&) const override {
-        // Step 2d adds the board review on the OLED and button.
-        if (!review_logged) {
-            ESP_LOGW(kTag, "review=%s not available yet; join stops here",
-                     review == qr::Review::fingerprints ? "fingerprints" : "transcript");
-            review_logged = true;
-        }
-        return false;
+    bool approve(qr::Review review, qr::Side side, const qr::Descriptor& d, const roster::PublicKey& peer,
+                 const roster::Digest& value) const override {
+        // Answers only from the review this board showed; poll() shows it.
+        if (!desk || !signer || !conversation) return false;
+        return desk->approve({review, side, signer->public_key(), peer, value, d.group, conversation->deadline()});
     }
 
     // GroupQrJoinIdentity: Noise begins inside the identity owner's call.
@@ -127,7 +132,8 @@ struct BoardGroupJoinRuntime::Parts final : security_evaluation::GroupQrJoinBoar
     std::optional<GroupQrJoinBoardAuthority> admin_authority, joiner_authority;
     std::optional<GroupQrJoinConversation> conversation;
     roster::BootToken boot{};
-    mutable bool review_logged{false};
+    std::optional<Device> device;
+    mutable std::optional<security_evaluation::GroupQrJoinReviewDesk> desk;
 };
 
 std::optional<BoardGroupJoinRuntime::Parts>& BoardGroupJoinRuntime::parts_storage() {
@@ -136,7 +142,8 @@ std::optional<BoardGroupJoinRuntime::Parts>& BoardGroupJoinRuntime::parts_storag
     return parts;
 }
 
-BoardGroupJoinRuntime::BoardGroupJoinRuntime(security::SecureRandomSource& random) : random_(random) {}
+BoardGroupJoinRuntime::BoardGroupJoinRuntime(HeltecEnrollmentInputArbiter& input, security::SecureRandomSource& random)
+    : input_(input), random_(random) {}
 
 BoardGroupJoinRuntime::~BoardGroupJoinRuntime() { close(); }
 
@@ -167,6 +174,7 @@ bool BoardGroupJoinRuntime::prepare() {
         storage.reset();
         return false;
     }
+    parts.desk.emplace(parts, parts.boot);
     parts.admin_authority.emplace(qr::Side::admin, signer.public_key(), parts.crypto, parts, receipts);
     parts.joiner_authority.emplace(qr::Side::joiner, signer.public_key(), parts.crypto, parts, receipts);
     parts_ = &parts;
@@ -199,6 +207,13 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
     auto& parts = *parts_;
     if (parts.conversation) {
         auto& conversation = *parts.conversation;
+        // The board review runs between session operations, never inside one.
+        parts.desk->poll();
+        if (parts.desk->refused()) {
+            ESP_LOGI(kTag, "review refused or ended; cancelling the join");
+            parts.desk->reset();
+            conversation.cancel();
+        }
         const auto before = conversation.phase();
         conversation.service();
         const auto phase = conversation.phase();
@@ -216,9 +231,12 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
         }
         const bool idle_admin = phase == Phase::idle &&
             (!live_invite(group->issued_invites(), now_ms) || group->pending_join(now_ms) != nullptr);
+        if (finished) parts.desk->reset();
         if ((linger_until_ != 0 && now_ms >= linger_until_) || idle_admin) {
+            parts.desk->reset();
             parts.conversation.reset();
             linger_until_ = 0;
+            awaiting_launch_ = false;
         }
         return;
     }
@@ -240,11 +258,26 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
 }
 
 bool BoardGroupJoinRuntime::next(qr::RadioFrame& out) {
-    return !closed_ && parts_ && parts_->conversation && parts_->conversation->next(out);
+    return !closed_ && !awaiting_launch_ && parts_ && parts_->conversation && parts_->conversation->next(out);
 }
 
 void BoardGroupJoinRuntime::sent(bool accepted) {
-    if (parts_ && parts_->conversation) parts_->conversation->sent(accepted);
+    if (!parts_ || !parts_->conversation) return;
+    if (accepted) { awaiting_launch_ = true; return; }
+    parts_->conversation->sent(false);
+}
+
+void BoardGroupJoinRuntime::launched() {
+    if (!awaiting_launch_) return;
+    awaiting_launch_ = false;
+    if (parts_ && parts_->conversation) parts_->conversation->sent(true);
+}
+
+void BoardGroupJoinRuntime::unsent() {
+    if (!awaiting_launch_) return;
+    awaiting_launch_ = false;
+    ESP_LOGI(kTag, "frame dropped before launch; offered again");
+    if (parts_ && parts_->conversation) parts_->conversation->sent(false);
 }
 
 bool BoardGroupJoinRuntime::active() const {
@@ -253,7 +286,9 @@ bool BoardGroupJoinRuntime::active() const {
 
 void BoardGroupJoinRuntime::close() {
     closed_ = true;
+    awaiting_launch_ = false;
     if (!parts_) return;
+    if (parts_->desk) parts_->desk->reset();
     parts_->conversation.reset();
     parts_->storage.retire();
     parts_storage().reset();

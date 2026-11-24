@@ -810,9 +810,29 @@ Under D-170 (b) the join runs only in Link Test builds
   A join frame is sent only into an empty queue, never during first pairing,
   and under the same US915 transmit grant. Beacons pause during a join. A
   finished join answers the peer's repeats for 10 seconds.
-- **Not yet:** the board review on the OLED and button (step 2d). Until then
-  the review port refuses, so a join stops after the Noise handshake with
-  nothing kept. Pair activation and roster N+1 also follow in 2d.
+- **Board review (step 2d):** each board reviews the join on its own screen
+  and button, with the same screens and gesture first pairing uses
+  (`group_qr_join_review.hpp`). The admin board is the INVITER, the joiner
+  board the MEMBER.
+  1. Before signing its admission, the board shows its own ID ("MY ID"), then
+     the other board's ID ("PEER ID"), each as the full 64-digit key.
+  2. Before signing its confirmation, it shows an 8-digit code from the join
+     transcript ("COMPARE CODE"). Both boards show the same code unless
+     someone is in the middle.
+  - The person holds the button 1 to 3 seconds on each page. A press that
+    started before the page appeared does not count.
+  - A hold over 3 seconds refuses the review and cancels the join (an aborted
+    receipt is sent). So does a changed display or context.
+  - The join's own deadline ends any open review.
+  - Approval covers only the exact review, side, peer and value shown. The
+    session's `approve()` only reads the shown review; the display is drawn
+    between session operations.
+- **Dropped copies (I-112):** a join copy counts as sent only once the radio
+  launches it. A copy dropped before launch is reported back and offered
+  again.
+- **Not yet:** roster N+1 on the admin board and pair activation from the
+  committed receipt. Pair activation needs a decision on where the pair's
+  keys are kept.
 
 ## Implementation order
 

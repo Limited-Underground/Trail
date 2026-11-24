@@ -2,6 +2,8 @@
 // Real libsodium (pinned 1.0.22) through tests/host/f5_rekey_status_ci.py --suite qr-join.
 #include "opentrail/group_qr_join_board_authority.hpp"
 #include "opentrail/group_qr_join_conversation.hpp"
+#include "opentrail/group_qr_join_review.hpp"
+#include "opentrail/enrollment_review_layout.hpp"
 
 #include <sodium/crypto_core_ed25519.h>
 #include <sodium/crypto_hash_sha256.h>
@@ -22,6 +24,10 @@ namespace {
 using opentrail::security_evaluation::GroupQrJoinBoardAuthority;
 using opentrail::security_evaluation::GroupQrJoinBoardState;
 using opentrail::security_evaluation::GroupQrJoinConversation;
+using opentrail::security_evaluation::GroupQrJoinReview;
+using opentrail::security_evaluation::GroupQrJoinReviewDesk;
+using opentrail::security_evaluation::GroupQrJoinReviewPorts;
+namespace se = opentrail::security_evaluation;
 using opentrail::security_evaluation::GroupQrJoinIdentity;
 using opentrail::security_evaluation::GroupQrNoiseBinding;
 namespace join = opentrail::security_evaluation::qr_join;
@@ -524,16 +530,81 @@ private:
     std::vector<std::uint8_t> staged_;
 };
 
+// The trusted display and button owner, with a scripted person: after each
+// new page appears they wait 300 ms, then hold the button for `hold_ms`.
+class FakeReviewPort final : public se::EnrollmentSessionDevicePort {
+public:
+    explicit FakeReviewPort(const std::uint64_t& clock) : clock_(clock) {}
+    std::uint64_t hold_ms{1500};
+    bool person{true};
+    bool held_at_entry{false};
+    std::vector<se::FingerprintReviewFrame> frames;
+    unsigned binds{}, releases{};
+    se::FingerprintReviewContext bound{};
+    bool bind_context(const se::FingerprintReviewContext& c) override {
+        if (bound.generation) return false;
+        bound = c;
+        ++binds;
+        revision_ = 0;
+        return true;
+    }
+    bool release_context(const se::FingerprintReviewContext& c) override {
+        if (!(c == bound)) return false;
+        bound = {};
+        ++releases;
+        return true;
+    }
+    se::FingerprintReviewSample sample() override {
+        return {bound, clock_, revision_, down()};
+    }
+    bool show(const se::FingerprintReviewFrame& frame) override {
+        se::EnrollmentReviewLayout layout{};
+        CHECK(se::enrollment_review_layout(frame, layout) && se::enrollment_review_cells_valid(layout));
+        frames.push_back(frame);
+        revision_ = frame.revision;
+        shown_at_ = clock_;
+        return true;
+    }
+    std::string row(std::size_t frame, std::size_t r) const {
+        se::EnrollmentReviewLayout layout{};
+        CHECK(se::enrollment_review_layout(frames.at(frame), layout));
+        return std::string(layout.text[r].data());
+    }
+private:
+    bool down() const {
+        if (!bound.generation || revision_ == 0) return false;
+        if (held_at_entry && clock_ < shown_at_ + 1500) return true;  // long enough to count if it did
+        return person && clock_ >= shown_at_ + 300 && clock_ < shown_at_ + 300 + hold_ms;
+    }
+    const std::uint64_t& clock_;
+    std::uint64_t revision_{}, shown_at_{};
+};
+
+class FakePorts final : public GroupQrJoinReviewPorts {
+public:
+    explicit FakePorts(FakeReviewPort& port) : port_(port) {}
+    se::EnrollmentSessionDevicePort* open() override { ++opens; return &port_; }
+    void close() override { ++closes; }
+    unsigned opens{}, closes{};
+private:
+    FakeReviewPort& port_;
+};
+
 class BoardState final : public GroupQrJoinBoardState {
 public:
     explicit BoardState(const std::uint64_t& clock) : clock_(clock) {}
     std::uint64_t now() const override { return clock_; }
     qr::LocalInvites issued_invites() const override { return issuer.view(); }
     const qr::DescriptorBytes* pending_join() const override { return pending ? &*pending : nullptr; }
-    bool approve(qr::Review, Side, const qr::Descriptor&, const r::PublicKey&, const r::Digest&) const override {
+    bool approve(qr::Review review, Side side, const qr::Descriptor& d, const r::PublicKey& peer,
+                 const r::Digest& digest) const override {
         ++reviews;
+        if (desk) return desk->approve({review, side, local, peer, digest, d.group, deadline});
         return review_ok;
     }
+    GroupQrJoinReviewDesk* desk{nullptr};
+    r::PublicKey local{};
+    std::uint64_t deadline{};
     qr::IssuedInvites issuer{};
     std::optional<qr::DescriptorBytes> pending;
     bool review_ok{true};
@@ -658,6 +729,169 @@ void board_current_rules() {
     CHECK(!u.aa.current(u.issued, u.joiner.public_key(), 1));
 }
 
+// I-112: a copy the radio dropped before launch does not count; it is offered
+// again at once, and a launched copy waits for the copy spacing.
+void dropped_copy_is_offered_again() {
+    Link link;
+    CHECK(link.open());
+    qr::RadioFrame first{}, again{}, later{};
+    CHECK(link.joiner_side.next(first) && label(first) == static_cast<int>(Kind::start));
+    link.joiner_side.sent(false);
+    CHECK(link.joiner_side.next(again) && again.size == first.size &&
+          std::equal(first.bytes.begin(), first.bytes.begin() + first.size, again.bytes.begin()));
+    link.joiner_side.sent(true);
+    CHECK(link.joiner_side.next(later) && label(later) == 101);  // Noise 1 follows the launched Start
+    link.joiner_side.sent(true);
+    CHECK(!link.joiner_side.next(later));  // the next Start copy waits 5 s
+}
+
+void review_screens_and_gestures() {
+    std::uint64_t clock = 1000;
+    FakeReviewPort port{clock};
+    const auto local = bytes<32>(1), peer = bytes<32>(2);
+    const auto value = bytes<32>(3);
+    const se::FingerprintReviewContext context{bytes<16>(4), 1, 1};
+    const GroupQrJoinReview::Request fingerprints{qr::Review::fingerprints, Side::admin, local, peer, value, 0x55, 60000};
+    {
+        GroupQrJoinReview review{port, context, fingerprints};
+        CHECK(review.begin() && review.state() == GroupQrJoinReview::State::showing);
+        CHECK(port.frames.size() == 1 && !port.frames[0].peer_page);
+        CHECK(port.row(0, 0) == "MY ID         INVITER" && port.row(0, 7) == "SHOW PEER TO CONFIRM");
+        CHECK(std::string(port.frames[0].digits[0].data(), 16) == "0213243546576879");  // this board's key
+        for (int i = 0; i < 40 && port.frames.size() < 2; ++i) { clock += 100; review.poll(); }
+        CHECK(port.frames.size() == 2 && port.frames[1].peer_page);
+        CHECK(port.row(1, 0) == "PEER ID       INVITER" && port.row(1, 7) == "HOLD 1S THEN RELEASE");
+        CHECK(std::string(port.frames[1].digits[0].data(), 16) == "031425364758697A");  // the other board's key
+        CHECK(review.state() == GroupQrJoinReview::State::showing);
+        for (int i = 0; i < 40 && review.state() == GroupQrJoinReview::State::showing; ++i) { clock += 100; review.poll(); }
+        CHECK(review.state() == GroupQrJoinReview::State::approved && review.approves(fingerprints));
+        auto other = fingerprints;
+        other.value[0] ^= 1;
+        CHECK(!review.approves(other));
+        other = fingerprints;
+        other.side = Side::joiner;
+        CHECK(!review.approves(other));
+    }
+    CHECK(port.binds == 1 && port.releases == 1);
+
+    // The transcript code: same 8 digits on both boards, MEMBER on the joiner.
+    port.frames.clear();
+    const GroupQrJoinReview::Request transcript{qr::Review::transcript, Side::joiner, peer, local, value, 0x55, 60000};
+    {
+        GroupQrJoinReview review{port, {bytes<16>(4), 2, 2}, transcript};
+        CHECK(review.begin() && port.frames.size() == 1);
+        CHECK(port.row(0, 0) == "COMPARE CODE   MEMBER" && port.row(0, 3) == "04152637");
+        CHECK(std::string(GroupQrJoinReview::code(value).data(), 8) == "04152637");
+        for (int i = 0; i < 40 && review.state() == GroupQrJoinReview::State::showing; ++i) { clock += 100; review.poll(); }
+        CHECK(review.approves(transcript));
+    }
+    // Too short a hold never approves; too long refuses.
+    for (const std::uint64_t hold : {500u, 4000u}) {
+        port.frames.clear();
+        port.hold_ms = hold;
+        GroupQrJoinReview review{port, {bytes<16>(4), 3 + hold, 2}, transcript};
+        CHECK(review.begin());
+        for (int i = 0; i < 80 && review.state() == GroupQrJoinReview::State::showing; ++i) { clock += 100; review.poll(); }
+        CHECK(!review.approves(transcript));
+        CHECK(review.state() == (hold > 3000 ? GroupQrJoinReview::State::refused : GroupQrJoinReview::State::showing));
+    }
+    port.hold_ms = 1500;
+    // A press held from before the page appeared does not count.
+    port.held_at_entry = true;
+    port.person = false;
+    {
+        GroupQrJoinReview review{port, {bytes<16>(4), 9, 2}, transcript};
+        CHECK(review.begin());
+        for (int i = 0; i < 30; ++i) { clock += 100; review.poll(); }
+        CHECK(review.state() == GroupQrJoinReview::State::showing);
+    }
+    port.held_at_entry = false;
+    port.person = true;
+    // The join's deadline ends the review.
+    {
+        auto late = transcript;
+        late.deadline_ms = clock + 500;
+        GroupQrJoinReview review{port, {bytes<16>(4), 10, 2}, late};
+        CHECK(review.begin());
+        for (int i = 0; i < 30; ++i) { clock += 100; review.poll(); }
+        CHECK(review.state() == GroupQrJoinReview::State::refused && !review.approves(late));
+    }
+    // Bad requests never bind the display.
+    const auto binds = port.binds;
+    auto bad = transcript;
+    bad.peer = bad.local;
+    GroupQrJoinReview refused{port, {bytes<16>(4), 11, 2}, bad};
+    CHECK(!refused.begin() && refused.state() == GroupQrJoinReview::State::refused && port.binds == binds);
+
+    // The desk asks once, answers only from the review shown, and moves on.
+    FakePorts ports{port};
+    GroupQrJoinReviewDesk desk{ports, bytes<16>(5)};
+    CHECK(!desk.approve(fingerprints) && ports.opens == 0);
+    desk.poll();
+    CHECK(ports.opens == 1 && desk.showing() && !desk.approve(fingerprints));
+    for (int i = 0; i < 80 && !desk.approve(fingerprints); ++i) { clock += 100; desk.poll(); }
+    CHECK(desk.approve(fingerprints) && !desk.approve(transcript));
+    desk.poll();
+    CHECK(ports.opens == 2 && ports.closes == 1);
+    for (int i = 0; i < 80 && !desk.approve(transcript); ++i) { clock += 100; desk.poll(); }
+    CHECK(desk.approve(transcript) && !desk.refused());
+    desk.reset();
+    CHECK(ports.closes == 2 && port.releases == port.binds);
+}
+
+void join_with_board_reviews() {
+    Boards b;
+    FakeReviewPort aport{b.clock}, jport{b.clock};
+    FakePorts aports{aport}, jports{jport};
+    GroupQrJoinReviewDesk adesk{aports, bytes<16>(21)}, jdesk{jports, bytes<16>(22)};
+    b.as.desk = &adesk;
+    b.js.desk = &jdesk;
+    b.as.local = b.admin.public_key();
+    b.js.local = b.joiner.public_key();
+    b.as.deadline = b.clock - 3000 + qr::kInviteMs;  // the admin issued the invite 3 s earlier
+    b.js.deadline = b.joiner_timing.invitation_issued + qr::kInviteMs;
+    CHECK(b.joiner_side.open(b.invite, b.joiner_timing, 1));
+    const auto end = b.clock + 200000;
+    while (b.clock < end && !(Boards::finished(b.admin_side) && Boards::finished(b.joiner_side))) {
+        adesk.poll();
+        jdesk.poll();
+        Boards::exchange(b.joiner_side, b.admin_side);
+        Boards::exchange(b.admin_side, b.joiner_side);
+        b.clock += 100;
+    }
+    CHECK(b.admin_side.phase() == Phase::committed && b.joiner_side.phase() == Phase::committed);
+    // Each board showed MY ID, PEER ID and the code; the codes match.
+    CHECK(aport.frames.size() == 3 && jport.frames.size() == 3);
+    CHECK(aport.row(0, 0) == "MY ID         INVITER" && jport.row(0, 0) == "MY ID          MEMBER");
+    CHECK(aport.frames[0].digits == jport.frames[1].digits && jport.frames[0].digits == aport.frames[1].digits);
+    CHECK(aport.row(2, 3) == jport.row(2, 3) && aport.row(2, 0) == "COMPARE CODE  INVITER");
+    CHECK(aport.frames[2].group == b.issued.group);
+
+    // A person who never confirms: no frame past the handshake, nothing kept.
+    Boards quiet;
+    FakeReviewPort qport{quiet.clock}, rport{quiet.clock};
+    qport.person = rport.person = false;
+    FakePorts qports{qport}, rports{rport};
+    GroupQrJoinReviewDesk qdesk{qports, bytes<16>(23)}, rdesk{rports, bytes<16>(24)};
+    quiet.as.desk = &qdesk;
+    quiet.js.desk = &rdesk;
+    quiet.as.local = quiet.admin.public_key();
+    quiet.js.local = quiet.joiner.public_key();
+    quiet.as.deadline = quiet.js.deadline = quiet.clock + qr::kInviteMs;
+    CHECK(quiet.joiner_side.open(quiet.invite, quiet.joiner_timing, 1));
+    const auto stop = quiet.clock + 200000;
+    while (quiet.clock < stop && !(Boards::finished(quiet.admin_side) && Boards::finished(quiet.joiner_side))) {
+        qdesk.poll();
+        rdesk.poll();
+        Boards::exchange(quiet.joiner_side, quiet.admin_side);
+        Boards::exchange(quiet.admin_side, quiet.joiner_side);
+        quiet.clock += 100;
+    }
+    CHECK(quiet.admin_side.phase() == Phase::failed && quiet.joiner_side.phase() == Phase::failed);
+    CHECK(qport.frames.size() == 1 && rport.frames.size() == 1);  // MY ID only
+    CHECK(!quiet.kept(quiet.akv, quiet.admin) && !quiet.kept(quiet.jkv, quiet.joiner));
+}
+
 void board_review_and_storage_failures() {
     // Until the board review exists (step 2d) the port refuses: nothing is
     // signed past the handshake and nothing becomes durable.
@@ -696,6 +930,9 @@ int main() {
     board_join_commits_durably();
     board_current_rules();
     board_review_and_storage_failures();
-    std::cout << "PASS 12 QR join conversation groups (pinned libsodium)\n";
+    dropped_copy_is_offered_again();
+    review_screens_and_gestures();
+    join_with_board_reviews();
+    std::cout << "PASS 15 QR join conversation groups (pinned libsodium)\n";
     return EXIT_SUCCESS;
 }
