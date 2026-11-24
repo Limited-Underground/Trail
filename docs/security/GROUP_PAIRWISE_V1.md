@@ -700,6 +700,32 @@ The storage guard counts the claim record as 19 entries plus its namespace
 (modeled total 12,441 of the 16,128 limit). A write the guard refuses leaves
 nothing claimed.
 
+### QR handshake binding (D-170)
+
+The two boards agree keys with the existing Noise XK suite
+(`Noise_XK_25519_ChaChaPoly_SHA256`, the libsodium adapter the first pairing
+uses), run directly between them and bound to the QR session
+(`group_qr_noise_binding.hpp`):
+
+- The joiner is the initiator. XK needs the responder's static key in
+  advance, and the joiner has the admin's key from the signed invite.
+- Statics are each board's Ed25519 identity converted to X25519 (libsodium).
+  The admin board checks that the static authenticated in message 3 is
+  exactly the joiner named in the signed Start.
+- Noise must use exactly the ephemerals the joiner signed in the Start and the
+  admin signed in the Reply. Otherwise the handshake produces no value.
+- The prologue is `OpenTrail QR Group Join Noise XK v1` followed by the QR
+  scope digest.
+- The value given to the QR session is SHA-256 over
+  `OpenTrail QR Noise XK Binding v1`, the admitted-origin digest and the Noise
+  handshake hash. It enters the transcript both boards confirm.
+- The Noise split keys become the pair keys, stored only after the receipts
+  commit.
+
+Messages are 48, 48 and 64 bytes, each in its own radio frame (Start plus
+message 1 would exceed the 236-byte cap). Under D-170 (b), these frames run
+only in the Link Test build until I-079 is settled.
+
 The pending join is the only input to the next step: the authenticated QR
 handshake over the radio and activation of the admin pair record from the
 durable receipt. That step, introduced pairs, member messaging and board
