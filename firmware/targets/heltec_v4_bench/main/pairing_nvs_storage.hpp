@@ -259,7 +259,8 @@ private:
 class GroupNvsStorage final : public persistence::PersistentKvBackend {
 public:
     // join: the joiner's durable invite claims (F8 live Join).
-    enum class Store { roster, catalog, join };
+    // qr_receipts: both boards' durable QR join decisions (F8 radio join).
+    enum class Store { roster, catalog, join, qr_receipts };
 
     explicit GroupNvsStorage(Store store) : store_(store) {}
     ~GroupNvsStorage() override;

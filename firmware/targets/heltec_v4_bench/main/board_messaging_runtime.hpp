@@ -31,6 +31,9 @@ public:
     bool owns_enrollment_identity() const { return identity_.has_value(); }
     bool read_group_roster_key(identity::roster::PublicKey&);
     bool sign_initial_group_roster(const identity::roster::Roster&, identity::roster::Signature&);
+    bool sign_invite_descriptor(const identity::roster::qr::Descriptor&, identity::roster::Signature&);
+    bool sign_qr_join_frame(const std::uint8_t*, std::size_t, identity::roster::Signature&);
+    bool use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context);
 
     using PhoneText = companion::PhoneTextTrial;
     bool observe_phone_text_pair(std::uint64_t now_ms, PhoneText::Pair&);

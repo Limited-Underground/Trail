@@ -22,6 +22,27 @@ bool F5RekeySession::sign_initial_group_roster(const identity::roster::Roster& r
     Guard guard(*this);
     return guard && source_ready_ && target::heltec_v4_bench::sign_with_enrollment_identity(identity_, roster, output);
 }
+
+bool F5RekeySession::sign_invite_descriptor(const identity::roster::qr::Descriptor& descriptor,
+                                            std::array<std::uint8_t, 64>& output) {
+    Guard guard(*this);
+    return guard && source_ready_ &&
+           target::heltec_v4_bench::sign_descriptor_with_enrollment_identity(identity_, descriptor, output);
+}
+
+bool F5RekeySession::sign_qr_join_frame(const std::uint8_t* bytes, std::size_t size,
+                                        std::array<std::uint8_t, 64>& output) {
+    Guard guard(*this);
+    return guard && source_ready_ &&
+           target::heltec_v4_bench::sign_qr_join_frame_with_enrollment_identity(identity_, bytes, size, output);
+}
+
+bool F5RekeySession::use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&),
+                                           void* context) {
+    Guard guard(*this);
+    return guard && source_ready_ &&
+           target::heltec_v4_bench::use_group_join_static_with_enrollment_identity(identity_, use, context);
+}
 }  // namespace opentrail::security_evaluation
 
 namespace opentrail::target::heltec_v4_bench {
@@ -57,6 +78,21 @@ bool BoardMessagingRuntime::read_group_roster_key(identity::roster::PublicKey& o
 bool BoardMessagingRuntime::sign_initial_group_roster(const identity::roster::Roster& roster,
                                                        identity::roster::Signature& output) {
     return identity_ && rekey_ && rekey_->sign_initial_group_roster(roster, output);
+}
+
+bool BoardMessagingRuntime::sign_invite_descriptor(const identity::roster::qr::Descriptor& descriptor,
+                                                   identity::roster::Signature& output) {
+    return identity_ && rekey_ && rekey_->sign_invite_descriptor(descriptor, output);
+}
+
+bool BoardMessagingRuntime::sign_qr_join_frame(const std::uint8_t* bytes, std::size_t size,
+                                               identity::roster::Signature& output) {
+    return identity_ && rekey_ && rekey_->sign_qr_join_frame(bytes, size, output);
+}
+
+bool BoardMessagingRuntime::use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&),
+                                                  void* context) {
+    return identity_ && rekey_ && rekey_->use_group_join_static(use, context);
 }
 
 std::uint64_t BoardMessagingRuntime::clock(void*) {

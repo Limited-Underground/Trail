@@ -28,7 +28,8 @@ if(OPENTRAIL_LORA_LINK_TEST)
     # supporting sources as the confirmation evaluation (never both; see below).
     set(OPENTRAIL_PAIRING_NOISE_ADAPTER "${CMAKE_CURRENT_LIST_DIR}/../../heltec_v4_security_eval/main/noise_adapter")
     list(APPEND OPENTRAIL_LORA_SOURCES "heltec_v4_lora.cpp" "${OPENTRAIL_RADIOLIB_HAL}/esp32_radiolib_hal.cpp"
-        "board_pairing_runtime.cpp" "board_messaging_runtime.cpp"
+        "board_pairing_runtime.cpp" "board_messaging_runtime.cpp" "board_group_join_runtime.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_qr_receipts.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_conversation_owner.cpp"

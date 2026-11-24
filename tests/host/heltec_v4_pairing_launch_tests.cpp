@@ -72,6 +72,7 @@ struct MessagingLaunchRuntime {
 };
 MessagingLaunchRuntime g_board_messaging;
 bool g_pairing_frame_queued=false;
+bool g_join_frame_queued=false;
 unsigned g_region_id=1;
 namespace opentrail::target::heltec_v4_bench {
 struct TestRegion { unsigned selection_id; };
@@ -215,6 +216,30 @@ void messaging_launch_cases() {
         g_board_messaging = {};
     }
 }
+// F8 QR join copy: launched under the region grant alone, even while a
+// retained messaging owner would refuse its own queued frame; never off-region.
+void join_launch_cases() {
+    for (unsigned region : {1U, 2U}) {
+        ++groups;
+        mock::reset();
+        Random random;
+        HeltecV4Lora radio{random};
+        g_region_id = region;
+        g_pairing_frame_queued = false;
+        g_join_frame_queued = true;
+        g_board_messaging = {true, 0, 0, false};
+        const std::array<std::uint8_t, 4> frame{'O', 'T', 'G', 'J'};
+        radio.set_transmit_permission(&lora_transmit_permitted, nullptr);
+        CHECK(radio.start());
+        CHECK(radio.send({frame.data(), frame.size()}, 100).accepted());
+        radio.launch_queued(100);
+        CHECK((mock::count("start_tx") != 0) == (region == 1));
+        CHECK(g_board_messaging.queries == 0);
+        radio.stop();
+        g_join_frame_queued = false;
+        g_board_messaging = {};
+    }
+}
 int main(int argc, char**) {
     if (argc == 1) {
     for(const bool version2:{false,true})
@@ -227,6 +252,7 @@ int main(int argc, char**) {
     region_cases();uncertain_launch();
     }
     messaging_launch_cases();
+    join_launch_cases();
     if(failures){std::cerr<<failures<<" failed checks in "<<groups<<" composed launch cases\n";return 1;}
     std::cout<<"PASS "<<groups<<" composed pairing launch groups\n";return 0;
 }

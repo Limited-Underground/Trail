@@ -12,21 +12,24 @@
 #include "nvs_flash.h"
 #include "opentrail/durable_group_roster.hpp"
 #include "opentrail/group_join_claims.hpp"
+#include "opentrail/group_qr_receipts.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
 constexpr std::size_t kPairingScope = 0, kRosterScope = 1, kCatalogScope = 2, kJoinScope = 3;
-constexpr std::size_t kDirectScope = 4, kScopeCount = 5;
+constexpr std::size_t kQrReceiptScope = 4, kDirectScope = 5, kScopeCount = 6;
 constexpr auto& kPartition = PairingNvsStorage::kPartition;
 using Catalog = persistence::GroupPairIndex;
 using Roster = identity::roster::DurableGroupRoster;
 using JoinClaims = persistence::GroupJoinClaims;
+using QrReceipts = persistence::GroupQrReceipts;
 
 namespace budget = board_storage_budget;
 static_assert(Catalog::kMaximumGroups <= 10);
 static_assert(Roster::kStorageRecordBytes <= Catalog::kMaximumSerializedBytes);
 static_assert(Catalog::kMaximumSerializedBytes <= 2048);
 static_assert(JoinClaims::kRecordBytes <= Catalog::kMaximumSerializedBytes);
+static_assert(QrReceipts::kRecordBytes <= Catalog::kMaximumSerializedBytes);
 static_assert(static_cast<unsigned>(PairingNvsStorage::Domain::outbound_counter_state) ==
               pairing_key::kPacketLaneDomain);
 
@@ -46,6 +49,8 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
     {"ot_group_rost", Roster::kStorageRecordBytes, budget::kRosterEntries},
     {"ot_group_idx", Catalog::kMaximumSerializedBytes, budget::kCatalogEntries},
     {JoinClaims::kNamespace, JoinClaims::kRecordBytes, budget::kJoinClaimEntries},
+    // F8 QR join decisions, inside the D-163 receipt reserve.
+    {QrReceipts::kNamespace, QrReceipts::kRecordBytes, budget::kQrReceiptEntries},
     {DirectNvsStorage::kNamespace, 0, budget::kDirectEntries - 1},
 }};
 
@@ -54,12 +59,12 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
 // retirement, including the interval before register_pairing_storage().
 PairingNvsStorage* g_pairing_owner = nullptr;
 bool g_pairing_registered = false;
-// Group owners: roster, catalog and join claims.
+// Group owners: roster, catalog, join claims and QR join decisions.
 std::array<GroupNvsStorage*, kDirectScope - 1> g_group_owners{};
 DirectNvsStorage* g_direct_owner = nullptr;
 std::array<bool, kScopeCount> g_namespaces{};
-// Roster keys g0 to g3, then the catalog, then the join claims.
-constexpr std::size_t kGroupKeys = Catalog::kMaximumGroups + 2;
+// Roster keys g0 to g3, then the catalog, the join claims and the QR receipts.
+constexpr std::size_t kGroupKeys = Catalog::kMaximumGroups + 3;
 std::array<bool, kGroupKeys> g_group_records{};
 std::size_t g_mount_users = 0;
 bool g_reset_retired = false;
@@ -250,6 +255,8 @@ std::size_t group_record_slot(std::size_t scope, const char* key) {
         return std::strcmp(key, "catalog") == 0 ? Catalog::kMaximumGroups : kGroupKeys;
     if (scope == kJoinScope)
         return std::strcmp(key, JoinClaims::kKey) == 0 ? Catalog::kMaximumGroups + 1 : kGroupKeys;
+    if (scope == kQrReceiptScope)
+        return std::strcmp(key, QrReceipts::kKey) == 0 ? Catalog::kMaximumGroups + 2 : kGroupKeys;
     if (scope == kRosterScope && key[0] == 'g' && key[1] >= '0' &&
         key[1] < '0' + static_cast<int>(Catalog::kMaximumGroups) && key[2] == '\0')
         return static_cast<std::size_t>(key[1] - '0');
@@ -392,6 +399,7 @@ std::size_t group_scope(GroupNvsStorage::Store store) {
     case GroupNvsStorage::Store::roster: return kRosterScope;
     case GroupNvsStorage::Store::catalog: return kCatalogScope;
     case GroupNvsStorage::Store::join: return kJoinScope;
+    case GroupNvsStorage::Store::qr_receipts: return kQrReceiptScope;
     }
     return kScopeCount;
 }

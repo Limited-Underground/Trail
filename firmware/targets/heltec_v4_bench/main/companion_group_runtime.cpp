@@ -35,8 +35,7 @@ public:
     const identity::roster::RosterSigner* invite_signer(
         const identity::roster::qr::Descriptor& descriptor) noexcept override {
 #if OPENTRAIL_LORA_LINK_TEST
-        if ((inputs_.pairing && inputs_.pairing->owns_enrollment_identity()) ||
-            (inputs_.messaging && inputs_.messaging->owns_enrollment_identity())) return nullptr;
+        if (inputs_.pairing && inputs_.pairing->owns_enrollment_identity()) return nullptr;
 #endif
         auto& signer = invite_signer_.emplace(
             HeltecInviteSigner::Source{&inputs_, read_key, sign_descriptor}, descriptor);
@@ -62,11 +61,12 @@ private:
     static bool sign_descriptor(void* context, const identity::roster::qr::Descriptor& descriptor,
         identity::roster::Signature& signature) {
 #if OPENTRAIL_LORA_LINK_TEST
-        // While a radio owner holds the identity, invites are not issued yet.
-        // The Link Test handshake increment adds that path with the radio route.
+        // First pairing holds the identity alone. The messaging runtime signs
+        // the same exact descriptor with its live copy (I-101).
         const auto& inputs = *static_cast<const CompanionGroupInputs*>(context);
         if (inputs.pairing && inputs.pairing->owns_enrollment_identity()) return false;
-        if (inputs.messaging && inputs.messaging->owns_enrollment_identity()) return false;
+        if (inputs.messaging && inputs.messaging->owns_enrollment_identity())
+            return inputs.messaging->sign_invite_descriptor(descriptor, signature);
 #else
         (void)context;
 #endif
@@ -103,11 +103,14 @@ private:
     std::optional<HeltecInviteSigner> invite_signer_;
 };
 
+companion::ConfigurationGroupOwner* g_started_owner = nullptr;
+
 companion::ConfigurationGroupOwner& group_owner(companion::DeviceNameAuthoritySource& authority) {
     static BoardGroupPlatform platform{companion_group_inputs()};
     static HeltecGroupRosterCrypto crypto;
     static companion::ConfigurationGroupOwner owner{
         authority, platform.rosters, platform.catalog, platform.joins, crypto, platform};
+    g_started_owner = &owner;
     return owner;
 }
 
@@ -133,6 +136,8 @@ companion::ConfigurationGroupBackend& companion_group_backend(
     companion::DeviceNameAuthoritySource& authority) {
     return group_owner(authority);
 }
+
+companion::ConfigurationGroupOwner* companion_group_owner_started() { return g_started_owner; }
 
 #if OPENTRAIL_LORA_LINK_TEST
 companion::ConfigurationLocationBackend& companion_location_backend(

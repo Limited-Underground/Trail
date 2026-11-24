@@ -1,5 +1,6 @@
 // F8 step 2c: one QR group join between two boards over a modeled radio link.
 // Real libsodium (pinned 1.0.22) through tests/host/f5_rekey_status_ci.py --suite qr-join.
+#include "opentrail/group_qr_join_board_authority.hpp"
 #include "opentrail/group_qr_join_conversation.hpp"
 
 #include <sodium/crypto_core_ed25519.h>
@@ -12,11 +13,14 @@
 #include <iostream>
 #include <map>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <vector>
 
 namespace {
+using opentrail::security_evaluation::GroupQrJoinBoardAuthority;
+using opentrail::security_evaluation::GroupQrJoinBoardState;
 using opentrail::security_evaluation::GroupQrJoinConversation;
 using opentrail::security_evaluation::GroupQrJoinIdentity;
 using opentrail::security_evaluation::GroupQrNoiseBinding;
@@ -24,6 +28,7 @@ namespace join = opentrail::security_evaluation::qr_join;
 namespace r = opentrail::identity::roster;
 namespace qr = r::qr;
 namespace sec = opentrail::security;
+namespace p = opentrail::persistence;
 using Side = qr::Side;
 using Kind = qr::Kind;
 using Phase = GroupQrJoinConversation::Phase;
@@ -485,6 +490,197 @@ void replay_after_use_and_refusals() {
     CHECK(!self.open(twice.invite, twice.joiner_timing, 7) && own_admin.noise_begins == 0);
 }
 
+// ---- The board authority (step 2c part 2) over durable in-memory storage ----
+
+class Kv final : public p::PersistentKvBackend {
+public:
+    using Error = p::PersistentKvBackendError;
+    bool fail_next_commit{false};
+    Error read_blob(const char*, const char* ns, const char* key, std::uint8_t* out, std::size_t capacity,
+                    std::size_t& size) override {
+        CHECK(std::string(ns) == "ot_group_qrr");
+        const auto found = records_.find(key);
+        if (found == records_.end()) return Error::not_found;
+        size = found->second.size();
+        if (size > capacity) return Error::invalid_argument;
+        std::copy(found->second.begin(), found->second.end(), out);
+        return Error::none;
+    }
+    Error write_blob(const char*, const char*, const char* key, const std::uint8_t* bytes, std::size_t size) override {
+        staged_key_ = key;
+        staged_.assign(bytes, bytes + size);
+        return Error::none;
+    }
+    Error erase_key(const char*, const char*, const char*) override { return Error::invalid_argument; }
+    Error commit(const char*, const char*) override {
+        if (fail_next_commit) { fail_next_commit = false; staged_.clear(); return Error::io_failure; }
+        records_[staged_key_] = staged_;
+        staged_.clear();
+        return Error::none;
+    }
+private:
+    std::map<std::string, std::vector<std::uint8_t>> records_;
+    std::string staged_key_;
+    std::vector<std::uint8_t> staged_;
+};
+
+class BoardState final : public GroupQrJoinBoardState {
+public:
+    explicit BoardState(const std::uint64_t& clock) : clock_(clock) {}
+    std::uint64_t now() const override { return clock_; }
+    qr::LocalInvites issued_invites() const override { return issuer.view(); }
+    const qr::DescriptorBytes* pending_join() const override { return pending ? &*pending : nullptr; }
+    bool approve(qr::Review, Side, const qr::Descriptor&, const r::PublicKey&, const r::Digest&) const override {
+        ++reviews;
+        return review_ok;
+    }
+    qr::IssuedInvites issuer{};
+    std::optional<qr::DescriptorBytes> pending;
+    bool review_ok{true};
+    mutable unsigned reviews{};
+private:
+    const std::uint64_t& clock_;
+};
+
+struct Boards {
+    std::uint64_t clock{50000};
+    Identity admin{21}, joiner{81};
+    Random ar{11}, jr{12};
+    Kv akv, jkv;
+    BoardState as{clock}, js{clock};
+    p::GroupQrReceipts arec{akv, admin.public_key()}, jrec{jkv, joiner.public_key()};
+    GroupQrJoinBoardAuthority aa{Side::admin, admin.public_key(), crypto, as, arec};
+    GroupQrJoinBoardAuthority ja{Side::joiner, joiner.public_key(), crypto, js, jrec};
+    GroupQrJoinConversation admin_side{Side::admin, crypto, admin, aa, admin, ar, bytes<16>(13)};
+    GroupQrJoinConversation joiner_side{Side::joiner, crypto, joiner, ja, joiner, jr, bytes<16>(14)};
+    qr::DescriptorBytes invite{};
+    qr::Descriptor issued{};
+    qr::Timing joiner_timing{};
+
+    Boards() {
+        CHECK(arec.reopen() == p::GroupQrReceiptError::missing && jrec.reopen() == p::GroupQrReceiptError::missing);
+        r::Roster current{};
+        CHECK(r::create_first(0x0a0b0c0d01020304ULL, admin.public_key(), "Admin", r::LocationRule::off, current));
+        CHECK(r::sign(current, admin));
+        issued.admin = admin.public_key();
+        issued.group = current.group_id;
+        issued.roster_version = current.version;
+        CHECK(r::roster_digest(current, crypto, issued.roster_digest));
+        issued.invite_id = bytes<16>(91);
+        issued.rule = current.location_rule;
+        issued.label[0] = 'T';
+        issued.label_bytes = 1;
+        CHECK(as.issuer.issue(issued, {clock, clock}, clock, crypto, admin, invite));
+        clock += 3000;
+        js.pending = invite;  // the joiner board verified and claimed it
+        joiner_timing = {clock, clock};
+        admin.qr_only = joiner.qr_only = true;
+    }
+    static bool finished(const GroupQrJoinConversation& c) {
+        return c.phase() == Phase::committed || c.phase() == Phase::aborted || c.phase() == Phase::failed;
+    }
+    static void exchange(GroupQrJoinConversation& from, GroupQrJoinConversation& to) {
+        from.service();
+        qr::RadioFrame f{};
+        if (!from.next(f)) return;
+        from.sent(true);
+        CHECK(to.receive(f.bytes.data(), f.size));
+    }
+    void run(std::uint64_t for_ms = 400000) {
+        const auto end = clock + for_ms;
+        while (clock < end && !(finished(admin_side) && finished(joiner_side))) {
+            exchange(joiner_side, admin_side);
+            exchange(admin_side, joiner_side);
+            clock += 100;
+        }
+    }
+    std::optional<qr::Retained> kept(Kv& kv, const Identity& id) {
+        p::GroupQrReceipts fresh{kv, id.public_key()};
+        const auto opened = fresh.reopen();
+        CHECK(opened == p::GroupQrReceiptError::none || opened == p::GroupQrReceiptError::missing);
+        return fresh.find(issued.invite_id);
+    }
+};
+
+void board_join_commits_durably() {
+    Boards b;
+    CHECK(b.joiner_side.open(b.invite, b.joiner_timing, GroupQrJoinBoardAuthority::kFirstPairEpoch));
+    b.run();
+    CHECK(b.admin_side.phase() == Phase::committed && b.joiner_side.phase() == Phase::committed);
+    CHECK(b.as.reviews >= 2 && b.js.reviews >= 2);
+    const auto admin_kept = b.kept(b.akv, b.admin);
+    const auto joiner_kept = b.kept(b.jkv, b.joiner);
+    CHECK(admin_kept && admin_kept->decision.kind == Kind::committed && admin_kept->state.group == b.issued.group);
+    CHECK(joiner_kept && joiner_kept->decision.kind == Kind::committed && joiner_kept->peer == b.admin.public_key());
+    CHECK(!b.arec.fresh_unclaimed(b.issued.invite_id) && !b.jrec.fresh_unclaimed(b.issued.invite_id));
+}
+
+void board_current_rules() {
+    // Another pair epoch: the admin does not answer.
+    Boards epoch;
+    CHECK(epoch.joiner_side.open(epoch.invite, epoch.joiner_timing, 2));
+    epoch.run(20000);
+    CHECK(epoch.admin_side.phase() == Phase::idle && epoch.admin.noise_begins == 0);
+
+    // The joiner's pending join ends (restart or timeout): its session cannot begin.
+    Boards gone;
+    CHECK(gone.joiner_side.open(gone.invite, gone.joiner_timing, 1));
+    gone.js.pending.reset();
+    gone.run(20000);
+    CHECK(gone.joiner_side.phase() == Phase::handshake);
+    CHECK(!gone.kept(gone.jkv, gone.joiner) && !gone.kept(gone.akv, gone.admin));
+
+    // The invite's 3 minutes are over before the Start arrives.
+    Boards late;
+    late.clock += qr::kInviteMs;
+    CHECK(late.joiner_side.open(late.invite, {late.clock, late.clock}, 1));
+    late.run(20000);
+    CHECK(late.admin_side.phase() == Phase::idle);
+
+    // Unit rules of the board authority.
+    Boards u;
+    CHECK(u.ja.issued_invites()[0].issued == nullptr && u.aa.issued_invites()[0].issued != nullptr);
+    r::Digest out{};
+    CHECK(!u.aa.verified_handshake(bytes<32>(1), bytes<32>(2), bytes<32>(3), out));
+    CHECK(!u.aa.successor_readback(u.invite.bytes.data(), u.invite.size));
+    CHECK(!u.aa.approve(qr::Review::fingerprints, Side::joiner, u.issued, u.joiner.public_key(), bytes<32>(4)));
+    CHECK(u.aa.approve(qr::Review::fingerprints, Side::admin, u.issued, u.joiner.public_key(), bytes<32>(4)));
+    CHECK(u.aa.current(u.issued, u.joiner.public_key(), 1));
+    CHECK(!u.aa.current(u.issued, u.admin.public_key(), 1) && !u.aa.current(u.issued, u.joiner.public_key(), 2));
+    CHECK(u.ja.current(u.issued, u.joiner.public_key(), 1) && !u.ja.current(u.issued, u.admin.public_key(), 1));
+    auto changed = u.issued;
+    changed.roster_version += 1;
+    CHECK(!u.aa.current(changed, u.joiner.public_key(), 1) && !u.ja.current(changed, u.joiner.public_key(), 1));
+    changed = u.issued;
+    changed.invite_id[0] ^= 1;
+    CHECK(!u.aa.current(changed, u.joiner.public_key(), 1) && !u.ja.current(changed, u.joiner.public_key(), 1));
+    u.clock += qr::kInviteMs;
+    CHECK(!u.aa.current(u.issued, u.joiner.public_key(), 1));
+}
+
+void board_review_and_storage_failures() {
+    // Until the board review exists (step 2d) the port refuses: nothing is
+    // signed past the handshake and nothing becomes durable.
+    Boards refused;
+    refused.as.review_ok = refused.js.review_ok = false;
+    CHECK(refused.joiner_side.open(refused.invite, refused.joiner_timing, 1));
+    refused.run();
+    CHECK(refused.admin_side.phase() == Phase::failed && refused.joiner_side.phase() == Phase::failed);
+    CHECK(!refused.kept(refused.akv, refused.admin) && !refused.kept(refused.jkv, refused.joiner));
+    CHECK(refused.as.reviews > 0 && refused.js.reviews > 0);
+
+    // The admin's prepared write fails: it keeps nothing, never sends a
+    // prepared receipt, and neither board commits.
+    Boards cut;
+    cut.akv.fail_next_commit = true;
+    CHECK(cut.joiner_side.open(cut.invite, cut.joiner_timing, 1));
+    cut.run();
+    CHECK(cut.admin_side.phase() == Phase::failed && cut.joiner_side.phase() == Phase::failed);
+    CHECK(!cut.kept(cut.akv, cut.admin));
+    const auto joiner_kept = cut.kept(cut.jkv, cut.joiner);
+    CHECK(!joiner_kept || joiner_kept->decision.kind == Kind::prepared);  // never committed
+}
+
 }  // namespace
 
 int main() {
@@ -497,6 +693,9 @@ int main() {
     tampered_noise_ends_the_join_without_a_commit();
     deadline_and_cancel();
     replay_after_use_and_refusals();
-    std::cout << "PASS 9 QR join conversation groups (pinned libsodium)\n";
+    board_join_commits_durably();
+    board_current_rules();
+    board_review_and_storage_failures();
+    std::cout << "PASS 12 QR join conversation groups (pinned libsodium)\n";
     return EXIT_SUCCESS;
 }
