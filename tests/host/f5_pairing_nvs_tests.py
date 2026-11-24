@@ -22,13 +22,15 @@ def run() -> int:
     includes=[ROOT/'tests/host/f5_pairing_nvs_stubs',ROOT/'firmware/targets/heltec_v4_bench/main',
         ROOT/'firmware/components/security_evaluation/include',ROOT/'firmware/components/security/include',
         ROOT/'firmware/components/persistence/include',ROOT/'firmware/components/identity/include',
+        ROOT/'firmware/components/companion/include',
         component/'libsodium/src/libsodium/include',component/'port_include']
     command=[compiler,'-std=c++17','-O2','-Wall','-Wextra','-Werror','-fno-rtti','-fno-exceptions','-DSODIUM_STATIC']
     for include in includes:
         command.extend(['-I',str(include)])
     exe=output/'f5-pairing-nvs.exe'
     command.extend([str(ROOT/'tests/host/f5_pairing_nvs_tests.cpp'),
-        str(ROOT/'firmware/targets/heltec_v4_bench/main/pairing_nvs_storage.cpp'),'-o',str(exe)])
+        str(ROOT/'firmware/targets/heltec_v4_bench/main/pairing_nvs_storage.cpp'),
+        str(ROOT/'firmware/components/companion/src/direct_conversation_owner.cpp'),'-o',str(exe)])
     commands=[]
     for index,cmd in enumerate([command,[str(exe)],[str(exe),'--reset-before-register']]):
         result=subprocess.run(cmd,text=True,capture_output=True,timeout=120)

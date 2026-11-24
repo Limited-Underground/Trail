@@ -230,6 +230,8 @@ def admitted_target_sources(cmake: str) -> list[str]:
                                  "board_messaging_runtime.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/packet_v1.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/protocol/src/quick_status_codec.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_conversation_owner.cpp",
+                                 "${OPENTRAIL_COMPONENT_ROOT}/companion/src/direct_text_session.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/delivery/src/delivery_controller.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_frame.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/location/src/v1_location_sharing.cpp",
@@ -239,7 +241,7 @@ def admitted_target_sources(cmake: str) -> list[str]:
                                  "${OPENTRAIL_COMPONENT_ROOT}/security/src/aead_nonce.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/persistent_storage_kv.cpp",
                                  "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/outbound_counter_lease_store.cpp"} and
-            len(lora_tokens) == 15 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
+            len(lora_tokens) == 17 and ordinary.count("${OPENTRAIL_LORA_SOURCES}") == 1,
             "LoRa link test sources must remain exact and opt-in")
     ordinary = ordinary[:lora_start] + ordinary[lora_end:]
     ordinary_tokens = re.findall(pattern, ordinary)
@@ -258,8 +260,9 @@ def admitted_target_sources(cmake: str) -> list[str]:
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_join_claims.cpp",
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp",
+        "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_direct_configuration.cpp",
     }
-    require(len(ordinary_tokens) == 67 and len(set(ordinary_tokens)) == 67 and
+    require(len(ordinary_tokens) == 68 and len(set(ordinary_tokens)) == 68 and
             group_sources.issubset(ordinary_tokens) and
             "enrollment_identity_nvs_storage.cpp" in ordinary_tokens and
             "${OPENTRAIL_COMPONENT_ROOT}/device_parameters/src/device_parameters_codec.cpp" in ordinary_tokens and
@@ -375,6 +378,7 @@ def test_contract() -> None:
         "main/heltec_group_roster_identity.cpp",
         "main/heltec_group_roster_identity.hpp",
         "main/pairing_nvs_storage.hpp",
+        "main/direct_nvs_storage.hpp",
         "main/board_storage_budget.hpp",
         "main/pairing_nvs_reset.hpp",
         "main/pairing_storage_key.hpp",  # I-058: pure key -> slot mapping, host-tested
@@ -1376,7 +1380,7 @@ def test_protected_root_key_roster_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 73,
+    require(len(other_linked_sources) == 74,
             "non-injection gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -1451,7 +1455,7 @@ def test_protected_root_configuration_security_adapter_surface() -> None:
             path = TARGET / "main" / token
         require(path.is_file(), f"linked source is missing: {token}")
         other_linked_sources.append(path)
-    require(len(other_linked_sources) == 73,
+    require(len(other_linked_sources) == 74,
             "configuration/security gate must scan every other linked source")
     runtime_sources = "\n".join(
         path.read_text(encoding="utf-8") for path in other_linked_sources)
@@ -2446,8 +2450,8 @@ def test_application_surface() -> None:
     ):
         require(required in cmake,
                 f"target must link accepted companion surface: {required}")
-    require(len(admitted_target_sources(cmake)) == 74,
-            "target must admit 67 ordinary and seven evaluation source units")
+    require(len(admitted_target_sources(cmake)) == 75,
+            "target must admit 68 ordinary and seven evaluation source units")
     require("REQUIRES" in cmake and all(
         dependency in cmake for dependency in (
             "bt", "bootloader_support", "efuse", "esp_partition", "esp_security",

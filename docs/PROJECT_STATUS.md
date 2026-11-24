@@ -236,6 +236,23 @@ See [the protected phone link](PROGRESS_LOG.md#ot-0316-carry-meshtrail-location-
 [location dispatch](PROGRESS_LOG.md#ot-0316-gate-meshtrail-position-and-stop-frames-on-the-current-lease)
 and [location consent](PROGRESS_LOG.md#ot-0315-check-the-signed-group-rule-before-meshtrail-location-consent).
 
+Direct conversations (F9). The first F9 host composition implements the direct consent
+catalog, packet claim admission and retirement. It exercises the existing
+protected request owner and the #302 allocator with a synthetic pairing
+endpoint. A follow-up uses the signed F5 exchange to verify a direct peer and
+transcript and wait for each board's consent before its Prepared receipt.
+D-163 reserves eight direct scopes within the shared NVS budget. The host
+composition binds stable catalog slots and the exact packet claim to a fresh
+authenticated F5 session. Both boards must confirm before protected text is
+eligible. End and Block fence that scope and release its storage after packet
+borrowers drain. Block also covers an unwanted invitation before anyone
+accepts it. The live route and device validation remain open. For A6, the
+OTDC v1 command set gives the MeshTrail App invite, review, accept, decline,
+finish, read, end, block, unblock and one-frame text, checked by the board
+and the app against the same vectors. The app model opens the composer only
+for a Ready conversation. The dispatcher carries it as profile 5 kinds
+0x0c and 0x90. The board backend and screens remain open.
+
 ## F12 host validation
 
 The counter store now checks consistency across committed slots before

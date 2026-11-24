@@ -123,6 +123,9 @@ public:
                                              std::uint64_t legacy_floor = 0);
     // The caller must stop all borrowers before explicitly retiring a claim.
     bool retire_packets(const PacketClaim&);
+    // Restart reconciliation after a durable owner fence. The exact claim may
+    // have been preparing, already retired or replaced by a foreign owner.
+    bool retire_packets(const PacketOwner&, std::uint64_t generation);
 
     class PacketView final : public persistence::PersistentStorage {
     public:
@@ -160,6 +163,7 @@ public:
 
 private:
     friend class GroupNvsStorage;
+    friend class DirectNvsStorage;
     static bool acquire_partition();
     static bool admit_partition();
 

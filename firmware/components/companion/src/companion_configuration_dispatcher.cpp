@@ -29,6 +29,13 @@ bool group_result_matches(const GroupConfigurationCommand& command, const GroupC
     return fragment.slot == read.slot && fragment.offset == read.offset &&
         (read.offset == 0 || (fragment.state == read.state && result.scope == command.scope));
 }
+bool direct_result_matches(const DirectConfigurationCommand& command, const DirectConfigurationResult& result) {
+    if (result.operation != command.operation) return false;
+    if (result.status != DirectConfigurationStatus::ok) return true;
+    if (command.operation == DirectConfigurationOperation::read ||
+        command.operation == DirectConfigurationOperation::read_blocked) return result.slot == command.slot;
+    return true;
+}
 ConfigurationDispatchResult status(ConfigurationDispatchCode code) { ConfigurationDispatchResult r{}; r.code=code; return r; }
 std::uint8_t time_code(time::OledTimeCode c) {
     using C=time::OledTimeCode;
@@ -47,8 +54,8 @@ std::uint8_t time_code(time::OledTimeCode c) {
 }
 ConfigurationDispatcher::ConfigurationDispatcher(DeviceNameAuthoritySource& s,DeviceNamePersistence& p,ConfigurationBaseHandler& b,
     RegionPersistence* region,std::uint8_t selected_minor,ConfigurationConfirmationBackend* confirmation,PublicProfilePersistence* public_profile,
-    ConfigurationGroupBackend* group, ConfigurationLocationBackend* location)
-    : source_(s),base_(b),confirmation_(confirmation),group_(group),location_(location),
+    ConfigurationGroupBackend* group, ConfigurationLocationBackend* location, ConfigurationDirectBackend* direct)
+    : source_(s),base_(b),confirmation_(confirmation),group_(group),location_(location),direct_(direct),
       name_source_(*this),time_source_(*this),name_owner_(name_source_,p),
       selected_minor_(selected_minor),time_owner_(time_source_) {
     confirmed_name_.kind=DeviceNameKind::snapshot;
@@ -163,6 +170,7 @@ ConfigurationDispatchResult ConfigurationDispatcher::submit(const DeviceNameCont
         !(frame.kind==7 && selected_minor_==kConfirmationEvaluationMinor) &&
         !(frame.kind==kConfigurationParametersRequest && selected_minor_==kPublicProfileMinor) &&
         !(frame.kind==kConfigurationGroupCommandKind && selected_minor_==kPublicProfileMinor) &&
+        !(frame.kind==kConfigurationDirectCommandKind && selected_minor_==kPublicProfileMinor) &&
         !(frame.kind==kConfigurationLocationCommandKind && selected_minor_==kPublicProfileMinor && location_)) return status(ConfigurationDispatchCode::rejected);
     if(context==sequence_context_ && frame.exchange_id==last_exchange_) {
         // A timed location command is never retried or cached by exchange.
@@ -205,7 +213,8 @@ ConfigurationDispatchResult ConfigurationDispatcher::finish(const ConfigurationF
     if(!refresh() || authority_.context!=request_context_ || frame==nullptr ||
         frame->minor_version!=selected_minor_) return cached_;
     if((frame->kind==0x8a || frame->kind==kConfigurationGroupResultKind ||
-        frame->kind==kConfigurationParametersResponse || frame->kind==kConfigurationLocationResultKind) &&
+        frame->kind==kConfigurationParametersResponse || frame->kind==kConfigurationLocationResultKind ||
+        frame->kind==kConfigurationDirectResultKind) &&
         (authority_.now_ms<request_admitted_ms_ ||
         authority_.now_ms-request_admitted_ms_>=5000)) return cached_;
     const auto encoded=encode_configuration_frame(*frame,cached_.record.data(),cached_.record.size());
@@ -314,6 +323,25 @@ ConfigurationDispatchResult ConfigurationDispatcher::execute() {
         }
         response.kind = kConfigurationGroupResultKind;
         const auto encoded = encode_group_configuration_result(result, response.payload.data(), response.payload.size());
+        if (!encoded.encoded()) return finish(nullptr);
+        response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+        return finish(&response);
+    }
+    if (request.kind == kConfigurationDirectCommandKind) {
+        if (authority_.now_ms < request_admitted_ms_ ||
+            authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);
+        const auto command = decode_direct_configuration_command(request.payload.data(), request.payload_bytes);
+        if (!command.decoded()) return finish(nullptr);
+        DirectConfigurationResult result{command.value.operation, DirectConfigurationStatus::unavailable};
+        if (direct_ && direct_->available()) {
+            if (!refresh() || !ready_ || authority_.context != request_context_ ||
+                authority_.now_ms < request_admitted_ms_ ||
+                authority_.now_ms - request_admitted_ms_ >= 5000) return finish(nullptr);
+            result = direct_->execute(request_context_, command.value, request_admitted_ms_);
+            if (!direct_result_matches(command.value, result)) return finish(nullptr);
+        }
+        response.kind = kConfigurationDirectResultKind;
+        const auto encoded = encode_direct_configuration_result(result, response.payload.data(), response.payload.size());
         if (!encoded.encoded()) return finish(nullptr);
         response.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
         return finish(&response);

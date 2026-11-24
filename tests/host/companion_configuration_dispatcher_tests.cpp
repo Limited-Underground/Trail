@@ -139,9 +139,9 @@ struct Harness {
     Source source; Store store; Base base; RegionStore regions;PublicStore public_profile;std::uint8_t minor;
     ConfigurationDispatcher owner;
     explicit Harness(std::uint8_t version=2, ConfigurationGroupBackend* group=nullptr,
-                     ConfigurationLocationBackend* location=nullptr)
+                     ConfigurationLocationBackend* location=nullptr, ConfigurationDirectBackend* direct=nullptr)
         :minor(version),owner(source,store,base,(version==3||version==5)?&regions:nullptr,
-                              version,nullptr,version==5?&public_profile:nullptr,group,location){}
+                              version,nullptr,version==5?&public_profile:nullptr,group,location,direct){}
     ConfigurationFrame frame(std::uint8_t kind,std::uint32_t exchange) {
         ConfigurationFrame f{}; f.minor_version=minor;f.kind=kind; f.exchange_id=exchange; f.session_nonce=source.state.context.session_nonce; return f;
     }
@@ -864,6 +864,153 @@ void group_execution_respects_expiry_and_disconnect() {
     h.source.state.phase = DeviceNamePhase::connected;
     EXPECT(h.submit(lost).code == Dispatch::unauthorized && backend.executions == 2);
 }
+
+using DirectOp = DirectConfigurationOperation;
+using DirectStatus = DirectConfigurationStatus;
+
+struct DirectBackend final : ConfigurationDirectBackend {
+    bool enabled{true};
+    int executions{0};
+    DeviceNameContext context{};
+    DirectConfigurationCommand command{};
+    DirectConfigurationResult result{};
+    std::function<void()> hook;
+    bool available() const noexcept override { return enabled; }
+    DirectConfigurationResult execute(const DeviceNameContext& active, const DirectConfigurationCommand& request,
+                                      std::uint64_t) noexcept override {
+        ++executions;
+        context = active;
+        command = request;
+        if (hook) hook();
+        return result;
+    }
+};
+
+ConfigurationFrame direct_frame(Harness& h, std::uint32_t exchange, const DirectConfigurationCommand& command) {
+    auto frame = h.frame(kConfigurationDirectCommandKind, exchange);
+    const auto encoded = encode_direct_configuration_command(command, frame.payload.data(), frame.payload.size());
+    EXPECT(encoded.encoded());
+    frame.payload_bytes = static_cast<std::uint16_t>(encoded.encoded_bytes);
+    return frame;
+}
+
+DirectConfigurationResult direct_result(const ConfigurationDispatchResult& result,
+                                        const ConfigurationFrame& request, std::size_t payload_bytes) {
+    EXPECT(result.code == Dispatch::responded);
+    const auto frame = response(result, kPublicProfileMinor);
+    EXPECT(frame.kind == kConfigurationDirectResultKind);
+    EXPECT(frame.session_nonce == request.session_nonce && frame.exchange_id == request.exchange_id);
+    EXPECT(frame.payload_bytes == payload_bytes);
+    const auto decoded = decode_direct_configuration_result(frame.payload.data(), frame.payload_bytes);
+    EXPECT(decoded.decoded());
+    return decoded.value;
+}
+
+DirectConfigurationBinding direct_binding() {
+    DirectConfigurationBinding binding{};
+    binding.peer.front() = 0x11;
+    binding.scope.back() = 0x22;
+    return binding;
+}
+
+DirectConfigurationCommand direct_read(std::uint8_t slot) {
+    DirectConfigurationCommand command{DirectOp::read};
+    command.slot = slot;
+    return command;
+}
+
+void direct_backend_absence_is_reported_after_ready() {
+    Harness absent(kPublicProfileMinor);
+    const auto review = direct_frame(absent, 2, {DirectOp::review});
+    EXPECT(absent.submit(review).code == Dispatch::unauthorized);
+    absent.ready();
+    EXPECT(absent.submit(review).code == Dispatch::accepted);
+    const auto missing = direct_result(absent.owner.execute(), review, 8);
+    EXPECT(missing.operation == DirectOp::review && missing.status == DirectStatus::unavailable);
+
+    DirectBackend backend;
+    backend.enabled = false;
+    Harness h(kPublicProfileMinor, nullptr, nullptr, &backend);
+    h.ready();
+    const auto read = direct_frame(h, 2, direct_read(3));
+    EXPECT(h.submit(read).code == Dispatch::accepted);
+    EXPECT(direct_result(h.owner.execute(), read, 8).status == DirectStatus::unavailable);
+    EXPECT(backend.executions == 0);
+
+    // Only profile 5 carries the direct kinds.
+    auto frame = read;
+    frame.minor_version = 2;
+    std::array<std::uint8_t, kConfigurationRecordBytes> record{};
+    EXPECT(!encode_configuration_frame(frame, record.data(), record.size()).encoded());
+}
+
+void direct_results_correlate_and_replay_once() {
+    DirectBackend backend;
+    Harness h(kPublicProfileMinor, nullptr, nullptr, &backend);
+    h.ready();
+    backend.result = {DirectOp::read, DirectStatus::ok, 3, DirectConfigurationState::ready, 9, direct_binding()};
+    const auto read = direct_frame(h, 2, direct_read(3));
+    EXPECT(h.submit(read).code == Dispatch::accepted);
+    const auto completed = h.owner.execute();
+    const auto conversation = direct_result(completed, read, 84);
+    EXPECT(conversation.slot == 3 && conversation.state == DirectConfigurationState::ready &&
+           conversation.generation == 9 && conversation.binding == direct_binding());
+    EXPECT(backend.context == h.source.state.context && backend.command.slot == 3);
+    const auto replay = h.submit(read);
+    EXPECT(replay.code == Dispatch::replayed && replay.record == completed.record && backend.executions == 1);
+
+    // A result for another slot or another operation is dropped.
+    backend.result.slot = 4;
+    const auto other = direct_frame(h, 3, direct_read(3));
+    EXPECT(h.submit(other).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().code == Dispatch::no_result);
+    backend.result = {DirectOp::end, DirectStatus::ok};
+    DirectConfigurationCommand block{DirectOp::block};
+    block.binding = direct_binding();
+    const auto blocked = direct_frame(h, 4, block);
+    EXPECT(h.submit(blocked).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().code == Dispatch::no_result);
+    backend.result = {DirectOp::block, DirectStatus::ok};
+    const auto block_again = direct_frame(h, 5, block);
+    EXPECT(h.submit(block_again).code == Dispatch::accepted);
+    EXPECT(direct_result(h.owner.execute(), block_again, 8).status == DirectStatus::ok);
+    EXPECT(backend.command.binding == direct_binding() && backend.executions == 4);
+
+    // Text sends arrive intact; board-only events are never accepted from the app.
+    DirectConfigurationCommand send{DirectOp::send};
+    send.text.slot = 3;
+    send.text.generation = 9;
+    send.text.message_id = 7;
+    send.text.size = 2;
+    send.text.bytes[0] = 'h';
+    send.text.bytes[1] = 'i';
+    backend.result = {DirectOp::send, DirectStatus::ok};
+    const auto sent = direct_frame(h, 6, send);
+    EXPECT(h.submit(sent).code == Dispatch::accepted);
+    EXPECT(direct_result(h.owner.execute(), sent, 8).status == DirectStatus::ok);
+    EXPECT(backend.command.text.generation == 9 && backend.command.text.size == 2 &&
+           backend.command.text.bytes[1] == 'i');
+    auto event = sent;
+    event.payload[5] = static_cast<std::uint8_t>(DirectOp::received);
+    std::array<std::uint8_t, kConfigurationRecordBytes> record{};
+    EXPECT(!encode_configuration_frame(event, record.data(), record.size()).encoded());
+}
+
+void direct_execution_respects_expiry_and_disconnect() {
+    DirectBackend backend;
+    backend.result = {DirectOp::review, DirectStatus::busy};
+    Harness h(kPublicProfileMinor, nullptr, nullptr, &backend);
+    h.ready();
+    const auto expired = direct_frame(h, 2, {DirectOp::review});
+    EXPECT(h.submit(expired).code == Dispatch::accepted);
+    h.source.state.now_ms = 5000;
+    EXPECT(h.owner.execute().code == Dispatch::no_result && backend.executions == 0);
+
+    backend.hook = [&] { h.source.state.phase = DeviceNamePhase::disconnected; };
+    const auto lost = direct_frame(h, 3, {DirectOp::review});
+    EXPECT(h.submit(lost).code == Dispatch::accepted);
+    EXPECT(h.owner.execute().bytes == 0 && !h.owner.ready() && backend.executions == 1);
+}
 }
 
 void parameters_read_requires_confirmed_same_session_continuation() {
@@ -1067,8 +1214,8 @@ void protected_location_frames_drive_the_actual_board_lease_owner() {
 
 int main(){location_configuration_codec_uses_profile_five_and_canonical_bytes();
     protected_location_frames_drive_the_actual_board_lease_owner();
-    parameters_read_requires_confirmed_same_session_continuation();group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
+    parameters_read_requires_confirmed_same_session_continuation();group_roster_readback_requires_canonical_fragment();group_roster_readback_correlates_position_scope_and_lease();group_backend_availability_is_protected();group_codec_requires_canonical_version_and_length();group_mutations_correlate_and_replay_once();group_execution_respects_expiry_and_disconnect();direct_backend_absence_is_reported_after_ready();direct_results_correlate_and_replay_once();direct_execution_respects_expiry_and_disconnect();pairing_read_requires_selected_v0_ready_and_matching_response();public_profile_dispatch_composition();protected_snapshot_phone_ready();selected_enrollment_requires_exact_ready_lane();ready_capacity_and_exact_fence();shared_challenge_slot_and_replay();deadline_and_queue_consumption();ambiguity_reconciliation_and_authority_loss();lifecycle_and_malformed_snapshot();challenge_expiry_and_disconnect_clock();exhausted_exchange_and_postcommit_deadline();actual_target_lane_composes_with_dispatcher();region_versions_lane_and_catalog();region_uncertainty_lifecycle_and_queue();
     if(failures) return 1;
-    std::cout<<"PASS: composed configuration dispatcher groups, including protected location codec and lease flow\n";
+    std::cout<<"PASS: composed configuration dispatcher groups, including protected location and direct conversation flows\n";
     return 0;
 }
