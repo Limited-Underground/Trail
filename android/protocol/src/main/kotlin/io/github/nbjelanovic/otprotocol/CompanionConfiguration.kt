@@ -155,6 +155,10 @@ object CompanionConfigurationCodec {
                 CompanionGroupConfigurationCodec.validCommand(payload)
             CompanionGroupConfigurationCodec.RESPONSE_KIND -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
                 CompanionGroupConfigurationCodec.decodeResult(payload) != null
+            CompanionDirectConfigurationCodec.REQUEST_KIND -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionDirectConfigurationCodec.decodeCommand(payload) != null
+            CompanionDirectConfigurationCodec.RESPONSE_KIND -> minorVersion == CompanionPublicProfileCodec.PROFILE &&
+                CompanionDirectConfigurationCodec.decodeResult(payload) != null
             7 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(1,2,3)
             0x89 -> minorVersion == CompanionConfirmationCodec.PROFILE && CompanionConfirmationCodec.decode(payload)?.op in listOf(4,5)
             CompanionPublicProfileCodec.REQUEST -> (minorVersion == CompanionPublicProfileCodec.PROFILE || allowProfile06 && minorVersion == PROVISIONAL_RADIO_PROFILE) &&

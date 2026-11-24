@@ -2,6 +2,7 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_device_name_owner.hpp"
 #include "opentrail/companion_group_configuration.hpp"
+#include "opentrail/companion_direct_configuration.hpp"
 #include "opentrail/companion_location_codec.hpp"
 #include "opentrail/companion_region_owner.hpp"
 #include "opentrail/companion_public_profile_owner.hpp"
@@ -50,6 +51,16 @@ public:
         const DeviceNameContext&, const ConfigurationLocationCommand&, std::uint64_t admitted_ms) noexcept = 0;
     virtual void observe(const DeviceNameContext* ready_context, std::uint64_t now_ms) noexcept = 0;
 };
+// Conversations outside a group (F9/A6). Runs on the same serialized app owner.
+// The backend binds the live attachment and admission time itself, answers only
+// the exact operation (and slot for reads), and confirms durable writes before ok.
+class ConfigurationDirectBackend {
+public:
+    virtual ~ConfigurationDirectBackend() = default;
+    [[nodiscard]] virtual bool available() const noexcept = 0;
+    [[nodiscard]] virtual DirectConfigurationResult execute(
+        const DeviceNameContext&, const DirectConfigurationCommand&, std::uint64_t admitted_ms) noexcept = 0;
+};
 struct ConfigurationDispatchResult {
     ConfigurationDispatchCode code{ConfigurationDispatchCode::rejected};
     std::size_t bytes{0};
@@ -68,7 +79,8 @@ public:
     ConfigurationDispatcher(DeviceNameAuthoritySource&, DeviceNamePersistence&, ConfigurationBaseHandler&,
         RegionPersistence* region = nullptr, std::uint8_t selected_minor = 2,
         ConfigurationConfirmationBackend* confirmation = nullptr, PublicProfilePersistence* public_profile = nullptr,
-        ConfigurationGroupBackend* group = nullptr, ConfigurationLocationBackend* location = nullptr);
+        ConfigurationGroupBackend* group = nullptr, ConfigurationLocationBackend* location = nullptr,
+        ConfigurationDirectBackend* direct = nullptr);
     ConfigurationDispatcher(const ConfigurationDispatcher&) = delete;
     ConfigurationDispatcher& operator=(const ConfigurationDispatcher&) = delete;
     [[nodiscard]] ConfigurationDispatchResult submit(const DeviceNameContext&, const std::uint8_t*,
@@ -104,6 +116,7 @@ private:
     ConfigurationConfirmationBackend* confirmation_;
     ConfigurationGroupBackend* group_;
     ConfigurationLocationBackend* location_;
+    ConfigurationDirectBackend* direct_;
     NameSource name_source_;
     TimeSource time_source_;
     DeviceNameOwner name_owner_;
