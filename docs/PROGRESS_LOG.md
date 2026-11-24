@@ -2,6 +2,18 @@
 
 ## 2026-11-24
 
+### OT-0306 Review the QR group join on the board
+
+Each board now reviews a QR group join on its own screen and button, with
+the screens and hold gesture first pairing uses. The board shows its own ID,
+then the other board's ID, before it admits the other board. It then shows an
+8-digit code from the join transcript, the same on both boards, before it
+confirms. Holding too long refuses and cancels the join. A join copy the
+radio drops before launch is now offered again (I-112). Host suites cover the
+screens, gestures, refusals and a full join where both people confirm, and
+all three Heltec builds passed. Roster N+1 and pair activation follow. Part
+of #148.
+
 ### OT-0306 Wire the QR group join to the Link Test radio
 
 In Link Test builds the joiner board now opens the QR join from its live

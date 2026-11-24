@@ -11,14 +11,16 @@
 // identity owner, whichever owner holds it (the retained identity, or the
 // messaging runtime). Nothing runs while first pairing owns the identity.
 //
-// Board review (OLED and button) and pair activation are step 2d. Until then
-// the review port refuses, so a join stops after the Noise handshake and
-// nothing is kept.
+// Each board reviews the join on its own screen and button (step 2d): this
+// board's ID and the other board's ID, then an 8-digit code both boards show.
+// The person holds the button 1 to 3 seconds on each page; a longer hold
+// refuses and ends the join. Pair activation follows in a later step.
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 
+#include "heltec_enrollment_input_arbiter.hpp"
 #include "heltec_group_roster_identity.hpp"
 #include "opentrail/group_qr_invite.hpp"
 #include "opentrail/secure_random.hpp"
@@ -32,7 +34,7 @@ class BoardMessagingRuntime;
 
 class BoardGroupJoinRuntime {
 public:
-    explicit BoardGroupJoinRuntime(security::SecureRandomSource& random);
+    BoardGroupJoinRuntime(HeltecEnrollmentInputArbiter& input, security::SecureRandomSource& random);
     ~BoardGroupJoinRuntime();
     BoardGroupJoinRuntime(const BoardGroupJoinRuntime&) = delete;
     BoardGroupJoinRuntime& operator=(const BoardGroupJoinRuntime&) = delete;
@@ -47,7 +49,12 @@ public:
     void service(std::uint64_t now_ms);
     // The next frame to send now, then the radio's answer.
     bool next(identity::roster::qr::RadioFrame& out);
+    // The radio queue's answer for that frame. An accepted frame counts as
+    // sent only once it launches; one dropped before launch is reported back
+    // (I-112), so its copy is offered again.
     void sent(bool accepted);
+    void launched();
+    void unsent();
     // A join is under way (beacons pause).
     [[nodiscard]] bool active() const;
     // Factory reset or radio loss: ends any join and releases storage.
@@ -59,11 +66,13 @@ private:
     bool prepare();
     bool identity_free() const;
 
+    HeltecEnrollmentInputArbiter& input_;
     security::SecureRandomSource& random_;
     BoardPairingRuntime* pairing_{nullptr};
     BoardMessagingRuntime* messaging_{nullptr};
     Parts* parts_{nullptr};
     std::uint64_t now_{0}, retry_at_{0}, linger_until_{0};
+    bool awaiting_launch_{false};
     std::optional<identity::roster::qr::Nonce> last_opened_;
     bool closed_{false};
 };
