@@ -270,6 +270,10 @@ public:
     LocalResult local(LocalStep step, std::uint64_t /*now_ms*/) {
         if (step == LocalStep::review) return review();
         if (step == LocalStep::confirm) return confirm();
+        if (step == LocalStep::direct_consent) {
+            if (!session_.prepare_direct_review()) return LocalResult::failed;
+            return session_.direct_vote_committed() ? LocalResult::done : LocalResult::pending;
+        }
         if (session_.recoverable_pairing()) {
             const bool done = step == LocalStep::finish ? session_.finish_pairing() : session_.commit_pairing();
             return done ? LocalResult::done : LocalResult::failed;

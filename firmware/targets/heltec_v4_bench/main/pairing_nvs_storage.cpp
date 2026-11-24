@@ -1,4 +1,5 @@
 #include "pairing_nvs_storage.hpp"
+#include "direct_nvs_storage.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -15,7 +16,7 @@
 namespace opentrail::target::heltec_v4_bench {
 namespace {
 constexpr std::size_t kPairingScope = 0, kRosterScope = 1, kCatalogScope = 2, kJoinScope = 3;
-constexpr std::size_t kScopeCount = 4;
+constexpr std::size_t kDirectScope = 4, kScopeCount = 5;
 constexpr auto& kPartition = PairingNvsStorage::kPartition;
 using Catalog = persistence::GroupPairIndex;
 using Roster = identity::roster::DurableGroupRoster;
@@ -45,6 +46,7 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
     {"ot_group_rost", Roster::kStorageRecordBytes, budget::kRosterEntries},
     {"ot_group_idx", Catalog::kMaximumSerializedBytes, budget::kCatalogEntries},
     {JoinClaims::kNamespace, JoinClaims::kRecordBytes, budget::kJoinClaimEntries},
+    {DirectNvsStorage::kNamespace, 0, budget::kDirectEntries - 1},
 }};
 
 // The existing storage lock protects this registry, the partition mount, and
@@ -52,7 +54,9 @@ constexpr std::array<Scope, kScopeCount> kScopes{{
 // retirement, including the interval before register_pairing_storage().
 PairingNvsStorage* g_pairing_owner = nullptr;
 bool g_pairing_registered = false;
-std::array<GroupNvsStorage*, kScopeCount - 1> g_group_owners{};
+// Group owners: roster, catalog and join claims.
+std::array<GroupNvsStorage*, kDirectScope - 1> g_group_owners{};
+DirectNvsStorage* g_direct_owner = nullptr;
 std::array<bool, kScopeCount> g_namespaces{};
 // Roster keys g0 to g3, then the catalog, then the join claims.
 constexpr std::size_t kGroupKeys = Catalog::kMaximumGroups + 2;
@@ -67,6 +71,140 @@ std::size_t g_d112_tuples = 0;
 constexpr unsigned kLegacyLaneFirst = static_cast<unsigned>(PairingNvsStorage::Store::packet_data_tx);
 constexpr unsigned kLaneCount = 4;
 std::optional<PairingNvsEntryUsage> g_entry_usage;
+
+constexpr unsigned kDirectStoreCount = 18;
+constexpr unsigned kDirectCoordinates = kDirectStoreCount * pairing_key::kDomains * pairing_key::kSlots;
+constexpr unsigned kDirectAttemptSlots = budget::kPairingAttemptSlots;
+static_assert(kDirectAttemptSlots <= 0xff && DirectNvsStorage::kScopeCount <= 0xf);
+
+struct DirectKey {
+    unsigned scope, physical, generation, store, domain, slot;
+
+    bool valid() const {
+        if (scope >= DirectNvsStorage::kScopeCount || physical > kDirectAttemptSlots ||
+            generation > kDirectAttemptSlots || domain >= pairing_key::kDomains ||
+            slot >= pairing_key::kSlots || (physical == 0) != (generation == 0)) return false;
+        if (generation) return store < 5 || store == 11;
+        return store < 7 || (store >= 8 && store <= 10) || journal();
+    }
+
+    bool journal() const { return store == 12 || store == 17; }
+    std::size_t index() const { return (store * pairing_key::kDomains + domain) * pairing_key::kSlots + slot; }
+
+    bool format(pairing_key::Key& key) const {
+        return valid() && std::snprintf(key, sizeof(key), "d%x%02x%02x%02x%x%x",
+            scope, physical, generation, store, domain, slot) == 10;
+    }
+
+    static std::optional<DirectKey> parse(const char* key) {
+        if (std::strlen(key) != 10 || key[0] != 'd') return std::nullopt;
+        unsigned hex[9]{};
+        for (std::size_t i = 0; i < 9; ++i) {
+            const auto digit = pairing_key::hex_digit(key[i + 1]);
+            if (digit < 0) return std::nullopt;
+            hex[i] = static_cast<unsigned>(digit);
+        }
+        const DirectKey parsed{hex[0], hex[1] * 16 + hex[2], hex[3] * 16 + hex[4],
+                               hex[5] * 16 + hex[6], hex[7], hex[8]};
+        return parsed.valid() ? std::optional{parsed} : std::nullopt;
+    }
+};
+
+using DirectCoordinates = std::bitset<kDirectCoordinates>;
+struct DirectFixed {
+    DirectCoordinates known;
+    std::size_t d112{};
+};
+struct DirectAttempt {
+    DirectCoordinates known;
+    unsigned scope{}, generation{};
+};
+
+std::array<DirectFixed, DirectNvsStorage::kScopeCount> g_direct_fixed{};
+std::array<DirectAttempt, kDirectAttemptSlots> g_direct_attempts{};
+bool g_direct_catalog = false;
+
+// A physical attempt is shared across all scopes, while each D-112 ledger
+// numbers its own generations. The key pins both values on retained media.
+unsigned direct_attempt_slot(unsigned scope, unsigned generation) {
+    for (unsigned i = 0; i < g_direct_attempts.size(); ++i) {
+        const auto& attempt = g_direct_attempts[i];
+        if (attempt.generation == generation && attempt.scope == scope) return i + 1;
+    }
+    return 0;
+}
+
+unsigned direct_free_attempt() {
+    for (unsigned i = 0; i < g_direct_attempts.size(); ++i)
+        if (!g_direct_attempts[i].generation) return i + 1;
+    return 0;
+}
+
+bool direct_tuple_known(const DirectKey& key) {
+    return key.generation ? g_direct_attempts[key.physical - 1].known[key.index()]
+                          : g_direct_fixed[key.scope].known[key.index()];
+}
+
+bool direct_admits_tuple(const DirectKey& key) {
+    if (key.generation) {
+        const auto& attempt = g_direct_attempts[key.physical - 1];
+        return (!attempt.generation || (attempt.scope == key.scope && attempt.generation == key.generation)) &&
+               attempt.known.count() < budget::kD112TuplesPerAttempt &&
+               (direct_attempt_slot(key.scope, key.generation) == 0 ||
+                direct_attempt_slot(key.scope, key.generation) == key.physical);
+    }
+    return key.journal() || g_direct_fixed[key.scope].d112 < budget::kD112FixedTuples;
+}
+
+void direct_record_tuple(const DirectKey& key, bool present) {
+    if (key.generation) {
+        auto& attempt = g_direct_attempts[key.physical - 1];
+        attempt.known.set(key.index(), present);
+        attempt.scope = key.scope;
+        attempt.generation = attempt.known.any() ? key.generation : 0;
+        return;
+    }
+    auto& fixed = g_direct_fixed[key.scope];
+    fixed.known.set(key.index(), present);
+    if (!key.journal()) {
+        if (present) ++fixed.d112;
+        else --fixed.d112;
+    }
+}
+
+bool direct_inventory_entry(const char* key, std::size_t bytes) {
+    if (std::strcmp(key, DirectNvsStorage::kCatalogKey) == 0) {
+        if (g_direct_catalog || bytes != DirectNvsStorage::kCatalogBytes) return false;
+        g_direct_catalog = true;
+        return true;
+    }
+    const auto tuple = DirectKey::parse(key);
+    if (!tuple || bytes != budget::kTupleBytes || direct_tuple_known(*tuple) || !direct_admits_tuple(*tuple))
+        return false;
+    direct_record_tuple(*tuple, true);
+    return true;
+}
+
+std::optional<DirectKey> direct_key(unsigned scope, std::uint64_t generation, unsigned store,
+                                   DirectNvsStorage::Domain domain, std::size_t slot,
+                                   bool allocate = false) {
+    if (generation > kDirectAttemptSlots || slot >= pairing_key::kSlots) return std::nullopt;
+    const auto logical = static_cast<unsigned>(generation);
+    auto physical = logical ? direct_attempt_slot(scope, logical) : 0;
+    if (logical && !physical) physical = allocate ? direct_free_attempt() : 1;
+    const DirectKey key{scope, physical, logical, store, static_cast<unsigned>(domain), static_cast<unsigned>(slot)};
+    return key.valid() ? std::optional{key} : std::nullopt;
+}
+
+void wipe_direct_bytes(volatile std::uint8_t* data, std::size_t bytes) {
+    for (std::size_t i = 0; i < bytes; ++i) data[i] = 0;
+}
+
+bool direct_catalog_address(const char* partition_label, const char* namespace_name) {
+    return partition_label != nullptr && namespace_name != nullptr &&
+           std::strcmp(partition_label, kPartition) == 0 &&
+           std::strcmp(namespace_name, DirectNvsStorage::kNamespace) == 0;
+}
 
 // One recursive lock serializes every storage operation with retire() and the
 // factory-reset hook, which may run on another task (review R2A-6): reset waits
@@ -145,8 +283,9 @@ bool valid_entry(const nvs_entry_info_t& info, const ReadOnlyHandles& handles) {
     const auto scope = scope_named(info.namespace_name);
     if (scope == kScopeCount || handles.values[scope] == 0) return false;
     std::size_t size = 0;
-    if (nvs_get_blob(handles.values[scope], info.key, nullptr, &size) != ESP_OK ||
-        size != kScopes[scope].record_bytes) return false;
+    if (nvs_get_blob(handles.values[scope], info.key, nullptr, &size) != ESP_OK) return false;
+    if (scope == kDirectScope) return direct_inventory_entry(info.key, size);
+    if (size != kScopes[scope].record_bytes) return false;
     if (scope == kPairingScope) return pairing_key_valid(info.key);
     const auto slot = group_record_slot(scope, info.key);
     if (slot == kGroupKeys || g_group_records[slot]) return false;
@@ -159,6 +298,9 @@ void unmount_partition() {
     g_unmount_uncertain = status != ESP_OK && status != ESP_ERR_NVS_NOT_INITIALIZED;
     g_namespaces.fill(false);
     g_group_records.fill(false);
+    g_direct_fixed.fill({});
+    g_direct_attempts.fill({});
+    g_direct_catalog = false;
     g_media_uncertain = false;
     g_sealed = false;
     g_pairing_tuples = 0;
@@ -368,6 +510,7 @@ bool retire_pairing_storage_for_reset() {
     g_entry_usage.reset();
     if (g_pairing_owner != nullptr) g_pairing_owner->retire();
     for (auto* owner : g_group_owners) if (owner != nullptr) owner->retire();
+    if (g_direct_owner != nullptr) g_direct_owner->retire();
     return g_mount_users == 0 && !g_unmount_uncertain;
 }
 
@@ -547,6 +690,21 @@ bool PairingNvsStorage::retire_packets(const PacketClaim& claim) {
     auto record = packet_records_[claim.slot_ - 1];
     record.state = PacketState::retired;
     return save_packet_record(claim.slot_, record);
+}
+
+bool PairingNvsStorage::retire_packets(const PacketOwner& owner, std::uint64_t generation) {
+    Guard guard;
+    if (!good_ || owner == PacketOwner{} || !generation ||
+        generation > std::numeric_limits<std::uint32_t>::max()) return false;
+    for (unsigned slot = 1; slot <= kCapacity; ++slot) {
+        auto record = packet_records_[slot - 1];
+        if (record.owner != owner) continue;
+        if (record.state == PacketState::retired) return true;
+        if (record.generation != generation) return false;
+        record.state = PacketState::retired;
+        return save_packet_record(slot, record);
+    }
+    return true;
 }
 
 unsigned PairingNvsStorage::PacketView::lane_namespace() const {
@@ -918,4 +1076,319 @@ GroupNvsStorage::Error GroupNvsStorage::fault() {
     return Error::io_failure;
 }
 
+
+DirectNvsStorage::DirectNvsStorage()
+    : scopes_{{{*this, 0}, {*this, 1}, {*this, 2}, {*this, 3},
+               {*this, 4}, {*this, 5}, {*this, 6}, {*this, 7}}} {
+    static_assert(kScopeCount == 8);
+}
+
+DirectNvsStorage::~DirectNvsStorage() { retire(); }
+
+bool DirectNvsStorage::ready() {
+    Guard guard;
+    if (retired_ || g_reset_retired || g_media_uncertain) return false;
+    if (mounted_) return good_;
+    if (g_direct_owner != nullptr || !PairingNvsStorage::acquire_partition()) return false;
+    mounted_ = true;
+    g_direct_owner = this;
+    const auto status = nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle_);
+    good_ = status == (g_namespaces[kDirectScope] ? ESP_OK : ESP_ERR_NVS_NOT_FOUND);
+    if (!good_) (void)fault();
+    return good_;
+}
+
+void DirectNvsStorage::retire() {
+    Guard guard;
+    retired_ = true;
+    good_ = false;
+    clear_stage();
+    if (handle_ != 0) { nvs_close(handle_); handle_ = 0; }
+    if (mounted_) {
+        g_direct_owner = nullptr;
+        release_partition();
+        mounted_ = false;
+    }
+}
+
+void DirectNvsStorage::clear_stage() {
+    wipe_direct_bytes(staged_.data(), staged_size_);
+    staged_size_ = 0;
+    staged_key_.fill(0);
+    erase_staged_ = false;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::fault() {
+    g_media_uncertain = true;
+    good_ = false;
+    clear_stage();
+    return KvError::io_failure;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::read_record(const char* key, bool known,
+    std::uint8_t* output, std::size_t bytes) {
+    std::size_t size = 0;
+    const auto status = handle_ != 0 ? nvs_get_blob(handle_, key, nullptr, &size) : ESP_ERR_NVS_NOT_FOUND;
+    if (status == ESP_ERR_NVS_NOT_FOUND && !known) return KvError::not_found;
+    if (status != ESP_OK || !known || size != bytes ||
+        nvs_get_blob(handle_, key, output, &size) != ESP_OK || size != bytes) return fault();
+    return KvError::none;
+}
+
+bool DirectNvsStorage::commit_record(const char* key, bool known, const std::uint8_t* data,
+                                     std::size_t bytes, bool erase) {
+    const auto prior = read_record(key, known, verify_.data(), bytes);
+    wipe_direct_bytes(verify_.data(), bytes);
+    if (prior != (known ? KvError::none : KvError::not_found)) return false;
+    if (!known && erase) return true;
+    if (!authorize_write(kDirectScope, handle_, erase ? 0 : bytes, !known)) return false;
+    if (!writable_) {
+        nvs_handle_t writable = 0;
+        if (!open_writable(kDirectScope, writable)) return false;
+        if (handle_ != 0) nvs_close(handle_);
+        handle_ = writable;
+        writable_ = true;
+    }
+
+    const auto status = erase ? nvs_erase_key(handle_, key) : nvs_set_blob(handle_, key, data, bytes);
+    if (status != ESP_OK || nvs_commit(handle_) != ESP_OK) { (void)fault(); return false; }
+    const auto observed = read_record(key, !erase, verify_.data(), bytes);
+    const bool verified = erase ? observed == KvError::not_found
+                                : observed == KvError::none && std::equal(data, data + bytes, verify_.begin());
+    wipe_direct_bytes(verify_.data(), bytes);
+    nvs_stats_t stats{};
+    if (!verified || !partition_stats(stats) || !within_budget(kDirectScope, handle_, stats)) {
+        (void)fault();
+        return false;
+    }
+    return true;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::read_blob(const char* partition_label, const char* namespace_name,
+    const char* key, std::uint8_t* data, std::size_t capacity, std::size_t& actual) {
+    Guard guard;
+    actual = 0;
+    if (!direct_catalog_address(partition_label, namespace_name) || key == nullptr ||
+        std::strcmp(key, kCatalogKey) != 0 || data == nullptr || capacity < kCatalogBytes)
+        return KvError::invalid_argument;
+    if (!ready()) return KvError::io_failure;
+    const auto result = read_record(key, g_direct_catalog, verify_.data(), kCatalogBytes);
+    if (result == KvError::none) {
+        std::copy_n(verify_.begin(), kCatalogBytes, data);
+        actual = kCatalogBytes;
+    }
+    wipe_direct_bytes(verify_.data(), kCatalogBytes);
+    return result;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::write_blob(const char* partition_label, const char* namespace_name,
+    const char* key, const std::uint8_t* data, std::size_t size) {
+    Guard guard;
+    if (!direct_catalog_address(partition_label, namespace_name) || key == nullptr ||
+        std::strcmp(key, kCatalogKey) != 0 || data == nullptr || size != kCatalogBytes)
+        return KvError::invalid_argument;
+    if (!ready()) return KvError::io_failure;
+    if (staged_size_) return fault();
+    std::copy_n(data, size, staged_.begin());
+    staged_size_ = size;
+    return KvError::none;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::erase_key(const char*, const char*, const char*) {
+    return KvError::invalid_argument;
+}
+
+DirectNvsStorage::KvError DirectNvsStorage::commit(const char* partition_label, const char* namespace_name) {
+    Guard guard;
+    if (!direct_catalog_address(partition_label, namespace_name)) return KvError::invalid_argument;
+    if (!ready()) return KvError::io_failure;
+    if (!staged_size_) return KvError::none;
+    if (staged_size_ != kCatalogBytes) return fault();
+    const bool ok = commit_record(kCatalogKey, g_direct_catalog, staged_.data(), kCatalogBytes, false);
+    clear_stage();
+    if (ok) g_direct_catalog = true;
+    return ok ? KvError::none : KvError::io_failure;
+}
+
+persistence::StorageReadResult DirectNvsStorage::read_tuple(Coordinate c,
+    persistence::MutableStorageByteView out) {
+    Guard guard;
+    const auto tuple = direct_key(c.scope, c.generation, c.store, c.domain, c.slot);
+    if (!tuple || !out.data || out.size != budget::kTupleBytes) return {Error::invalid_argument, 0};
+    if (!ready()) return {Error::io_failure, 0};
+    pairing_key::Key key{};
+    if (!tuple->format(key)) return {Error::invalid_argument, 0};
+    const auto staged_tuple = staged_size_ == out.size ? DirectKey::parse(staged_key_.data()) : std::nullopt;
+    if (staged_tuple && staged_tuple->scope == c.scope && staged_tuple->generation == c.generation &&
+        staged_tuple->index() == tuple->index()) {
+        std::copy_n(staged_.begin(), out.size, out.data);
+        return {Error::none, out.size};
+    }
+    const bool mapped = !c.generation || direct_attempt_slot(c.scope, tuple->generation);
+    const auto status = read_record(key, mapped && direct_tuple_known(*tuple), verify_.data(), out.size);
+    if (status == KvError::none) std::copy_n(verify_.begin(), out.size, out.data);
+    if (status == KvError::not_found) std::fill_n(out.data, out.size, 0xff);
+    wipe_direct_bytes(verify_.data(), out.size);
+    return status == KvError::io_failure ? persistence::StorageReadResult{Error::io_failure, 0}
+                                        : persistence::StorageReadResult{Error::none, out.size};
+}
+
+bool DirectNvsStorage::stage_tuple(Coordinate c) {
+    const auto tuple = direct_key(c.scope, c.generation, c.store, c.domain, c.slot, true);
+    pairing_key::Key key{};
+    if (!tuple || !tuple->format(key)) return false;
+    if (staged_size_) {
+        if (staged_size_ == budget::kTupleBytes && std::strcmp(key, staged_key_.data()) == 0) return true;
+        (void)fault();
+        return false;
+    }
+    const auto status = read_record(key, direct_tuple_known(*tuple), staged_.data(), budget::kTupleBytes);
+    if (status == KvError::io_failure) {
+        wipe_direct_bytes(staged_.data(), budget::kTupleBytes);
+        return false;
+    }
+    if (status == KvError::not_found) std::fill_n(staged_.begin(), budget::kTupleBytes, 0xff);
+    std::copy_n(key, sizeof(key), staged_key_.begin());
+    staged_size_ = budget::kTupleBytes;
+    return true;
+}
+
+DirectNvsStorage::Error DirectNvsStorage::erase_tuple(Coordinate c) {
+    Guard guard;
+    if (!direct_key(c.scope, c.generation, c.store, c.domain, c.slot)) return Error::invalid_argument;
+    if (!ready() || !stage_tuple(c)) return Error::io_failure;
+    std::fill_n(staged_.begin(), staged_size_, 0xff);
+    erase_staged_ = true;
+    return Error::none;
+}
+
+DirectNvsStorage::Error DirectNvsStorage::write_tuple(Coordinate c, std::size_t offset,
+                                                       persistence::StorageByteView in) {
+    Guard guard;
+    if (!direct_key(c.scope, c.generation, c.store, c.domain, c.slot) ||
+        !in.data || in.size == 0 || offset > budget::kTupleBytes || in.size > budget::kTupleBytes - offset)
+        return Error::invalid_argument;
+    const bool had_stage = staged_size_ != 0;
+    if (!ready() || !stage_tuple(c)) return Error::io_failure;
+    for (std::size_t i = 0; i < in.size; ++i)
+        if ((staged_[offset + i] & in.data[i]) != in.data[i]) {
+            if (!had_stage) clear_stage();
+            return Error::write_requires_erase;
+        }
+    std::copy_n(in.data, in.size, staged_.begin() + offset);
+    erase_staged_ = false;
+    return Error::none;
+}
+
+DirectNvsStorage::Error DirectNvsStorage::sync_tuple(Coordinate c) {
+    Guard guard;
+    if (!direct_key(c.scope, c.generation, c.store, c.domain, c.slot)) return Error::invalid_argument;
+    if (!ready()) return Error::io_failure;
+    if (!staged_size_) return Error::none;
+    const auto tuple = direct_key(c.scope, c.generation, c.store, c.domain, c.slot, true);
+    pairing_key::Key key{};
+    if (!tuple || !tuple->format(key) || staged_size_ != budget::kTupleBytes ||
+        std::strcmp(key, staged_key_.data()) != 0) {
+        (void)fault();
+        return Error::io_failure;
+    }
+    const bool known = direct_tuple_known(*tuple);
+    const bool erase = erase_staged_;
+    const bool ok = (known || erase || direct_admits_tuple(*tuple)) &&
+        commit_record(key, known, staged_.data(), staged_size_, erase);
+    clear_stage();
+    if (ok && known == erase) direct_record_tuple(*tuple, !erase);
+    return ok ? Error::none : Error::io_failure;
+}
+
+bool DirectNvsStorage::clear_scope(std::size_t slot) {
+    Guard guard;
+    if (slot >= scopes_.size() || !ready() || staged_size_) return false;
+    const auto scope = static_cast<unsigned>(slot);
+    const auto clear = [this, scope](unsigned physical, unsigned generation, const DirectCoordinates& known) {
+        for (unsigned i = 0; i < known.size(); ++i) {
+            if (!known[i]) continue;
+            constexpr unsigned domains = pairing_key::kDomains;
+            constexpr unsigned slots = pairing_key::kSlots;
+            const DirectKey tuple{scope, physical, generation, i / (domains * slots), (i / slots) % domains,
+                                  i % slots};
+            pairing_key::Key key{};
+            if (!tuple.format(key) || !commit_record(key, true, nullptr, budget::kTupleBytes, true)) return false;
+            direct_record_tuple(tuple, false);
+        }
+        return true;
+    };
+    if (!clear(0, 0, g_direct_fixed[slot].known)) return false;
+    for (unsigned i = 0; i < g_direct_attempts.size(); ++i) {
+        const auto& attempt = g_direct_attempts[i];
+        if (attempt.generation && attempt.scope == scope && !clear(i + 1, attempt.generation, attempt.known))
+            return false;
+    }
+    return true;
+}
+
+DirectNvsStorage::Scope::Scope(DirectNvsStorage& owner, unsigned slot)
+    : owner_(owner), slot_(slot), denied_(*this, kDirectStoreCount),
+      external_{{{*this, static_cast<unsigned>(Store::journal)}, {*this, static_cast<unsigned>(Store::binding)},
+                  {*this, static_cast<unsigned>(Store::boot)}, {*this, static_cast<unsigned>(Store::f5_state)},
+                  {*this, static_cast<unsigned>(Store::f5_state_tail)}}} {}
+
+persistence::PersistentStorage& DirectNvsStorage::Scope::external(Store store) {
+    switch (store) {
+    case Store::journal: return external_[0];
+    case Store::binding: return external_[1];
+    case Store::boot: return external_[2];
+    case Store::f5_state: return external_[3];
+    case Store::f5_state_tail: return external_[4];
+    default: return denied_;
+    }
+}
+
+persistence::PersistentStorage* DirectNvsStorage::Scope::archive_storage(std::uint64_t generation) {
+    Guard guard;
+    if (generation == 0 || generation > archives_.size() || !owner_.ready()) return nullptr;
+    auto& view = archives_[static_cast<std::size_t>(generation - 1)];
+    if (!view) view.emplace(*this, static_cast<unsigned>(Store::completion), generation);
+    return &*view;
+}
+
+persistence::StorageReadResult DirectNvsStorage::Scope::read(std::uint64_t g, Namespace n, Domain d,
+    std::size_t s, persistence::MutableStorageByteView out) {
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(Namespace::count)) return {Error::invalid_argument, 0};
+    return owner_.read_tuple({slot_, g, static_cast<unsigned>(n), d, s}, out);
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::erase(std::uint64_t g, Namespace n, Domain d, std::size_t s) {
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(Namespace::count)) return Error::invalid_argument;
+    return owner_.erase_tuple({slot_, g, static_cast<unsigned>(n), d, s});
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::write(std::uint64_t g, Namespace n, Domain d,
+    std::size_t s, std::size_t offset, persistence::StorageByteView in) {
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(Namespace::count)) return Error::invalid_argument;
+    return owner_.write_tuple({slot_, g, static_cast<unsigned>(n), d, s}, offset, in);
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::sync(std::uint64_t g, Namespace n, Domain d, std::size_t s) {
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(Namespace::count)) return Error::invalid_argument;
+    return owner_.sync_tuple({slot_, g, static_cast<unsigned>(n), d, s});
+}
+
+persistence::StorageReadResult DirectNvsStorage::Scope::View::read_slot(Domain d, std::size_t s,
+    persistence::MutableStorageByteView out) {
+    return scope_.owner_.read_tuple({scope_.slot_, generation_, store_, d, s}, out);
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::View::erase_slot(Domain d, std::size_t s) {
+    return scope_.owner_.erase_tuple({scope_.slot_, generation_, store_, d, s});
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::View::write_slot(Domain d, std::size_t s, std::size_t offset,
+    persistence::StorageByteView in) {
+    return scope_.owner_.write_tuple({scope_.slot_, generation_, store_, d, s}, offset, in);
+}
+
+DirectNvsStorage::Error DirectNvsStorage::Scope::View::sync_slot(Domain d, std::size_t s) {
+    return scope_.owner_.sync_tuple({scope_.slot_, generation_, store_, d, s});
+}
 }  // namespace opentrail::target::heltec_v4_bench

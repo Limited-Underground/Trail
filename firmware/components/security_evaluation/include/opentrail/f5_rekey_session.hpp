@@ -151,6 +151,11 @@ public:
         output=staged;return true;
     }
     bool ready(){Guard guard(*this);return guard && current() && active_lease()!=nullptr;}
+    bool ready_for_scope(const InvitationKey& peer, const InvitationKey& scope, std::uint64_t purpose) {
+        Guard guard(*this);
+        return guard && peer_ == peer && trust_scope_ == scope && conversation_ == purpose &&
+            current() && active_lease() != nullptr;
+    }
     bool initiator()const{return candidate_.present?candidate_.initiating_member==member_:member_==1;}
     bool failed()const{return failed_;}
     bool candidate_active()const{return candidate_.present && candidate_.phase!=7;}

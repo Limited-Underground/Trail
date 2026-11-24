@@ -268,9 +268,29 @@ def run(output, cached_component=None):
               [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
               [f5_target], (), " Companion GATT layout migration groups")
         suite("f5_pairing_nvs_tests",
-              [f5_target / "pairing_nvs_storage.cpp", ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
-              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, f5_components / "identity/include"],
+              [f5_target / "pairing_nvs_storage.cpp", f5_components / "companion/src/direct_conversation_owner.cpp",
+               ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, f5_components / "companion/include", *base, f5_components / "identity/include"],
               (), " actual F5 pairing NVS host groups")
+        suite("direct_conversation_owner_tests",
+              [f5_components / "companion/src/direct_conversation_owner.cpp",
+               ROOT / "tests/host/direct_conversation_owner_tests.cpp"],
+              [f5_components / "companion/include", *base], (),
+              " direct-conversation owner scenario groups")
+        suite("direct_protected_text_tests",
+              [*common, *f5_sources, f5_components / "companion/src/direct_conversation_owner.cpp",
+               f5_components / "companion/src/companion_device_name_owner.cpp",
+               f5_components / "companion/src/companion_device_name_codec.cpp",
+               f5_components / "companion/src/direct_text_session.cpp", f5_target / "pairing_nvs_storage.cpp",
+               ROOT / "tests/host/f5_pairing_nvs_tests.cpp", ROOT / "tests/host/direct_protected_text_tests.cpp"],
+              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, *f5_includes,
+               f5_components / "identity/include"], (), " direct protected text groups",
+              defines=("-DOPENTRAIL_HOST_F5_NVS_FIXTURE=1",))
+        suite("companion_direct_configuration_tests",
+              [f5_components / "companion/src/companion_direct_configuration.cpp",
+               ROOT / "tests/host/companion_direct_configuration_tests.cpp"],
+              [f5_components / "companion/include", *base], (), " direct configuration vectors",
+              [str(ROOT / "tests/fixtures/companion_direct_configuration_v1.tsv")])
         suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
               base, (), " pairing completion journal groups")
         suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
@@ -485,7 +505,8 @@ def run(output, cached_component=None):
             elif name in ("enrollment_candidate_capture_runner_tests",
                           "enrollment_candidate_predevice_resume_tests"):
                 need(not extra, "grouped_test_extra_arguments_refused")
-                timeout = 300 if name == "enrollment_candidate_capture_runner_tests" else 90
+                # Each capture runner half takes about 260 s on an idle PC.
+                timeout = 900 if name == "enrollment_candidate_capture_runner_tests" else 90
                 for index, selectors in enumerate(unittest_groups(path, 2, name), 1):
                     sibling = f"{name}_part{index}"
                     completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *selectors],
@@ -498,7 +519,9 @@ def run(output, cached_component=None):
             else:
                 completed = commands.run([sys.executable, "-X", "utf8", "-B", path, *extra],
                     env=env, check=True, timeout={"enrollment_candidate_budget_adoption_tests": 600,
-                             "enrollment_candidate_runner_tests": 600}.get(name, 90))
+                             "enrollment_candidate_runner_tests": 600,
+                             # 55 timing-based cases: about 45 s idle, over 90 s on a loaded PC.
+                             "enrollment_candidate_operator_tests": 300}.get(name, 90))
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}
             print(name + " passed", flush=True)

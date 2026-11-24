@@ -39,7 +39,7 @@
 
 namespace opentrail::protocol::pairing {
 
-enum class LocalStep : std::uint8_t { review, confirm, commit, finish };
+enum class LocalStep : std::uint8_t { review, confirm, commit, finish, direct_consent };
 enum class LocalResult : std::uint8_t { pending, done, failed };
 
 enum class StepKind : std::uint8_t { send, receive, local };
@@ -198,6 +198,7 @@ struct Limits {
     // the peer, so it never answers into the rest of the peer's burst (a simple
     // stand-in for listen-before-talk; review of I-057). 0 disables.
     std::uint64_t quiet_after_rx_ms{500};
+    bool direct_completion{false};
 };
 
 enum class Outcome : std::uint8_t { running, paired, failed };
@@ -228,7 +229,8 @@ public:
 
     // The owner has already started the session for this request.
     bool begin(std::uint64_t now_ms) {
-        if (begun_ || !code_valid(code_) || limits_.max_sends == 0 || limits_.hello_max_sends == 0) {
+        if (begun_ || !code_valid(code_) || limits_.max_sends == 0 || limits_.hello_max_sends == 0 ||
+            (limits_.direct_completion && !limits_.peer_confirmed_completion && !limits_.recovery_completion)) {
             return fail(FailReason::bad_state);
         }
         begun_ = true;
@@ -480,6 +482,18 @@ private:
     bool advance(std::uint64_t now_ms) {
         while (step_ < script_steps_) {
             const Step& st = own_[step_];
+            if (limits_.direct_completion && !direct_consent_passed_ && st.frame == FrameType::prepared) {
+                // Both roles wait before touching their first Prepared. In
+                // particular the responder can review before receiving A's vote.
+                if (unsent_pending()) return true;
+                std::uint64_t left = 0;
+                if (!remaining(now_ms, left)) return fail(FailReason::local_failed);
+                if (left < limits_.final_step_reserve_ms) return fail(FailReason::expired);
+                const auto consent = adapter_.local(LocalStep::direct_consent, now_ms);
+                if (consent == LocalResult::pending) return true;
+                if (consent != LocalResult::done) return fail(FailReason::local_failed);
+                direct_consent_passed_ = true;
+            }
             if (st.kind == StepKind::send) {
                 if (sent_count_ == kSlots) return fail(FailReason::frame_store_full);
                 if (final_frame(st.frame)) {
@@ -619,6 +633,7 @@ private:
         return type == FrameType::control || type == FrameType::prepared || type == FrameType::committed;
     }
     std::uint8_t version() const {
+        if (limits_.direct_completion) return kDirectCompletionVersion;
         return limits_.peer_confirmed_completion || limits_.recovery_completion ? kCompletionVersion : kVersion;
     }
 
@@ -647,6 +662,7 @@ private:
     std::uint64_t now_ms_{0};  // of the current service()
     std::uint64_t heard_ms_{0};
     bool begun_{false};
+    bool direct_consent_passed_{};
     Outcome outcome_{Outcome::running};
     FailReason reason_{FailReason::none};
 };

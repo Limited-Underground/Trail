@@ -1,5 +1,6 @@
 #include "opentrail/companion_configuration_codec.hpp"
 #include "opentrail/companion_group_configuration.hpp"
+#include "opentrail/companion_direct_configuration.hpp"
 #include "opentrail/companion_location_codec.hpp"
 #include "opentrail/companion_device_name_codec.hpp"
 #include "opentrail/companion_confirmation_codec.hpp"
@@ -93,6 +94,12 @@ bool frame_valid(const ConfigurationFrame& f) {
     case kConfigurationGroupCommandKind:
         return f.minor_version == kPublicProfileMinor &&
             decode_group_configuration_command(f.payload.data(), f.payload_bytes).decoded();
+    case kConfigurationDirectCommandKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_direct_configuration_command(f.payload.data(), f.payload_bytes).decoded();
+    case kConfigurationDirectResultKind:
+        return f.minor_version == kPublicProfileMinor &&
+            decode_direct_configuration_result(f.payload.data(), f.payload_bytes).decoded();
     case kConfigurationGroupResultKind:
         return f.minor_version == kPublicProfileMinor &&
             decode_group_configuration_result(f.payload.data(), f.payload_bytes).decoded();
