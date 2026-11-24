@@ -1,6 +1,8 @@
 #include "opentrail/companion_group_owner.hpp"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
 #include <limits>
 
 namespace opentrail::companion {
@@ -365,6 +367,116 @@ GroupConfigurationResult ConfigurationGroupOwner::join(const DeviceNameContext& 
     result.scope = {admin, descriptor.group, descriptor.roster_digest};
     result.invite.invite_id = descriptor.invite_id;
     return result;
+}
+
+Error ConfigurationGroupOwner::open_qr_group(const roster::qr::Descriptor& d, roster::DurableRosterSnapshot& snapshot) {
+    const auto* signer = platform_.prepare();
+    roster::Fingerprint fingerprint{};
+    if (!signer || signer->public_key() != d.admin || !crypto_.fingerprint(signer->public_key(), fingerprint) ||
+        fingerprint == roster::Fingerprint{}) return Error::refused;
+    roster_.reset();
+    index_.emplace(catalog_, fingerprint);
+    if (index_->reopen() != IndexError::none) return Error::storage_failure;
+    auto& slots = slots_;
+    slots = {};
+    if (!inspect(signer->public_key(), slots)) return Error::storage_failure;
+    const auto selected = std::find_if(slots.begin(), slots.end(), [&](const Slot& slot) {
+        return slot.group_id != 0 && slot.group_id == d.group && slot.admin == d.admin;
+    });
+    if (selected == slots.end()) return Error::invalid_scope;
+    const auto opened = load_snapshot(*selected, snapshot);
+    if (opened != Error::none) return opened;
+    if (snapshot.state != roster::State::active || snapshot.group.group_id != d.group) return Error::refused;
+    return Error::none;
+}
+
+bool ConfigurationGroupOwner::qr_join_roster(const roster::qr::Descriptor& d, roster::Roster& out) noexcept {
+    roster::DurableRosterSnapshot snapshot{};
+    roster::Roster current{};
+    if (open_qr_group(d, snapshot) != Error::none || snapshot.version != d.roster_version ||
+        snapshot.digest != d.roster_digest ||
+        roster::decode(roster_bytes_.data(), snapshot.bytes, current) != roster::FormatError::none ||
+        current.version != snapshot.version) return false;
+    out = current;
+    return true;
+}
+
+bool ConfigurationGroupOwner::qr_join_member_alias(const roster::Roster& current,
+    std::array<char, roster::kMaximumAliasBytes>& out, std::size_t& size) noexcept {
+    for (unsigned n = 2; n <= roster::kMaximumMembers + 1; ++n) {
+        std::array<char, roster::kMaximumAliasBytes + 1> text{};
+        const int written = std::snprintf(text.data(), text.size(), "Member %u", n);
+        if (written <= 0 || static_cast<std::size_t>(written) > roster::kMaximumAliasBytes) return false;
+        const auto length = static_cast<std::size_t>(written);
+        const bool used = std::any_of(current.members.begin(), current.members.begin() + current.member_count,
+            [&](const roster::Member& m) {
+                return m.alias_bytes == length && std::memcmp(m.alias.data(), text.data(), length) == 0;
+            });
+        if (used) continue;
+        std::copy_n(text.begin(), length, out.begin());
+        size = length;
+        return true;
+    }
+    return false;
+}
+
+GroupConfigurationStatus ConfigurationGroupOwner::add_qr_join_member(const roster::qr::Descriptor& d,
+    const roster::PublicKey& joiner, std::string_view alias, std::uint8_t* out, std::size_t capacity,
+    std::size_t& size) noexcept {
+    size = 0;
+    if (out == nullptr) return Status::refused;
+    roster::DurableRosterSnapshot snapshot{};
+    const auto opened = open_qr_group(d, snapshot);
+    if (opened == Error::invalid_scope) return Status::stale;
+    if (opened != Error::none) return opened == Error::refused ? Status::refused : Status::uncertain;
+    if (snapshot.version != d.roster_version || snapshot.digest != d.roster_digest) return Status::stale;
+    auto& current = candidate_;
+    current = {};
+    if (roster::decode(roster_bytes_.data(), snapshot.bytes, current) != roster::FormatError::none ||
+        current.version != snapshot.version) return Status::uncertain;
+    // D-057: at most six members; the joiner is not one yet and is not the admin.
+    if (current.member_count >= roster::kMaximumMembers || joiner == d.admin ||
+        std::any_of(current.members.begin(), current.members.begin() + current.member_count,
+                    [&](const roster::Member& m) { return m.key == joiner; })) return Status::refused;
+    roster::Roster next{};
+    if (!roster::add_member(current, crypto_, joiner, alias, next)) return Status::refused;
+    const auto* signer = platform_.successor_signer(current, next);
+    if (!signer || signer->public_key() != d.admin) return Status::unavailable;
+    if (!roster::sign(next, *signer)) return Status::unavailable;
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> wire{};
+    const auto bytes = roster::encode(next, wire.data(), wire.size());
+    if (bytes == 0 || bytes > capacity) return Status::uncertain;
+    auto& owner = *roster_;
+    const auto offered = owner.offer(wire.data(), bytes);
+    if (offered.error != Error::none) return mutation_status(offered.error);
+    if (offered.outcome != roster::Outcome::accepted) return Status::refused;
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> readback{};
+    const auto kept = owner.copy_signed_roster(readback.data(), readback.size());
+    if (kept != bytes || !std::equal(wire.begin(), wire.begin() + bytes, readback.begin())) return Status::uncertain;
+    std::copy_n(wire.begin(), bytes, out);
+    size = bytes;
+    return Status::ok;
+}
+
+bool ConfigurationGroupOwner::revoke_qr_join_invite(const roster::qr::Descriptor& d) noexcept {
+    for (const auto& issued : issued_.view()) {
+        roster::qr::Descriptor live{};
+        if (issued.issued && roster::qr::verify_descriptor(*issued.issued, crypto_, live) &&
+            live.invite_id == d.invite_id) {
+            const auto copy = *issued.issued;
+            return issued_.revoke(copy);
+        }
+    }
+    return false;
+}
+
+bool ConfigurationGroupOwner::qr_join_successor_readback(const roster::qr::Descriptor& d,
+    const std::uint8_t* bytes, std::size_t size) noexcept {
+    roster::DurableRosterSnapshot snapshot{};
+    if (bytes == nullptr || size == 0 || open_qr_group(d, snapshot) != Error::none) return false;
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> readback{};
+    const auto kept = roster_->copy_signed_roster(readback.data(), readback.size());
+    return kept == size && std::equal(bytes, bytes + size, readback.begin());
 }
 
 const GroupPendingJoin* ConfigurationGroupOwner::pending_join(std::uint64_t now_ms) const noexcept {

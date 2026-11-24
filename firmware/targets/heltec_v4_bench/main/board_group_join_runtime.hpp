@@ -65,6 +65,7 @@ private:
     static std::optional<Parts>& parts_storage();
     bool prepare();
     bool identity_free() const;
+    void add_member(companion::ConfigurationGroupOwner& group, Parts& parts);
 
     HeltecEnrollmentInputArbiter& input_;
     security::SecureRandomSource& random_;

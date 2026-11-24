@@ -141,6 +141,60 @@ bool use_group_join_static_with_enrollment_identity(const security_evaluation::E
            });
 }
 
+namespace {
+// The exact canonical signature input of a roster: domain | body.
+std::size_t roster_signing_input(const group_roster::Roster& roster, std::uint8_t* out, std::size_t capacity) {
+    constexpr auto domain = group_roster::kSignatureDomain;
+    if (capacity < domain.size()) return 0;
+    std::memcpy(out, domain.data(), domain.size());
+    const auto body = group_roster::encode_body(roster, out + domain.size(), capacity - domain.size());
+    return body ? domain.size() + body : 0;
+}
+constexpr std::size_t kRosterInputBytes = group_roster::kSignatureDomain.size() + group_roster::kMaximumBodyBytes;
+}  // namespace
+
+bool sign_successor_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore& identity,
+                                             const group_roster::Roster& previous, const group_roster::Roster& next,
+                                             group_roster::Signature& output) {
+    const HeltecGroupRosterCrypto crypto{};
+    group_roster::PublicKey local{};
+    if (!identity.public_key(local) || previous.member_count == 0 || previous.members[0].key != local ||
+        !group_roster::verify_signature(previous, local, crypto) || next.member_count != previous.member_count + 1 ||
+        next.version != previous.version + 1) return false;
+    const auto& added = next.members[next.member_count - 1];
+    group_roster::Roster expected{};
+    if (!group_roster::add_member(previous, crypto, added.key,
+            {reinterpret_cast<const char*>(added.alias.data()), added.alias_bytes}, expected)) return false;
+    std::array<std::uint8_t, kRosterInputBytes> want{}, have{};
+    const auto want_size = roster_signing_input(expected, want.data(), want.size());
+    const auto have_size = roster_signing_input(next, have.data(), have.size());
+    return want_size != 0 && want_size == have_size && std::memcmp(want.data(), have.data(), want_size) == 0 &&
+           identity.sign(have.data(), have_size, output);
+}
+
+HeltecSuccessorSigner::HeltecSuccessorSigner(Source source, const group_roster::Roster& previous,
+                                             const group_roster::Roster& next)
+    : source_(source), previous_(previous), next_(next) {
+    group_roster::PublicKey key{};
+    if (source_.read && source_.sign_successor && source_.read(source_.context, key) && valid_key(key) &&
+        previous_.member_count != 0 && previous_.members[0].key == key) {
+        key_ = key;
+        ready_ = true;
+    }
+}
+
+bool HeltecSuccessorSigner::sign(const std::uint8_t* message, std::size_t size, group_roster::Signature& output) const {
+    if (!ready_ || !message) return false;
+    std::array<std::uint8_t, kRosterInputBytes> expected{};
+    const auto expected_size = roster_signing_input(next_, expected.data(), expected.size());
+    if (expected_size == 0 || size != expected_size || std::memcmp(message, expected.data(), size) != 0) return false;
+    group_roster::Signature candidate{};
+    if (!source_.sign_successor(source_.context, previous_, next_, candidate) ||
+        !HeltecGroupRosterCrypto{}.verify(candidate, message, size, key_)) return false;
+    output = candidate;
+    return true;
+}
+
 HeltecQrJoinSigner::HeltecQrJoinSigner(Source source) : source_(source) {
     ready_ = source_.read && source_.sign_frame && source_.read(source_.context, key_);
 }

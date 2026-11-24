@@ -37,6 +37,14 @@ bool F5RekeySession::sign_qr_join_frame(const std::uint8_t* bytes, std::size_t s
            target::heltec_v4_bench::sign_qr_join_frame_with_enrollment_identity(identity_, bytes, size, output);
 }
 
+bool F5RekeySession::sign_successor_group_roster(const identity::roster::Roster& previous,
+                                                 const identity::roster::Roster& next,
+                                                 std::array<std::uint8_t, 64>& output) {
+    Guard guard(*this);
+    return guard && source_ready_ &&
+           target::heltec_v4_bench::sign_successor_with_enrollment_identity(identity_, previous, next, output);
+}
+
 bool F5RekeySession::use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&),
                                            void* context) {
     Guard guard(*this);
@@ -88,6 +96,12 @@ bool BoardMessagingRuntime::sign_invite_descriptor(const identity::roster::qr::D
 bool BoardMessagingRuntime::sign_qr_join_frame(const std::uint8_t* bytes, std::size_t size,
                                                identity::roster::Signature& output) {
     return identity_ && rekey_ && rekey_->sign_qr_join_frame(bytes, size, output);
+}
+
+bool BoardMessagingRuntime::sign_successor_group_roster(const identity::roster::Roster& previous,
+                                                        const identity::roster::Roster& next,
+                                                        identity::roster::Signature& output) {
+    return identity_ && rekey_ && rekey_->sign_successor_group_roster(previous, next, output);
 }
 
 bool BoardMessagingRuntime::use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&),

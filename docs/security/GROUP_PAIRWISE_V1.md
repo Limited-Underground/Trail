@@ -830,9 +830,26 @@ Under D-170 (b) the join runs only in Link Test builds
 - **Dropped copies (I-112):** a join copy counts as sent only once the radio
   launches it. A copy dropped before launch is reported back and offered
   again.
-- **Not yet:** roster N+1 on the admin board and pair activation from the
-  committed receipt. Pair activation needs a decision on where the pair's
-  keys are kept.
+- **Roster N+1 (step 2d-2):** once both boards commit, the admin board adds the
+  joiner to the group:
+  1. It reads the group's current signed roster. It must still be the exact
+     version and digest the invite named.
+  2. The QR session shapes roster N+1 from it.
+  3. The group owner builds the same N+1 itself and has it signed by a typed
+     successor signer. That signer signs only the exact N+1 it was bound to,
+     and only when it is the current roster with one member added by this
+     board as admin.
+  4. The owner commits N+1, reads it back, and gives the exact signed bytes
+     to the session. The session confirms membership only if they match.
+  - The new member's roster name defaults to "Member N", the lowest N from 2
+    that no member uses.
+  - When the finished join is retired, the invite is revoked, so the next
+    Invite names N+1.
+  - The joiner board receives N+1 later, through roster delivery.
+  - Signing works through the retained identity or the messaging runtime's
+    live copy; never during first pairing.
+- **Not yet:** pair activation from the committed receipt, with the pair keys
+  stored per D-179.
 
 ## Implementation order
 

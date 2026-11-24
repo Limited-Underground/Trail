@@ -14,7 +14,7 @@
 // - approvals through the board's review port (step 2d adds the OLED and
 //   button review; until then the port refuses, so no join gets past its
 //   fingerprint review);
-// - successor readback, which step 2d adds with the signed roster N+1.
+// - on the admin board, the readback of the signed roster N+1 it stored.
 // Host model only: no radio callbacks, one app task.
 
 #include <cstdint>
@@ -33,6 +33,8 @@ public:
     virtual identity::roster::qr::LocalInvites issued_invites() const = 0;
     // Joiner board: the invite of the live pending join, or null.
     virtual const identity::roster::qr::DescriptorBytes* pending_join() const = 0;
+    // Admin board: the group's durable roster is exactly these signed bytes.
+    virtual bool successor_readback(const std::uint8_t*, std::size_t) const { return false; }
     // The board-local review of the exact value the session will sign.
     virtual bool approve(identity::roster::qr::Review, identity::roster::qr::Side,
                          const identity::roster::qr::Descriptor&, const identity::roster::PublicKey& peer,
@@ -100,7 +102,9 @@ public:
 
     bool readback(const identity::roster::qr::Retained& value) const override { return receipts_.readback(value); }
 
-    bool successor_readback(const std::uint8_t*, std::size_t) const override { return false; }  // step 2d
+    bool successor_readback(const std::uint8_t* bytes, std::size_t size) const override {
+        return side_ == Side::admin && bytes != nullptr && size != 0 && state_.successor_readback(bytes, size);
+    }
 
 private:
     static bool same(const identity::roster::qr::Descriptor& a, const identity::roster::qr::Descriptor& b) {

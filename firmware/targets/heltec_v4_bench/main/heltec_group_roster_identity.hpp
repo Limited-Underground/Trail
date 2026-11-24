@@ -79,6 +79,36 @@ bool sign_descriptor_with_enrollment_identity(const security_evaluation::Enrollm
 bool sign_qr_join_frame_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore&,
                                                  const std::uint8_t*, std::size_t, group_roster::Signature&);
 
+// F8 QR join roster N+1 (step 2d-2). Signs `next` only when this identity is
+// the admin of `previous` (whose signature it verifies) and `next` is exactly
+// `previous` with one member added (group_roster::add_member).
+bool sign_successor_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore&,
+                                             const group_roster::Roster& previous, const group_roster::Roster& next,
+                                             group_roster::Signature&);
+
+// The roster N+1 signer for one join: signs only the canonical input of the
+// exact `next` it was bound to, through the identity owner's typed check.
+class HeltecSuccessorSigner final : public group_roster::RosterSigner {
+public:
+    struct Source {
+        void* context{};
+        bool (*read)(void*, group_roster::PublicKey&){};
+        bool (*sign_successor)(void*, const group_roster::Roster&, const group_roster::Roster&,
+                               group_roster::Signature&){};
+    };
+
+    HeltecSuccessorSigner(Source, const group_roster::Roster& previous, const group_roster::Roster& next);
+    [[nodiscard]] bool ready() const { return ready_; }
+    [[nodiscard]] const group_roster::PublicKey& public_key() const override { return key_; }
+    bool sign(const std::uint8_t*, std::size_t, group_roster::Signature&) const override;
+
+private:
+    Source source_;
+    group_roster::Roster previous_{}, next_{};
+    group_roster::PublicKey key_{};
+    bool ready_{false};
+};
+
 // D-172: hands the identity's derived X25519 static to `use` for one call.
 using GroupJoinStaticUse = bool (*)(void* context, const std::array<std::uint8_t, 32>& x25519_secret);
 bool use_group_join_static_with_enrollment_identity(const security_evaluation::EnrollmentIdentityStore&,

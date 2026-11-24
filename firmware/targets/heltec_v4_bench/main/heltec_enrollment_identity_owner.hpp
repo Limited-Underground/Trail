@@ -18,6 +18,8 @@ public:
     bool sign_invite_descriptor(const identity::roster::qr::Descriptor&, identity::roster::Signature&);
     // F8 QR join over the radio: QR session frames only, and the D-172 static.
     bool sign_qr_join_frame(const std::uint8_t*, std::size_t, identity::roster::Signature&);
+    bool sign_successor_group_roster(const identity::roster::Roster& previous, const identity::roster::Roster& next,
+                                     identity::roster::Signature&);
     bool use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context);
 private:
     class NoProvisioningEntropy final : public security::SecureRandomSource {
@@ -42,5 +44,7 @@ bool read_retained_group_roster_key(identity::roster::PublicKey&);
 bool sign_retained_initial_group_roster(const identity::roster::Roster&, identity::roster::Signature&);
 bool sign_retained_invite_descriptor(const identity::roster::qr::Descriptor&, identity::roster::Signature&);
 bool sign_retained_qr_join_frame(const std::uint8_t*, std::size_t, identity::roster::Signature&);
+bool sign_retained_successor_group_roster(const identity::roster::Roster& previous,
+                                          const identity::roster::Roster& next, identity::roster::Signature&);
 bool use_retained_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context);
 }
