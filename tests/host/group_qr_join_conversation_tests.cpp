@@ -602,6 +602,11 @@ public:
         if (desk) return desk->approve({review, side, local, peer, digest, d.group, deadline});
         return review_ok;
     }
+    bool successor_readback(const std::uint8_t* bytes, std::size_t size) const override {
+        return !stored_successor.empty() && size == stored_successor.size() &&
+               std::equal(bytes, bytes + size, stored_successor.begin());
+    }
+    std::vector<std::uint8_t> stored_successor;
     GroupQrJoinReviewDesk* desk{nullptr};
     r::PublicKey local{};
     std::uint64_t deadline{};
@@ -627,12 +632,14 @@ struct Boards {
     qr::DescriptorBytes invite{};
     qr::Descriptor issued{};
     qr::Timing joiner_timing{};
+    r::Roster first{};
 
     Boards() {
         CHECK(arec.reopen() == p::GroupQrReceiptError::missing && jrec.reopen() == p::GroupQrReceiptError::missing);
         r::Roster current{};
         CHECK(r::create_first(0x0a0b0c0d01020304ULL, admin.public_key(), "Admin", r::LocationRule::off, current));
         CHECK(r::sign(current, admin));
+        first = current;
         issued.admin = admin.public_key();
         issued.group = current.group_id;
         issued.roster_version = current.version;
@@ -684,6 +691,23 @@ void board_join_commits_durably() {
     CHECK(admin_kept && admin_kept->decision.kind == Kind::committed && admin_kept->state.group == b.issued.group);
     CHECK(joiner_kept && joiner_kept->decision.kind == Kind::committed && joiner_kept->peer == b.admin.public_key());
     CHECK(!b.arec.fresh_unclaimed(b.issued.invite_id) && !b.jrec.fresh_unclaimed(b.issued.invite_id));
+
+    // Roster N+1 on the admin board: the session shapes it, the board signs
+    // and stores it, and membership holds only for the exact stored bytes.
+    CHECK(b.admin_side.peer() == b.joiner.public_key() && b.joiner_side.peer() == b.admin.public_key());
+    r::Roster next{};
+    CHECK(!b.joiner_side.successor(b.first, "Member 2", next));
+    CHECK(b.admin_side.successor(b.first, "Member 2", next) && next.version == 2 && next.member_count == 2);
+    b.admin.qr_only = false;  // the board's typed roster signer, not the frame signer
+    CHECK(r::sign(next, b.admin));
+    std::array<std::uint8_t, r::kMaximumRosterBytes> wire{};
+    const auto size = r::encode(next, wire.data(), wire.size());
+    CHECK(size != 0);
+    CHECK(!b.admin_side.membership(b.first, "Member 2", wire.data(), size));  // not stored yet
+    b.as.stored_successor.assign(wire.begin(), wire.begin() + size);
+    CHECK(!b.admin_side.membership(b.first, "Other", wire.data(), size));
+    CHECK(b.admin_side.membership(b.first, "Member 2", wire.data(), size));
+    CHECK(!b.admin_side.membership(b.first, "Member 2", wire.data(), size));  // once
 }
 
 void board_current_rules() {

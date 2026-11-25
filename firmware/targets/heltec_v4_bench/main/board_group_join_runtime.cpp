@@ -82,6 +82,13 @@ struct BoardGroupJoinRuntime::Parts final : security_evaluation::GroupQrJoinBoar
         return desk->approve({review, side, signer->public_key(), peer, value, d.group, conversation->deadline()});
     }
 
+    bool successor_readback(const std::uint8_t* bytes, std::size_t size) const override {
+        auto* group = companion_group_owner_started();
+        qr::Descriptor d{};
+        return group && conversation && qr::verify_descriptor(conversation->invite(), crypto, d) &&
+               group->qr_join_successor_readback(d, bytes, size);
+    }
+
     // GroupQrJoinIdentity: Noise begins inside the identity owner's call.
     struct NoiseStart {
         security_evaluation::GroupQrNoiseBinding& binding;
@@ -222,9 +229,10 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
         if (finished && linger_until_ == 0) {
             linger_until_ = now_ms + kLingerMs;
             GroupQrJoinConversation::Key transmit{}, receive{};
+            if (phase == Phase::committed && conversation.side() == qr::Side::admin) add_member(*group, parts);
             if (phase == Phase::committed && conversation.pair_keys(transmit, receive)) {
-                // Pair activation from the durable receipt is step 2d.
-                ESP_LOGI(kTag, "committed; pair activation follows in step 2d");
+                // Pair activation from the durable receipt is step 2d-3.
+                ESP_LOGI(kTag, "committed; pair activation follows in step 2d-3");
             }
             sodium_memzero(transmit.data(), transmit.size());
             sodium_memzero(receive.data(), receive.size());
@@ -233,6 +241,10 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
             (!live_invite(group->issued_invites(), now_ms) || group->pending_join(now_ms) != nullptr);
         if (finished) parts.desk->reset();
         if ((linger_until_ != 0 && now_ms >= linger_until_) || idle_admin) {
+            if (phase == Phase::committed && conversation.side() == qr::Side::admin) {
+                qr::Descriptor d{};
+                if (qr::verify_descriptor(conversation.invite(), parts.crypto, d)) (void)group->revoke_qr_join_invite(d);
+            }
             parts.desk->reset();
             parts.conversation.reset();
             linger_until_ = 0;
@@ -255,6 +267,37 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
                                    random_, parts.boot);
         ESP_LOGI(kTag, "admin listening");
     }
+}
+
+// Admin board, once: roster N+1 with the joiner as a new member, signed by
+// this board, stored and read back, then confirmed by the QR session.
+void BoardGroupJoinRuntime::add_member(companion::ConfigurationGroupOwner& group, Parts& parts) {
+    auto& conversation = *parts.conversation;
+    qr::Descriptor d{};
+    roster::Roster current{}, next{};
+    std::array<char, roster::kMaximumAliasBytes> alias{};
+    std::size_t alias_size = 0;
+    if (!qr::verify_descriptor(conversation.invite(), parts.crypto, d) || !group.qr_join_roster(d, current) ||
+        !companion::ConfigurationGroupOwner::qr_join_member_alias(current, alias, alias_size)) {
+        ESP_LOGW(kTag, "roster N+1: current roster unavailable");
+        return;
+    }
+    const std::string_view name{alias.data(), alias_size};
+    if (!conversation.successor(current, name, next)) {
+        ESP_LOGW(kTag, "roster N+1: session refused");
+        return;
+    }
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> signed_roster{};
+    std::size_t size = 0;
+    const auto status = group.add_qr_join_member(d, conversation.peer(), name, signed_roster.data(),
+                                                 signed_roster.size(), size);
+    if (status != companion::GroupConfigurationStatus::ok) {
+        ESP_LOGW(kTag, "roster N+1: store status=%u", static_cast<unsigned>(status));
+        return;
+    }
+    const bool member = conversation.membership(current, name, signed_roster.data(), size);
+    ESP_LOGI(kTag, "roster N+1: version=%u members=%u confirmed=%u", static_cast<unsigned>(next.version),
+             static_cast<unsigned>(next.member_count), static_cast<unsigned>(member));
 }
 
 bool BoardGroupJoinRuntime::next(qr::RadioFrame& out) {

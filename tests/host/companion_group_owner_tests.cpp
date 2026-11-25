@@ -156,6 +156,17 @@ public:
         return invites_ready ? &signer : nullptr;
     }
 
+    const roster::RosterSigner* successor_signer(const roster::Roster& previous,
+                                                 const roster::Roster& next) noexcept override {
+        ++successor_requests;
+        last_previous = previous;
+        last_next = next;
+        return successors_ready ? &signer : nullptr;
+    }
+    bool successors_ready{true};
+    unsigned successor_requests{};
+    roster::Roster last_previous{}, last_next{};
+
     TestSigner signer;
     bool ready{true};
     std::size_t next_id{};
@@ -689,6 +700,134 @@ void claim_ring_keeps_newest_eight_and_rejects_foreign_record() {
     CHECK(corrupt.claimed(admin, 1, id(20)));
 }
 
+// F8 2d-2: roster N+1 for a committed QR join, on the admin board.
+roster::qr::Descriptor issued_descriptor(Fixture& f, const GroupConfigurationScope& scope) {
+    const auto issued = f.execute(f.owner, invite_command(scope));
+    CHECK(issued.status == Status::ok);
+    const auto wire = read_invite(f, issued);
+    roster::qr::DescriptorBytes encoded{};
+    std::copy(wire.begin(), wire.end(), encoded.bytes.begin());
+    encoded.size = wire.size();
+    roster::qr::Descriptor d{};
+    CHECK(roster::qr::verify_descriptor(encoded, f.crypto, d));
+    return d;
+}
+
+void qr_join_adds_signed_roster_successor() {
+    Fixture f;
+    const auto created = f.create(f.owner);
+    CHECK(created.status == Status::ok);
+    const auto d = issued_descriptor(f, created.scope);
+    roster::Roster current{};
+    CHECK(f.owner.qr_join_roster(d, current) && current.version == 1 && current.member_count == 1);
+    std::array<char, roster::kMaximumAliasBytes> alias{};
+    std::size_t alias_size = 0;
+    CHECK(ConfigurationGroupOwner::qr_join_member_alias(current, alias, alias_size));
+    CHECK(std::string(alias.data(), alias_size) == "Member 2");
+
+    const roster::PublicKey joiner{9, 9, 9};
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> out{};
+    std::size_t size = 0;
+    const auto commits = f.rosters.commit_attempts;
+    CHECK(f.owner.add_qr_join_member(d, joiner, {alias.data(), alias_size}, out.data(), out.size(), size) ==
+          Status::ok);
+    CHECK(f.rosters.commit_attempts == commits + 1 && size != 0);
+    CHECK(f.platform.last_previous.version == 1 && f.platform.last_next.version == 2);
+    roster::Roster next{};
+    CHECK(roster::decode(out.data(), size, next) == roster::FormatError::none);
+    CHECK(next.version == 2 && next.member_count == 2 && next.members[1].key == joiner);
+    CHECK(std::string(next.members[1].alias.begin(), next.members[1].alias.begin() + next.members[1].alias_bytes) ==
+          "Member 2");
+    CHECK(roster::verify_signature(next, f.platform.signer.key, f.crypto));
+    CHECK(f.owner.qr_join_successor_readback(d, out.data(), size));
+    auto changed = out;
+    changed[size - 1] ^= 1;
+    CHECK(!f.owner.qr_join_successor_readback(d, changed.data(), size));
+    CHECK(!f.owner.qr_join_successor_readback(d, out.data(), size - 1));
+
+    // The roster moved on: the same invite cannot add anyone else.
+    std::size_t again = 0;
+    CHECK(f.owner.add_qr_join_member(d, roster::PublicKey{8, 8}, "Member 3", out.data(), out.size(), again) ==
+          Status::stale && again == 0);
+    CHECK(!f.owner.qr_join_roster(d, current));
+    // A fresh owner after restart reads the same roster N+1.
+    ConfigurationGroupOwner rebooted{f.authority, f.rosters, f.catalog, f.joins, f.crypto, f.platform};
+    CHECK(rebooted.qr_join_successor_readback(d, out.data(), size));
+}
+
+void qr_join_successor_refusals() {
+    const roster::PublicKey joiner{9, 9, 9};
+    std::array<std::uint8_t, roster::kMaximumRosterBytes> out{};
+    std::size_t size = 0;
+    {
+        // No successor signer: nothing is written.
+        Fixture f;
+        const auto created = f.create(f.owner);
+        const auto d = issued_descriptor(f, created.scope);
+        f.platform.successors_ready = false;
+        const auto commits = f.rosters.commit_attempts;
+        CHECK(f.owner.add_qr_join_member(d, joiner, "Member 2", out.data(), out.size(), size) ==
+              Status::unavailable && size == 0 && f.rosters.commit_attempts == commits);
+    }
+    {
+        // The admin itself, a current member, or another group.
+        Fixture f;
+        const auto created = f.create(f.owner);
+        const auto d = issued_descriptor(f, created.scope);
+        CHECK(f.owner.add_qr_join_member(d, d.admin, "Member 2", out.data(), out.size(), size) == Status::refused);
+        auto other = d;
+        other.group += 1;
+        CHECK(f.owner.add_qr_join_member(other, joiner, "Member 2", out.data(), out.size(), size) == Status::stale);
+        auto old = d;
+        old.roster_version = 7;
+        CHECK(f.owner.add_qr_join_member(old, joiner, "Member 2", out.data(), out.size(), size) == Status::stale);
+        auto foreign = d;
+        foreign.admin = roster::PublicKey{4, 4};
+        CHECK(f.owner.add_qr_join_member(foreign, joiner, "Member 2", out.data(), out.size(), size) ==
+              Status::refused);
+        CHECK(f.owner.add_qr_join_member(d, joiner, "Member 2", nullptr, 0, size) == Status::refused);
+        CHECK(f.owner.add_qr_join_member(d, joiner, "Member 2", out.data(), 10, size) == Status::uncertain);
+        CHECK(f.platform.successor_requests == 1);  // only the too-small buffer reached signing
+    }
+    {
+        // An interrupted commit is uncertain; a restart reads what was kept.
+        Fixture f;
+        const auto created = f.create(f.owner);
+        const auto d = issued_descriptor(f, created.scope);
+        f.rosters.cut_at = f.rosters.commit_attempts + 1;
+        f.rosters.cut = MemoryStore::Cut::before_commit;
+        CHECK(f.owner.add_qr_join_member(d, joiner, "Member 2", out.data(), out.size(), size) == Status::uncertain);
+        f.rosters.reboot();
+        roster::Roster current{};
+        CHECK(f.owner.qr_join_roster(d, current) && current.member_count == 1);
+    }
+    {
+        // Revoking the spent invite frees the next Invite for roster N+1.
+        Fixture f;
+        const auto created = f.create(f.owner);
+        const auto d = issued_descriptor(f, created.scope);
+        CHECK(f.owner.add_qr_join_member(d, joiner, "Member 2", out.data(), out.size(), size) == Status::ok);
+        CHECK(f.owner.revoke_qr_join_invite(d) && !f.owner.revoke_qr_join_invite(d));
+        CHECK(f.execute(f.owner, read_invite_command(d.invite_id, 0)).status == Status::stale);
+    }
+    {
+        // "Member N" skips names already used.
+        roster::Roster r{};
+        CHECK(roster::create_first(5, roster::PublicKey{1}, "Admin", roster::LocationRule::off, r));
+        r.member_count = 3;
+        r.members[1].key = roster::PublicKey{2};
+        r.members[2].key = roster::PublicKey{3};
+        const std::string used2 = "Member 2", used3 = "Member 4";
+        std::copy(used2.begin(), used2.end(), r.members[1].alias.begin());
+        r.members[1].alias_bytes = static_cast<std::uint8_t>(used2.size());
+        std::copy(used3.begin(), used3.end(), r.members[2].alias.begin());
+        r.members[2].alias_bytes = static_cast<std::uint8_t>(used3.size());
+        std::array<char, roster::kMaximumAliasBytes> alias{};
+        std::size_t n = 0;
+        CHECK(ConfigurationGroupOwner::qr_join_member_alias(r, alias, n) && std::string(alias.data(), n) == "Member 3");
+    }
+}
+
 void invite_codec_round_trips_and_rejects_bad_sizes() {
     std::array<std::uint8_t, kConfigurationPayloadBytes> out{};
     GroupConfigurationScope scope{};
@@ -760,5 +899,7 @@ int main() {
     interrupted_claim_spends_invite_only_if_applied();
     claim_ring_keeps_newest_eight_and_rejects_foreign_record();
     invite_codec_round_trips_and_rejects_bad_sizes();
-    std::cout << "PASS: 15 concrete companion group owner cases\n";
+    qr_join_adds_signed_roster_successor();
+    qr_join_successor_refusals();
+    std::cout << "PASS: 17 concrete companion group owner cases\n";
 }

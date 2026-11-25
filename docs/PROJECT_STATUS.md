@@ -119,7 +119,8 @@ host ([OT-0306 Bind the QR group join to Noise XK on the host](PROGRESS_LOG.md#o
 The [join exchange runs on the host](PROGRESS_LOG.md#ot-0306-run-the-qr-group-join-exchange-on-the-host)
 and is [wired to the Link Test radio](PROGRESS_LOG.md#ot-0306-wire-the-qr-group-join-to-the-link-test-radio).
 Both boards [review the join on their screen and button](PROGRESS_LOG.md#ot-0306-review-the-qr-group-join-on-the-board).
-Roster N+1, pair activation, and real phone and board acceptance remain
+The admin board then [adds the joiner as roster N+1](PROGRESS_LOG.md#ot-0306-add-the-qr-joined-member-to-the-admin-boards-roster).
+Pair activation and real phone and board acceptance remain
 open.
 
 ## V1 tester build guards

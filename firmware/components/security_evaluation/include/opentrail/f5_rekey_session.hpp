@@ -198,6 +198,8 @@ public:
     bool sign_invite_descriptor(const identity::roster::qr::Descriptor&, std::array<std::uint8_t, 64>&);
     // F8 QR join over the radio: QR session frames only, and the D-172 static.
     bool sign_qr_join_frame(const std::uint8_t*, std::size_t, std::array<std::uint8_t, 64>&);
+    bool sign_successor_group_roster(const identity::roster::Roster& previous, const identity::roster::Roster& next,
+                                     std::array<std::uint8_t, 64>&);
     bool use_group_join_static(bool (*use)(void*, const std::array<std::uint8_t, 32>&), void* context);
 private:
     struct Candidate {

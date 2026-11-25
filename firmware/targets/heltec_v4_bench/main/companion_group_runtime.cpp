@@ -42,6 +42,21 @@ public:
         return signer.ready() ? &signer : nullptr;
     }
 
+    const identity::roster::RosterSigner* successor_signer(const identity::roster::Roster& previous,
+                                                           const identity::roster::Roster& next) noexcept override {
+#if OPENTRAIL_LORA_LINK_TEST
+        if (inputs_.pairing && inputs_.pairing->owns_enrollment_identity()) return nullptr;
+        auto& signer = successor_signer_.emplace(
+            HeltecSuccessorSigner::Source{&inputs_, read_key, sign_successor}, previous, next);
+        return signer.ready() ? &signer : nullptr;
+#else
+        // Roster N+1 comes only from the QR radio join (Link Test, D-170 b).
+        (void)previous;
+        (void)next;
+        return nullptr;
+#endif
+    }
+
     bool random_group_id(std::uint64_t& out) noexcept override {
         std::array<std::uint8_t, sizeof(std::uint64_t)> bytes{};
         const auto filled = inputs_.entropy.fill(bytes.data(), bytes.size());
@@ -73,6 +88,19 @@ private:
         return ::opentrail::targets::heltec_v4_bench::sign_retained_invite_descriptor(descriptor, signature);
     }
 
+    static bool sign_successor(void* context, const identity::roster::Roster& previous,
+                               const identity::roster::Roster& next, identity::roster::Signature& signature) {
+#if OPENTRAIL_LORA_LINK_TEST
+        const auto& inputs = *static_cast<const CompanionGroupInputs*>(context);
+        if (inputs.pairing && inputs.pairing->owns_enrollment_identity()) return false;
+        if (inputs.messaging && inputs.messaging->owns_enrollment_identity())
+            return inputs.messaging->sign_successor_group_roster(previous, next, signature);
+#else
+        (void)context;
+#endif
+        return ::opentrail::targets::heltec_v4_bench::sign_retained_successor_group_roster(previous, next, signature);
+    }
+
     static bool read_key(void* context, identity::roster::PublicKey& key) {
 #if OPENTRAIL_LORA_LINK_TEST
         const auto& inputs = *static_cast<const CompanionGroupInputs*>(context);
@@ -101,6 +129,7 @@ private:
     CompanionGroupInputs inputs_;
     std::optional<HeltecGroupRosterSigner> signer_;
     std::optional<HeltecInviteSigner> invite_signer_;
+    std::optional<HeltecSuccessorSigner> successor_signer_;
 };
 
 companion::ConfigurationGroupOwner* g_started_owner = nullptr;

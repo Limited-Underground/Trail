@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <string_view>
 
 #include "opentrail/group_qr_invite.hpp"
 #include "opentrail/group_qr_noise_binding.hpp"
@@ -152,6 +153,22 @@ public:
     [[nodiscard]] const identity::roster::Digest& scope() const { return scope_; }
     // The join's original deadline (zero until the join starts).
     [[nodiscard]] std::uint64_t deadline() const { return deadline_; }
+    // The other board's identity, and the invite this join runs under.
+    [[nodiscard]] const identity::roster::PublicKey& peer() const { return peer_key_; }
+    [[nodiscard]] const identity::roster::qr::DescriptorBytes& invite() const { return descriptor_; }
+
+    // Admin board, after both boards committed: shape roster N+1 (the session
+    // checks the current roster against the invite), then confirm the signed
+    // N+1 the board stored (qr::Session::successor and membership).
+    bool successor(const identity::roster::Roster& current, std::string_view alias, identity::roster::Roster& out) {
+        return phase_ == Phase::committed && side_ == Side::admin && session_ &&
+               session_->successor(current, alias, out);
+    }
+    bool membership(const identity::roster::Roster& previous, std::string_view alias, const std::uint8_t* bytes,
+                    std::size_t size) {
+        return phase_ == Phase::committed && side_ == Side::admin && session_ &&
+               session_->membership(previous, alias, bytes, size);
+    }
 
     // Joiner only: the invite this board verified and claimed, the local
     // timing of that Join, and the authoritative pair epoch.
@@ -176,6 +193,7 @@ public:
         if (!noise_.write(message.data(), message.size(), size) ||
             !qr_join::encode_noise(1, start.scope, message.data(), size, noise_local_[0])) return fail();
         descriptor_ = invite;
+        peer_key_ = descriptor.admin;
         timing_ = timing;
         scope_ = start.scope;
         remember(start_);
@@ -455,6 +473,7 @@ private:
         }
         wipe_ephemeral();
         descriptor_ = *invites[slot].issued;
+        peer_key_ = start.joiner;
         timing_ = timing;
         deadline_ = deadline;
         scope_ = start.scope;
@@ -531,6 +550,7 @@ private:
     std::uint64_t deadline_{};
     identity::roster::qr::DescriptorBytes descriptor_{};
     identity::roster::Digest scope_{};
+    identity::roster::PublicKey peer_key_{};
     RadioFrame start_{}, reply_{};
     std::array<RadioFrame, 11> local_{};
     std::array<bool, 11> sent_once_{};

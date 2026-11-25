@@ -2,6 +2,17 @@
 
 ## 2026-11-24
 
+### OT-0306 Add the QR-joined member to the admin board's roster
+
+Once both boards commit a QR group join, the admin board now writes roster
+N+1 with the joiner as a new member. The QR session and the group owner each
+shape it from the current roster the invite named. A typed signer signs only
+that exact successor, and the board stores and reads it back before the
+session confirms membership. The new member is named "Member N" for now.
+Host suites cover the owner's successor path, refusals and interrupted
+writes, and the session's membership check; all three Heltec builds passed.
+Pair activation follows. Part of #148.
+
 ### OT-0306 Review the QR group join on the board
 
 Each board now reviews a QR group join on its own screen and button, with
