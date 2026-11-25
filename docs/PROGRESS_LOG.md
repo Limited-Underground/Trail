@@ -2,6 +2,21 @@
 
 ## 2026-11-24
 
+### OT-0306 Keep the keys of a QR-joined group pair on the board
+
+Owner decision D-179 keeps the two Noise keys of a QR-joined pair on the
+board. Each board writes them only after its committed QR receipt reads back
+for that exact join, in one fixed record per group in the group pair
+namespace. The record is bound to the board's identity and fits the existing
+storage reserve. Stop Trust overwrites the group's keys, and factory reset
+erases them with the rest of the partition. The keys have the same at-rest
+protection as the F5 pairing keys. If writing roster N+1 failed, the admin
+board now adds the joiner later from its durable committed receipt, retrying
+after storage or signer failures and once after each restart (I-113). Host
+suites cover storing, limits, refusals, wiping, interrupted writes and that
+recovery; all three Heltec builds passed.
+Member messaging over these keys follows. Part of #148.
+
 ### OT-0306 Add the QR-joined member to the admin board's roster
 
 Once both boards commit a QR group join, the admin board now writes roster

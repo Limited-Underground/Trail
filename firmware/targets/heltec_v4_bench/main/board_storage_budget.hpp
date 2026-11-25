@@ -4,6 +4,7 @@
 
 #include "opentrail/durable_group_roster.hpp"
 #include "opentrail/group_join_claims.hpp"
+#include "opentrail/group_qr_pair_keys.hpp"
 #include "opentrail/group_qr_receipts.hpp"
 #include "opentrail/persistent_storage.hpp"
 
@@ -68,6 +69,11 @@ inline constexpr std::size_t kReceiptEntries =
 // live inside this reserve, so the planning total does not grow.
 inline constexpr std::size_t kQrReceiptEntries = blob_entries(persistence::GroupQrReceipts::kRecordBytes);
 static_assert(kQrReceiptEntries == 47 && kQrReceiptEntries + 1 <= kReceiptEntries);
+// D-179: QR-joined pair keys, one record per group in the group pair namespace,
+// inside its existing reserve.
+inline constexpr std::size_t kQrPairKeyEntries =
+    persistence::GroupQrPairKeys::kGroups * blob_entries(persistence::GroupQrPairKeys::kRecordBytes);
+static_assert(kQrPairKeyEntries == 104 && kQrPairKeyEntries + 1 <= kGroupPairEntries);
 inline constexpr std::size_t kStagingEntries = 512;
 inline constexpr std::size_t kResidentEntries =
     kActiveEntries - kFormatSealEntries + kGroupPairEntries + kDirectEntries;

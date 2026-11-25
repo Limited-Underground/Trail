@@ -239,6 +239,11 @@ bool GroupQrReceipts::readback(const qr::Retained& retained) const {
     return a == b;
 }
 
+std::optional<qr::Retained> GroupQrReceipts::at(std::size_t index) const {
+    if (!loaded_ || index >= slots_.size() || !slots_[index].used) return std::nullopt;
+    return slots_[index].retained;
+}
+
 std::optional<qr::Retained> GroupQrReceipts::find(const qr::Nonce& invite, std::uint64_t* deadline) const {
     if (!loaded_) return std::nullopt;
     const auto* slot = slot_for(invite);

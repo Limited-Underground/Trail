@@ -9,10 +9,12 @@
 #include "esp_log.h"
 #include "heltec_enrollment_identity_owner.hpp"
 #include "opentrail/companion_group_owner.hpp"
+#include "opentrail/group_qr_member_recovery.hpp"
 #include "opentrail/group_qr_join_board_authority.hpp"
 #include "opentrail/group_qr_join_conversation.hpp"
 #include "opentrail/group_qr_join_review.hpp"
 #include "opentrail/enrollment_session_review_device_port.hpp"
+#include "opentrail/group_qr_pair_keys.hpp"
 #include "opentrail/group_qr_receipts.hpp"
 #include "pairing_nvs_storage.hpp"
 
@@ -141,6 +143,7 @@ struct BoardGroupJoinRuntime::Parts final : security_evaluation::GroupQrJoinBoar
     roster::BootToken boot{};
     std::optional<Device> device;
     mutable std::optional<security_evaluation::GroupQrJoinReviewDesk> desk;
+    std::optional<companion::GroupQrMemberRecovery> recovery;
 };
 
 std::optional<BoardGroupJoinRuntime::Parts>& BoardGroupJoinRuntime::parts_storage() {
@@ -204,7 +207,9 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
     auto* group = companion_group_owner_started();
     if (group == nullptr) return;
     if (!parts_) {
-        const bool wanted = group->pending_join(now_ms) != nullptr || live_invite(group->issued_invites(), now_ms);
+        // Also once after boot: kept committed joins may still need roster N+1 (I-113).
+        const bool wanted = !recovery_checked_ || group->pending_join(now_ms) != nullptr ||
+                            live_invite(group->issued_invites(), now_ms);
         if (!wanted || now_ms < retry_at_) return;
         if (!prepare()) {
             retry_at_ = now_ms + kPrepareRetryMs;
@@ -230,10 +235,8 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
             linger_until_ = now_ms + kLingerMs;
             GroupQrJoinConversation::Key transmit{}, receive{};
             if (phase == Phase::committed && conversation.side() == qr::Side::admin) add_member(*group, parts);
-            if (phase == Phase::committed && conversation.pair_keys(transmit, receive)) {
-                // Pair activation from the durable receipt is step 2d-3.
-                ESP_LOGI(kTag, "committed; pair activation follows in step 2d-3");
-            }
+            if (phase == Phase::committed && conversation.pair_keys(transmit, receive))
+                activate_pair(parts, transmit, receive);
             sodium_memzero(transmit.data(), transmit.size());
             sodium_memzero(receive.data(), receive.size());
         }
@@ -252,6 +255,11 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
         }
         return;
     }
+    // Between joins: every kept committed admin join ends with its joiner in
+    // roster N+1, retried after storage or signer failures (I-113).
+    if (!parts.recovery) parts.recovery.emplace(*group);
+    if (parts.recovery->reconcile(*parts.receipts, now_ms) != 0) ESP_LOGI(kTag, "roster N+1 recovered from a kept receipt");
+    recovery_checked_ = true;
     if (const auto* pending = group->pending_join(now_ms);
         pending && (!last_opened_ || *last_opened_ != pending->descriptor.invite_id)) {
         last_opened_ = pending->descriptor.invite_id;
@@ -267,6 +275,36 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
                                    random_, parts.boot);
         ESP_LOGI(kTag, "admin listening");
     }
+}
+
+// D-179: keep the pair's keys, only after this board's committed QR receipt
+// reads back for exactly this join. Both boards do this.
+void BoardGroupJoinRuntime::activate_pair(Parts& parts, const std::array<std::uint8_t, 32>& transmit,
+                                          const std::array<std::uint8_t, 32>& receive) {
+    auto& conversation = *parts.conversation;
+    qr::Descriptor d{};
+    if (!qr::verify_descriptor(conversation.invite(), parts.crypto, d)) return;
+    const auto kept = parts.receipts->find(d.invite_id);
+    if (!kept || kept->decision.kind != qr::Kind::committed || kept->peer != conversation.peer() ||
+        !parts.receipts->readback(*kept)) {
+        ESP_LOGW(kTag, "pair keys: committed receipt did not read back; nothing kept");
+        return;
+    }
+    auto* keys = companion_group_pair_keys();
+    if (keys == nullptr) {
+        ESP_LOGW(kTag, "pair keys: storage unavailable");
+        return;
+    }
+    persistence::GroupQrPairKeys::Entry entry{};
+    entry.peer = conversation.peer();
+    entry.epoch = kept->state.epoch;
+    entry.transaction = kept->decision.transaction;
+    entry.transmit = transmit;
+    entry.receive = receive;
+    const auto stored = keys->store(d.group, entry);
+    sodium_memzero(&entry, sizeof entry);
+    if (stored != persistence::GroupQrPairKeyError::none) companion_group_pair_keys_reopen();
+    ESP_LOGI(kTag, "pair keys: kept=%u", static_cast<unsigned>(stored == persistence::GroupQrPairKeyError::none));
 }
 
 // Admin board, once: roster N+1 with the joiner as a new member, signed by

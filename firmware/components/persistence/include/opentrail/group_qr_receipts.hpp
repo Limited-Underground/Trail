@@ -60,6 +60,9 @@ public:
     // The retained decision and its original deadline, for recovery after restart.
     [[nodiscard]] std::optional<identity::roster::qr::Retained> find(const identity::roster::qr::Nonce& invite,
                                                                      std::uint64_t* deadline = nullptr) const;
+    // The retained decision in slot `index` (0 to kSlots - 1), if any, for
+    // recovery work that walks every kept decision.
+    [[nodiscard]] std::optional<identity::roster::qr::Retained> at(std::size_t index) const;
 
 private:
     struct Slot {
