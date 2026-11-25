@@ -177,6 +177,13 @@ and a parent replaced by a junction is refused even when it leads to the same
 file. See the [capture runner progress entry](PROGRESS_LOG.md#ot-0238c-speed-up-capture-runner-verification-i-027-i-048).
 This change does not add device evidence.
 
+## Host CI shards
+
+CI runs the core host tests as five parallel shards that together run the
+same tests as the local `Test-Host.ps1` default, in about 12 minutes instead
+of 38. libsodium downloads use a cache only when the bytes equal the pins.
+See the [CI shards progress entry](PROGRESS_LOG.md#ot-220-run-the-core-host-tests-as-parallel-ci-shards).
+
 ## Development rules
 
 On 2026-11-11 the owner ended the November 2 product freeze and its November 3

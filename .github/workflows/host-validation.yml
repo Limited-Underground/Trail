@@ -16,9 +16,15 @@ concurrency:
 
 jobs:
   core-tests:
-    name: Windows core host tests
+    # One Test-Host.ps1 run split into parallel shards; together they run
+    # exactly what -Shard All runs locally.
+    name: Windows core host tests (${{ matrix.shard }})
     runs-on: windows-2025
-    timeout-minutes: 90
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [Native, Python, SecurityNative, SecurityPythonA, SecurityPythonB]
 
     steps:
       - name: Check out source
@@ -48,7 +54,15 @@ jobs:
           update: true
           install: mingw-w64-ucrt-x86_64-gcc
 
+      # Bytes are used only if they equal the libsodium pins (dependencies.py).
+      - name: Restore pinned libsodium downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/libsodium-cache
+          key: libsodium-1.0.22-865ea3aba354b16be4c7051da48b63247a395f30d1e0537269b253918aa78c5f-5e3983c5496a3cffba3d013c70991b18cda6c345655fff883fb0e14dfa09e582
+
       - name: Verify adopted authenticated messaging composition
+        if: ${{ matrix.shard == 'Native' }}
         shell: pwsh
         env:
           OPENTRAIL_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
@@ -56,11 +70,13 @@ jobs:
           python -X utf8 -B .\tools\companion_packet_service_ci.py --out "$env:RUNNER_TEMP/ot0005i-host"
           if ($LASTEXITCODE -ne 0) { throw "OT-0005i host composition failed." }
 
-      - name: Run core host matrix
+      - name: Run core host matrix shard
         shell: pwsh
         env:
           OPENTRAIL_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
-        run: .\tools\Test-Host.ps1 -SkipSecurityOperators
+          OPENTRAIL_LIBSODIUM_CACHE: ${{ runner.temp }}/libsodium-cache
+          HOST_SHARD: ${{ matrix.shard }}
+        run: .\tools\Test-Host.ps1 -SkipSecurityOperators -Shard $env:HOST_SHARD
 
   security-operators:
     name: Windows security operator (${{ matrix.operator }})

@@ -72,7 +72,30 @@ def custody_suite(commands, path, env):
             "result": "passed", "test_count": sum(map(len, groups)), "groups": records}
 
 
-def run(output, cached_component=None):
+# CI runs the matrix as parts in parallel jobs; "all" runs everything in one
+# process, exactly as before. Every part pins the compilers and the source
+# closure before and after. Only the native part acquires the dependency and
+# builds; the three Python suites that drive its executables run with it.
+PARTS = ("all", "native", "python-a", "python-b")
+NATIVE_PYTHON = ("enrolled_pair_bridge_tests", "enrolled_trace_capture_tests", "pair_bench_bridge_tests")
+PYTHON_A = ("enrollment_candidate_usb_client_tests", "enrollment_candidate_controller_tests",
+            "enrollment_candidate_custody_tests", "enrollment_candidate_rom_adapter_tests",
+            "enrollment_candidate_budget_adoption_tests", "enrollment_candidate_operator_tests",
+            "enrollment_candidate_runtime_tests", "enrollment_candidate_runner_tests")
+PYTHON_B = ("enrollment_candidate_original_capture_tests", "enrollment_candidate_capture_runner_tests",
+            "enrollment_candidate_private_view_tests", "enrollment_candidate_interactive_launch_tests",
+            "enrollment_candidate_predevice_resume_tests", "factory_reset_target_composition_tests",
+            "enrolled_confirmation_trial_tests", "enrolled_trial_operator_tests", "enrolled_target_pacing_tests",
+            "pair_confirmation_trial_tests", "pair_trial_operator_tests", "pair_radio_driver_source_tests")
+
+
+def run(output, cached_component=None, part="all"):
+    need(part in PARTS, "unknown_part: " + str(part))
+    native = part in ("all", "native")
+
+    def selected(name):
+        return (part == "all" or (part == "native" and name in NATIVE_PYTHON) or
+                (part == "python-a" and name in PYTHON_A) or (part == "python-b" and name in PYTHON_B))
     need(sys.dont_write_bytecode and sys.flags.utf8_mode and not sys.flags.optimize,
          "use_python_-X_utf8_-B_without_optimization")
     need(output.is_absolute() and ".." not in output.parts and
@@ -83,7 +106,8 @@ def run(output, cached_component=None):
              "indirect_output_refused")
     output.mkdir(parents=True, exist_ok=False)
     result = {"schema": "OT220-CURRENT-SOURCE-CI-1", "result": "failed",
-              "hardware": False, "network": cached_component is None, "historical_proof_replay": False,
+              "hardware": False, "network": native and cached_component is None, "historical_proof_replay": False,
+              "part": part,
               "suites": {}, "limits": ["SDK, entropy and storage seams simulated"]}
     commands = frozen.Commands(output)
     try:
@@ -139,343 +163,352 @@ def run(output, cached_component=None):
             'security_policy_input_readback.py',
         ))
         before = {str(p): pin(p) for p in inputs}
-        component = dependencies.acquire(output / "managed-component", cached_component=cached_component)
-        result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
-                                "checksum_sha256": dependencies.CHECKSUM_SHA,
-                                "manifest_sha256": dependencies.MANIFEST_SHA,
-                                "verified_files": 733,
-                                "mode": "archive" if cached_component is None else "cached_component",
-                                "archive_verified": cached_component is None}
-        spec = importlib.util.spec_from_file_location("current_ci_crypto", helper)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        module.COMPONENT, module.SOURCE = component, component / "libsodium"
-        module.SUCCESSOR = ROOT / "firmware/targets/heltec_v4_security_eval/main/noise_adapter"
-        module.SUCCESSOR_SHA = "b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b"
-        build = output / "scalar-build"
-        native_subprocess = dependencies.subprocess
-        def logged(command, **kwargs):
-            kwargs.setdefault("env", env)
-            return commands.run(command, **kwargs)
-        try:
-            dependencies.subprocess = SimpleNamespace(run=logged)
-            dependencies.native_probe(module, build, cc)
-        finally:
-            dependencies.subprocess = native_subprocess
-        result["scalar_control"] = {"groups": 26, "result": "passed",
-            "binary": pin(build / "independent-probe.exe")}
-        flags = ["-O2", "-Wall", "-Wextra", "-DSODIUM_STATIC", "-DCONFIGURED=1",
-                 "-DNATIVE_LITTLE_ENDIAN=1", "-fno-asynchronous-unwind-tables",
-                 "-fno-unwind-tables", "-ffunction-sections", "-fdata-sections"]
-        shared_includes = [build / "include", module.SOURCE / "src/libsodium/include",
-                           module.SOURCE / "src/libsodium/include/sodium", module.SUCCESSOR]
-        def includes(paths):
-            return [item for path in paths for item in ("-I", str(path))]
-        def compile_source(source, obj, more=(), c=False, defines=()):
-            language = ["-std=c11"] if c else ["-std=c++17", "-fno-exceptions", "-fno-rtti", "-Werror"]
-            commands.run([cc if c else cxx, *language, *flags, *defines,
-                *includes([*shared_includes, *more]), "-MMD", "-MF", obj.with_suffix(".d"),
-                "-c", source, "-o", obj], env=env, check=True)
-        crypto_objects = [build / f"source-{i}.o" for i in range(1, 17)]
-        for i, name in enumerate(frozen.EXTRA):
-            obj = output / f"signing-{i}.o"
-            compile_source(module.SOURCE / "src/libsodium" / name, obj, c=True)
-            crypto_objects.append(obj)
-        base = [ROOT / "firmware/components" / part for part in
-                ("security_evaluation/include", "security/include", "security/test_support",
-                 "persistence/include", "persistence/test_support")]
-        def suite(name, sources, extra_includes, wraps, marker, cases=None, defines=()):
-            directory = output / name
-            directory.mkdir()
-            objects = list(crypto_objects)
-            for i, source in enumerate(sources):
-                obj = directory / f"unit-{i}.o"
-                compile_source(source, obj, extra_includes, defines=defines)
-                objects.append(obj)
-            exe = directory / (name + ".exe")
-            commands.run([cxx, "-Wl,--gc-sections", *["-Wl,--wrap=" + value for value in wraps],
-                          *objects, "-o", exe], env=env, check=True)
-            outputs = []
-            for case in cases or [None]:
-                completed = commands.run([exe, *([case] if case else [])], env=env, check=True, timeout=60)
-                need(completed.stdout.startswith("PASS ") and marker in completed.stdout,
-                     "missing_suite_pass: " + name)
-                outputs.append(completed.stdout.strip())
-            summary = "PASS " + str(len(cases)) + marker if cases else outputs[0]
-            result["suites"][name] = {"output": summary, "binary": pin(exe)}
-            if cases:
-                result["suites"][name]["cases"] = dict(zip(cases, outputs))
-            print(summary, flush=True)
-            return exe
-        common = [ROOT / name for name in frozen.COMMON]
-        for name in frozen.SUITES:
-            suite(name, [*common, ROOT / "tests/host" / (name + ".cpp")], base, (), " groups\n")
-        suite("security_confirmation_owner_tests", [*common, ROOT / "tests/host/security_confirmation_owner_tests.cpp"],
-              base, (), " actual confirmation owner groups")
-        suite("security_handshake_endpoint_tests", [*common, ROOT / "tests/host/security_handshake_endpoint_tests.cpp"],
-              base, (), " independent handshake endpoint groups")
-        suite("security_independent_invitation_tests", [*common, ROOT / "tests/host/security_independent_invitation_tests.cpp"],
-              base, (), " independent invitation groups")
-        suite("security_independent_endpoint_tests", [*common, ROOT / "tests/host/security_independent_endpoint_tests.cpp"],
-              base, (), " independent provisioned endpoint groups")
-        suite("peer_activation_store_tests", [*common, ROOT / "tests/host/peer_activation_store_tests.cpp"],
-              base, (), " peer activation store groups")
-        suite("peer_membership_store_tests", [*common, ROOT / "tests/host/peer_membership_store_tests.cpp"],
-              base, (), " peer membership store groups")
-        suite("enrolled_peer_endpoint_tests", [*common, ROOT / "tests/host/enrolled_peer_endpoint_tests.cpp"],
-              base, (), " enrolled peer endpoint groups")
-        suite("enrollment_identity_binding_tests", [*common, ROOT / "tests/host/enrollment_identity_binding_tests.cpp"],
-              base, (), " enrollment identity binding groups")
-        suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
-              base, (), " enrollment fingerprint review groups")
-        suite("enrollment_candidate_preparation_tests", [*common, ROOT / "tests/host/enrollment_candidate_preparation_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include"],
-              (), " enrollment candidate preparation groups")
-        suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include"],
-              (), " enrollment candidate session groups")
-        f5_components = ROOT / "firmware/components"
-        f5_sources = [f5_components / path for path in (
-            "protocol/src/packet_v1.cpp", "protocol/src/quick_status_codec.cpp",
-            "delivery/src/delivery_controller.cpp")]
-        f5_includes = [f5_components / path for path in (
-            "companion/include", "protocol/include", "radio/include", "delivery/include")]
-        suite("f5_rekey_status_tests",
-              [*common, *f5_sources, ROOT / "tests/host/f5_rekey_status_tests.cpp"],
-              [*base, *f5_includes], (), " real retained F5 rekey/status groups")
-        suite("f5_status_admission_tests",
-              [*common, *f5_sources, ROOT / "tests/host/f5_status_admission_tests.cpp"],
-              [*base, *f5_includes], (), " F5 status semantic admission and launch groups")
-        suite("otxt_payload_codec_tests",
-              [f5_components / "protocol/src/packet_v1.cpp", ROOT / "tests/host/otxt_payload_codec_tests.cpp"],
-              f5_includes, (), " OTXT shared vectors")
-        suite("f7_text_session_tests",
-              [*common, *f5_sources, ROOT / "tests/host/f7_text_session_tests.cpp"],
-              [*base, *f5_includes], (), " retained-pair F7 text session groups")
-        suite("companion_text_carrier_tests",
-              [ROOT / "tests/host/companion_text_carrier_tests.cpp"],
-              f5_includes, (), "TEXT-CARRIER-V1")
-        suite("companion_phone_text_trial_tests",
-              [*common, *f5_sources, f5_components / "companion/src/companion_device_name_owner.cpp",
-               f5_components / "companion/src/companion_device_name_codec.cpp",
-               ROOT / "tests/host/companion_phone_text_trial_tests.cpp"],
-              [*base, *f5_includes], (), " TASK-6 bridge owner", defines=("-DTASK6_REAL_F5=1",))
-        f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
-        suite("companion_phone_text_gatt_tests",
-              [ROOT / "tests/host/companion_phone_text_gatt_tests.cpp"],
-              [f5_target, f5_components / "radio/include"], (), " protected GATT phone-text routing groups")
-        suite("companion_gatt_layout_tests",
-              [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
-              [f5_target], (), " Companion GATT layout migration groups")
-        suite("f5_pairing_nvs_tests",
-              [f5_target / "pairing_nvs_storage.cpp", f5_components / "companion/src/direct_conversation_owner.cpp",
-               ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
-              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, f5_components / "companion/include", *base, f5_components / "identity/include"],
-              (), " actual F5 pairing NVS host groups")
-        suite("direct_conversation_owner_tests",
-              [f5_components / "companion/src/direct_conversation_owner.cpp",
-               ROOT / "tests/host/direct_conversation_owner_tests.cpp"],
-              [f5_components / "companion/include", *base], (),
-              " direct-conversation owner scenario groups")
-        suite("direct_protected_text_tests",
-              [*common, *f5_sources, f5_components / "companion/src/direct_conversation_owner.cpp",
-               f5_components / "companion/src/companion_device_name_owner.cpp",
-               f5_components / "companion/src/companion_device_name_codec.cpp",
-               f5_components / "companion/src/direct_text_session.cpp", f5_target / "pairing_nvs_storage.cpp",
-               ROOT / "tests/host/f5_pairing_nvs_tests.cpp", ROOT / "tests/host/direct_protected_text_tests.cpp"],
-              [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, *f5_includes,
-               f5_components / "identity/include"], (), " direct protected text groups",
-              defines=("-DOPENTRAIL_HOST_F5_NVS_FIXTURE=1",))
-        suite("companion_direct_configuration_tests",
-              [f5_components / "companion/src/companion_direct_configuration.cpp",
-               ROOT / "tests/host/companion_direct_configuration_tests.cpp"],
-              [f5_components / "companion/include", *base], (), " direct configuration vectors",
-              [str(ROOT / "tests/fixtures/companion_direct_configuration_v1.tsv")])
-        suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
-              base, (), " pairing completion journal groups")
-        suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
-              base, (), " pairing completion archive groups")
-        suite("pairing_session_adapter_tests", [*common, ROOT / "tests/host/pairing_session_adapter_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include"],
-              (), " pairing session adapter groups")
-        suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
-              [*base, ROOT / "firmware/components/companion/include"],
-              (), " enrollment candidate recovery groups")
-        suite("enrollment_candidate_reset_tests", [*common, ROOT / "tests/host/enrollment_candidate_reset_tests.cpp",
-              ROOT / "firmware/components/companion/src/device_factory_reset_executor.cpp"],
-              [*base, ROOT / "firmware/components/companion/include"],
-              (), " enrollment candidate reset groups")
-        suite("enrollment_review_layout_tests", [*common, ROOT / "tests/host/enrollment_review_layout_tests.cpp"],
-              base, (), " enrollment review layout groups")
-        suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
-              base, (), " groups passed")
-        bench = ROOT / "firmware/targets/heltec_v4_bench/main"
-        suite("heltec_enrollment_input_arbiter_tests", [*common,
-              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
-                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
-              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
-                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
-              ROOT / "tests/host/heltec_enrollment_input_arbiter_tests.cpp"],
-              [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
-               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
-              (), " actual enrollment input arbiter groups")
-        suite("enrollment_candidate_device_session_tests", [*common,
-              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
-                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
-              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
-                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
-              ROOT / "tests/host/enrollment_candidate_device_session_tests.cpp"],
-              [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
-               *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
-              (), " actual candidate device session groups")
-        candidate_target = ROOT / "firmware/targets/heltec_v4_enrollment_candidate_eval/main"
-        candidate_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_target"
-        pairing_reset_stub = ROOT / "tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp"
-        candidate_sources = [*common, pairing_reset_stub,
-              *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
-                "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp",
-                "heltec_v4_factory_reset_storage.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp", "enrollment_identity_nvs_storage.cpp")],
-              *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
-                "companion/src/device_factory_reset_executor.cpp", "security/src/serialized_secure_random.cpp",
-                "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
-              candidate_target / "candidate_runtime.cpp", candidate_target / "candidate_store_runtime.cpp"]
-        candidate_includes = [*base, bench, candidate_target, candidate_fixture,
-              ROOT / "tests/host/fixtures/heltec_oled",
-              *[ROOT / "firmware/components" / name / "include" for name in
-                ("companion", "ui", "time", "protocol", "radio", "location")]]
-        suite("enrollment_candidate_target_tests", [*candidate_sources,
-              candidate_fixture / "candidate_target_stub.cpp",
-              ROOT / "tests/host/enrollment_candidate_target_tests.cpp"], candidate_includes,
-              (), " actual enrollment candidate target groups")
-        entropy_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_entropy_admission"
-        suite("enrollment_candidate_entropy_admission_tests", [*candidate_sources,
-              candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
-              ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
-              [entropy_fixture, *candidate_includes], ("sodium_init",),
-              " actual enrollment candidate entropy admission groups")
-        suite("enrollment_candidate_startup_diagnostics_tests", [*candidate_sources,
-              candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
-              ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
-              [entropy_fixture, *candidate_includes], ("sodium_init",),
-              " actual enrollment candidate entropy admission groups",
-              defines=("-DOT_CANDIDATE_STARTUP_DIAGNOSTICS=1",))
-        suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
-              base, (), " enrollment commit journal groups")
-        suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
-              base, (), " identity store groups")
-        roster_points = output / "roster-ed25519-points.o"
-        compile_source(module.SOURCE / "src/libsodium/crypto_core/ed25519/core_ed25519.c", roster_points, c=True)
-        crypto_objects.append(roster_points)
-        suite("heltec_enrollment_identity_owner_tests", [*common, pairing_reset_stub,
-              ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
-              ROOT / "firmware/components/identity/src/group_roster.cpp",
-              *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in
-                ("heltec_enrollment_identity_owner.cpp", "heltec_group_roster_identity.cpp",
-                 "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
-              [*base, ROOT / "tests/host/fixtures/identity_nvs", ROOT / "firmware/targets/heltec_v4_bench/main",
-               *[ROOT / "firmware/components" / name / "include" for name in
-                 ("companion", "identity", "radio", "protocol", "location", "time")]],
-              (), " actual retained identity owner groups", cases=("boot-and-sign", "roster-handoff", "roster-early-handoff"))
-        crypto_objects.pop()
-        suite("enrollment_possession_proof_tests", [*common, ROOT / "tests/host/enrollment_possession_proof_tests.cpp"],
-              base, (), " enrollment possession:")
-        suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],
-              base, (), " product enrollment activation groups")
-        suite("enrollment_binding_store_tests", [*common, ROOT / "tests/host/enrollment_binding_store_tests.cpp"],
-              base, (), " enrollment binding store groups")
-        suite("enrollment_retained_state_tests", [*common, ROOT / "tests/host/enrollment_retained_state_tests.cpp"],
-              base, (), " retained state groups")
-        suite("product_enrollment_rekey_tests", [*common, ROOT / "tests/host/product_enrollment_rekey_tests.cpp"],
-              base, (), " product enrollment rekey groups")
-        suite("product_enrollment_authority_tests", [*common, ROOT / "tests/host/product_enrollment_authority_tests.cpp"],
-              base, (), " product enrollment authority groups")
-        suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
-              base, (), " enrollment evidence store groups")
-        suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],
-              base, (), " provisioned peer endpoint groups")
-        suite("evaluation_storage_bank_tests", [ROOT / "tests/host/evaluation_storage_bank_tests.cpp"],
-              base, (), " evaluation storage bank groups")
-        enrolled_includes = [*base, ROOT / "firmware/components/companion/include",
-            ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include",
-            ROOT / "firmware/components/radio/test_support"]
-        radio_sources = [ROOT / "firmware/components/protocol/src/packet_codec.cpp",
-                         ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"]
-        suite("session_generation_storage_tests", [*common, ROOT / "tests/host/session_generation_storage_tests.cpp"],
-              base, (), " session generation storage groups")
-        suite("enrolled_peer_transport_tests", [*common, *radio_sources, ROOT / "tests/host/enrolled_peer_transport_tests.cpp"],
-              enrolled_includes, (), " enrolled peer transport groups")
-        nvs_includes = [*base, ROOT / "tests/host/fixtures/security_eval_nvs",
-                        ROOT / "firmware/targets/heltec_v4_enrolled_eval/main"]
-        suite("enrolled_nvs_backend_tests", [*common, ROOT / "tests/host/enrolled_nvs_backend_tests.cpp"],
-              nvs_includes, (), " enrolled NVS backend groups")
-        suite("enrolled_nvs_session_tests", [*common, ROOT / "tests/host/enrolled_nvs_session_tests.cpp"],
-              nvs_includes, (), " enrolled NVS session groups")
-        suite("enrolled_radio_driver_tests", [ROOT / "tests/host/enrolled_radio_driver_tests.cpp",
-              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
-              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
-               ROOT / "firmware/components/radio/include"], (), " enrolled radio driver groups")
-        diagnostic_exe = suite("enrolled_diagnostics_tests", [ROOT / "tests/host/enrolled_diagnostics_tests.cpp",
-              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
-              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
-               ROOT / "firmware/components/radio/include"], (), " enrolled diagnostics groups")
-        suite("companion_status_bridge_tests", [*common, ROOT / "tests/host/companion_status_bridge_tests.cpp"],
-              enrolled_includes, (), " companion status bridge groups")
-        enrolled_exe = suite("enrolled_bench_session_tests", [*common, *radio_sources,
-              ROOT / "tests/host/enrolled_bench_session_tests.cpp"], enrolled_includes,
-              (), " enrolled bench session groups")
-        suite("enrolled_completion_composed_tests", [*common, *radio_sources,
-              ROOT / "tests/host/enrolled_completion_composed_tests.cpp",
-              ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
-              [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes, *enrolled_includes],
-              (), " enrolled completion composition groups")
-        suite("security_peer_traffic_tests", [*common, ROOT / "tests/host/security_peer_traffic_tests.cpp"],
-              base, (), " peer traffic groups")
-        suite("security_endpoint_record_tests", [*common, ROOT / "tests/host/security_endpoint_record_tests.cpp"],
-              base, (), " guarded endpoint record groups")
-        suite("security_independent_transport_tests",
-              [*common, ROOT / "tests/host/security_independent_transport_tests.cpp",
-               ROOT / "firmware/components/protocol/src/packet_codec.cpp",
-               ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
-              [*base, ROOT / "firmware/components/radio/include",
-               ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
-              (), " independent transport groups")
-        suite("pair_radio_session_tests",
-              [*common, ROOT / "tests/host/pair_radio_session_tests.cpp",
-               ROOT / "firmware/components/protocol/src/packet_codec.cpp",
-               ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
-              [*base, ROOT / "firmware/components/radio/include",
-               ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
-              (), " radio pair session groups")
-        suite("pair_radio_driver_tests",
-              [ROOT / "tests/host/pair_radio_driver_tests.cpp",
-               ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp"],
-              [ROOT / "tests/host/pair_radio_driver_stubs",
-               ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main",
-               ROOT / "firmware/components/radio/include", *base],
-              (), " radio driver groups")
-        pair_exe = suite("pair_bench_session_tests", [*common, ROOT / "tests/host/pair_bench_session_tests.cpp"],
-                         base, (), " pair bench session groups")
-        pair_target = ROOT / "firmware/targets/heltec_v4_pair_eval/main"
-        entropy_target = ROOT / "firmware/targets/heltec_v4_security_eval/main"
-        bench_target = ROOT / "firmware/targets/heltec_v4_bench/main"
-        startup_sources = [*common, pair_target / "app_main.cpp", entropy_target / "entropy_runtime.cpp",
-            bench_target / "heltec_v4_secure_random.cpp",
-            ROOT / "firmware/components/security/src/serialized_secure_random.cpp",
-            ROOT / "firmware/components/persistence/src/persistent_storage_kv.cpp",
-            ROOT / "tests/host/pair_target_startup_tests.cpp"]
-        startup_cases = ("happy usb_install nvs_init display_init button_init boot_open role_open tx_open rx_open "
-            "tx_blank_read tx_blank_retained rx_blank_read rx_blank_retained entropy_not_idle entropy_init "
-            "entropy_enable entropy_readiness sodium_init authority ready_send session_tick usb_read "
-            "session_command invalid_control line_overflow prehello_noise prehello_init prehello_budget prehello_diag_budget prehello_boundary").split()
-        suite("pair_target_startup_tests", startup_sources,
-              [ROOT / "tests/host/pair_target_startup_stubs", pair_target, entropy_target, bench_target, *base],
-              ["sodium_init"], " actual pair startup groups", startup_cases)
-        suite("pair_radio_target_startup_tests",
-              [*startup_sources, ROOT / "firmware/components/protocol/src/packet_codec.cpp"],
-              [ROOT / "tests/host/pair_radio_startup_stubs", ROOT / "tests/host/pair_target_startup_stubs",
-               pair_target, entropy_target, bench_target, ROOT / "firmware/components/radio/include",
-               ROOT / "firmware/components/protocol/include", *base],
-              ["sodium_init"], " actual pair startup groups", startup_cases, ["-DOT_PAIR_RADIO_EVAL=1"])
+        loop_names = []
+        if native:
+            downloads = dependencies.FETCHES["downloaded"]
+            component = dependencies.acquire(output / "managed-component", cached_component=cached_component)
+            # False when both files came from the pinned download cache.
+            result["network"] = dependencies.FETCHES["downloaded"] != downloads
+            result["dependency"] = {"archive_sha256": dependencies.ARCHIVE_SHA,
+                                    "checksum_sha256": dependencies.CHECKSUM_SHA,
+                                    "manifest_sha256": dependencies.MANIFEST_SHA,
+                                    "verified_files": 733,
+                                    "mode": "archive" if cached_component is None else "cached_component",
+                                    "archive_verified": cached_component is None}
+            spec = importlib.util.spec_from_file_location("current_ci_crypto", helper)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            module.COMPONENT, module.SOURCE = component, component / "libsodium"
+            module.SUCCESSOR = ROOT / "firmware/targets/heltec_v4_security_eval/main/noise_adapter"
+            module.SUCCESSOR_SHA = "b0be8109d017a851cea3952c4713157847c3bc64fe0eba1367c2b3c27cbcdc8b"
+            build = output / "scalar-build"
+            native_subprocess = dependencies.subprocess
+            def logged(command, **kwargs):
+                kwargs.setdefault("env", env)
+                return commands.run(command, **kwargs)
+            try:
+                dependencies.subprocess = SimpleNamespace(run=logged)
+                dependencies.native_probe(module, build, cc)
+            finally:
+                dependencies.subprocess = native_subprocess
+            result["scalar_control"] = {"groups": 26, "result": "passed",
+                "binary": pin(build / "independent-probe.exe")}
+            flags = ["-O2", "-Wall", "-Wextra", "-DSODIUM_STATIC", "-DCONFIGURED=1",
+                     "-DNATIVE_LITTLE_ENDIAN=1", "-fno-asynchronous-unwind-tables",
+                     "-fno-unwind-tables", "-ffunction-sections", "-fdata-sections"]
+            shared_includes = [build / "include", module.SOURCE / "src/libsodium/include",
+                               module.SOURCE / "src/libsodium/include/sodium", module.SUCCESSOR]
+            def includes(paths):
+                return [item for path in paths for item in ("-I", str(path))]
+            def compile_source(source, obj, more=(), c=False, defines=()):
+                language = ["-std=c11"] if c else ["-std=c++17", "-fno-exceptions", "-fno-rtti", "-Werror"]
+                commands.run([cc if c else cxx, *language, *flags, *defines,
+                    *includes([*shared_includes, *more]), "-MMD", "-MF", obj.with_suffix(".d"),
+                    "-c", source, "-o", obj], env=env, check=True)
+            crypto_objects = [build / f"source-{i}.o" for i in range(1, 17)]
+            for i, name in enumerate(frozen.EXTRA):
+                obj = output / f"signing-{i}.o"
+                compile_source(module.SOURCE / "src/libsodium" / name, obj, c=True)
+                crypto_objects.append(obj)
+            base = [ROOT / "firmware/components" / part for part in
+                    ("security_evaluation/include", "security/include", "security/test_support",
+                     "persistence/include", "persistence/test_support")]
+            def suite(name, sources, extra_includes, wraps, marker, cases=None, defines=()):
+                directory = output / name
+                directory.mkdir()
+                objects = list(crypto_objects)
+                for i, source in enumerate(sources):
+                    obj = directory / f"unit-{i}.o"
+                    compile_source(source, obj, extra_includes, defines=defines)
+                    objects.append(obj)
+                exe = directory / (name + ".exe")
+                commands.run([cxx, "-Wl,--gc-sections", *["-Wl,--wrap=" + value for value in wraps],
+                              *objects, "-o", exe], env=env, check=True)
+                outputs = []
+                for case in cases or [None]:
+                    completed = commands.run([exe, *([case] if case else [])], env=env, check=True, timeout=60)
+                    need(completed.stdout.startswith("PASS ") and marker in completed.stdout,
+                         "missing_suite_pass: " + name)
+                    outputs.append(completed.stdout.strip())
+                summary = "PASS " + str(len(cases)) + marker if cases else outputs[0]
+                result["suites"][name] = {"output": summary, "binary": pin(exe)}
+                if cases:
+                    result["suites"][name]["cases"] = dict(zip(cases, outputs))
+                print(summary, flush=True)
+                return exe
+            common = [ROOT / name for name in frozen.COMMON]
+            for name in frozen.SUITES:
+                suite(name, [*common, ROOT / "tests/host" / (name + ".cpp")], base, (), " groups\n")
+            suite("security_confirmation_owner_tests", [*common, ROOT / "tests/host/security_confirmation_owner_tests.cpp"],
+                  base, (), " actual confirmation owner groups")
+            suite("security_handshake_endpoint_tests", [*common, ROOT / "tests/host/security_handshake_endpoint_tests.cpp"],
+                  base, (), " independent handshake endpoint groups")
+            suite("security_independent_invitation_tests", [*common, ROOT / "tests/host/security_independent_invitation_tests.cpp"],
+                  base, (), " independent invitation groups")
+            suite("security_independent_endpoint_tests", [*common, ROOT / "tests/host/security_independent_endpoint_tests.cpp"],
+                  base, (), " independent provisioned endpoint groups")
+            suite("peer_activation_store_tests", [*common, ROOT / "tests/host/peer_activation_store_tests.cpp"],
+                  base, (), " peer activation store groups")
+            suite("peer_membership_store_tests", [*common, ROOT / "tests/host/peer_membership_store_tests.cpp"],
+                  base, (), " peer membership store groups")
+            suite("enrolled_peer_endpoint_tests", [*common, ROOT / "tests/host/enrolled_peer_endpoint_tests.cpp"],
+                  base, (), " enrolled peer endpoint groups")
+            suite("enrollment_identity_binding_tests", [*common, ROOT / "tests/host/enrollment_identity_binding_tests.cpp"],
+                  base, (), " enrollment identity binding groups")
+            suite("enrollment_fingerprint_review_tests", [*common, ROOT / "tests/host/enrollment_fingerprint_review_tests.cpp"],
+                  base, (), " enrollment fingerprint review groups")
+            suite("enrollment_candidate_preparation_tests", [*common, ROOT / "tests/host/enrollment_candidate_preparation_tests.cpp"],
+                  [*base, ROOT / "firmware/components/companion/include"],
+                  (), " enrollment candidate preparation groups")
+            suite("enrollment_candidate_session_tests", [*common, ROOT / "tests/host/enrollment_candidate_session_tests.cpp"],
+                  [*base, ROOT / "firmware/components/companion/include"],
+                  (), " enrollment candidate session groups")
+            f5_components = ROOT / "firmware/components"
+            f5_sources = [f5_components / path for path in (
+                "protocol/src/packet_v1.cpp", "protocol/src/quick_status_codec.cpp",
+                "delivery/src/delivery_controller.cpp")]
+            f5_includes = [f5_components / path for path in (
+                "companion/include", "protocol/include", "radio/include", "delivery/include")]
+            suite("f5_rekey_status_tests",
+                  [*common, *f5_sources, ROOT / "tests/host/f5_rekey_status_tests.cpp"],
+                  [*base, *f5_includes], (), " real retained F5 rekey/status groups")
+            suite("f5_status_admission_tests",
+                  [*common, *f5_sources, ROOT / "tests/host/f5_status_admission_tests.cpp"],
+                  [*base, *f5_includes], (), " F5 status semantic admission and launch groups")
+            suite("otxt_payload_codec_tests",
+                  [f5_components / "protocol/src/packet_v1.cpp", ROOT / "tests/host/otxt_payload_codec_tests.cpp"],
+                  f5_includes, (), " OTXT shared vectors")
+            suite("f7_text_session_tests",
+                  [*common, *f5_sources, ROOT / "tests/host/f7_text_session_tests.cpp"],
+                  [*base, *f5_includes], (), " retained-pair F7 text session groups")
+            suite("companion_text_carrier_tests",
+                  [ROOT / "tests/host/companion_text_carrier_tests.cpp"],
+                  f5_includes, (), "TEXT-CARRIER-V1")
+            suite("companion_phone_text_trial_tests",
+                  [*common, *f5_sources, f5_components / "companion/src/companion_device_name_owner.cpp",
+                   f5_components / "companion/src/companion_device_name_codec.cpp",
+                   ROOT / "tests/host/companion_phone_text_trial_tests.cpp"],
+                  [*base, *f5_includes], (), " TASK-6 bridge owner", defines=("-DTASK6_REAL_F5=1",))
+            f5_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+            suite("companion_phone_text_gatt_tests",
+                  [ROOT / "tests/host/companion_phone_text_gatt_tests.cpp"],
+                  [f5_target, f5_components / "radio/include"], (), " protected GATT phone-text routing groups")
+            suite("companion_gatt_layout_tests",
+                  [ROOT / "tests/host/companion_gatt_layout_tests.cpp"],
+                  [f5_target], (), " Companion GATT layout migration groups")
+            suite("f5_pairing_nvs_tests",
+                  [f5_target / "pairing_nvs_storage.cpp", f5_components / "companion/src/direct_conversation_owner.cpp",
+                   ROOT / "tests/host/f5_pairing_nvs_tests.cpp"],
+                  [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, f5_components / "companion/include", *base, f5_components / "identity/include"],
+                  (), " actual F5 pairing NVS host groups")
+            suite("direct_conversation_owner_tests",
+                  [f5_components / "companion/src/direct_conversation_owner.cpp",
+                   ROOT / "tests/host/direct_conversation_owner_tests.cpp"],
+                  [f5_components / "companion/include", *base], (),
+                  " direct-conversation owner scenario groups")
+            suite("direct_protected_text_tests",
+                  [*common, *f5_sources, f5_components / "companion/src/direct_conversation_owner.cpp",
+                   f5_components / "companion/src/companion_device_name_owner.cpp",
+                   f5_components / "companion/src/companion_device_name_codec.cpp",
+                   f5_components / "companion/src/direct_text_session.cpp", f5_target / "pairing_nvs_storage.cpp",
+                   ROOT / "tests/host/f5_pairing_nvs_tests.cpp", ROOT / "tests/host/direct_protected_text_tests.cpp"],
+                  [ROOT / "tests/host/f5_pairing_nvs_stubs", f5_target, *base, *f5_includes,
+                   f5_components / "identity/include"], (), " direct protected text groups",
+                  defines=("-DOPENTRAIL_HOST_F5_NVS_FIXTURE=1",))
+            suite("companion_direct_configuration_tests",
+                  [f5_components / "companion/src/companion_direct_configuration.cpp",
+                   ROOT / "tests/host/companion_direct_configuration_tests.cpp"],
+                  [f5_components / "companion/include", *base], (), " direct configuration vectors",
+                  [str(ROOT / "tests/fixtures/companion_direct_configuration_v1.tsv")])
+            suite("pairing_completion_journal_tests", [*common, ROOT / "tests/host/pairing_completion_journal_tests.cpp"],
+                  base, (), " pairing completion journal groups")
+            suite("pairing_completion_archive_tests", [*common, ROOT / "tests/host/pairing_completion_archive_tests.cpp"],
+                  base, (), " pairing completion archive groups")
+            suite("pairing_session_adapter_tests", [*common, ROOT / "tests/host/pairing_session_adapter_tests.cpp"],
+                  [*base, ROOT / "firmware/components/companion/include", ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include"],
+                  (), " pairing session adapter groups")
+            suite("enrollment_candidate_recovery_tests", [*common, ROOT / "tests/host/enrollment_candidate_recovery_tests.cpp"],
+                  [*base, ROOT / "firmware/components/companion/include"],
+                  (), " enrollment candidate recovery groups")
+            suite("enrollment_candidate_reset_tests", [*common, ROOT / "tests/host/enrollment_candidate_reset_tests.cpp",
+                  ROOT / "firmware/components/companion/src/device_factory_reset_executor.cpp"],
+                  [*base, ROOT / "firmware/components/companion/include"],
+                  (), " enrollment candidate reset groups")
+            suite("enrollment_review_layout_tests", [*common, ROOT / "tests/host/enrollment_review_layout_tests.cpp"],
+                  base, (), " enrollment review layout groups")
+            suite("enrollment_review_device_port_tests", [*common, ROOT / "tests/host/enrollment_review_device_port_tests.cpp"],
+                  base, (), " groups passed")
+            bench = ROOT / "firmware/targets/heltec_v4_bench/main"
+            suite("heltec_enrollment_input_arbiter_tests", [*common,
+                  *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                    "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
+                  *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                    "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+                  ROOT / "tests/host/heltec_enrollment_input_arbiter_tests.cpp"],
+                  [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
+                   *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
+                  (), " actual enrollment input arbiter groups")
+            suite("enrollment_candidate_device_session_tests", [*common,
+                  *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                    "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp")],
+                  *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                    "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+                  ROOT / "tests/host/enrollment_candidate_device_session_tests.cpp"],
+                  [*base, bench, ROOT / "tests/host/fixtures/heltec_oled",
+                   *[ROOT / "firmware/components" / name / "include" for name in ("companion", "ui", "time", "protocol", "radio")]],
+                  (), " actual candidate device session groups")
+            candidate_target = ROOT / "firmware/targets/heltec_v4_enrollment_candidate_eval/main"
+            candidate_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_target"
+            pairing_reset_stub = ROOT / "tests/host/fixtures/identity_nvs/pairing_nvs_reset_stub.cpp"
+            candidate_sources = [*common, pairing_reset_stub,
+                  *[bench / name for name in ("heltec_enrollment_input_arbiter.cpp", "heltec_v4_factory_reset_input.cpp",
+                    "heltec_startup_display.cpp", "heltec_v4_oled.cpp", "heltec_oled_presentation.cpp",
+                    "heltec_v4_factory_reset_storage.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp", "enrollment_identity_nvs_storage.cpp")],
+                  *[ROOT / "firmware/components" / name for name in ("companion/src/companion_factory_reset_gesture.cpp",
+                    "companion/src/device_factory_reset_executor.cpp", "security/src/serialized_secure_random.cpp",
+                    "ui/src/compact_status_footer.cpp", "ui/src/oled_presentation.cpp", "time/src/oled_clock.cpp")],
+                  candidate_target / "candidate_runtime.cpp", candidate_target / "candidate_store_runtime.cpp"]
+            candidate_includes = [*base, bench, candidate_target, candidate_fixture,
+                  ROOT / "tests/host/fixtures/heltec_oled",
+                  *[ROOT / "firmware/components" / name / "include" for name in
+                    ("companion", "ui", "time", "protocol", "radio", "location")]]
+            suite("enrollment_candidate_target_tests", [*candidate_sources,
+                  candidate_fixture / "candidate_target_stub.cpp",
+                  ROOT / "tests/host/enrollment_candidate_target_tests.cpp"], candidate_includes,
+                  (), " actual enrollment candidate target groups")
+            entropy_fixture = ROOT / "tests/host/fixtures/enrollment_candidate_entropy_admission"
+            suite("enrollment_candidate_entropy_admission_tests", [*candidate_sources,
+                  candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
+                  ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
+                  [entropy_fixture, *candidate_includes], ("sodium_init",),
+                  " actual enrollment candidate entropy admission groups")
+            suite("enrollment_candidate_startup_diagnostics_tests", [*candidate_sources,
+                  candidate_target / "app_main.cpp", entropy_fixture / "entropy_admission_stub.cpp",
+                  ROOT / "tests/host/enrollment_candidate_entropy_admission_tests.cpp"],
+                  [entropy_fixture, *candidate_includes], ("sodium_init",),
+                  " actual enrollment candidate entropy admission groups",
+                  defines=("-DOT_CANDIDATE_STARTUP_DIAGNOSTICS=1",))
+            suite("enrollment_commit_coordinator_tests", [*common, ROOT / "tests/host/enrollment_commit_coordinator_tests.cpp"],
+                  base, (), " enrollment commit journal groups")
+            suite("enrollment_identity_store_tests", [*common, ROOT / "tests/host/enrollment_identity_store_tests.cpp"],
+                  base, (), " identity store groups")
+            roster_points = output / "roster-ed25519-points.o"
+            compile_source(module.SOURCE / "src/libsodium/crypto_core/ed25519/core_ed25519.c", roster_points, c=True)
+            crypto_objects.append(roster_points)
+            suite("heltec_enrollment_identity_owner_tests", [*common, pairing_reset_stub,
+                  ROOT / "tests/host/heltec_enrollment_identity_owner_tests.cpp",
+                  ROOT / "firmware/components/identity/src/group_roster.cpp",
+                  *[ROOT / "firmware/targets/heltec_v4_bench/main" / name for name in
+                    ("heltec_enrollment_identity_owner.cpp", "heltec_group_roster_identity.cpp",
+                     "enrollment_identity_nvs_storage.cpp", "heltec_v4_factory_reset_storage.cpp")]],
+                  [*base, ROOT / "tests/host/fixtures/identity_nvs", ROOT / "firmware/targets/heltec_v4_bench/main",
+                   *[ROOT / "firmware/components" / name / "include" for name in
+                     ("companion", "identity", "radio", "protocol", "location", "time")]],
+                  (), " actual retained identity owner groups", cases=("boot-and-sign", "roster-handoff", "roster-early-handoff"))
+            crypto_objects.pop()
+            suite("enrollment_possession_proof_tests", [*common, ROOT / "tests/host/enrollment_possession_proof_tests.cpp"],
+                  base, (), " enrollment possession:")
+            suite("product_enrollment_activation_tests", [*common, ROOT / "tests/host/product_enrollment_activation_tests.cpp"],
+                  base, (), " product enrollment activation groups")
+            suite("enrollment_binding_store_tests", [*common, ROOT / "tests/host/enrollment_binding_store_tests.cpp"],
+                  base, (), " enrollment binding store groups")
+            suite("enrollment_retained_state_tests", [*common, ROOT / "tests/host/enrollment_retained_state_tests.cpp"],
+                  base, (), " retained state groups")
+            suite("product_enrollment_rekey_tests", [*common, ROOT / "tests/host/product_enrollment_rekey_tests.cpp"],
+                  base, (), " product enrollment rekey groups")
+            suite("product_enrollment_authority_tests", [*common, ROOT / "tests/host/product_enrollment_authority_tests.cpp"],
+                  base, (), " product enrollment authority groups")
+            suite("enrollment_evidence_store_tests", [*common, ROOT / "tests/host/enrollment_evidence_store_tests.cpp"],
+                  base, (), " enrollment evidence store groups")
+            suite("provisioned_peer_endpoint_tests", [*common, ROOT / "tests/host/provisioned_peer_endpoint_tests.cpp"],
+                  base, (), " provisioned peer endpoint groups")
+            suite("evaluation_storage_bank_tests", [ROOT / "tests/host/evaluation_storage_bank_tests.cpp"],
+                  base, (), " evaluation storage bank groups")
+            enrolled_includes = [*base, ROOT / "firmware/components/companion/include",
+                ROOT / "firmware/components/protocol/include", ROOT / "firmware/components/radio/include",
+                ROOT / "firmware/components/radio/test_support"]
+            radio_sources = [ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+                             ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"]
+            suite("session_generation_storage_tests", [*common, ROOT / "tests/host/session_generation_storage_tests.cpp"],
+                  base, (), " session generation storage groups")
+            suite("enrolled_peer_transport_tests", [*common, *radio_sources, ROOT / "tests/host/enrolled_peer_transport_tests.cpp"],
+                  enrolled_includes, (), " enrolled peer transport groups")
+            nvs_includes = [*base, ROOT / "tests/host/fixtures/security_eval_nvs",
+                            ROOT / "firmware/targets/heltec_v4_enrolled_eval/main"]
+            suite("enrolled_nvs_backend_tests", [*common, ROOT / "tests/host/enrolled_nvs_backend_tests.cpp"],
+                  nvs_includes, (), " enrolled NVS backend groups")
+            suite("enrolled_nvs_session_tests", [*common, ROOT / "tests/host/enrolled_nvs_session_tests.cpp"],
+                  nvs_includes, (), " enrolled NVS session groups")
+            suite("enrolled_radio_driver_tests", [ROOT / "tests/host/enrolled_radio_driver_tests.cpp",
+                  ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+                  [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
+                   ROOT / "firmware/components/radio/include"], (), " enrolled radio driver groups")
+            diagnostic_exe = suite("enrolled_diagnostics_tests", [ROOT / "tests/host/enrolled_diagnostics_tests.cpp",
+                  ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+                  [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes,
+                   ROOT / "firmware/components/radio/include"], (), " enrolled diagnostics groups")
+            suite("companion_status_bridge_tests", [*common, ROOT / "tests/host/companion_status_bridge_tests.cpp"],
+                  enrolled_includes, (), " companion status bridge groups")
+            enrolled_exe = suite("enrolled_bench_session_tests", [*common, *radio_sources,
+                  ROOT / "tests/host/enrolled_bench_session_tests.cpp"], enrolled_includes,
+                  (), " enrolled bench session groups")
+            suite("enrolled_completion_composed_tests", [*common, *radio_sources,
+                  ROOT / "tests/host/enrolled_completion_composed_tests.cpp",
+                  ROOT / "firmware/targets/heltec_v4_enrolled_eval/main/enrolled_radio_driver.cpp"],
+                  [ROOT / "tests/host/pair_radio_driver_stubs", *nvs_includes, *enrolled_includes],
+                  (), " enrolled completion composition groups")
+            suite("security_peer_traffic_tests", [*common, ROOT / "tests/host/security_peer_traffic_tests.cpp"],
+                  base, (), " peer traffic groups")
+            suite("security_endpoint_record_tests", [*common, ROOT / "tests/host/security_endpoint_record_tests.cpp"],
+                  base, (), " guarded endpoint record groups")
+            suite("security_independent_transport_tests",
+                  [*common, ROOT / "tests/host/security_independent_transport_tests.cpp",
+                   ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+                   ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
+                  [*base, ROOT / "firmware/components/radio/include",
+                   ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
+                  (), " independent transport groups")
+            suite("pair_radio_session_tests",
+                  [*common, ROOT / "tests/host/pair_radio_session_tests.cpp",
+                   ROOT / "firmware/components/protocol/src/packet_codec.cpp",
+                   ROOT / "firmware/components/radio/test_support/fake_radio_transport.cpp"],
+                  [*base, ROOT / "firmware/components/radio/include",
+                   ROOT / "firmware/components/radio/test_support", ROOT / "firmware/components/protocol/include"],
+                  (), " radio pair session groups")
+            suite("pair_radio_driver_tests",
+                  [ROOT / "tests/host/pair_radio_driver_tests.cpp",
+                   ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main/pair_radio_driver.cpp"],
+                  [ROOT / "tests/host/pair_radio_driver_stubs",
+                   ROOT / "firmware/targets/heltec_v4_pair_radio_eval/main",
+                   ROOT / "firmware/components/radio/include", *base],
+                  (), " radio driver groups")
+            pair_exe = suite("pair_bench_session_tests", [*common, ROOT / "tests/host/pair_bench_session_tests.cpp"],
+                             base, (), " pair bench session groups")
+            pair_target = ROOT / "firmware/targets/heltec_v4_pair_eval/main"
+            entropy_target = ROOT / "firmware/targets/heltec_v4_security_eval/main"
+            bench_target = ROOT / "firmware/targets/heltec_v4_bench/main"
+            startup_sources = [*common, pair_target / "app_main.cpp", entropy_target / "entropy_runtime.cpp",
+                bench_target / "heltec_v4_secure_random.cpp",
+                ROOT / "firmware/components/security/src/serialized_secure_random.cpp",
+                ROOT / "firmware/components/persistence/src/persistent_storage_kv.cpp",
+                ROOT / "tests/host/pair_target_startup_tests.cpp"]
+            startup_cases = ("happy usb_install nvs_init display_init button_init boot_open role_open tx_open rx_open "
+                "tx_blank_read tx_blank_retained rx_blank_read rx_blank_retained entropy_not_idle entropy_init "
+                "entropy_enable entropy_readiness sodium_init authority ready_send session_tick usb_read "
+                "session_command invalid_control line_overflow prehello_noise prehello_init prehello_budget prehello_diag_budget prehello_boundary").split()
+            suite("pair_target_startup_tests", startup_sources,
+                  [ROOT / "tests/host/pair_target_startup_stubs", pair_target, entropy_target, bench_target, *base],
+                  ["sodium_init"], " actual pair startup groups", startup_cases)
+            suite("pair_radio_target_startup_tests",
+                  [*startup_sources, ROOT / "firmware/components/protocol/src/packet_codec.cpp"],
+                  [ROOT / "tests/host/pair_radio_startup_stubs", ROOT / "tests/host/pair_target_startup_stubs",
+                   pair_target, entropy_target, bench_target, ROOT / "firmware/components/radio/include",
+                   ROOT / "firmware/components/protocol/include", *base],
+                  ["sodium_init"], " actual pair startup groups", startup_cases, ["-DOT_PAIR_RADIO_EVAL=1"])
+        else:
+            # Python-only parts build nothing; the three suites that need these
+            # executables run in the native part.
+            enrolled_exe = diagnostic_exe = pair_exe = None
         for name, extra in (("enrolled_pair_bridge_tests", ["--node-exe", enrolled_exe, "--diagnostic-exe", diagnostic_exe]),
                             ("enrolled_trace_capture_tests", ["--diagnostic-exe", diagnostic_exe]),
                             ("enrollment_candidate_usb_client_tests", []),
@@ -498,6 +531,9 @@ def run(output, cached_component=None):
                             ("pair_bench_bridge_tests", ["--node-exe", pair_exe]),
                             ("pair_confirmation_trial_tests", []),
                             ("pair_trial_operator_tests", []), ("pair_radio_driver_source_tests", [])):
+            loop_names.append(name)
+            if not selected(name):
+                continue
             path = ROOT / "tests/host" / (name + ".py")
             if name == "enrollment_candidate_custody_tests":
                 need(not extra, "custody_test_extra_arguments_refused")
@@ -525,29 +561,32 @@ def run(output, cached_component=None):
                 result["suites"][name] = {"output": (completed.stdout + completed.stderr).strip(),
                                           "result": "passed"}
             print(name + " passed", flush=True)
-        stubs = ROOT / "tests/host/security_invitation_target_stubs"
-        target_common = [ROOT / "firmware/components" / name for name in
-            ("persistence/src/persistent_storage_kv.cpp", "persistence/src/outbound_counter_lease_store.cpp", "security/src/aead_nonce.cpp")]
-        for kind in ("invitation", "confirmation"):
-            target = ROOT / "firmware/targets" / ("heltec_v4_" + kind + "_eval") / "main"
-            more = [stubs, target, ROOT / "firmware/targets/heltec_v4_security_receipt_sync/main",
-                    ROOT / "firmware/targets/heltec_v4_security_policy_eval/main", *base,
-                    ROOT / "firmware/components/security_diagnostics/include"]
-            wraps = ["sodium_init", "sodium_memzero"]
-            if kind == "confirmation":
-                wraps += ["crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"]
-            name = "security_" + kind + "_target_tests"
-            suite(name, [*target_common, target / "app_main.cpp", ROOT / "tests/host" / (name + ".cpp")],
-                  more, wraps, " actual " + kind + " target groups")
-        target = ROOT / "firmware/targets/heltec_v4_bench/main"
-        backend = [target / name for name in ("confirmation_evaluation_backend.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp")]
-        backend += [ROOT / "firmware/components" / name for name in ("security/src/serialized_secure_random.cpp", "persistence/src/persistent_storage_kv.cpp", "companion/src/companion_device_name_owner.cpp")]
-        suite("security_confirmation_ble_backend_tests",
-              [*common, *backend, ROOT / "tests/host/security_confirmation_ble_backend_tests.cpp"],
-              [ROOT / "tests/host/security_confirmation_ble_stubs", stubs, target, *base,
-               ROOT / "firmware/components/companion/include", ROOT / "firmware/components/time/include"],
-              ["sodium_init", "ot_noise_xk_split", "crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"],
-              " actual protected confirmation backend groups")
+        if native:
+            stubs = ROOT / "tests/host/security_invitation_target_stubs"
+            target_common = [ROOT / "firmware/components" / name for name in
+                ("persistence/src/persistent_storage_kv.cpp", "persistence/src/outbound_counter_lease_store.cpp", "security/src/aead_nonce.cpp")]
+            for kind in ("invitation", "confirmation"):
+                target = ROOT / "firmware/targets" / ("heltec_v4_" + kind + "_eval") / "main"
+                more = [stubs, target, ROOT / "firmware/targets/heltec_v4_security_receipt_sync/main",
+                        ROOT / "firmware/targets/heltec_v4_security_policy_eval/main", *base,
+                        ROOT / "firmware/components/security_diagnostics/include"]
+                wraps = ["sodium_init", "sodium_memzero"]
+                if kind == "confirmation":
+                    wraps += ["crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"]
+                name = "security_" + kind + "_target_tests"
+                suite(name, [*target_common, target / "app_main.cpp", ROOT / "tests/host" / (name + ".cpp")],
+                      more, wraps, " actual " + kind + " target groups")
+            target = ROOT / "firmware/targets/heltec_v4_bench/main"
+            backend = [target / name for name in ("confirmation_evaluation_backend.cpp", "confirmation_nonowning_entropy.cpp", "heltec_v4_secure_random.cpp")]
+            backend += [ROOT / "firmware/components" / name for name in ("security/src/serialized_secure_random.cpp", "persistence/src/persistent_storage_kv.cpp", "companion/src/companion_device_name_owner.cpp")]
+            suite("security_confirmation_ble_backend_tests",
+                  [*common, *backend, ROOT / "tests/host/security_confirmation_ble_backend_tests.cpp"],
+                  [ROOT / "tests/host/security_confirmation_ble_stubs", stubs, target, *base,
+                   ROOT / "firmware/components/companion/include", ROOT / "firmware/components/time/include"],
+                  ["sodium_init", "ot_noise_xk_split", "crypto_aead_chacha20poly1305_ietf_encrypt", "crypto_aead_chacha20poly1305_ietf_decrypt"],
+                  " actual protected confirmation backend groups")
+        parts = (*NATIVE_PYTHON, *PYTHON_A, *PYTHON_B)
+        need(len(parts) == len(set(parts)) and sorted(parts) == sorted(loop_names), "part_coverage_incomplete")
         need(before == {name: pin(Path(name)) for name in before}, "source_changed_during_test")
         result["source_pins"] = {Path(name).relative_to(ROOT).as_posix(): value for name, value in before.items()}
         result["result"] = "passed"
@@ -564,5 +603,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--cached-component", type=Path,
                         help="Use an existing expanded component after exact 733-file verification, without network I/O")
+    parser.add_argument("--part", choices=PARTS, default="all",
+                        help="Run one CI part; the default runs the whole matrix in one process")
     args = parser.parse_args()
-    run(args.output_root, args.cached_component)
+    run(args.output_root, args.cached_component, args.part)
