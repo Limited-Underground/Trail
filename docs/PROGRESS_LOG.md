@@ -2,6 +2,21 @@
 
 ## 2026-11-24
 
+### OT-220 Run the core host tests as parallel CI shards
+
+The Windows core host tests job ran every suite one after another and took
+about 38 minutes. CI now runs it as five parallel jobs: Native, Python,
+SecurityNative, SecurityPythonA and SecurityPythonB. `Test-Host.ps1 -Shard`
+and `security_current_source_ci.py --part` select a shard; with no argument
+both still run everything locally in the original order. A coverage check
+fails if the parts' Python suites differ from the full list, and every part
+keeps the compiler and source-closure pins. libsodium downloads can come from
+a pinned cache, used only when a file's size and SHA-256 equal the existing
+pins; CI restores it with `actions/cache`. A branch run finished in about
+12 minutes, and its combined logs had the same 555 PASS and 1,038 passed/ok
+lines as the single-job run. The Windows host matrix gate is unchanged.
+Closes #320.
+
 ### OT-0306 Keep the keys of a QR-joined group pair on the board
 
 Owner decision D-179 keeps the two Noise keys of a QR-joined pair on the
