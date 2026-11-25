@@ -29,7 +29,8 @@ struct GroupPairHistory {
 // One serialized owner of a peer's public records and one live session. The
 // KV handle must be exclusive and separate from roster/index handles. The
 // trusted lifecycle caller authenticates peer activation before GroupState
-// commits. These records do not store keys or grant radio admission.
+// commits. These records do not store keys or grant radio admission. The
+// keys of a QR-joined pair are kept separately (GroupQrPairKeys, D-179).
 class GroupPairRecords final {
 public:
     GroupPairRecords(PersistentKvBackend& backend, identity::roster::DurableGroupRoster& roster,

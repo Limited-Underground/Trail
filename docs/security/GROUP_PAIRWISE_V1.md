@@ -846,10 +846,34 @@ Under D-170 (b) the join runs only in Link Test builds
   - When the finished join is retired, the invite is revoked, so the next
     Invite names N+1.
   - The joiner board receives N+1 later, through roster delivery.
+  - **Recovery (I-113):** the durable committed admin receipt is the proof
+    that the joiner belongs in N+1. Between joins, and once after every
+    restart, the admin board walks its kept receipts and adds each named
+    joiner who is not in the roster yet, as "Member N"
+    (`group_qr_member_recovery.hpp`).
+    - A roster already past the invite's version counts as done.
+    - A missing signer or a storage failure is retried every 5 seconds.
   - Signing works through the retained identity or the messaging runtime's
     live copy; never during first pairing.
-- **Not yet:** pair activation from the committed receipt, with the pair keys
-  stored per D-179.
+- **Pair keys of a QR-joined pair (step 2d-3, D-179):** unlike introduced
+  pairs, a QR-joined pair keeps its keys on the board. These are the two Noise
+  XK split keys of the admin and joiner pair.
+  - Each board writes them only after its own committed QR receipt reads back
+    for exactly this join: same invite, same peer, kind committed.
+  - They go in one fixed record per group in `ot_group_pair`
+    (`group_qr_pair_keys.hpp`; 717 B, up to five peers). The record is bound
+    to this board's identity and protected by a CRC.
+  - Writing the same keys again is a no-op. Any other keys for that pair are
+    refused.
+  - Stop Trust overwrites the group's record with an empty one, because group
+    storage never erases. It reports uncertain if that cannot be confirmed.
+  - Factory reset erases the whole partition.
+  - The four records take 104 entries, inside the group pair reserve D-163
+    already models, so the total stays at 12,441 of 16,128.
+  - At-rest protection is the same as the F5 pairing keys: plain `ot_state`,
+    no flash encryption.
+  - Writing happens only in Link Test builds (D-170 b). Every build can wipe.
+  - Member messaging over these keys comes later.
 
 ## Implementation order
 

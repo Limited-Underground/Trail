@@ -1,4 +1,5 @@
 #include "opentrail/companion_group_owner.hpp"
+#include "opentrail/group_qr_member_recovery.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -163,6 +164,12 @@ public:
         last_next = next;
         return successors_ready ? &signer : nullptr;
     }
+    bool wipe_group_pair_keys(std::uint64_t group) noexcept override {
+        wiped.push_back(group);
+        return wipe_ok;
+    }
+    std::vector<std::uint64_t> wiped;
+    bool wipe_ok{true};
     bool successors_ready{true};
     unsigned successor_requests{};
     roster::Roster last_previous{}, last_next{};
@@ -828,6 +835,105 @@ void qr_join_successor_refusals() {
     }
 }
 
+// I-113: a committed join whose roster N+1 write failed is added from the
+// durable admin receipt, after a retry or a restart, exactly once.
+roster::qr::Retained committed_receipt(const roster::qr::Descriptor& d, const roster::PublicKey& joiner,
+                                       roster::qr::Kind kind) {
+    roster::qr::Retained r{};
+    r.decision.scope.fill(0x51);
+    r.decision.transaction.fill(0x52);
+    r.decision.manifest.fill(0x53);
+    r.decision.side = roster::qr::Side::admin;
+    r.decision.kind = kind;
+    r.state.joiner = joiner;
+    r.state.admin = d.admin;
+    r.state.roster_digest = d.roster_digest;
+    r.state.transcript.fill(0x54);
+    r.state.invite_id = d.invite_id;
+    r.state.group = d.group;
+    r.state.roster_version = d.roster_version;
+    r.state.epoch = 1;
+    r.state.rule = d.rule;
+    r.local = d.admin;
+    r.peer = joiner;
+    return r;
+}
+
+void committed_join_member_is_recovered() {
+    Fixture f;
+    const auto created = f.create(f.owner);
+    const auto d = issued_descriptor(f, created.scope);
+    const roster::PublicKey joiner{9, 9, 9};
+    MemoryStore qrr{"ot_group_qrr"};
+    opentrail::persistence::GroupQrReceipts receipts{qrr, d.admin};
+    CHECK(receipts.reopen() == opentrail::persistence::GroupQrReceiptError::missing);
+    const auto deadline = f.authority.state.now_ms + 100000;
+    CHECK(receipts.persist(committed_receipt(d, joiner, roster::qr::Kind::prepared), deadline,
+                           f.authority.state.now_ms) == opentrail::persistence::GroupQrReceiptError::none);
+    CHECK(receipts.persist(committed_receipt(d, joiner, roster::qr::Kind::committed), deadline,
+                           f.authority.state.now_ms) == opentrail::persistence::GroupQrReceiptError::none);
+
+    // The live join's own write failed (storage cut before the commit).
+    f.rosters.cut_at = f.rosters.commit_attempts + 1;
+    f.rosters.cut = MemoryStore::Cut::before_commit;
+    GroupQrMemberRecovery recovery{f.owner};
+    std::uint64_t now = 1000;
+    CHECK(recovery.reconcile(receipts, now) == 0 && recovery.pending() && recovery.last() == Status::uncertain);
+    f.rosters.reboot();
+    roster::Roster current{};
+    CHECK(f.owner.qr_join_roster(d, current) && current.member_count == 1);
+    // Not before the retry time; then the joiner is added as "Member 2".
+    const auto attempts = f.rosters.commit_attempts;
+    CHECK(recovery.reconcile(receipts, now + 100) == 0 && f.rosters.commit_attempts == attempts);
+    now += GroupQrMemberRecovery::kRetryMs;
+    CHECK(recovery.reconcile(receipts, now) == 1 && !recovery.pending() && recovery.last() == Status::ok);
+    CHECK(!f.owner.qr_join_roster(d, current));  // the roster moved on to N+1
+    // Settled: further passes write nothing.
+    const auto settled = f.rosters.commit_attempts;
+    CHECK(recovery.reconcile(receipts, now + 60000) == 0 && f.rosters.commit_attempts == settled);
+
+    // After a restart the kept receipt is checked once more and found done.
+    ConfigurationGroupOwner rebooted{f.authority, f.rosters, f.catalog, f.joins, f.crypto, f.platform};
+    GroupQrMemberRecovery again{rebooted};
+    CHECK(again.reconcile(receipts, 0) == 0 && !again.pending() && again.last() == Status::stale);
+    CHECK(f.rosters.commit_attempts == settled);
+
+    // No signer yet: retried, not given up.
+    Fixture g;
+    const auto other = g.create(g.owner);
+    const auto e = issued_descriptor(g, other.scope);
+    MemoryStore qrr2{"ot_group_qrr"};
+    opentrail::persistence::GroupQrReceipts receipts2{qrr2, e.admin};
+    CHECK(receipts2.reopen() == opentrail::persistence::GroupQrReceiptError::missing);
+    CHECK(receipts2.persist(committed_receipt(e, joiner, roster::qr::Kind::prepared), deadline, 100) ==
+          opentrail::persistence::GroupQrReceiptError::none);
+    // A prepared (not committed) receipt adds nobody.
+    GroupQrMemberRecovery waiting{g.owner};
+    CHECK(waiting.reconcile(receipts2, 0) == 0 && !waiting.pending());
+    CHECK(receipts2.persist(committed_receipt(e, joiner, roster::qr::Kind::committed), deadline, 100) ==
+          opentrail::persistence::GroupQrReceiptError::none);
+    g.platform.successors_ready = false;
+    CHECK(waiting.reconcile(receipts2, 0) == 0 && waiting.pending() && waiting.last() == Status::unavailable);
+    g.platform.successors_ready = true;
+    CHECK(waiting.reconcile(receipts2, GroupQrMemberRecovery::kRetryMs) == 1 && !waiting.pending());
+}
+
+// D-179: Stop Trust wipes the group's pair keys after distrust is durable.
+void stop_trust_wipes_group_pair_keys() {
+    Fixture f;
+    const auto created = f.create(f.owner);
+    CHECK(created.status == Status::ok && f.platform.wiped.empty());
+    GroupConfigurationCommand stop{Operation::stop_trust, 0, created.scope};
+    CHECK(f.execute(f.owner, stop).status == Status::ok);
+    CHECK(f.platform.wiped == std::vector<std::uint64_t>{created.scope.group_id});
+    Fixture g;
+    const auto other = g.create(g.owner);
+    g.platform.wipe_ok = false;
+    GroupConfigurationCommand stop_other{Operation::stop_trust, 0, other.scope};
+    CHECK(g.execute(g.owner, stop_other).status == Status::uncertain);  // distrusted, keys not confirmed gone
+    CHECK(g.platform.wiped.size() == 1);
+}
+
 void invite_codec_round_trips_and_rejects_bad_sizes() {
     std::array<std::uint8_t, kConfigurationPayloadBytes> out{};
     GroupConfigurationScope scope{};
@@ -901,5 +1007,7 @@ int main() {
     invite_codec_round_trips_and_rejects_bad_sizes();
     qr_join_adds_signed_roster_successor();
     qr_join_successor_refusals();
-    std::cout << "PASS: 17 concrete companion group owner cases\n";
+    stop_trust_wipes_group_pair_keys();
+    committed_join_member_is_recovered();
+    std::cout << "PASS: 19 concrete companion group owner cases\n";
 }

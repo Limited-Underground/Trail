@@ -27,6 +27,9 @@ public:
     // F8 QR join, roster N+1. A signer that signs only `next`, and only when
     // `next` is `previous` with exactly one member added by this board as
     // admin; null when the identity is unavailable. The default has none.
+    // D-179: after Stop Trust is durable, overwrite every kept pair key of that
+    // group. False when that could not be confirmed. The default keeps none.
+    [[nodiscard]] virtual bool wipe_group_pair_keys(std::uint64_t /*group*/) noexcept { return true; }
     [[nodiscard]] virtual const identity::roster::RosterSigner* successor_signer(
         const identity::roster::Roster& /*previous*/, const identity::roster::Roster& /*next*/) noexcept {
         return nullptr;
@@ -77,7 +80,7 @@ public:
     // The current signed roster of that group.
     [[nodiscard]] bool qr_join_roster(const identity::roster::qr::Descriptor&,
                                       identity::roster::Roster& out) noexcept;
-    // Adds the joiner as roster N+1 under `alias`, signed by this board,
+    // Adds the joiner as roster N+1 under `alias` (empty: "Member N"), signed by this board,
     // commits it and reads it back. `out` receives
     // the exact signed bytes. ok, refused, stale (the roster moved on),
     // unavailable (no signer) or uncertain (storage).
