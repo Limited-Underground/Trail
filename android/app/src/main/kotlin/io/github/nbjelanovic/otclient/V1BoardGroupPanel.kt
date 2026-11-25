@@ -364,7 +364,7 @@ internal fun joinProgressText(progress: V1BoardGroupJoinProgress): String = when
         "Look at your device's screen. It shows MY ID, then PEER ID. Check that the PEER ID on each device " +
             "matches the MY ID on the other, then hold the device's button for 1 to 3 seconds on each page."
     CompanionGroupJoinStep.REVIEW_CODE ->
-        "Look at your device's screen. If its 8-digit code is the same as on the other device, hold the button " +
+        "Look at your device's screen. If its 8-character code is the same as on the other device, hold the button " +
             "for 1 to 3 seconds. If the codes differ, hold it longer than 3 seconds to cancel."
     CompanionGroupJoinStep.WAITING_PEER -> "Confirmed on this device. Waiting for the other device."
     CompanionGroupJoinStep.SAVING -> "Saving the group on your device."

@@ -7,7 +7,7 @@
 The Group tab now follows a QR group join while it runs. A new read-only
 group command, Join Progress, reports the board's current step. The app turns
 it into plain instructions: look at the device's screen and compare the IDs,
-compare the 8-digit code, wait for the other device, saving, joined,
+compare the 8-character code, wait for the other device, saving, joined,
 cancelled, or failed. The app never shows the IDs or the code, which stay on
 the boards. It asks every 2 seconds only while an invite is live or a join is
 under way. A failed or lost read changes nothing on screen. Firmware and app

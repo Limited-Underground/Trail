@@ -12,7 +12,7 @@
 // messaging runtime). Nothing runs while first pairing owns the identity.
 //
 // Each board reviews the join on its own screen and button (step 2d): this
-// board's ID and the other board's ID, then an 8-digit code both boards show.
+// board's ID and the other board's ID, then an 8-character code both boards show.
 // The person holds the button 1 to 3 seconds on each page; a longer hold
 // refuses and ends the join. Pair activation follows in a later step.
 

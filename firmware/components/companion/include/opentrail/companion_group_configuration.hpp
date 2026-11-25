@@ -32,7 +32,7 @@ enum class GroupJoinStep : std::uint8_t {
     none = 0,          // no join on this board
     waiting = 1,       // looking for the other device over the radio
     review_ids = 2,    // this device's screen shows MY ID and PEER ID
-    review_code = 3,   // this device's screen shows the 8-digit code
+    review_code = 3,   // this device's screen shows the 8-character code
     waiting_peer = 4,  // confirmed here; waiting for the other device's person
     saving = 5,        // keeping the decision on this device
     joined = 6,        // done: committed on this device

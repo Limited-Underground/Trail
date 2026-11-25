@@ -828,7 +828,7 @@ Under D-170 (b) the join runs only in Link Test builds
   board the MEMBER.
   1. Before signing its admission, the board shows its own ID ("MY ID"), then
      the other board's ID ("PEER ID"), each as the full 64-digit key.
-  2. Before signing its confirmation, it shows an 8-digit code from the join
+  2. Before signing its confirmation, it shows an 8-character code (0-9, A-F) from the join
      transcript ("COMPARE CODE"). Both boards show the same code unless
      someone is in the middle.
   - The person holds the button 1 to 3 seconds on each page. A press that

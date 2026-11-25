@@ -148,7 +148,7 @@ class BleGroupInviteJoinSessionTest {
         assertFalse(progress.admin)
         assertEquals(0x1122334455667788uL, progress.groupId)
         assertTrue(progress.active)
-        assertTrue(joinProgressText(progress).contains("8-digit code"))
+        assertTrue(joinProgressText(progress).contains("8-character code"))
         assertEquals(listOf(group), h.session.state.groups)
         assertEquals(notice, h.session.state.notice)
         assertFalse(h.session.busy)
