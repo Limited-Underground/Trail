@@ -10,6 +10,7 @@
 #include "board_pairing_runtime.hpp"
 #include "opentrail/companion_location_owner.hpp"
 #endif
+#include "opentrail/group_qr_pair_keys.hpp"
 #include "pairing_nvs_storage.hpp"
 
 namespace opentrail::target::heltec_v4_bench {
@@ -57,6 +58,25 @@ public:
 #endif
     }
 
+    bool wipe_group_pair_keys(std::uint64_t group) noexcept override {
+        auto* keys = pair_keys();
+        return keys && keys->wipe_group(group) == persistence::GroupQrPairKeyError::none;
+    }
+
+    // D-179: the one owner of the pair key records, opened on first use.
+    persistence::GroupQrPairKeys* pair_keys() noexcept {
+        if (keys_ && keys_ready_) return &*keys_;
+        identity::roster::PublicKey local{};
+        if (!pair_key_storage.ready() || !read_key(&inputs_, local)) return nullptr;
+        auto& keys = keys_.emplace(pair_key_storage, local);
+        using Error = persistence::GroupQrPairKeyError;
+        const auto opened = keys.reopen();
+        keys_ready_ = opened == Error::none || opened == Error::missing;
+        return keys_ready_ ? &keys : nullptr;
+    }
+    // After a failed write the store drops its cache; reopen before the next use.
+    void pair_keys_reopen() noexcept { keys_ready_ = false; }
+
     bool random_group_id(std::uint64_t& out) noexcept override {
         std::array<std::uint8_t, sizeof(std::uint64_t)> bytes{};
         const auto filled = inputs_.entropy.fill(bytes.data(), bytes.size());
@@ -71,6 +91,7 @@ public:
     GroupNvsStorage rosters{GroupNvsStorage::Store::roster};
     GroupNvsStorage catalog{GroupNvsStorage::Store::catalog};
     GroupNvsStorage joins{GroupNvsStorage::Store::join};
+    GroupNvsStorage pair_key_storage{GroupNvsStorage::Store::qr_pair_keys};
 
 private:
     static bool sign_descriptor(void* context, const identity::roster::qr::Descriptor& descriptor,
@@ -130,12 +151,16 @@ private:
     std::optional<HeltecGroupRosterSigner> signer_;
     std::optional<HeltecInviteSigner> invite_signer_;
     std::optional<HeltecSuccessorSigner> successor_signer_;
+    std::optional<persistence::GroupQrPairKeys> keys_;
+    bool keys_ready_{false};
 };
 
 companion::ConfigurationGroupOwner* g_started_owner = nullptr;
+BoardGroupPlatform* g_platform = nullptr;
 
 companion::ConfigurationGroupOwner& group_owner(companion::DeviceNameAuthoritySource& authority) {
     static BoardGroupPlatform platform{companion_group_inputs()};
+    g_platform = &platform;
     static HeltecGroupRosterCrypto crypto;
     static companion::ConfigurationGroupOwner owner{
         authority, platform.rosters, platform.catalog, platform.joins, crypto, platform};
@@ -167,6 +192,12 @@ companion::ConfigurationGroupBackend& companion_group_backend(
 }
 
 companion::ConfigurationGroupOwner* companion_group_owner_started() { return g_started_owner; }
+
+persistence::GroupQrPairKeys* companion_group_pair_keys() { return g_platform ? g_platform->pair_keys() : nullptr; }
+
+void companion_group_pair_keys_reopen() {
+    if (g_platform) g_platform->pair_keys_reopen();
+}
 
 #if OPENTRAIL_LORA_LINK_TEST
 companion::ConfigurationLocationBackend& companion_location_backend(

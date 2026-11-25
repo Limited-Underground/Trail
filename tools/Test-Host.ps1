@@ -376,6 +376,7 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\identity\src\group_qr_invite.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\group_pair_index.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\group_join_claims.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_qr_receipts.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_configuration_codec.cpp'),
             (Join-Path $projectRoot 'firmware\components\companion\src\companion_direct_configuration.cpp'),
@@ -965,6 +966,15 @@ $builds = @(
             (Join-Path $projectRoot 'firmware\components\persistence\src\group_qr_receipts.cpp'),
             (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
             (Join-Path $projectRoot 'tests\host\group_qr_receipts_tests.cpp')
+        )
+    },
+    @{
+        Name = 'QR-joined pair keys on the board (F8 step 2d-3, D-179)'
+        Output = Join-Path $buildDirectory 'group_qr_pair_keys_tests.exe'
+        Sources = @(
+            (Join-Path $projectRoot 'firmware\components\persistence\src\group_qr_pair_keys.cpp'),
+            (Join-Path $projectRoot 'firmware\components\persistence\src\configuration_store.cpp'),
+            (Join-Path $projectRoot 'tests\host\group_qr_pair_keys_tests.cpp')
         )
     },
     @{

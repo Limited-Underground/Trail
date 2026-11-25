@@ -100,6 +100,7 @@ idf_component_register(
         "${OPENTRAIL_COMPONENT_ROOT}/identity/src/group_qr_invite.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_pair_index.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_join_claims.cpp"
+        "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/group_qr_pair_keys.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/persistence/src/configuration_store.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_codec.cpp"
         "${OPENTRAIL_COMPONENT_ROOT}/companion/src/companion_device_name_owner.cpp"

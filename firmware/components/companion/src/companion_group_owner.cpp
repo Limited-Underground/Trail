@@ -216,6 +216,8 @@ GroupConfigurationResult ConfigurationGroupOwner::stop_trust(const DeviceNameCon
     if (roster_->snapshot(after, roster_bytes_.data(), roster_bytes_.size()) != Error::none ||
         after.state != roster::State::distrusted || scope_of(after) != request.scope)
         return {operation, Status::uncertain};
+    // D-179: a group no longer trusted keeps no pair keys.
+    if (!platform_.wipe_group_pair_keys(request.scope.group_id)) return {operation, Status::uncertain};
     return {operation, Status::ok, request.scope};
 }
 
@@ -438,6 +440,13 @@ GroupConfigurationStatus ConfigurationGroupOwner::add_qr_join_member(const roste
     if (current.member_count >= roster::kMaximumMembers || joiner == d.admin ||
         std::any_of(current.members.begin(), current.members.begin() + current.member_count,
                     [&](const roster::Member& m) { return m.key == joiner; })) return Status::refused;
+    // An empty name picks the default "Member N" (recovery after restart).
+    std::array<char, roster::kMaximumAliasBytes> fallback{};
+    std::size_t fallback_size = 0;
+    if (alias.empty()) {
+        if (!qr_join_member_alias(current, fallback, fallback_size)) return Status::refused;
+        alias = {fallback.data(), fallback_size};
+    }
     roster::Roster next{};
     if (!roster::add_member(current, crypto_, joiner, alias, next)) return Status::refused;
     const auto* signer = platform_.successor_signer(current, next);

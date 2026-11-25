@@ -66,6 +66,8 @@ private:
     bool prepare();
     bool identity_free() const;
     void add_member(companion::ConfigurationGroupOwner& group, Parts& parts);
+    void activate_pair(Parts& parts, const std::array<std::uint8_t, 32>& transmit,
+                       const std::array<std::uint8_t, 32>& receive);
 
     HeltecEnrollmentInputArbiter& input_;
     security::SecureRandomSource& random_;
@@ -74,6 +76,7 @@ private:
     Parts* parts_{nullptr};
     std::uint64_t now_{0}, retry_at_{0}, linger_until_{0};
     bool awaiting_launch_{false};
+    bool recovery_checked_{false};
     std::optional<identity::roster::qr::Nonce> last_opened_;
     bool closed_{false};
 };
