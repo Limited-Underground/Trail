@@ -3451,3 +3451,7 @@ if (-not $SkipSecurityOperators) {
     if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
 }
 }
+
+# Every failure above throws. A shard can end on a deliberately failing native
+# smoke command, so report success explicitly instead of its exit code.
+exit 0
