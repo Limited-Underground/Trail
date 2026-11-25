@@ -40,6 +40,31 @@ def download(url,limit):
             size+=len(chunk);need(size<=limit);chunks.append(chunk)
     return b''.join(chunks)
 
+# Optional pinned cache for the two downloads (OPENTRAIL_LIBSODIUM_CACHE, a
+# directory). A cached file is used only when its size and SHA-256 equal the
+# pin; anything else is downloaded again, and only bytes that equal the pin are
+# written back. acquire() still checks every byte whatever its source.
+CACHE_ENV='OPENTRAIL_LIBSODIUM_CACHE'
+PINS={ARCHIVE_URL:(2545109,ARCHIVE_SHA),BASE+'CHECKSUMS.json':(107508,CHECKSUM_SHA)}
+FETCHES={'downloaded':0,'cached':0}
+def pinned_fetch(url,limit):
+    cache=os.environ.get(CACHE_ENV);pinned=PINS.get(url)
+    if not cache or pinned is None:
+        FETCHES['downloaded']+=1;return download(url,limit)
+    path=Path(cache)/PurePosixPath(url).name
+    try:raw=path.read_bytes() if path.is_file() and not path.is_symlink() else None
+    except OSError:raw=None
+    if raw is not None and (len(raw),sha(raw))==pinned:
+        FETCHES['cached']+=1;return raw
+    raw=download(url,limit);FETCHES['downloaded']+=1
+    if (len(raw),sha(raw))==pinned:
+        try:
+            path.parent.mkdir(parents=True,exist_ok=True)
+            temporary=path.with_name(path.name+'.'+str(os.getpid())+'.tmp')
+            temporary.write_bytes(raw);os.replace(temporary,path)
+        except OSError:pass
+    return raw
+
 def members(archive):
     rows=archive.infolist();need(len(rows)==731)
     seen=set();total=0
@@ -85,7 +110,8 @@ def cached_files(source, destination, expected):
     need(files['.component_hash'] == COMPONENT_HASH.encode())
     return files
 
-def acquire(destination,fetch=download,cached_component=None):
+def acquire(destination,fetch=None,cached_component=None):
+    fetch=pinned_fetch if fetch is None else fetch
     destination=Path(destination).resolve();need(not destination.exists())
     manifest=(ROOT/'tests/benchmarks/crypto/esp_idf/espressif_libsodium_1_0_22/source-manifest.sha256').read_bytes()
     need(sha(manifest)==MANIFEST_SHA)

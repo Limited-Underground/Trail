@@ -2,7 +2,11 @@
 param(
     # CI runs these four complete wrappers in separate jobs. Local runs retain
     # the complete sequential matrix unless this explicit switch is supplied.
-    [switch] $SkipSecurityOperators
+    [switch] $SkipSecurityOperators,
+    # CI runs the matrix as parallel shards (.github/workflows/host-validation.yml).
+    # All, the default, runs every shard here in the original order.
+    [ValidateSet('All', 'Native', 'Python', 'SecurityNative', 'SecurityPythonA', 'SecurityPythonB')]
+    [string] $Shard = 'All'
 )
 
 Set-StrictMode -Version Latest
@@ -41,6 +45,21 @@ $python = Get-Command python -ErrorAction SilentlyContinue
 if ($null -eq $python) {
     throw 'Python was not found for the OpenTrail host validation matrix.'
 }
+
+$runNative = $Shard -in @('All', 'Native')
+$runPython = $Shard -in @('All', 'Python')
+$securityPart = @{ All = 'all'; SecurityNative = 'native'; SecurityPythonA = 'python-a'; SecurityPythonB = 'python-b' }[$Shard]
+
+$buildDirectory = Join-Path $projectRoot "build\host-tests\run-$PID"
+New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
+# Pinned libsodium download cache (tests/host/security_policy_lifecycle/dependencies.py).
+if (-not $env:OPENTRAIL_LIBSODIUM_CACHE) {
+    $env:OPENTRAIL_LIBSODIUM_CACHE = Join-Path $projectRoot 'build\dependency-cache\libsodium'
+}
+
+# Native shard: structural preamble, the C++ host builds and the diagnostic CLI
+# smoke tests. The block bodies below keep their original indentation.
+if ($runNative) {
 
 # Check the same CMake selector used by the Heltec stack test before starting
 # the long matrix. Importing the test definitions does not execute its tests.
@@ -155,8 +174,6 @@ function Invoke-ExpectedNativeFailure {
     }
 }
 
-$buildDirectory = Join-Path $projectRoot "build\host-tests\run-$PID"
-New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
 # Exact BLE host task observation: behavioral guard and target lifecycle wiring.
 & $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\companion_host_stack_observer_tests.py') --output-root (Join-Path $buildDirectory 'companion-host-stack')
 if ($LASTEXITCODE -ne 0) { throw 'BLE host stack observation tests failed.' }
@@ -2596,7 +2613,10 @@ if ($malformedUnified.ExitCode -eq 0 -or
     $malformedUnified.Text -ne 'position_ui decode failed: invalid_message') {
     throw 'Unified diagnostic CLI malformed-record smoke test failed.'
 }
+}
 
+# Python shard: the Python host suites through the Windows simulator.
+if ($runPython) {
 & $python.Source (Join-Path $projectRoot 'tests\host\ot147_heltec_v4_live_status_authority_tests.py')
 if ($LASTEXITCODE -ne 0) {
     throw 'OT-147 Heltec V4 live-status authority tests failed.'
@@ -3405,13 +3425,20 @@ if ($LASTEXITCODE -ne 0) {
 if (-not $?) {
     throw 'Windows simulator validation failed.'
 }
+}
 
 # Current-source regression includes all five invitation suites, invitation and
 # confirmation target bodies, confirmation owner and protected BLE backend.
 # Historical proof runners remain available unchanged for exact proof replay.
+# The Security shards each run one part of it in parallel CI jobs.
+if ($securityPart) {
 $currentSourceProofRoot = Join-Path $buildDirectory 'current-source-security-proof'
-& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_current_source_ci.py') --output-root $currentSourceProofRoot
+& $python.Source -X utf8 -B (Join-Path $projectRoot 'tests\host\security_current_source_ci.py') --output-root $currentSourceProofRoot --part $securityPart
 if ($LASTEXITCODE -ne 0) { throw 'Current-source security regression matrix failed.' }
+}
+
+# The complete operator wrappers (CI runs them as separate jobs).
+if ($runPython) {
 
 # Exact invitation candidate operator: synthetic boundary and isolated launch tests.
 if (-not $SkipSecurityOperators) {
@@ -3422,4 +3449,5 @@ if (-not $SkipSecurityOperators) {
 if (-not $SkipSecurityOperators) {
     & $python.Source -X utf8 -B (Join-Path $projectRoot 'tools\Test-SecurityDeadlineOperator.py')
     if ($LASTEXITCODE -ne 0) { throw 'Test-SecurityDeadlineOperator.py failed.' }
+}
 }
