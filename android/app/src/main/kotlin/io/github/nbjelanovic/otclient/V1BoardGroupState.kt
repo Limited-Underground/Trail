@@ -1,5 +1,7 @@
 package io.github.nbjelanovic.otclient
 
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinStep
+
 /** Group readback is scoped to the current protected connection. */
 data class V1BoardGroupState(
     val supported: Boolean = false,
@@ -10,7 +12,17 @@ data class V1BoardGroupState(
     val notice: String? = null,
     /** The live invite this board just issued, for display until it expires. */
     val invite: V1BoardGroupInvite? = null,
+    /** Where this device's QR group join is now (F8 step 2e), when it reported one. */
+    val joinProgress: V1BoardGroupJoinProgress? = null,
 )
+
+/** The step a device's QR group join is at. The comparison values stay on the device's screen. */
+data class V1BoardGroupJoinProgress(val step: CompanionGroupJoinStep, val admin: Boolean, val groupId: ULong) {
+    val active get() = step != CompanionGroupJoinStep.NONE && !finished
+    val finished get() = step == CompanionGroupJoinStep.JOINED || step == CompanionGroupJoinStep.CANCELLED ||
+        step == CompanionGroupJoinStep.FAILED
+    override fun toString() = "V1BoardGroupJoinProgress(step=$step, admin=$admin)"
+}
 
 data class V1BoardGroupSummary(
     val slot: Int,
@@ -36,6 +48,8 @@ class V1BoardGroupInvite(val groupId: ULong, val label: String, val code: String
 
 sealed interface V1BoardGroupAction {
     data object Refresh : V1BoardGroupAction
+    /** Reads where the device's QR join is. Changes nothing on the device. */
+    data object JoinProgress : V1BoardGroupAction
     data class Create(val locationRule: Int) : V1BoardGroupAction
     data class StopTrust(val group: V1BoardGroupSummary) : V1BoardGroupAction
     /** Admin board issues (or repeats) the live invite; [label] is what the joiner sees. */

@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import androidx.compose.material3.MaterialTheme
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinStep
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -121,7 +122,39 @@ class V1BoardGroupPanelUiTest {
         ui.onNodeWithText("Join Crew?").assertExists()
         ui.runOnIdle { assertEquals(emptyList<V1BoardGroupAction>(), actions) }
         ui.onNodeWithText("Join").performClick()
-        ui.runOnIdle { assertEquals(listOf<V1BoardGroupAction>(V1BoardGroupAction.Join(invite)), actions) }
+        // The Join goes first, exactly once. After it the panel follows the
+        // join with read-only Join Progress questions only (F8 step 2e).
+        ui.runOnIdle {
+            assertEquals(V1BoardGroupAction.Join(invite), actions.first())
+            assertEquals(1, actions.count { it is V1BoardGroupAction.Join })
+            assertEquals(true, actions.drop(1).all { it == V1BoardGroupAction.JoinProgress })
+        }
+    }
+
+    @Test fun joinProgressShowsPlainInstructionsAndNeverTheValues() {
+        val state = mutableStateOf(V1BoardGroupState(supported = true, available = true, canCreate = true))
+        val actions = mutableListOf<V1BoardGroupAction>()
+        ui.setContent {
+            MaterialTheme { V1BoardGroupPanel(state.value, connected = true, onAction = actions::add) }
+        }
+        ui.onNodeWithText("Joining a group").assertDoesNotExist()
+        ui.runOnIdle { assertEquals(emptyList<V1BoardGroupAction>(), actions) }  // nothing to follow
+        ui.runOnIdle {
+            state.value = state.value.copy(
+                joinProgress = V1BoardGroupJoinProgress(CompanionGroupJoinStep.REVIEW_CODE, admin = false, groupId = 7uL),
+            )
+        }
+        ui.onNodeWithText("Joining a group").assertExists()
+        ui.onNodeWithText(joinProgressText(V1BoardGroupJoinProgress(CompanionGroupJoinStep.REVIEW_CODE, false, 7uL)))
+            .assertExists()
+        ui.runOnIdle { assertEquals(V1BoardGroupAction.JoinProgress, actions.firstOrNull()) }
+        ui.runOnIdle {
+            state.value = state.value.copy(
+                joinProgress = V1BoardGroupJoinProgress(CompanionGroupJoinStep.JOINED, admin = true, groupId = 7uL),
+            )
+        }
+        ui.onNodeWithText("Adding a member").assertExists()
+        ui.onNodeWithText("The new member was added to the group.").assertExists()
     }
 
     private fun sampleInvite(): ByteArray = (

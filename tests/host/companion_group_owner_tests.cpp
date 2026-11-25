@@ -164,6 +164,9 @@ public:
         last_next = next;
         return successors_ready ? &signer : nullptr;
     }
+    GroupJoinProgress join_progress() noexcept override { return progress; }
+    GroupJoinProgress progress{};
+
     bool wipe_group_pair_keys(std::uint64_t group) noexcept override {
         wiped.push_back(group);
         return wipe_ok;
@@ -918,6 +921,76 @@ void committed_join_member_is_recovered() {
     CHECK(waiting.reconcile(receipts2, GroupQrMemberRecovery::kRetryMs) == 1 && !waiting.pending());
 }
 
+// F8 step 2e: Join Progress. These byte vectors are shared with the app's
+// protocol test (CompanionGroupJoinProgressTest).
+void join_progress_reports_the_board_step() {
+    const Bytes command{'O', 'T', 'G', 'C', 1, 8, 0, 0};
+    const Bytes code_review{'O', 'T', 'G', 'C', 1, 8, 0, 0, 3, 1, 0, 0, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11};
+    const Bytes nothing{'O', 'T', 'G', 'C', 1, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    const Bytes unavailable{'O', 'T', 'G', 'C', 1, 8, 1, 0};
+    std::array<std::uint8_t, kConfigurationPayloadBytes> out{};
+
+    const auto encoded = encode_group_configuration_command({Operation::join_progress}, out.data(), out.size());
+    CHECK(encoded.encoded() && Bytes(out.begin(), out.begin() + encoded.encoded_bytes) == command);
+    const auto decoded = decode_group_configuration_command(command.data(), command.size());
+    CHECK(decoded.decoded() && decoded.value.operation == Operation::join_progress);
+    auto longer = command;
+    longer.push_back(0);
+    CHECK(!decode_group_configuration_command(longer.data(), longer.size()).decoded());
+    GroupConfigurationCommand dirty{Operation::join_progress};
+    dirty.location_rule = 1;
+    CHECK(!encode_group_configuration_command(dirty, out.data(), out.size()).encoded());
+
+    GroupConfigurationResult result{Operation::join_progress, Status::ok};
+    result.progress = {GroupJoinStep::review_code, GroupJoinSide::joiner, 0x1122334455667788ULL};
+    auto r = encode_group_configuration_result(result, out.data(), out.size());
+    CHECK(r.encoded() && Bytes(out.begin(), out.begin() + r.encoded_bytes) == code_review);
+    auto back = decode_group_configuration_result(code_review.data(), code_review.size());
+    CHECK(back.decoded() && back.value.progress == result.progress && back.value.status == Status::ok);
+    result.progress = {};
+    r = encode_group_configuration_result(result, out.data(), out.size());
+    CHECK(r.encoded() && Bytes(out.begin(), out.begin() + r.encoded_bytes) == nothing);
+    result.status = Status::unavailable;
+    r = encode_group_configuration_result(result, out.data(), out.size());
+    CHECK(r.encoded() && Bytes(out.begin(), out.begin() + r.encoded_bytes) == unavailable);
+    back = decode_group_configuration_result(unavailable.data(), unavailable.size());
+    CHECK(back.decoded() && back.value.status == Status::unavailable && back.value.progress == GroupJoinProgress{});
+
+    // Malformed results are refused both ways.
+    for (const auto& bad : std::vector<GroupJoinProgress>{
+             {GroupJoinStep::waiting, GroupJoinSide::none, 5},
+             {GroupJoinStep::waiting, GroupJoinSide::admin, 0},
+             {GroupJoinStep::none, GroupJoinSide::admin, 0},
+             {GroupJoinStep::none, GroupJoinSide::none, 5},
+             {static_cast<GroupJoinStep>(9), GroupJoinSide::admin, 5},
+             {GroupJoinStep::joined, static_cast<GroupJoinSide>(3), 5}}) {
+        GroupConfigurationResult bad_result{Operation::join_progress, Status::ok};
+        bad_result.progress = bad;
+        CHECK(!encode_group_configuration_result(bad_result, out.data(), out.size()).encoded());
+    }
+    for (const std::size_t at : {8u, 9u, 10u, 11u}) {
+        auto changed = code_review;
+        changed[at] = at == 8 ? 9 : at == 9 ? 3 : 1;
+        CHECK(!decode_group_configuration_result(changed.data(), changed.size()).decoded());
+    }
+    auto shorter = code_review;
+    shorter.pop_back();
+    CHECK(!decode_group_configuration_result(shorter.data(), shorter.size()).decoded());
+    GroupConfigurationResult with_progress{Operation::join_progress, Status::refused};
+    with_progress.progress = {GroupJoinStep::waiting, GroupJoinSide::admin, 5};
+    CHECK(!encode_group_configuration_result(with_progress, out.data(), out.size()).encoded());
+
+    // The owner answers from the board's join runtime, and writes nothing.
+    Fixture f;
+    f.platform.progress = {GroupJoinStep::waiting_peer, GroupJoinSide::admin, 42};
+    const auto commits = f.rosters.commit_attempts;
+    const auto answered = f.execute(f.owner, {Operation::join_progress});
+    CHECK(answered.status == Status::ok && answered.progress == f.platform.progress);
+    CHECK(f.rosters.commit_attempts == commits);
+    f.platform.ready = false;
+    CHECK(f.execute(f.owner, {Operation::join_progress}).status == Status::unavailable);
+}
+
 // D-179: Stop Trust wipes the group's pair keys after distrust is durable.
 void stop_trust_wipes_group_pair_keys() {
     Fixture f;
@@ -1009,5 +1082,6 @@ int main() {
     qr_join_successor_refusals();
     stop_trust_wipes_group_pair_keys();
     committed_join_member_is_recovered();
-    std::cout << "PASS: 19 concrete companion group owner cases\n";
+    join_progress_reports_the_board_step();
+    std::cout << "PASS: 20 concrete companion group owner cases\n";
 }

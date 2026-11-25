@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,6 +47,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionGroupInvite
+import kotlinx.coroutines.delay
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinStep
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 
@@ -118,6 +121,24 @@ internal fun V1BoardGroupPanel(
         actionDidNotStart = !onAction(action)
     }
 
+    // F8 step 2e: while an invite is live, a join was just accepted, or the
+    // device reports a join under way, ask the device every 2 seconds.
+    var watchJoinUntil by remember { mutableLongStateOf(0L) }
+    val invite = state.invite
+    val watching = connected && currentRoster &&
+        (invite != null || state.joinProgress?.active == true || watchJoinUntil > 0L)
+    LaunchedEffect(watching, invite) {
+        while (watching) {
+            val now = System.currentTimeMillis()
+            if (watchJoinUntil in 1 until now) watchJoinUntil = 0L
+            if (invite != null && now >= invite.expiresAtMs && state.joinProgress?.active != true &&
+                watchJoinUntil == 0L
+            ) break
+            onAction(V1BoardGroupAction.JoinProgress)
+            delay(JOIN_PROGRESS_POLL_MS)
+        }
+    }
+
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -136,6 +157,7 @@ internal fun V1BoardGroupPanel(
             Text("Refresh groups")
         }
         confirmationContent()
+        state.joinProgress?.takeIf { currentRoster }?.let { V1BoardGroupJoinProgressCard(it) }
         state.invite?.takeIf { currentRoster }?.let { V1BoardGroupInviteCard(it) }
         groups.forEach { group ->
             V1BoardGroupRoster(
@@ -187,7 +209,10 @@ internal fun V1BoardGroupPanel(
                 }
             }
         }
-        if (currentRoster && state.canCreate) V1BoardGroupJoin(canChange) { send(V1BoardGroupAction.Join(it)) }
+        if (currentRoster && state.canCreate) V1BoardGroupJoin(canChange) {
+            watchJoinUntil = System.currentTimeMillis() + JOIN_WATCH_MS
+            send(V1BoardGroupAction.Join(it))
+        }
         if (currentRoster && state.canCreate) {
             Text("Create a group", style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
             Text("Location sharing")
@@ -322,6 +347,40 @@ private fun V1BoardGroupRoster(
                     Text("Stop trusting this group")
                 }
             }
+        }
+    }
+}
+
+private const val JOIN_PROGRESS_POLL_MS = 2_000L
+private const val JOIN_WATCH_MS = 300_000L
+
+/** What the person should do now, in plain words. The values to compare stay on the device's screen. */
+internal fun joinProgressText(progress: V1BoardGroupJoinProgress): String = when (progress.step) {
+    CompanionGroupJoinStep.NONE -> ""
+    CompanionGroupJoinStep.WAITING ->
+        if (progress.admin) "Waiting for the person joining. Keep the two devices near each other."
+        else "Looking for the group administrator's device. Keep the two devices near each other."
+    CompanionGroupJoinStep.REVIEW_IDS ->
+        "Look at your device's screen. It shows MY ID, then PEER ID. Check that the PEER ID on each device " +
+            "matches the MY ID on the other, then hold the device's button for 1 to 3 seconds on each page."
+    CompanionGroupJoinStep.REVIEW_CODE ->
+        "Look at your device's screen. If its 8-character code is the same as on the other device, hold the button " +
+            "for 1 to 3 seconds. If the codes differ, hold it longer than 3 seconds to cancel."
+    CompanionGroupJoinStep.WAITING_PEER -> "Confirmed on this device. Waiting for the other device."
+    CompanionGroupJoinStep.SAVING -> "Saving the group on your device."
+    CompanionGroupJoinStep.JOINED ->
+        if (progress.admin) "The new member was added to the group." else "Joined. Your device is now in the group."
+    CompanionGroupJoinStep.CANCELLED -> "The join was cancelled. Nobody was added."
+    CompanionGroupJoinStep.FAILED -> "The join didn't finish. Ask for a new invitation and try again."
+}
+
+@Composable
+private fun V1BoardGroupJoinProgressCard(progress: V1BoardGroupJoinProgress) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(if (progress.admin) "Adding a member" else "Joining a group",
+                style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            Text(joinProgressText(progress))
         }
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "opentrail/companion_configuration_dispatcher.hpp"
+#include "opentrail/companion_group_configuration.hpp"
 #include "opentrail/secure_random.hpp"
 
 namespace opentrail::companion { class ConfigurationGroupOwner; }
@@ -33,6 +34,8 @@ companion::ConfigurationGroupOwner* companion_group_owner_started();
 // identity is unavailable. App task only. After a failed store, call
 // companion_group_pair_keys_reopen() so the next use reads what was kept.
 persistence::GroupQrPairKeys* companion_group_pair_keys();
+// F8 step 2e: the QR join runtime publishes its step for the app (app task only).
+void publish_group_join_progress(const companion::GroupJoinProgress&);
 void companion_group_pair_keys_reopen();
 
 #if OPENTRAIL_LORA_LINK_TEST

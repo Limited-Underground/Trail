@@ -670,6 +670,18 @@ after the OTGC header; failures carry no body and never report missing.
 | Invite | 5 | Qualified scope, label size (1 to 47), label | Same scope, 16-byte invite ID, invite size |
 | Read Invite | 6 | Invite ID, offset | Invite ID, offset, size, page |
 | Join | 7 | Offset, size, page | Offset and size; on the last page also the qualified scope and invite ID |
+| Join Progress | 8 | None | Step (1), side (1), two zero bytes, group ID (8) |
+
+**Join Progress (step 2e).** The app asks every 2 seconds while an invite is
+live or a join is under way, and tells the person what to do next.
+- **Steps:** none, waiting, MY ID and PEER ID on the screen, code on the
+  screen, waiting for the other device, saving, joined, cancelled, failed.
+- **Side:** joiner or admin.
+- **What it shows:** never the IDs or the code. Those stay on the boards'
+  screens, so the comparison is still between the two devices.
+- **After the end:** a finished join is reported for one minute.
+- **Changes nothing:** it writes nothing and grants nothing. In ordinary
+  builds the step is always none.
 
 Pages are 96 bytes except the last. A signed invite is 167 bytes plus a label
 of up to 120 bytes (287 at most).
@@ -816,7 +828,7 @@ Under D-170 (b) the join runs only in Link Test builds
   board the MEMBER.
   1. Before signing its admission, the board shows its own ID ("MY ID"), then
      the other board's ID ("PEER ID"), each as the full 64-digit key.
-  2. Before signing its confirmation, it shows an 8-digit code from the join
+  2. Before signing its confirmation, it shows an 8-character code (0-9, A-F) from the join
      transcript ("COMPARE CODE"). Both boards show the same code unless
      someone is in the middle.
   - The person holds the button 1 to 3 seconds on each page. A press that

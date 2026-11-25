@@ -202,6 +202,11 @@ bool BoardGroupJoinRuntime::on_receive(const std::uint8_t* bytes, std::size_t si
 }
 
 void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
+    advance(now_ms);
+    publish(now_ms);
+}
+
+void BoardGroupJoinRuntime::advance(std::uint64_t now_ms) {
     now_ = now_ms;
     if (closed_ || !identity_free()) return;
     auto* group = companion_group_owner_started();
@@ -263,6 +268,7 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
     if (const auto* pending = group->pending_join(now_ms);
         pending && (!last_opened_ || *last_opened_ != pending->descriptor.invite_id)) {
         last_opened_ = pending->descriptor.invite_id;
+        ++conversation_serial_;
         auto& conversation = parts.conversation.emplace(qr::Side::joiner, parts.crypto, *parts.signer,
                                                         *parts.joiner_authority, parts, random_, parts.boot);
         const qr::Timing timing{pending->deadline_ms - qr::kRequestMs, pending->deadline_ms - qr::kRequestMs};
@@ -271,6 +277,7 @@ void BoardGroupJoinRuntime::service(std::uint64_t now_ms) {
         return;
     }
     if (live_invite(group->issued_invites(), now_ms)) {
+        ++conversation_serial_;
         parts.conversation.emplace(qr::Side::admin, parts.crypto, *parts.signer, *parts.admin_authority, parts,
                                    random_, parts.boot);
         ESP_LOGI(kTag, "admin listening");
@@ -338,6 +345,61 @@ void BoardGroupJoinRuntime::add_member(companion::ConfigurationGroupOwner& group
              static_cast<unsigned>(next.member_count), static_cast<unsigned>(member));
 }
 
+// F8 step 2e: the step the app shows, computed on the app task after each
+// poll. No radio input sets it directly.
+void BoardGroupJoinRuntime::publish(std::uint64_t now_ms) {
+    using Step = companion::GroupJoinStep;
+    using JoinSide = companion::GroupJoinSide;
+    constexpr std::uint64_t kResultMs = 60000;
+    companion::GroupJoinProgress progress{};
+    const bool result_live = result_until_ != 0 && now_ms < result_until_;
+    if (!result_live) result_until_ = 0;
+    const auto* conversation = parts_ && parts_->conversation ? &*parts_->conversation : nullptr;
+    if (conversation && conversation_serial_ != progress_serial_) {
+        progress_serial_ = conversation_serial_;
+        progress_group_ = 0;
+    }
+    if (conversation && !(conversation->phase() == Phase::idle && result_live)) {
+        const auto phase = conversation->phase();
+        progress.side = conversation->side() == qr::Side::admin ? JoinSide::admin : JoinSide::joiner;
+        if (progress_group_ == 0) {
+            qr::Descriptor d{};
+            if (phase != Phase::idle) {
+                if (qr::verify_descriptor(conversation->invite(), parts_->crypto, d)) progress_group_ = d.group;
+            } else if (auto* group = companion_group_owner_started()) {
+                for (const auto& invite : group->issued_invites())
+                    if (invite.issued && qr::verify_descriptor(*invite.issued, parts_->crypto, d)) {
+                        progress_group_ = d.group;
+                        break;
+                    }
+            }
+        }
+        progress.group_id = progress_group_;
+        const auto shown = parts_->desk ? parts_->desk->shown() : std::nullopt;
+        switch (phase) {
+        case Phase::idle: case Phase::handshake: progress.step = Step::waiting; break;
+        case Phase::admission:
+            progress.step = shown == qr::Review::fingerprints ? Step::review_ids : Step::waiting_peer;
+            break;
+        case Phase::confirmation:
+            progress.step = shown == qr::Review::transcript ? Step::review_code : Step::waiting_peer;
+            break;
+        case Phase::prepared: case Phase::committing: progress.step = Step::saving; break;
+        case Phase::committed: progress.step = Step::joined; break;
+        case Phase::aborted: progress.step = Step::cancelled; break;
+        case Phase::failed: progress.step = Step::failed; break;
+        }
+        if (progress.step == Step::joined || progress.step == Step::cancelled || progress.step == Step::failed) {
+            result_ = progress;
+            result_until_ = now_ms + kResultMs;
+        }
+    } else if (result_live) {
+        progress = result_;  // a finished join stays visible for a minute
+    }
+    if (progress.group_id == 0) progress = {};  // a step always names its group
+    publish_group_join_progress(progress);
+}
+
 bool BoardGroupJoinRuntime::next(qr::RadioFrame& out) {
     return !closed_ && !awaiting_launch_ && parts_ && parts_->conversation && parts_->conversation->next(out);
 }
@@ -368,6 +430,7 @@ bool BoardGroupJoinRuntime::active() const {
 void BoardGroupJoinRuntime::close() {
     closed_ = true;
     awaiting_launch_ = false;
+    publish_group_join_progress({});
     if (!parts_) return;
     if (parts_->desk) parts_->desk->reset();
     parts_->conversation.reset();

@@ -12,7 +12,7 @@
 // messaging runtime). Nothing runs while first pairing owns the identity.
 //
 // Each board reviews the join on its own screen and button (step 2d): this
-// board's ID and the other board's ID, then an 8-digit code both boards show.
+// board's ID and the other board's ID, then an 8-character code both boards show.
 // The person holds the button 1 to 3 seconds on each page; a longer hold
 // refuses and ends the join. Pair activation follows in a later step.
 
@@ -21,6 +21,7 @@
 #include <optional>
 
 #include "heltec_enrollment_input_arbiter.hpp"
+#include "opentrail/companion_group_configuration.hpp"
 #include "heltec_group_roster_identity.hpp"
 #include "opentrail/group_qr_invite.hpp"
 #include "opentrail/secure_random.hpp"
@@ -66,6 +67,8 @@ private:
     bool prepare();
     bool identity_free() const;
     void add_member(companion::ConfigurationGroupOwner& group, Parts& parts);
+    void publish(std::uint64_t now_ms);
+    void advance(std::uint64_t now_ms);
     void activate_pair(Parts& parts, const std::array<std::uint8_t, 32>& transmit,
                        const std::array<std::uint8_t, 32>& receive);
 
@@ -77,6 +80,11 @@ private:
     std::uint64_t now_{0}, retry_at_{0}, linger_until_{0};
     bool awaiting_launch_{false};
     bool recovery_checked_{false};
+    // F8 step 2e: the app's view of this board's join. A finished join stays
+    // visible for kResultMs; the group is read once per join.
+    std::uint64_t progress_group_{0}, result_until_{0};
+    std::uint32_t conversation_serial_{0}, progress_serial_{0};
+    companion::GroupJoinProgress result_{};
     std::optional<identity::roster::qr::Nonce> last_opened_;
     bool closed_{false};
 };

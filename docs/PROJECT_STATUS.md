@@ -121,6 +121,7 @@ and is [wired to the Link Test radio](PROGRESS_LOG.md#ot-0306-wire-the-qr-group-
 Both boards [review the join on their screen and button](PROGRESS_LOG.md#ot-0306-review-the-qr-group-join-on-the-board).
 The admin board then [adds the joiner as roster N+1](PROGRESS_LOG.md#ot-0306-add-the-qr-joined-member-to-the-admin-boards-roster).
 Both boards then [keep the pair's keys](PROGRESS_LOG.md#ot-0306-keep-the-keys-of-a-qr-joined-group-pair-on-the-board) (D-179).
+The app [shows the join's progress](PROGRESS_LOG.md#ot-0306-show-qr-group-join-progress-in-the-meshtrail-app).
 Member messaging and real phone and board acceptance remain
 open.
 

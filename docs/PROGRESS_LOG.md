@@ -1,5 +1,19 @@
 # OpenTrail Progress Log
 
+## 2026-11-25
+
+### OT-0306 Show QR group join progress in the MeshTrail App
+
+The Group tab now follows a QR group join while it runs. A new read-only
+group command, Join Progress, reports the board's current step. The app turns
+it into plain instructions: look at the device's screen and compare the IDs,
+compare the 8-character code, wait for the other device, saving, joined,
+cancelled, or failed. The app never shows the IDs or the code, which stay on
+the boards. It asks every 2 seconds only while an invite is live or a join is
+under way. A failed or lost read changes nothing on screen. Firmware and app
+codec tests share the same byte vectors. All three Heltec builds passed. An
+owner bench playbook for the full QR join follows. Part of #148.
+
 ## 2026-11-24
 
 ### OT-220 Run the core host tests as parallel CI shards

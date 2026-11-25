@@ -6,7 +6,7 @@
 // - fingerprints: this board's ID ("MY ID"), then the other board's ID
 //   ("PEER ID"); hold the button 1 to 3 seconds on each page. The admin board
 //   is the INVITER, the joiner board the MEMBER;
-// - transcript: an 8-digit code from the join's transcript ("COMPARE CODE"),
+// - transcript: an 8-character code (0-9, A-F) from the join's transcript ("COMPARE CODE"),
 //   the same on both boards when nobody is in the middle; hold to confirm.
 // A press that starts before the page appears does not count. Holding longer
 // than 3 seconds refuses the review; so do a changed display or context, and
@@ -241,6 +241,11 @@ public:
     // cancels the join.
     [[nodiscard]] bool refused() const { return refused_; }
     [[nodiscard]] bool showing() const { return review_ && review_->state() == State::showing; }
+    // The review on the screen now, if any.
+    [[nodiscard]] std::optional<identity::roster::qr::Review> shown() const {
+        if (!showing()) return std::nullopt;
+        return review_->request().review;
+    }
 
     void reset() {
         pending_.reset();
