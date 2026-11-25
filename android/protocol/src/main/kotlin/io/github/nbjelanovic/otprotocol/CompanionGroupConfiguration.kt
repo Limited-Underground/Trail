@@ -8,7 +8,23 @@ enum class CompanionGroupOperation(val wire: Int) {
     DISCOVER(1), CREATE(2), STOP_TRUST(3), READ_ROSTER(4),
     /** F8 live Invite and Join. Invite issues a boot-scoped signed invite on the admin board. */
     INVITE(5), READ_INVITE(6), JOIN(7),
+    /** F8 step 2e: the step this board's QR join is at. */
+    JOIN_PROGRESS(8),
 }
+
+/** The step a board's QR group join is at. The comparison values stay on the board's screen. */
+enum class CompanionGroupJoinStep(val wire: Int) {
+    NONE(0), WAITING(1), REVIEW_IDS(2), REVIEW_CODE(3), WAITING_PEER(4), SAVING(5),
+    JOINED(6), CANCELLED(7), FAILED(8),
+}
+
+enum class CompanionGroupJoinSide(val wire: Int) { NONE(0), JOINER(1), ADMIN(2) }
+
+data class CompanionGroupJoinProgress(
+    val step: CompanionGroupJoinStep,
+    val side: CompanionGroupJoinSide,
+    val groupId: ULong,
+)
 
 /** One page of a signed group invite, or Invite's ID and total. */
 class CompanionGroupInvitePage(
@@ -86,6 +102,7 @@ data class CompanionGroupResult(
     val scope: CompanionGroupScope? = null,
     val chunk: CompanionGroupChunk? = null,
     val invite: CompanionGroupInvitePage? = null,
+    val progress: CompanionGroupJoinProgress? = null,
 )
 
 class CompanionGroupRosterMember(
@@ -122,6 +139,29 @@ object CompanionGroupConfigurationCodec {
     private val digestDomain = "OpenTrail group roster digest v1".encodeToByteArray()
 
     fun discover(): ByteArray = command(HEADER_BYTES, CompanionGroupOperation.DISCOVER)
+
+    /** F8 step 2e: ask where the board's QR join is now. */
+    fun joinProgress(): ByteArray = command(HEADER_BYTES, CompanionGroupOperation.JOIN_PROGRESS)
+
+    private const val JOIN_PROGRESS_RESULT_BYTES = HEADER_BYTES + 4 + 8
+
+    private fun decodeJoinProgress(status: CompanionGroupStatus, bytes: ByteArray): CompanionGroupResult? {
+        if (status == CompanionGroupStatus.MISSING) return null
+        if (status != CompanionGroupStatus.OK) {
+            return CompanionGroupResult(CompanionGroupOperation.JOIN_PROGRESS, status).takeIf { bytes.size == HEADER_BYTES }
+        }
+        if (bytes.size != JOIN_PROGRESS_RESULT_BYTES || bytes[HEADER_BYTES + 2] != 0.toByte() ||
+            bytes[HEADER_BYTES + 3] != 0.toByte()
+        ) return null
+        val step = CompanionGroupJoinStep.entries.firstOrNull { it.wire == u8(bytes[HEADER_BYTES]) } ?: return null
+        val side = CompanionGroupJoinSide.entries.firstOrNull { it.wire == u8(bytes[HEADER_BYTES + 1]) } ?: return null
+        val group = ByteBuffer.wrap(bytes, HEADER_BYTES + 4, 8).order(ByteOrder.LITTLE_ENDIAN).long.toULong()
+        val none = step == CompanionGroupJoinStep.NONE
+        if (none != (side == CompanionGroupJoinSide.NONE) || none != (group == 0UL)) return null
+        return CompanionGroupResult(
+            CompanionGroupOperation.JOIN_PROGRESS, status, progress = CompanionGroupJoinProgress(step, side, group),
+        )
+    }
 
     fun create(locationRule: Int): ByteArray? {
         if (locationRule !in 0..2) return null
@@ -294,7 +334,7 @@ object CompanionGroupConfigurationCodec {
         return when (operation) {
             CompanionGroupOperation.INVITE, CompanionGroupOperation.READ_INVITE, CompanionGroupOperation.JOIN ->
                 validInviteCommand(operation, bytes)
-            CompanionGroupOperation.DISCOVER -> bytes.size == HEADER_BYTES
+            CompanionGroupOperation.DISCOVER, CompanionGroupOperation.JOIN_PROGRESS -> bytes.size == HEADER_BYTES
             CompanionGroupOperation.CREATE -> bytes.size == HEADER_BYTES + 1 && u8(bytes[HEADER_BYTES]) in 0..2
             CompanionGroupOperation.STOP_TRUST ->
                 bytes.size == HEADER_BYTES + SCOPE_BYTES && readScope(bytes, HEADER_BYTES) != null
@@ -314,6 +354,7 @@ object CompanionGroupConfigurationCodec {
     fun decodeResult(bytes: ByteArray): CompanionGroupResult? {
         val operation = operation(bytes) ?: return null
         val status = CompanionGroupStatus.entries.firstOrNull { it.wire == u8(bytes[6]) } ?: return null
+        if (operation == CompanionGroupOperation.JOIN_PROGRESS) return decodeJoinProgress(status, bytes)
         if (operation == CompanionGroupOperation.INVITE || operation == CompanionGroupOperation.READ_INVITE ||
             operation == CompanionGroupOperation.JOIN
         ) return decodeInviteResult(operation, status, bytes)

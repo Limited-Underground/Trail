@@ -359,7 +359,8 @@ std::size_t group_command_size(GroupConfigurationOperation operation, std::uint1
     case GroupConfigurationOperation::invite:
     case GroupConfigurationOperation::read_invite:
     case GroupConfigurationOperation::join:
-        return 0;  // Sized by the invite codec below.
+    case GroupConfigurationOperation::join_progress:
+        return 0;  // Sized by the invite and join progress codecs below.
     }
     return 0;
 }
@@ -477,6 +478,36 @@ static_assert(kInviteCommandFixed + kConfigurationInviteLabelBytes == kConfigura
 static_assert(kReadInviteResultFixed + kInvitePageBytes <= kConfigurationPayloadBytes);
 static_assert(kJoinCommandFixed + kInvitePageBytes <= kConfigurationPayloadBytes);
 static_assert(kJoinResultFinalBytes <= kConfigurationPayloadBytes);
+
+// Join Progress: the command is the header alone; an ok result adds
+// step(1) side(1) zero(2) group(8, little-endian).
+constexpr std::size_t kJoinProgressResultBytes = kGroupHeaderBytes + 4 + 8;
+
+bool join_progress_valid(const GroupJoinProgress& p) {
+    const auto step = static_cast<std::uint8_t>(p.step);
+    const auto side = static_cast<std::uint8_t>(p.side);
+    if (step > static_cast<std::uint8_t>(GroupJoinStep::failed) || side > static_cast<std::uint8_t>(GroupJoinSide::admin))
+        return false;
+    // No join: nothing else. A join names its side and group.
+    return p.step == GroupJoinStep::none ? p.side == GroupJoinSide::none && p.group_id == 0
+                                         : p.side != GroupJoinSide::none && p.group_id != 0;
+}
+
+bool join_progress_command_clean(const GroupConfigurationCommand& c) {
+    return c.location_rule == 0 && c.scope == GroupConfigurationScope{} && c.read.slot == 0 &&
+        c.read.state == GroupConfigurationRosterState::none && c.read.offset == 0 &&
+        c.label == GroupConfigurationLabel{} && c.invite.size == 0 && c.invite.offset == 0 &&
+        c.invite.total_bytes == 0 &&
+        std::all_of(c.invite.invite_id.begin(), c.invite.invite_id.end(), [](std::uint8_t b) { return b == 0; });
+}
+
+bool join_progress_result_clean(const GroupConfigurationResult& r) {
+    const GroupConfigurationInvitePage empty{};
+    return r.scope == GroupConfigurationScope{} && r.fragment.slot == 0 && r.fragment.offset == 0 &&
+        r.fragment.total_bytes == 0 && r.fragment.size == 0 &&
+        r.fragment.state == GroupConfigurationRosterState::none && r.invite.invite_id == empty.invite_id &&
+        r.invite.offset == 0 && r.invite.total_bytes == 0 && r.invite.size == 0;
+}
 
 bool invite_operation(std::uint8_t operation) {
     return operation >= static_cast<std::uint8_t>(GroupConfigurationOperation::invite) &&
@@ -674,6 +705,12 @@ ConfigurationDecodeResult<GroupConfigurationResult> decode_invite_result(const s
 
 ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigurationCommand& command,
     std::uint8_t* out, std::size_t capacity) {
+    if (command.operation == GroupConfigurationOperation::join_progress) {
+        if (!join_progress_command_clean(command)) return {ConfigurationCodecError::malformed, 0};
+        const std::array<std::uint8_t, kGroupHeaderBytes> bytes{'O','T','G','C',1,
+            static_cast<std::uint8_t>(command.operation)};
+        return emit(bytes.data(), bytes.size(), out, capacity);
+    }
     if (invite_operation(static_cast<std::uint8_t>(command.operation)))
         return encode_invite_command(command, out, capacity);
     if (!(command.label == GroupConfigurationLabel{}) || command.invite.size != 0 || command.invite.offset != 0 ||
@@ -697,6 +734,10 @@ ConfigurationEncodeResult encode_group_configuration_command(const GroupConfigur
 ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_command(
     const std::uint8_t* b, std::size_t size) {
     if (!group_header_valid(b, size) || b[6] != 0) return {ConfigurationCodecError::malformed, {}};
+    if (b[5] == static_cast<std::uint8_t>(GroupConfigurationOperation::join_progress)) {
+        if (size != kGroupHeaderBytes) return {ConfigurationCodecError::malformed, {}};
+        return {ConfigurationCodecError::none, GroupConfigurationCommand{GroupConfigurationOperation::join_progress}};
+    }
     if (invite_operation(b[5])) return decode_invite_command(b, size);
     GroupConfigurationCommand command{static_cast<GroupConfigurationOperation>(b[5])};
     if (command.operation == GroupConfigurationOperation::read_roster) {
@@ -716,6 +757,19 @@ ConfigurationDecodeResult<GroupConfigurationCommand> decode_group_configuration_
 
 ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigurationResult& result,
     std::uint8_t* out, std::size_t capacity) {
+    if (result.operation == GroupConfigurationOperation::join_progress) {
+        const bool ok = result.status == GroupConfigurationStatus::ok;
+        if (!join_progress_result_clean(result) || !invite_result_status_valid(result.status) ||
+            (ok ? !join_progress_valid(result.progress) : !(result.progress == GroupJoinProgress{})))
+            return {ConfigurationCodecError::malformed, 0};
+        std::array<std::uint8_t, kJoinProgressResultBytes> bytes{'O','T','G','C',1,
+            static_cast<std::uint8_t>(result.operation), static_cast<std::uint8_t>(result.status)};
+        if (!ok) return emit(bytes.data(), kGroupHeaderBytes, out, capacity);
+        bytes[kGroupHeaderBytes] = static_cast<std::uint8_t>(result.progress.step);
+        bytes[kGroupHeaderBytes + 1] = static_cast<std::uint8_t>(result.progress.side);
+        write(bytes.data() + kGroupHeaderBytes + 4, result.progress.group_id);
+        return emit(bytes.data(), bytes.size(), out, capacity);
+    }
     if (invite_operation(static_cast<std::uint8_t>(result.operation)))
         return encode_invite_result(result, out, capacity);
     if (result.invite.size != 0 || result.invite.offset != 0 || result.invite.total_bytes != 0)
@@ -739,6 +793,22 @@ ConfigurationEncodeResult encode_group_configuration_result(const GroupConfigura
 ConfigurationDecodeResult<GroupConfigurationResult> decode_group_configuration_result(
     const std::uint8_t* b, std::size_t size) {
     if (!group_header_valid(b, size)) return {ConfigurationCodecError::malformed, {}};
+    if (b[5] == static_cast<std::uint8_t>(GroupConfigurationOperation::join_progress)) {
+        GroupConfigurationResult r{GroupConfigurationOperation::join_progress,
+            static_cast<GroupConfigurationStatus>(b[6])};
+        if (!invite_result_status_valid(r.status)) return {ConfigurationCodecError::malformed, {}};
+        if (r.status != GroupConfigurationStatus::ok)
+            return size == kGroupHeaderBytes ? ConfigurationDecodeResult<GroupConfigurationResult>{
+                ConfigurationCodecError::none, r} : ConfigurationDecodeResult<GroupConfigurationResult>{
+                ConfigurationCodecError::malformed, {}};
+        if (size != kJoinProgressResultBytes || b[kGroupHeaderBytes + 2] != 0 || b[kGroupHeaderBytes + 3] != 0)
+            return {ConfigurationCodecError::malformed, {}};
+        r.progress.step = static_cast<GroupJoinStep>(b[kGroupHeaderBytes]);
+        r.progress.side = static_cast<GroupJoinSide>(b[kGroupHeaderBytes + 1]);
+        r.progress.group_id = read<std::uint64_t>(b + kGroupHeaderBytes + 4);
+        if (!join_progress_valid(r.progress)) return {ConfigurationCodecError::malformed, {}};
+        return {ConfigurationCodecError::none, r};
+    }
     if (invite_operation(b[5])) {
         if (size > kConfigurationPayloadBytes) return {ConfigurationCodecError::malformed, {}};
         return decode_invite_result(b, size);

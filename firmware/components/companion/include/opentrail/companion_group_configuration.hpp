@@ -23,6 +23,30 @@ enum class GroupConfigurationOperation : std::uint8_t {
     // invite on the admin board, Read Invite pages it out, and Join pages a
     // scanned invite into the joiner board, which verifies and claims it once.
     invite = 5, read_invite = 6, join = 7,
+    // F8 step 2e: what the board's QR join is doing now, for the app to show.
+    join_progress = 8,
+};
+// The step a board's QR group join is at. The app tells the person what to do;
+// it never shows the comparison values, which stay on the boards' screens.
+enum class GroupJoinStep : std::uint8_t {
+    none = 0,          // no join on this board
+    waiting = 1,       // looking for the other device over the radio
+    review_ids = 2,    // this device's screen shows MY ID and PEER ID
+    review_code = 3,   // this device's screen shows the 8-digit code
+    waiting_peer = 4,  // confirmed here; waiting for the other device's person
+    saving = 5,        // keeping the decision on this device
+    joined = 6,        // done: committed on this device
+    cancelled = 7,     // ended by a person before it was kept
+    failed = 8,        // ended without a decision (time limit, radio, storage)
+};
+enum class GroupJoinSide : std::uint8_t { none = 0, joiner = 1, admin = 2 };
+struct GroupJoinProgress {
+    GroupJoinStep step{GroupJoinStep::none};
+    GroupJoinSide side{GroupJoinSide::none};
+    std::uint64_t group_id{0};
+    bool operator==(const GroupJoinProgress& other) const {
+        return step == other.step && side == other.side && group_id == other.group_id;
+    }
 };
 enum class GroupConfigurationStatus : std::uint8_t {
     ok = 0, unavailable = 1, refused = 2, stale = 3, uncertain = 4, missing = 5,
@@ -96,6 +120,8 @@ struct GroupConfigurationResult {
     // Invite: ID and total. Read Invite: page. Join: offset and total, plus
     // the invite ID and scope once the last page is accepted.
     GroupConfigurationInvitePage invite{};
+    // Join Progress only.
+    GroupJoinProgress progress{};
 };
 
 [[nodiscard]] ConfigurationEncodeResult encode_group_configuration_command(

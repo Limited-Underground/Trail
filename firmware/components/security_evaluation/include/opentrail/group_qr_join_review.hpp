@@ -241,6 +241,11 @@ public:
     // cancels the join.
     [[nodiscard]] bool refused() const { return refused_; }
     [[nodiscard]] bool showing() const { return review_ && review_->state() == State::showing; }
+    // The review on the screen now, if any.
+    [[nodiscard]] std::optional<identity::roster::qr::Review> shown() const {
+        if (!showing()) return std::nullopt;
+        return review_->request().review;
+    }
 
     void reset() {
         pending_.reset();

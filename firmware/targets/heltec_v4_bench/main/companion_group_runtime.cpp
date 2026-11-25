@@ -15,6 +15,8 @@
 
 namespace opentrail::target::heltec_v4_bench {
 namespace {
+// F8 step 2e: the QR join runtime's latest step (app task only).
+companion::GroupJoinProgress g_join_progress{};
 
 class BoardGroupPlatform final : public companion::GroupConfigurationPlatform {
 public:
@@ -57,6 +59,8 @@ public:
         return nullptr;
 #endif
     }
+
+    companion::GroupJoinProgress join_progress() noexcept override { return g_join_progress; }
 
     bool wipe_group_pair_keys(std::uint64_t group) noexcept override {
         auto* keys = pair_keys();
@@ -192,6 +196,8 @@ companion::ConfigurationGroupBackend& companion_group_backend(
 }
 
 companion::ConfigurationGroupOwner* companion_group_owner_started() { return g_started_owner; }
+
+void publish_group_join_progress(const companion::GroupJoinProgress& progress) { g_join_progress = progress; }
 
 persistence::GroupQrPairKeys* companion_group_pair_keys() { return g_platform ? g_platform->pair_keys() : nullptr; }
 

@@ -2,6 +2,8 @@ package io.github.nbjelanovic.otclient
 
 import io.github.nbjelanovic.otprotocol.CompanionGroupConfigurationCodec
 import io.github.nbjelanovic.otprotocol.CompanionGroupInvite
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinSide
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinStep
 import io.github.nbjelanovic.otprotocol.CompanionGroupOperation
 import io.github.nbjelanovic.otprotocol.CompanionGroupResult
 import io.github.nbjelanovic.otprotocol.CompanionGroupRosterState
@@ -53,6 +55,7 @@ internal class BleGroupRosterSession(
 
     fun submit(action: V1BoardGroupAction): Boolean {
         if (busy || !isCurrent()) return false
+        if (action == V1BoardGroupAction.JoinProgress) return askJoinProgress()
         val selected = when (action) {
             is V1BoardGroupAction.StopTrust -> action.group
             is V1BoardGroupAction.Invite -> action.group
@@ -68,6 +71,7 @@ internal class BleGroupRosterSession(
             CompanionGroupConfigurationCodec.decodeInvite(join.invite) ?: return false
         }
         val (operation, payload) = when (action) {
+            V1BoardGroupAction.JoinProgress -> return false
             V1BoardGroupAction.Refresh ->
                 CompanionGroupOperation.DISCOVER to CompanionGroupConfigurationCodec.discover()
             is V1BoardGroupAction.Create -> {
@@ -98,6 +102,10 @@ internal class BleGroupRosterSession(
         if (request.exchange != exchange || !isCurrent()) return false
         pending = null
         val result = CompanionGroupConfigurationCodec.decodeResult(payload)
+        if (request.operation == CompanionGroupOperation.JOIN_PROGRESS) {
+            joinProgressRead(result)
+            return true
+        }
         when {
             result == null || result.operation != request.operation -> fail()
             result.operation == CompanionGroupOperation.READ_ROSTER -> read(result)
@@ -119,7 +127,40 @@ internal class BleGroupRosterSession(
     }
 
     fun lost(exchange: UInt) {
-        if (pending?.exchange == exchange && isCurrent()) fail()
+        if (pending?.exchange != exchange || !isCurrent()) return
+        if (pending?.operation == CompanionGroupOperation.JOIN_PROGRESS) {
+            // A lost progress read changes nothing; the next read asks again.
+            pending = null
+            intent = null
+            return
+        }
+        fail()
+    }
+
+    // F8 step 2e: a read-only question that never disturbs the roster view
+    // or reports a failure of its own.
+    private fun askJoinProgress(): Boolean {
+        val exchange = allocate() ?: return false
+        val request = Pending(exchange, CompanionGroupOperation.JOIN_PROGRESS)
+        intent = V1BoardGroupAction.JoinProgress
+        pending = request
+        val written = try { send(exchange, CompanionGroupConfigurationCodec.joinProgress()) } catch (_: Exception) { false }
+        if (!written && pending === request) {
+            pending = null
+            intent = null
+        }
+        return written
+    }
+
+    private fun joinProgressRead(result: CompanionGroupResult?) {
+        intent = null
+        val progress = result?.takeIf { it.status == CompanionGroupStatus.OK }?.progress ?: return
+        val shown = if (progress.step == CompanionGroupJoinStep.NONE) null
+        else V1BoardGroupJoinProgress(progress.step, progress.side == CompanionGroupJoinSide.ADMIN, progress.groupId)
+        if (shown != state.joinProgress) {
+            state = state.copy(joinProgress = shown)
+            changed()
+        }
     }
 
     fun close() {
@@ -271,6 +312,7 @@ internal class BleGroupRosterSession(
             groups = confirmed.map { it.summary },
             notice = message,
             invite = invite,
+            joinProgress = state.joinProgress,
         )
         changed()
     }

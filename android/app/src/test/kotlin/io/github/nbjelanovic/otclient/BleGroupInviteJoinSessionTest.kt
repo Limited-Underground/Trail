@@ -1,5 +1,6 @@
 package io.github.nbjelanovic.otclient
 
+import io.github.nbjelanovic.otprotocol.CompanionGroupJoinStep
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -131,6 +132,68 @@ class BleGroupInviteJoinSessionTest {
         assertNull(V1InviteCodeText.decode(V1InviteCodeText.encode(ByteArray(288))))
     }
 
+    @Test
+    fun joinProgressReadsTheBoardStepWithoutDisturbingTheRosterView() {
+        val h = Harness()
+        val group = h.oneGroup()
+        val notice = h.session.state.notice
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.expect(wire.message(JOIN_PROGRESS))
+        assertFalse(h.session.state.busy)
+        assertTrue(h.session.busy)
+        // The board shows the code; the app shows only the step.
+        h.deliver(wire.message(JOIN_PROGRESS) + byteArrayOf(3, 1, 0, 0) + le64(0x1122334455667788))
+        val progress = assertNotNull(h.session.state.joinProgress)
+        assertEquals(CompanionGroupJoinStep.REVIEW_CODE, progress.step)
+        assertFalse(progress.admin)
+        assertEquals(0x1122334455667788uL, progress.groupId)
+        assertTrue(progress.active)
+        assertTrue(joinProgressText(progress).contains("8-digit code"))
+        assertEquals(listOf(group), h.session.state.groups)
+        assertEquals(notice, h.session.state.notice)
+        assertFalse(h.session.busy)
+
+        // Admin side, finished: kept until the board stops reporting it.
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.deliver(wire.message(JOIN_PROGRESS) + byteArrayOf(6, 2, 0, 0) + le64(0x1122334455667788))
+        val done = assertNotNull(h.session.state.joinProgress)
+        assertTrue(done.admin && done.finished && !done.active)
+        assertEquals("The new member was added to the group.", joinProgressText(done))
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.deliver(wire.message(JOIN_PROGRESS) + ByteArray(12))
+        assertNull(h.session.state.joinProgress)
+
+        // A refusal, a malformed answer or a lost exchange changes nothing and reports nothing.
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.deliver(wire.message(JOIN_PROGRESS) + byteArrayOf(2, 1, 0, 0) + le64(9))
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.deliver(wire.message(JOIN_PROGRESS, 1))
+        assertEquals(CompanionGroupJoinStep.REVIEW_IDS, h.session.state.joinProgress?.step)
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.deliver(wire.message(JOIN_PROGRESS) + byteArrayOf(9, 1, 0, 0) + le64(9))
+        assertEquals(CompanionGroupJoinStep.REVIEW_IDS, h.session.state.joinProgress?.step)
+        assertTrue(h.session.submit(V1BoardGroupAction.JoinProgress))
+        h.session.lost(h.last.exchange)
+        assertFalse(h.session.busy)
+        assertEquals(listOf(group), h.session.state.groups)
+        assertEquals(notice, h.session.state.notice)
+
+        // A roster refresh keeps the last step it knew.
+        h.refresh()
+        h.roster(0)
+        (1..3).forEach(h::missing)
+        assertEquals(CompanionGroupJoinStep.REVIEW_IDS, h.session.state.joinProgress?.step)
+    }
+
+    @Test
+    fun everyJoinStepHasPlainWords() {
+        for (step in CompanionGroupJoinStep.entries) for (admin in listOf(false, true)) {
+            val text = joinProgressText(V1BoardGroupJoinProgress(step, admin, 7uL))
+            assertEquals(step == CompanionGroupJoinStep.NONE, text.isEmpty(), "$step")
+            assertFalse(text.contains("Noise") || text.contains("receipt") || text.contains("transcript"), text)
+        }
+    }
+
     private inner class Harness(nowMs: Long = 0L) {
         inner class Sent(val exchange: UInt, val payload: ByteArray)
         private var nextExchange = 1u
@@ -179,12 +242,14 @@ class BleGroupInviteJoinSessionTest {
     }
 
     private fun le16(value: Int) = byteArrayOf(value.toByte(), (value ushr 8).toByte())
+    private fun le64(value: Long) = ByteArray(8) { (value ushr (8 * it)).toByte() }
     private fun hex(value: String) = value.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
     private companion object {
         const val INVITE = 5
         const val READ_INVITE = 6
         const val JOIN = 7
+        const val JOIN_PROGRESS = 8
         const val REFUSED = 2
         const val STALE = 3
     }

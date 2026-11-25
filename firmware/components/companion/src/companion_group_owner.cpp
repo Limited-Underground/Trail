@@ -95,6 +95,11 @@ GroupConfigurationResult ConfigurationGroupOwner::execute(
     if (!signer || !crypto_.fingerprint(signer->public_key(), fingerprint) || fingerprint == roster::Fingerprint{})
         return {request.operation, Status::unavailable};
     if (request.operation == Operation::discover) return {request.operation, Status::ok};
+    if (request.operation == Operation::join_progress) {
+        GroupConfigurationResult result{request.operation, Status::ok};
+        result.progress = platform_.join_progress();
+        return result;
+    }
 
     roster_.reset();
     index_.emplace(catalog_, fingerprint);
