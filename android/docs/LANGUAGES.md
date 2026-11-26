@@ -12,7 +12,7 @@ MeshTrail app text is translated with ordinary Android string resources (D-096, 
 | French | `values-fr` | Français | Unreviewed draft |
 | German | `values-de` | Deutsch | Unreviewed draft |
 | Croatian | `values-hr` | Hrvatski | Unreviewed draft |
-| Serbian, Latin script | `values-b+sr+Latn` | Srpski | Unreviewed draft; script is an open owner decision |
+| Serbian, Latin script | `values-b+sr+Latn` | Srpski | Unreviewed draft; Latin only (D-193), Serbian Cyrillic phones fall back to English |
 | Russian | `values-ru` | Русский | Unreviewed draft |
 | Ukrainian | `values-uk` | Українська | Unreviewed draft |
 
