@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 
 /** Window orientation is stable when the IME reduces the content's usable height. */
 internal fun v1NavigationForConfiguration(orientation: Int): V1AppNavigationLayout =
@@ -68,8 +69,8 @@ private fun V1NavigationBar(
             NavigationBarItem(
                 selected = destination == selected,
                 onClick = { onDestinationSelected(destination) },
-                icon = { Text(destination.shortLabel) },
-                label = { Text(destination.publicLabel) },
+                icon = { Text(stringResource(destination.shortLabel)) },
+                label = { Text(stringResource(destination.publicLabel)) },
             )
         }
     }
@@ -85,23 +86,23 @@ private fun V1NavigationRail(
             NavigationRailItem(
                 selected = destination == selected,
                 onClick = { onDestinationSelected(destination) },
-                icon = { Text(destination.shortLabel) },
-                label = { Text(destination.publicLabel) },
+                icon = { Text(stringResource(destination.shortLabel)) },
+                label = { Text(stringResource(destination.publicLabel)) },
             )
         }
     }
 }
 
-private val V1AppDestination.publicLabel: String
+private val V1AppDestination.publicLabel: Int
     get() = when (this) {
-        V1AppDestination.MESSAGES -> "Messages"
-        V1AppDestination.GROUP -> "Group"
-        V1AppDestination.DEVICE -> "Device"
+        V1AppDestination.MESSAGES -> R.string.nav_messages
+        V1AppDestination.GROUP -> R.string.nav_group
+        V1AppDestination.DEVICE -> R.string.nav_device
     }
 
-private val V1AppDestination.shortLabel: String
+private val V1AppDestination.shortLabel: Int
     get() = when (this) {
-        V1AppDestination.MESSAGES -> "M"
-        V1AppDestination.GROUP -> "G"
-        V1AppDestination.DEVICE -> "D"
+        V1AppDestination.MESSAGES -> R.string.nav_messages_short
+        V1AppDestination.GROUP -> R.string.nav_group_short
+        V1AppDestination.DEVICE -> R.string.nav_device_short
     }

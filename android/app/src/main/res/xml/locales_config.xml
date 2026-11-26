@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ per-app language list (D-192). Keep in step with AppLanguage.kt and the res/values-* folders. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="es" />
+    <locale android:name="it" />
+    <locale android:name="fr" />
+    <locale android:name="de" />
+    <locale android:name="hr" />
+    <locale android:name="sr-Latn" />
+    <locale android:name="ru" />
+    <locale android:name="uk" />
+</locale-config>

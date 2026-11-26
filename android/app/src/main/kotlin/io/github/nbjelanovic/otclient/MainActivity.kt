@@ -1,6 +1,7 @@
 package io.github.nbjelanovic.otclient
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -77,6 +78,10 @@ open class MainActivity : ComponentActivity() {
 
     @Composable
     protected open fun AdditionalTools() = Unit
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguageSetting.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

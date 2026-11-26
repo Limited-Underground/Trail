@@ -7,6 +7,14 @@ including assumptions and older decision checkpoints, is preserved in the
 See [archive navigation](history/README.md) for moved headings, [Architecture](ARCHITECTURE.md)
 for design and the [backlog](../tasks/BACKLOG.md) for every task identifier.
 
+## App languages
+
+The app has a language framework (D-192): nine languages, a Language choice
+in App settings, and checks for missing translations and clipped text. Only
+the tab labels and App settings are translated so far, as unreviewed drafts.
+The remaining screen text moves screen by screen ([LANGUAGES.md](../android/docs/LANGUAGES.md),
+[progress entry](PROGRESS_LOG.md#ot-0342-app-languages-framework-d-192)). Part of #323.
+
 ## Android usability
 
 Android distinguishes a saved region from unreported live radio status.

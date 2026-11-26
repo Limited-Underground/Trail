@@ -1,3 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English is the base language. Every string added here must also be added to each values-* folder
+     (Android lint MissingTranslation and AppLanguageResourcesTest fail otherwise). See android/docs/LANGUAGES.md. -->
 <resources>
-    <string name="app_name">Limited Underground MeshTrail</string>
+    <!-- Product name (D-089); never translated. -->
+    <string name="app_name" translatable="false">Limited Underground MeshTrail</string>
+    <string name="settings_app_title">App settings</string>
+    <string name="settings_show_build_label">Show app build in top bar</string>
+    <string name="settings_save_failed">Could not save this setting. Please try again.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system_default">System default</string>
+    <string name="settings_language_choose">Choose app language</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_messages_short">M</string>
+    <string name="nav_group">Group</string>
+    <string name="nav_group_short">G</string>
+    <string name="nav_device">Device</string>
+    <string name="nav_device_short">D</string>
 </resources>

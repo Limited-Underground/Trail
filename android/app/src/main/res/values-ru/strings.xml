@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNREVIEWED: first-pass draft by Claude (AI), 2026-11-26 (D-192). Needs a native speaker's review before release.
+     When reviewed, change this first word to REVIEWED and add the reviewer and date. -->
+<resources>
+    <string name="settings_app_title">Настройки приложения</string>
+    <string name="settings_show_build_label">Показывать сборку приложения в верхней панели</string>
+    <string name="settings_save_failed">Не удалось сохранить настройку. Попробуйте ещё раз.</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_language_system_default">Как в системе</string>
+    <string name="settings_language_choose">Выберите язык приложения</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="nav_messages">Сообщения</string>
+    <string name="nav_messages_short">С</string>
+    <string name="nav_group">Группа</string>
+    <string name="nav_group_short">Г</string>
+    <string name="nav_device">Устройство</string>
+    <string name="nav_device_short">У</string>
+</resources>

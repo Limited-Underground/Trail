@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNREVIEWED: first-pass draft by Claude (AI), 2026-11-26 (D-192). Needs a native speaker's review before release.
+     When reviewed, change this first word to REVIEWED and add the reviewer and date. -->
+<resources>
+    <string name="settings_app_title">Paramètres de l\'app</string>
+    <string name="settings_show_build_label">Afficher la version de l\'app dans la barre supérieure</string>
+    <string name="settings_save_failed">Impossible d\'enregistrer ce paramètre. Veuillez réessayer.</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_language_system_default">Langue du système</string>
+    <string name="settings_language_choose">Choisir la langue de l\'app</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_messages_short">M</string>
+    <string name="nav_group">Groupe</string>
+    <string name="nav_group_short">G</string>
+    <string name="nav_device">Appareil</string>
+    <string name="nav_device_short">A</string>
+</resources>

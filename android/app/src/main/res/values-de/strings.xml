@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNREVIEWED: first-pass draft by Claude (AI), 2026-11-26 (D-192). Needs a native speaker's review before release.
+     When reviewed, change this first word to REVIEWED and add the reviewer and date. -->
+<resources>
+    <string name="settings_app_title">App-Einstellungen</string>
+    <string name="settings_show_build_label">App-Build in der oberen Leiste anzeigen</string>
+    <string name="settings_save_failed">Diese Einstellung konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_language_system_default">Systemstandard</string>
+    <string name="settings_language_choose">App-Sprache wählen</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="nav_messages">Nachrichten</string>
+    <string name="nav_messages_short">N</string>
+    <string name="nav_group">Gruppe</string>
+    <string name="nav_group_short">Gr</string>
+    <string name="nav_device">Gerät</string>
+    <string name="nav_device_short">Ge</string>
+</resources>

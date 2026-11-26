@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNREVIEWED: first-pass draft by Claude (AI), 2026-11-26 (D-192). Needs a native speaker's review before release.
+     When reviewed, change this first word to REVIEWED and add the reviewer and date. -->
+<resources>
+    <string name="settings_app_title">Podešavanja aplikacije</string>
+    <string name="settings_show_build_label">Prikaži verziju aplikacije na gornjoj traci</string>
+    <string name="settings_save_failed">Podešavanje nije sačuvano. Pokušajte ponovo.</string>
+    <string name="settings_language">Jezik</string>
+    <string name="settings_language_system_default">Podrazumevano u sistemu</string>
+    <string name="settings_language_choose">Izaberite jezik aplikacije</string>
+    <string name="action_cancel">Otkaži</string>
+    <string name="nav_messages">Poruke</string>
+    <string name="nav_messages_short">P</string>
+    <string name="nav_group">Grupa</string>
+    <string name="nav_group_short">G</string>
+    <string name="nav_device">Uređaj</string>
+    <string name="nav_device_short">U</string>
+</resources>

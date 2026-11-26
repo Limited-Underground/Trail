@@ -1,5 +1,23 @@
 # OpenTrail Progress Log
 
+## 2026-11-26
+
+### OT-0342 App languages framework (D-192)
+
+The MeshTrail App can now be translated. English stays the base language;
+Spanish, Italian, French, German, Croatian, Serbian (Latin script), Russian
+and Ukrainian have their own string files. App settings on the Device tab has
+a Language choice: System default or one of the nine languages, each shown in
+its own name. Android 13 and later keep the choice as the phone's per-app
+language; older phones keep it in the app. The tab labels and App settings
+text now come from string resources. All translations are unreviewed drafts
+and say so at the top of each file. Lint fails on a missing translation, a
+host test keeps the language list, files and review markers in step, and a
+second host test fails if translated text is clipped or a tab label wraps on
+a 360 dp phone. Play bundles no longer split by language, so the picker always
+has every language. The rest of the screen text moves screen by screen; see
+[LANGUAGES.md](../android/docs/LANGUAGES.md). Part of #323.
+
 ## 2026-11-25
 
 ### OT-0306 Show QR group join progress in the MeshTrail App
