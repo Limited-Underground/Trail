@@ -24,8 +24,8 @@ The list lives in three places that must agree: `AppLanguage.kt`, `res/xml/local
 ## Choosing a language
 
 - Device tab, App settings, Language: System default or one of the languages above, each in its own name.
-- Android 13 and later: the system stores the choice; the phone's own app settings also offer it (App language).
-- Android 8 to 12: the app stores it and applies it to its screen when the screen starts.
+- Android 13 and later: the system stores the choice; the phone's own app settings also offer it (App language). The app keeps no language store of its own.
+- Android 8 to 12: no in-app choice; the app follows the phone's language. (Storing a choice in the app would need a new reviewed store under the OT-088 source privacy boundary, or AndroidX AppCompat, which the app does not use.)
 - The connected-device notification text is still English in Kotlin; it moves with the rest of the text.
 
 ## Adding or changing text

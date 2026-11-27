@@ -1,8 +1,5 @@
 package io.github.nbjelanovic.otclient
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -22,7 +19,7 @@ import androidx.compose.ui.unit.dp
 /** Owner-approved local section on the existing Device tab; no new destination. */
 @Composable
 internal fun AppDisplaySettings(showBuildLabel: Boolean, onShowBuildLabelChanged: (Boolean) -> Unit,
-    saveFailed: Boolean) {
+    saveFailed: Boolean, languageChoiceAvailable: Boolean = AppLanguageSetting.isAvailable()) {
     val context = LocalContext.current
     var language by remember(context) { mutableStateOf(AppLanguageSetting.current(context)) }
     var choosingLanguage by remember { mutableStateOf(false) }
@@ -36,7 +33,8 @@ internal fun AppDisplaySettings(showBuildLabel: Boolean, onShowBuildLabelChanged
             Switch(checked = showBuildLabel, onCheckedChange = onShowBuildLabelChanged,
                 modifier = Modifier.semantics { contentDescription = buildLabel })
         }
-        Row(
+        // Android 13+ only: the system keeps the choice; older phones follow the phone's language.
+        if (languageChoiceAvailable) Row(
             Modifier.fillMaxWidth().clickable(role = Role.Button) { choosingLanguage = true }
                 .padding(vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -56,8 +54,7 @@ internal fun AppDisplaySettings(showBuildLabel: Boolean, onShowBuildLabelChanged
             onSelect = { choice ->
                 choosingLanguage = false
                 if (choice != language) {
-                    val activity = context.findActivity()
-                    val saved = activity != null && AppLanguageSetting.select(activity, choice)
+                    val saved = AppLanguageSetting.select(context, choice)
                     languageSaveFailed = !saved
                     if (saved) language = choice
                 }
@@ -100,10 +97,4 @@ private fun AppLanguageOption(label: String, selected: Boolean, onClick: () -> U
         Spacer(Modifier.width(12.dp))
         Text(label, style = MaterialTheme.typography.bodyLarge)
     }
-}
-
-private tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
 }

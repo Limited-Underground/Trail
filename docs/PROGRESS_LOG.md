@@ -9,7 +9,8 @@ Spanish, Italian, French, German, Croatian, Serbian (Latin and Cyrillic), Russia
 and Ukrainian have their own string files. App settings on the Device tab has
 a Language choice: System default or one of the ten languages, each shown in
 its own name. Android 13 and later keep the choice as the phone's per-app
-language; older phones keep it in the app. The tab labels and App settings
+language; Android 12 and older follow the phone's language, so the app keeps
+no language store of its own. The tab labels and App settings
 text now come from string resources. All translations are unreviewed drafts
 and say so at the top of each file. Lint fails on a missing translation, a
 host test keeps the language list, files and review markers in step, and a
