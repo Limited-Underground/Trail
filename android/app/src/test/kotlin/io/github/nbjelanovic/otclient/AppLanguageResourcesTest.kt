@@ -18,6 +18,8 @@ class AppLanguageResourcesTest {
 
     private fun folderFor(tag: String): String = when {
         tag == "en" -> "values"
+        // Plain sr resolves as Cyrillic for sr, sr-RS and sr-Cyrl phones (D-196).
+        tag == "sr-Cyrl" -> "values-sr"
         tag.contains('-') -> "values-b+" + tag.replace('-', '+')
         else -> "values-$tag"
     }

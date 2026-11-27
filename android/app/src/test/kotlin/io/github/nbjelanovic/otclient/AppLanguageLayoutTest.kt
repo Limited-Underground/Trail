@@ -42,7 +42,7 @@ class AppLanguageLayoutTest(private val qualifier: String) {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun languages(): List<Array<String>> =
-            listOf("en", "es", "it", "fr", "de", "hr", "b+sr+Latn", "ru", "uk").map { arrayOf(it) }
+            listOf("en", "es", "it", "fr", "de", "hr", "b+sr+Latn", "b+sr+Cyrl", "ru", "uk").map { arrayOf(it) }
     }
 
     private fun text(id: Int): String = RuntimeEnvironment.getApplication().getString(id)

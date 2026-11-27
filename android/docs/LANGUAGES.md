@@ -12,9 +12,12 @@ MeshTrail app text is translated with ordinary Android string resources (D-096, 
 | French | `values-fr` | Français | Unreviewed draft |
 | German | `values-de` | Deutsch | Unreviewed draft |
 | Croatian | `values-hr` | Hrvatski | Unreviewed draft |
-| Serbian, Latin script | `values-b+sr+Latn` | Srpski | Unreviewed draft; Latin only (D-193), Serbian Cyrillic phones fall back to English |
+| Serbian, Latin script | `values-b+sr+Latn` | Srpski | Unreviewed draft (D-196) |
+| Serbian, Cyrillic script | `values-sr` | Српски | Unreviewed draft, converted letter by letter from the Latin file (D-196) |
 | Russian | `values-ru` | Русский | Unreviewed draft |
 | Ukrainian | `values-uk` | Українська | Unreviewed draft |
+
+Serbian Cyrillic uses the plain `values-sr` folder: Android treats Serbian without a script as Cyrillic, so phones set to Serbian, Serbian (Serbia) or Serbian (Cyrillic) all get it, and only Serbian (Latin) phones get `values-b+sr+Latn`. `AppLanguageResolutionTest` checks this. When a Serbian string changes, change both files.
 
 The list lives in three places that must agree: `AppLanguage.kt`, `res/xml/locales_config.xml` and the `res/values-*` folders. `AppLanguageResourcesTest` fails if they drift.
 

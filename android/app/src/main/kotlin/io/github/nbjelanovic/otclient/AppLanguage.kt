@@ -21,6 +21,9 @@ internal enum class AppLanguage(val tag: String, val nativeName: String) {
     GERMAN("de", "Deutsch"),
     CROATIAN("hr", "Hrvatski"),
     SERBIAN_LATIN("sr-Latn", "Srpski"),
+    // Folder values-sr (no script): Android treats plain sr as Cyrillic, so phones set to
+    // Serbian, Serbian (Serbia) or Serbian (Cyrillic) all get it (D-196).
+    SERBIAN_CYRILLIC("sr-Cyrl", "Српски"),
     RUSSIAN("ru", "Русский"),
     UKRAINIAN("uk", "Українська"),
     ;
