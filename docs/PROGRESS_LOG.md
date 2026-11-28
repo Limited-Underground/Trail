@@ -1,4 +1,6 @@
-# OpenTrail Progress Log
+# MeshTrail Progress Log
+
+MeshTrail was called OpenTrail during early development. Older entries keep the names used at the time.
 
 ## 2026-11-26
 
