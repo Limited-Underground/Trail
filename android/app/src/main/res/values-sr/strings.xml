@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UNREVIEWED: first-pass draft by Claude (AI), 2026-11-26 (D-192, D-196), converted letter by letter from values-b+sr+Latn. Needs a native speaker's review before release.
+     When reviewed, change this first word to REVIEWED and add the reviewer and date. -->
+<resources>
+    <string name="settings_app_title">Подешавања апликације</string>
+    <string name="settings_show_build_label">Прикажи верзију апликације на горњој траци</string>
+    <string name="settings_save_failed">Подешавање није сачувано. Покушајте поново.</string>
+    <string name="settings_language">Језик</string>
+    <string name="settings_language_system_default">Подразумевано у систему</string>
+    <string name="settings_language_choose">Изаберите језик апликације</string>
+    <string name="action_cancel">Откажи</string>
+    <string name="nav_messages">Поруке</string>
+    <string name="nav_messages_short">П</string>
+    <string name="nav_group">Група</string>
+    <string name="nav_group_short">Г</string>
+    <string name="nav_device">Уређај</string>
+    <string name="nav_device_short">У</string>
+</resources>

@@ -103,6 +103,14 @@ android {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
 
+    // D-192: the in-app language picker needs every language in the installed app,
+    // so Play bundles must not split by language.
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     lint {
         warningsAsErrors = true
         // OT-036 deliberately pins the accepted SDK-35/AGP-8.7 toolchain.
